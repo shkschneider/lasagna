@@ -1,235 +1,186 @@
--- main.lua
--- Single-file Love2D starter: player movement, shooting, enemies, collisions, score.
--- No conf.lua required; window is configured in love.load.
+-- main.lua for Love2D: Minimalist Terraria-like World with Layers and Player
 
-local Player = {}
-local Bullets = {}
-local enemies = {}
-
-local screen = { w = 800, h = 600 }
-local enemySpawnTimer = 0
-local enemySpawnInterval = 2 -- seconds
-local score = 0
-local font
-
--- Utility: AABB rectangle overlap
-local function rectsOverlap(a, b)
-    return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
+-- Perlin noise implementation
+local p = {}
+for i = 1, 256 do
+    p[i] = math.random(0, 255)
+    p[i + 256] = p[i]
 end
 
--- --------------------------
--- Player
--- --------------------------
-Player.x = 0
-Player.y = 0
-Player.w = 28
-Player.h = 28
-Player.speed = 220
-Player.shootCooldown = 0.18
-Player.shootTimer = 0
+local function fade(t) return t * t * t * (t * (t * 6 - 15) + 10) end
+local function lerp(t, a, b) return a + t * (b - a) end
+local function grad(hash, x) return (hash % 2 == 0 and x or -x) end
 
-function Player.init(x, y)
-    Player.x = x - Player.w / 2
-    Player.y = y - Player.h / 2
-    Player.shootTimer = 0
+local function noise(x)
+    local xi = math.floor(x) % 256
+    local xf = x % 1
+    local u = fade(xf)
+    local a = p[xi + 1]
+    local b = p[xi + 2]
+    return lerp(u, grad(a, xf), grad(b, xf - 1)) * 2
 end
 
-function Player.update(dt)
-    local dx, dy = 0, 0
-    if love.keyboard.isDown("left") or love.keyboard.isDown("a") then dx = dx - 1 end
-    if love.keyboard.isDown("right") or love.keyboard.isDown("d") then dx = dx + 1 end
-    if love.keyboard.isDown("up") or love.keyboard.isDown("w") then dy = dy - 1 end
-    if love.keyboard.isDown("down") or love.keyboard.isDown("s") then dy = dy + 1 end
-
-    if dx ~= 0 and dy ~= 0 then
-        dx = dx * 0.7071
-        dy = dy * 0.7071
+local function perlin1d(x, octaves, persistence)
+    local total, amp, freq, max_val = 0, 1, 1, 0
+    for i = 1, octaves do
+        total = total + noise(x * freq) * amp
+        max_val = max_val + amp
+        amp = amp * persistence
+        freq = freq * 2
     end
-
-    Player.x = Player.x + dx * Player.speed * dt
-    Player.y = Player.y + dy * Player.speed * dt
-
-    -- clamp to screen
-    Player.x = math.max(0, math.min(screen.w - Player.w, Player.x))
-    Player.y = math.max(0, math.min(screen.h - Player.h, Player.y))
-
-    -- shoot timer
-    Player.shootTimer = math.max(0, Player.shootTimer - dt)
-
-    -- auto-shoot while holding space
-    if love.keyboard.isDown("space") and Player.shootTimer == 0 then
-        Player.shoot()
-    end
+    return total / max_val
 end
 
-function Player.shoot()
-    if Player.shootTimer > 0 then return end
-    local bx = Player.x + Player.w / 2 - 4
-    local by = Player.y - 10
-    Bullets.spawn(bx, by, 0, -400)
-    Player.shootTimer = Player.shootCooldown
-end
+-- World properties
+local block_size = 16
+local world_width = 500
+local world_height = 100
+local layers = {}
+local current_layer = 0  -- Default layer
+local camera_x = 0
+local screen_width, screen_height
+local player = {x = 50, y = 0, width = 1, height = 2, vx = 0, vy = 0, on_ground = false, z = 0}
 
-function Player.draw()
-    love.graphics.setColor(0.2, 0.6, 0.9)
-    love.graphics.rectangle("fill", Player.x, Player.y, Player.w, Player.h)
-    love.graphics.setColor(1,1,1)
-end
+-- Physics constants
+local gravity = 20  -- Blocks per second squared
+local jump_velocity = -8.94  -- For ~2 block jump height
+local move_speed = 5  -- Blocks per second
 
--- --------------------------
--- Bullets
--- --------------------------
-Bullets.list = {}
-
-function Bullets.init()
-    Bullets.list = {}
-end
-
-function Bullets.spawn(x, y, vx, vy)
-    local b = {
-        x = x,
-        y = y,
-        w = 8,
-        h = 10,
-        vx = vx or 0,
-        vy = vy or -400
-    }
-    table.insert(Bullets.list, b)
-end
-
-function Bullets.update(dt)
-    for i = #Bullets.list, 1, -1 do
-        local b = Bullets.list[i]
-        b.x = b.x + (b.vx or 0) * dt
-        b.y = b.y + (b.vy or 0) * dt
-
-        if b.y < -50 or b.y > screen.h + 50 or b.x < -50 or b.x > screen.w + 50 then
-            table.remove(Bullets.list, i)
-        end
-    end
-end
-
-function Bullets.draw()
-    love.graphics.setColor(1, 0.9, 0.2)
-    for _, b in ipairs(Bullets.list) do
-        love.graphics.rectangle("fill", b.x, b.y, b.w, b.h)
-    end
-    love.graphics.setColor(1,1,1)
-end
-
--- --------------------------
--- Enemies
--- --------------------------
-local function spawnEnemy()
-    local e = {
-        x = math.random(20, screen.w - 20),
-        y = -30,
-        w = 28,
-        h = 28,
-        speed = 60 + math.random() * 80,
-        hp = 1
-    }
-    table.insert(enemies, e)
-end
-
--- --------------------------
--- LOVE callbacks
--- --------------------------
 function love.load()
-    math.randomseed(os.time())
-    love.window.setMode(screen.w, screen.h, {resizable = false})
-    love.window.setTitle("Love2D Single-File Starter — shooter")
-    love.graphics.setDefaultFilter("nearest", "nearest")
-    font = love.graphics.newFont(14)
+    love.window.setMode(1280, 720)
+    screen_width = love.graphics.getWidth()
+    screen_height = love.graphics.getHeight()
 
-    Player.init(screen.w / 2, screen.h - 60)
-    Bullets.init()
-
-    score = 0
-    enemies = {}
-    enemySpawnTimer = 0
-    enemySpawnInterval = 2
-end
-
-function love.update(dt)
-    -- spawn enemies (difficulty ramps down interval slowly)
-    enemySpawnTimer = enemySpawnTimer + dt
-    if enemySpawnTimer >= enemySpawnInterval then
-        spawnEnemy()
-        enemySpawnTimer = enemySpawnTimer - enemySpawnInterval
-        if enemySpawnInterval > 0.6 then
-            enemySpawnInterval = enemySpawnInterval - 0.02
-        end
-    end
-
-    Player.update(dt)
-    Bullets.update(dt)
-
-    -- update enemies
-    for i = #enemies, 1, -1 do
-        local e = enemies[i]
-        e.y = e.y + e.speed * dt
-
-        -- collision with player
-        if rectsOverlap(e, Player) then
-            -- simple response: reset player position and reduce score
-            Player.x = screen.w / 2 - Player.w / 2
-            Player.y = screen.h - 60 - Player.h / 2
-            score = math.max(0, score - 5)
-            table.remove(enemies, i)
+    -- Generate layers (-1: back, 0: default, 1: front)
+    for z = -1, 1 do
+        layers[z] = {tiles = {}, heights = {}}
+        local base_height = world_height * 0.3
+        local amplitude = 10
+        local frequency = 1 / 50
+        local octaves = 4
+        local persistence = 0.5
+        if z == -1 then
+            frequency = 1 / 40
+            amplitude = 15
+        elseif z == 1 then
+            frequency = 1 / 60
+            amplitude = 12
         end
 
-        -- remove off-screen enemies
-        if e.y > screen.h + 40 then
-            table.remove(enemies, i)
-        end
-    end
+        for x = 1, world_width do
+            local noise_val = perlin1d(x * frequency + (z * 100), octaves, persistence)
+            local height = math.floor(base_height + amplitude * noise_val)
+            height = math.max(1, math.min(45, height))
+            layers[z].heights[x] = height
 
-    -- bullet-enemy collisions
-    for bi = #Bullets.list, 1, -1 do
-        local b = Bullets.list[bi]
-        for ei = #enemies, 1, -1 do
-            local e = enemies[ei]
-            if rectsOverlap(b, e) then
-                e.hp = e.hp - 1
-                table.remove(Bullets.list, bi)
-                if e.hp <= 0 then
-                    score = score + 1
-                    table.remove(enemies, ei)
-                end
-                break
+            -- Grass tile
+            table.insert(layers[z].tiles, {x = x, y = height, type = "grass"})
+
+            -- Dirt tiles below
+            for y = height + 1, world_height do
+                table.insert(layers[z].tiles, {x = x, y = y, type = "dirt"})
             end
         end
     end
-end
 
-function love.draw()
-    love.graphics.setFont(font)
-
-    -- background
-    love.graphics.clear(0.09, 0.09, 0.14)
-
-    -- draw player and bullets
-    Player.draw()
-    Bullets.draw()
-
-    -- draw enemies
-    for _, e in ipairs(enemies) do
-        love.graphics.setColor(0.9, 0.35, 0.35)
-        love.graphics.rectangle("fill", e.x, e.y, e.w, e.h)
-        love.graphics.setColor(1,1,1)
-    end
-
-    -- HUD
-    love.graphics.setColor(1,1,1)
-    love.graphics.print("Score: " .. tostring(score), 8, 8)
-    love.graphics.print("Use WASD / arrow keys to move. Space to shoot. Esc to quit.", 8, 28)
+    -- Set player starting position (on default layer grass)
+    player.y = layers[0].heights[math.floor(player.x)] - player.height
 end
 
 function love.keypressed(key)
-    if key == "space" then
-        Player.shoot()
+    if key == "1" then
+        current_layer = -1
+        player.z = -1
+        player.y = layers[-1].heights[math.floor(player.x)] - player.height
+        player.vy = 0
+        player.on_ground = true
+    elseif key == "2" then
+        current_layer = 0
+        player.z = 0
+        player.y = layers[0].heights[math.floor(player.x)] - player.height
+        player.vy = 0
+        player.on_ground = true
+    elseif key == "3" then
+        current_layer = 1
+        player.z = 1
+        player.y = layers[1].heights[math.floor(player.x)] - player.height
+        player.vy = 0
+        player.on_ground = true
     elseif key == "escape" then
         love.event.quit()
+    elseif key == "space" and player.on_ground then
+        player.vy = jump_velocity
+        player.on_ground = false
     end
+end
+
+function love.update(dt)
+    -- Horizontal movement
+    local new_x = player.x
+    if love.keyboard.isDown("d") then
+        new_x = player.x + move_speed * dt
+    elseif love.keyboard.isDown("a") then
+        new_x = player.x - move_speed * dt
+    end
+
+    -- Check ground height for movement
+    local current_ground_y = layers[player.z].heights[math.floor(player.x + player.width / 2)] or 100
+    local target_ground_y = layers[player.z].heights[math.floor(new_x + player.width / 2)] or 100
+    if target_ground_y <= current_ground_y or player.vy < 0 then
+        player.x = new_x
+    end
+
+    -- Clamp player x
+    player.x = math.max(1, math.min(world_width - player.width, player.x))
+
+    -- Apply gravity
+    player.vy = player.vy + gravity * dt
+
+    -- Update y position
+    player.y = player.y + player.vy * dt
+
+    -- Ground collision
+    local ground_y = layers[player.z].heights[math.floor(player.x + player.width / 2)] or 100
+    if player.y + player.height > ground_y then
+        player.y = ground_y - player.height
+        player.vy = 0
+        player.on_ground = true
+    else
+        player.on_ground = false
+    end
+
+    -- Clamp y
+    player.y = math.min(player.y, world_height - player.height)
+
+    -- Center camera
+    camera_x = (player.x + player.width / 2) * block_size - screen_width / 2
+    camera_x = math.max(0, math.min(camera_x, world_width * block_size - screen_width))
+end
+
+function love.draw()
+    love.graphics.translate(-camera_x, 0)
+
+    -- Draw current and back layers (z <= current_layer)
+    for z = -1, current_layer do
+        local alpha = z == current_layer and 1 or (1 - 0.1 * (current_layer - z))
+        for _, tile in ipairs(layers[z].tiles) do
+            local px, py = (tile.x - 1) * block_size, (tile.y - 1) * block_size
+            if px + block_size >= camera_x and px <= camera_x + screen_width and py <= screen_height then
+                if tile.type == "grass" then
+                    love.graphics.setColor(0.2, 0.6, 0.2, alpha)
+                else
+                    love.graphics.setColor(0.6, 0.3, 0.1, alpha)
+                end
+                love.graphics.rectangle("fill", px, py, block_size, block_size)
+            end
+        end
+    end
+
+    -- Draw player
+    if player.z == current_layer then
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.rectangle("fill", (player.x - 1) * block_size, (player.y - 1) * block_size, block_size, 2 * block_size)
+    end
+
+    love.graphics.setColor(1, 1, 1)
 end
