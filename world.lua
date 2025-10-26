@@ -269,16 +269,22 @@ function World:draw(z, canvas, blocks, block_size)
 
             -- grass / top
             local py = (top - 1) * block_size
-            love.graphics.setColor(unpack(blocks.grass.color))
-            love.graphics.rectangle("fill", px, py, block_size, block_size)
+            -- skip drawing if this procedural tile was removed (marked "__empty" in placed overlay)
+            if not (self.placed and self.placed[z] and self.placed[z][x] and self.placed[z][x][top] == "__empty") then
+                love.graphics.setColor(unpack(blocks.grass.color))
+                love.graphics.rectangle("fill", px, py, block_size, block_size)
+            end
 
             -- dirt
             local dirt_limit = layer.dirt_limit[x] or math.min(self.height, top + self.dirt_thickness)
             dirt_limit = math.min(dirt_limit, self.height)
             love.graphics.setColor(unpack(blocks.dirt.color))
             for y = top + 1, dirt_limit do
-                local dy = (y - 1) * block_size
-                love.graphics.rectangle("fill", px, dy, block_size, block_size)
+                -- skip drawing this procedural dirt tile if it's been marked removed
+                if not (self.placed and self.placed[z] and self.placed[z][x] and self.placed[z][x][y] == "__empty") then
+                    local dy = (y - 1) * block_size
+                    love.graphics.rectangle("fill", px, dy, block_size, block_size)
+                end
             end
 
             -- stone
@@ -287,8 +293,11 @@ function World:draw(z, canvas, blocks, block_size)
             if dirt_limit + 1 <= stone_limit then
                 love.graphics.setColor(unpack(blocks.stone.color))
                 for y = dirt_limit + 1, stone_limit do
-                    local dy = (y - 1) * block_size
-                    love.graphics.rectangle("fill", px, dy, block_size, block_size)
+                    -- skip drawing this procedural stone tile if it's been marked removed
+                    if not (self.placed and self.placed[z] and self.placed[z][x] and self.placed[z][x][y] == "__empty") then
+                        local dy = (y - 1) * block_size
+                        love.graphics.rectangle("fill", px, dy, block_size, block_size)
+                    end
                 end
             end
         end

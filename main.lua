@@ -74,8 +74,7 @@ end
 -- Expose Blocks in global scope for compatibility (optional)
 _G.Blocks = Blocks
 
--- compatibility for unpack across Lua versions (Lua 5.2+ vs 5.1 / LuaJIT)
-local unpack = table.unpack or unpack or function(t) return t[1], t[2], t[3], t[4] end
+table.unpack = table.unpack or unpack
 
 -- Helper: clamp camera horizontally
 local function clamp_camera()
@@ -179,20 +178,30 @@ end
 
 function love.mousepressed(x, y, button, istouch, presses)
     if Game.player and Game.player.placeAtMouse and (button == 2 or button == "r") then
-        local ok, err = Game.player:placeAtMouse(Game.world, Game.camera_x, Game.BLOCK_SIZE, x, y)
+        local ok, err, z_changed = Game.player:placeAtMouse(Game.world, Game.camera_x, Game.BLOCK_SIZE, x, y)
         if ok then
-            if Game.world and Game.canvases and Game.canvases[Game.player.z] then
-                Game.world:draw(Game.player.z, Game.canvases[Game.player.z], Blocks, Game.BLOCK_SIZE)
+            local target_z = z_changed or Game.player.z
+            if Game.world and Game.canvases and Game.canvases[target_z] then
+                Game.world:draw(target_z, Game.canvases[target_z], Blocks, Game.BLOCK_SIZE)
             end
             log.info("Place succeeded:", tostring(err))
         else
             log.warn("Place failed:", tostring(err))
         end
     elseif Game.player and Game.player.removeAtMouse and (button == 1 or button == "l") then
-        local ok, err = Game.player:removeAtMouse(Game.world, Game.camera_x, Game.BLOCK_SIZE, x, y)
+        -- debug: compute column/row and log layer
+        local mouse_x, mouse_y = x, y
+        local world_px = mouse_x + Game.camera_x
+        local col = math.floor(world_px / Game.BLOCK_SIZE) + 1
+        local row = math.floor(mouse_y / Game.BLOCK_SIZE) + 1
+        col = math.max(1, math.min(Game.WORLD_WIDTH, col))
+        row = math.max(1, math.min(Game.WORLD_HEIGHT, row))
+        print(string.format("[DEBUG] Left click at screen(%d,%d) -> world col,row = %d,%d  player.z = %d", mouse_x, mouse_y, col, row, Game.player.z))
+        local ok, err, z_changed = Game.player:removeAtMouse(Game.world, Game.camera_x, Game.BLOCK_SIZE, x, y)
         if ok then
-            if Game.world and Game.canvases and Game.canvases[Game.player.z] then
-                Game.world:draw(Game.player.z, Game.canvases[Game.player.z], Blocks, Game.BLOCK_SIZE)
+            local target_z = z_changed or Game.player.z
+            if Game.world and Game.canvases and Game.canvases[target_z] then
+                Game.world:draw(target_z, Game.canvases[target_z], Blocks, Game.BLOCK_SIZE)
             end
             log.info("Remove succeeded:", tostring(err))
         else
