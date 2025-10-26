@@ -1,9 +1,12 @@
 -- Player module (includes inventory UI + wheel handling + held-block ghost + placement/removal)
--- Left click removes the highlighted block from the world (procedural or placed).
--- Right click places the selected hotbar block (floating placement allowed).
+-- Movement/collision updated so player cannot overlap blocks (hard stop).
+-- Horizontal and vertical movement now resolve AABB collisions against world:get_block_type.
 --
--- Updated to use World:set_block / World:place_block instead of mutating world.placed directly,
--- so world-side logging will be emitted for all add/remove/replace actions.
+-- Notes:
+--  - Coordinates are in block units (px, py are continuous; blocks are integer grid 1..N).
+--  - Player occupies columns floor(px) .. floor(px + width - eps) and rows floor(py) .. floor(py + height - eps).
+--  - Movement is resolved in two phases each frame: horizontal then vertical.
+--  - When a collision is detected the player is moved to be flush against the blocking tile and velocity along that axis is zeroed.
 --
 local Player = {}
 Player.__index = Player
@@ -31,12 +34,23 @@ local function safe_world_dims(world)
     return w, h
 end
 
+-- small epsilon to avoid floating rounding issues when mapping to integer block indices
+local EPS = 1e-6
+
+-- check whether a tile at (z, col, row) is solid (non-air and not out-of-bounds)
+local function tile_solid(world, z, col, row)
+    if not world then return false end
+    local t = world:get_block_type(z, col, row)
+    if not t then return false end
+    return (t ~= "air" and t ~= "out")
+end
+
 -- Create a new player. opts may include px, py, z
 function Player.new(opts)
     opts = opts or {}
     local self = setmetatable({}, Player)
-    self.px = opts.px or 50       -- column (blocks)
-    self.py = opts.py or 0        -- row (blocks)
+    self.px = opts.px or 50       -- column (blocks) (continuous)
+    self.py = opts.py or 0        -- row (blocks) (continuous)
     self.z  = opts.z  or 0        -- layer
     self.vx = 0
     self.vy = 0
@@ -68,6 +82,7 @@ function Player.new(opts)
 end
 
 -- Basic update (keeps previous behavior compatible; world used for ground detection)
+-- This update resolves collisions so player cannot enter solid tiles.
 -- input = { left = bool, right = bool, jump = bool }
 function Player:update(dt, world, input)
     -- Basic horizontal movement (use Game constants if available)
@@ -84,30 +99,218 @@ function Player:update(dt, world, input)
     local gravity = (rawget(_G, "Game") and Game.GRAVITY) or 20
     self.vy = self.vy + gravity * dt
 
-    -- Simple position integration (units are blocks)
-    self.px = self.px + self.vx * dt
-    self.py = self.py + self.vy * dt
+    -- Integrate and resolve collisions in two steps:
+    -- 1) Horizontal move + horizontal collision resolution (dead stop)
+    -- 2) Vertical move + vertical collision resolution (landing, ceiling hit)
 
-    -- Clamp inside world width if possible
-    if rawget(_G, "Game") then
-        local max_x = Game.WORLD_WIDTH - self.width
-        if self.px < 1 then self.px = 1 end
-        if self.px > max_x then self.px = max_x end
+    local world_w, world_h = safe_world_dims(world)
+    -- keep local copies for convenience
+    local z = self.z
+
+    -- current integer span helper
+    local function horiz_span_px(px)
+        -- columns the player overlaps given left px
+        local left_col = math.floor(px + EPS)
+        local right_col = math.floor(px + self.width - EPS)
+        return left_col, right_col
+    end
+    local function vert_span_py(py)
+        local top_row = math.floor(py + EPS)
+        local bottom_row = math.floor(py + self.height - EPS)
+        return top_row, bottom_row
     end
 
-    -- Simple ground collision: snap to top if below surface
-    if world then
-        local col = math.floor(self.px)
-        local top = world:get_surface(self.z, col) or ( (rawget(_G, "Game") and Game.WORLD_HEIGHT) or 100 )
-        -- top is block-row of top block; player stands on top - player.height
-        local ground_py = top - self.height
-        if self.py >= ground_py then
-            self.py = ground_py
-            self.vy = 0
-            self.on_ground = true
+    -- HORIZONTAL
+    local desired_px = self.px + self.vx * dt
+    -- clamp horizontally to world bounds (leftmost is 1, rightmost is world_w - width + small)
+    if world_w then
+        local min_px = 1
+        local max_px = math.max(1, world_w - self.width + 1) -- allow px so that floor(px + width - eps) <= world_w
+        if desired_px < min_px then desired_px = min_px end
+        if desired_px > max_px then desired_px = max_px end
+    end
+
+    if math.abs(desired_px - self.px) > EPS then
+        if desired_px > self.px then
+            -- moving right
+            local _, right_now = horiz_span_px(self.px)
+            local _, right_desired = horiz_span_px(desired_px)
+            local top_row, bottom_row = vert_span_py(self.py)
+            local blocked = false
+            -- check each column we would newly touch (right_now+1 .. right_desired)
+            for col = right_now + 1, right_desired do
+                if world_w and (col < 1 or col > world_w) then
+                    -- out of bounds considered solid
+                    blocked = true
+                    -- align to left of this column
+                    desired_px = col - self.width
+                    break
+                end
+                for row = top_row, bottom_row do
+                    if tile_solid(world, z, col, row) then
+                        blocked = true
+                        -- align player's right to left edge of blocking col:
+                        desired_px = col - self.width
+                        break
+                    end
+                end
+                if blocked then break end
+            end
+            if not blocked then
+                -- Additionally, ensure we didn't end up partially inside a tile due to large step:
+                -- if any overlapping column at desired_px is solid, clamp to nearest safe px
+                local left_col, right_col = horiz_span_px(desired_px)
+                for col = left_col, right_col do
+                    for row = top_row, bottom_row do
+                        if tile_solid(world, z, col, row) then
+                            -- move to left of this column
+                            desired_px = col - self.width
+                            blocked = true
+                            break
+                        end
+                    end
+                    if blocked then break end
+                end
+            end
+            if blocked then
+                self.vx = 0
+            end
+            self.px = desired_px
         else
-            self.on_ground = false
+            -- moving left
+            local left_now = math.floor(self.px + EPS)
+            local left_desired = math.floor(desired_px + EPS)
+            local top_row, bottom_row = vert_span_py(self.py)
+            local blocked = false
+            -- check each column we'd newly touch on the left (left_desired .. left_now -1)
+            for col = left_desired, left_now - 1 do
+                if world_w and (col < 1 or col > world_w) then
+                    blocked = true
+                    -- align to right edge of this column: px = col + 1
+                    desired_px = col + 1
+                    break
+                end
+                for row = top_row, bottom_row do
+                    if tile_solid(world, z, col, row) then
+                        blocked = true
+                        -- align player's left to right edge of blocking col
+                        desired_px = col + 1
+                        break
+                    end
+                end
+                if blocked then break end
+            end
+            if not blocked then
+                -- sanity check overlapping columns at desired_px
+                local left_col, right_col = horiz_span_px(desired_px)
+                for col = left_col, right_col do
+                    for row = top_row, bottom_row do
+                        if tile_solid(world, z, col, row) then
+                            desired_px = col + 1
+                            blocked = true
+                            break
+                        end
+                    end
+                    if blocked then break end
+                end
+            end
+            if blocked then
+                self.vx = 0
+            end
+            self.px = desired_px
         end
+    end
+
+    -- VERTICAL
+    local desired_py = self.py + self.vy * dt
+    -- clamp vertical to world bounds if possible
+    if world_h then
+        local min_py = 1
+        local max_py = math.max(1, world_h - self.height + 1)
+        if desired_py < min_py then desired_py = min_py end
+        if desired_py > max_py then desired_py = max_py end
+    end
+
+    if math.abs(desired_py - self.py) > EPS then
+        if desired_py > self.py then
+            -- moving down
+            local top_row, bottom_now = vert_span_py(self.py)
+            local _, bottom_desired = vert_span_py(desired_py)
+            local left_col, right_col = horiz_span_px(self.px)
+            local blocked = false
+            for row = bottom_now + 1, bottom_desired do
+                if world_h and (row < 1 or row > world_h) then
+                    blocked = true
+                    desired_py = row - self.height
+                    break
+                end
+                for col = left_col, right_col do
+                    if tile_solid(world, z, col, row) then
+                        blocked = true
+                        desired_py = row - self.height
+                        break
+                    end
+                end
+                if blocked then break end
+            end
+            if blocked then
+                self.vy = 0
+                self.on_ground = true
+            else
+                -- sanity: if overlapping after move, snap up
+                local top_row2, bottom_row2 = vert_span_py(desired_py)
+                for row = top_row2, bottom_row2 do
+                    for col = left_col, right_col do
+                        if tile_solid(world, z, col, row) then
+                            desired_py = row - self.height
+                            blocked = true
+                            break
+                        end
+                    end
+                    if blocked then break end
+                end
+                if blocked then
+                    self.vy = 0
+                    self.on_ground = true
+                else
+                    self.on_ground = false
+                end
+            end
+            self.py = desired_py
+        else
+            -- moving up
+            local top_now = math.floor(self.py + EPS)
+            local top_desired = math.floor(desired_py + EPS)
+            local left_col, right_col = horiz_span_px(self.px)
+            local blocked = false
+            for row = top_desired, top_now - 1 do
+                if world_h and (row < 1 or row > world_h) then
+                    blocked = true
+                    desired_py = row + 1
+                    break
+                end
+                for col = left_col, right_col do
+                    if tile_solid(world, z, col, row) then
+                        blocked = true
+                        desired_py = row + 1
+                        break
+                    end
+                end
+                if blocked then break end
+            end
+            if blocked then
+                self.vy = 0
+            end
+            self.py = desired_py
+            -- left on_ground unchanged when hitting ceiling
+        end
+    end
+
+    -- clamp inside world width if possible (ensure px within reasonable bounds)
+    if rawget(_G, "Game") then
+        local max_x = Game.WORLD_WIDTH - self.width + 1
+        if self.px < 1 then self.px = 1 end
+        if self.px > max_x then self.px = max_x end
     end
 end
 
