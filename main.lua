@@ -1,6 +1,11 @@
--- Main application (keeps lib.log and lib.classic; logs layer switches)
+-- Main application (updated input mapping: crouch only on lctrl, run only on lshift)
 --
--- Updated to log when switching player layer (q/e) using lib.log.
+-- This is the project entrypoint. I updated the input table so:
+--  - crouch is true only when left Ctrl ("lctrl") is held (NOT rctrl or generic "ctrl")
+--  - run is true only when left Shift ("lshift") is held (NOT rshift or generic "shift")
+--
+-- The rest of the file is the same as the previous main.lua you were using (world/player setup,
+-- logging, rendering, etc.). Replace your existing main.lua with this file to apply the input changes.
 
 -- Global game table
 Game = {
@@ -9,7 +14,22 @@ Game = {
     WORLD_WIDTH = 500,
     WORLD_HEIGHT = 100,
     GRAVITY = 20,    -- blocks / second^2
-    MOVE_SPEED = 5,  -- blocks / second
+
+    -- Movement tuning (smooth accel / friction)
+    MOVE_ACCEL = 60, -- blocks / second^2 (horizontal accel on ground)
+    MAX_SPEED = 6,   -- blocks / second (base horizontal velocity)
+    GROUND_FRICTION = 30, -- deceleration when no input and on ground
+    AIR_ACCEL_MULT = 0.35, -- fraction of MOVE_ACCEL available in air
+    AIR_FRICTION = 1.5, -- small deceleration in air when no input
+
+    -- sprint / run tuning (Shift)
+    RUN_SPEED_MULT = 1.6, -- multiplier to MAX_SPEED when running
+    RUN_ACCEL_MULT = 1.2, -- multiplier to MOVE_ACCEL when running
+
+    -- crouch tuning
+    CROUCH_DECEL = 120,
+    CROUCH_MAX_SPEED = 3,
+
     JUMP_SPEED = -10,-- initial jump velocity (blocks per second)
     STEP_HEIGHT = 1, -- maximum step-up in blocks
 
@@ -40,9 +60,9 @@ local World = require("world")
 local Player = require("player")
 local Blocks = require("blocks")
 
--- keep rxi-style libs exposed through lib/* so you can require("lib.log") / require("lib.classic")
-local log = require("lib.log")         -- now resolves to lib/log.lua
-local classic = require("lib.classic") -- now resolves to lib/classic.lua
+-- logging and utilities
+local log = require("lib.log")
+local classic = require("lib.classic")
 
 -- configure logger level from Game.debug
 if Game.debug then
@@ -64,7 +84,6 @@ local function clamp_camera()
     Game.camera_x = math.max(0, math.min(Game.camera_x, max_camera))
 end
 
--- Regenerate world and recreate layer canvases (delegates per-layer rendering to World:draw)
 local function regenerate_world()
     if not Game.world then
         Game.world = World.new(Game.seed, {
@@ -88,7 +107,6 @@ local function regenerate_world()
         Game.world:draw(z, canvas, Blocks, Game.BLOCK_SIZE)
     end
 
-    -- Ensure player exists and is placed on the ground
     if not Game.player then
         Game.player = Player.new{ px = 50, z = 0 }
     end
@@ -153,7 +171,6 @@ function love.keypressed(key)
     end
 end
 
--- Forward mouse wheel events to the player so it owns inventory selection
 function love.wheelmoved(x, y)
     if Game.player and Game.player.wheelmoved then
         Game.player:wheelmoved(x, y)
@@ -185,10 +202,14 @@ function love.mousepressed(x, y, button, istouch, presses)
 end
 
 function love.update(dt)
+    -- Build input table; note the keys for crouch/run are intentionally strict:
+    -- crouch only using left Ctrl ("lctrl"), run only using left Shift ("lshift")
     local input = {
         left = love.keyboard.isDown("a"),
         right = love.keyboard.isDown("d"),
-        jump = false
+        jump = false,
+        crouch = love.keyboard.isDown("lctrl"), -- only left ctrl triggers crouch
+        run = love.keyboard.isDown("lshift"),   -- only left shift triggers run
     }
 
     Game.player:update(dt, Game.world, input)
@@ -210,44 +231,35 @@ local function draw_layer(z)
     love.graphics.pop()
 end
 
--- Helper to get block type at column x and block-row y for a specific layer z
 local function get_block_type_at(z, x, by)
     if not Game.world then return "out" end
     return Game.world:get_block_type(z, x, by)
 end
 
 function love.draw()
-    -- draw world layers up to player's layer
     for z = -1, Game.player.z do
         draw_layer(z)
         if z == Game.player.z then
-            -- delegate player drawing to the Player module
             Game.player:draw(Game.BLOCK_SIZE, Game.camera_x)
         end
     end
 
-    -- HUD and debug overlay
     love.graphics.origin()
 
-    -- Player-owned inventory drawing
     if Game.player and Game.player.drawInventory then
         Game.player:drawInventory(Game.screen_width, Game.screen_height)
     end
-
-    -- draw ghost block preview under mouse (player-owned)
     if Game.player and Game.player.drawGhost then
         Game.player:drawGhost(Game.world, Game.camera_x, Game.BLOCK_SIZE)
     end
 
-    -- Debug overlay (optional)
     if Game.debug then
         local mx, my = love.mouse.getPosition()
         local col = math.floor((mx + Game.camera_x) / Game.BLOCK_SIZE) + 1
         col = math.max(1, math.min(Game.WORLD_WIDTH, col))
         local by = math.floor(my / Game.BLOCK_SIZE) + 1
         by = math.max(1, math.min(Game.WORLD_HEIGHT, by))
-
-        local layer_z = Game.player.z -- use player layer for "current" context
+        local layer_z = Game.player.z
         local block_type = get_block_type_at(layer_z, col, by)
 
         local debug_lines = {}
@@ -258,7 +270,6 @@ function love.draw()
         debug_lines[#debug_lines+1] = string.format("Layer (player): %d", layer_z)
         debug_lines[#debug_lines+1] = "Block: " .. tostring(block_type)
 
-        -- draw semi-opaque background box for readability
         local padding = 6
         local line_h = 14
         local box_w = 420

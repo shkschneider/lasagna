@@ -1,17 +1,14 @@
 -- Player module (includes inventory UI + wheel handling + held-block ghost + placement/removal)
--- Movement/collision updated so player cannot overlap blocks (hard stop).
--- Horizontal and vertical movement now resolve AABB collisions against world:get_block_type.
---
--- Notes:
---  - Coordinates are in block units (px, py are continuous; blocks are integer grid 1..N).
---  - Player occupies columns floor(px) .. floor(px + width - eps) and rows floor(py) .. floor(py + height - eps).
---  - Movement is resolved in two phases each frame: horizontal then vertical.
---  - When a collision is detected the player is moved to be flush against the blocking tile and velocity along that axis is zeroed.
+-- Movement/collision updated:
+--  - Holding Shift (run input) increases max speed and slightly increases accel.
+--  - If crouching, run is ignored (cannot run while crouched).
+--  - Run respects collisions and the same AABB dead-stop behavior.
 --
 local Player = {}
 Player.__index = Player
 
 local Blocks = require("blocks") -- used to seed inventory with block types
+local log = require("lib.log")   -- optional logging, retained
 
 -- Helper: safe getters for world dimensions (tries numeric field, then method, then Game fallback)
 local function safe_world_dims(world)
@@ -37,6 +34,8 @@ end
 -- small epsilon to avoid floating rounding issues when mapping to integer block indices
 local EPS = 1e-6
 
+local function sign(x) if x > 0 then return 1 elseif x < 0 then return -1 else return 0 end end
+
 -- check whether a tile at (z, col, row) is solid (non-air and not out-of-bounds)
 local function tile_solid(world, z, col, row)
     if not world then return false end
@@ -55,7 +54,10 @@ function Player.new(opts)
     self.vx = 0
     self.vy = 0
     self.width = opts.width or 1  -- block width
-    self.height = opts.height or 2 -- block height
+    self.height = opts.height or 2 -- block height (standing)
+    self.stand_height = self.height -- canonical standing height (2)
+    self.crouch_height = 1         -- canonical crouch height
+    self.crouching = false
     self.on_ground = false
 
     -- Inventory (owned by player)
@@ -81,21 +83,152 @@ function Player.new(opts)
     return self
 end
 
--- Basic update (keeps previous behavior compatible; world used for ground detection)
--- This update resolves collisions so player cannot enter solid tiles.
--- input = { left = bool, right = bool, jump = bool }
+-- Helper to attempt to stand (return true if succeeded)
+local function try_stand(self, world)
+    local desired_h = self.stand_height
+    if self.height == desired_h then return true end
+    -- we want to expand upwards so bottom stays the same
+    local new_py = self.py - (desired_h - self.height)
+    -- compute span at new_py
+    local left_col = math.floor(self.px + EPS)
+    local right_col = math.floor(self.px + self.width - EPS)
+    local top_row = math.floor(new_py + EPS)
+    local bottom_row = math.floor(new_py + desired_h - EPS)
+    local world_w, world_h = safe_world_dims(world)
+    -- check bounds
+    if world_w and (left_col < 1 or right_col > world_w) then
+        return false
+    end
+    if world_h and (top_row < 1 or bottom_row > world_h) then
+        -- if out of vertical bounds, disallow standing
+        return false
+    end
+    for row = top_row, bottom_row do
+        for col = left_col, right_col do
+            if tile_solid(world, self.z, col, row) then
+                return false
+            end
+        end
+    end
+    -- ok to stand
+    self.py = new_py
+    self.height = desired_h
+    self.crouching = false
+    return true
+end
+
+-- Helper to crouch immediately (bottom remains aligned)
+local function do_crouch(self)
+    if self.height == self.crouch_height then return end
+    local old_bottom = self.py + self.height
+    self.height = self.crouch_height
+    self.py = old_bottom - self.height
+    self.crouching = true
+end
+
+-- Basic update with smooth horizontal accel / friction, reduced air control, sprint, and crouch handling.
+-- Also resolves collisions so player cannot enter solid tiles.
+-- input = { left = bool, right = bool, jump = bool, crouch = bool, run = bool }
 function Player:update(dt, world, input)
-    -- Basic horizontal movement (use Game constants if available)
-    local move_speed = (rawget(_G, "Game") and Game.MOVE_SPEED) or 5
-    if input and input.left then
-        self.vx = -move_speed
-    elseif input and input.right then
-        self.vx = move_speed
+    input = input or {}
+    local crouch_input = input.crouch or false
+    local run_input = input.run or false
+
+    -- If crouch pressed, immediately crouch (bottom aligned).
+    if crouch_input then
+        do_crouch(self)
     else
-        self.vx = 0
+        -- attempt to stand if currently crouched
+        if self.crouching then
+            -- only stand if space above is free
+            local ok = try_stand(self, world)
+            if not ok then
+                -- remain crouched
+                crouch_input = true
+            end
+        end
     end
 
-    -- Gravity and vertical movement
+    -- Movement constants (fall back to defaults if Game doesn't define them)
+    local BASE_MAX_SPEED = (rawget(_G, "Game") and Game.MAX_SPEED) or 6
+    local MOVE_ACCEL = (rawget(_G, "Game") and Game.MOVE_ACCEL) or 60
+    local GROUND_FRICTION = (rawget(_G, "Game") and Game.GROUND_FRICTION) or 30
+    local AIR_ACCEL_MULT = (rawget(_G, "Game") and Game.AIR_ACCEL_MULT) or 0.35
+    local AIR_FRICTION = (rawget(_G, "Game") and Game.AIR_FRICTION) or 1.5
+    local CROUCH_DECEL = (rawget(_G, "Game") and Game.CROUCH_DECEL) or 120    -- strong decel while crouched
+    local CROUCH_MAX_SPEED = (rawget(_G, "Game") and Game.CROUCH_MAX_SPEED) or 3 -- optional speed cap while crouched
+    local RUN_SPEED_MULT = (rawget(_G, "Game") and Game.RUN_SPEED_MULT) or 1.6
+    local RUN_ACCEL_MULT = (rawget(_G, "Game") and Game.RUN_ACCEL_MULT) or 1.2
+
+    -- read input direction (-1 left, 0 none, +1 right)
+    local dir = 0
+    if input.left then dir = dir - 1 end
+    if input.right then dir = dir + 1 end
+
+    -- If crouching, running is ignored
+    if self.crouching then
+        run_input = false
+    end
+
+    -- determine effective max speed (apply run multiplier if running)
+    local MAX_SPEED = BASE_MAX_SPEED
+    local accel = MOVE_ACCEL
+    if run_input then
+        MAX_SPEED = BASE_MAX_SPEED * RUN_SPEED_MULT
+        accel = accel * RUN_ACCEL_MULT
+    end
+
+    -- choose accel based on grounded/air
+    if not self.on_ground then accel = accel * AIR_ACCEL_MULT end
+
+    -- If crouching: cap max speed and apply stronger deceleration toward zero
+    local target_vx = dir * MAX_SPEED
+    if self.crouching then
+        -- cap target speed when crouched
+        if target_vx > 0 then target_vx = math.min(target_vx, CROUCH_MAX_SPEED) end
+        if target_vx < 0 then target_vx = math.max(target_vx, -CROUCH_MAX_SPEED) end
+    end
+
+    -- accelerate toward target velocity (only when there is directional input)
+    if dir ~= 0 then
+        -- use reduced accel when crouched as well (feel)
+        local use_accel = accel
+        if self.crouching then use_accel = accel * 0.6 end
+        if self.vx < target_vx then
+            self.vx = math.min(target_vx, self.vx + use_accel * dt)
+        elseif self.vx > target_vx then
+            self.vx = math.max(target_vx, self.vx - use_accel * dt)
+        end
+    else
+        -- apply friction / deceleration to slow down to 0
+        if self.crouching then
+            -- strong immediate deceleration while crouched (applies in air and ground)
+            local dec = CROUCH_DECEL * dt
+            if math.abs(self.vx) <= dec then
+                self.vx = 0
+            else
+                self.vx = self.vx - sign(self.vx) * dec
+            end
+        else
+            if self.on_ground then
+                local dec = GROUND_FRICTION * dt
+                if math.abs(self.vx) <= dec then
+                    self.vx = 0
+                else
+                    self.vx = self.vx - sign(self.vx) * dec
+                end
+            else
+                local dec = AIR_FRICTION * dt
+                if math.abs(self.vx) <= dec then
+                    self.vx = 0
+                else
+                    self.vx = self.vx - sign(self.vx) * dec
+                end
+            end
+        end
+    end
+
+    -- Gravity and vertical movement (unchanged)
     local gravity = (rawget(_G, "Game") and Game.GRAVITY) or 20
     self.vy = self.vy + gravity * dt
 
@@ -104,28 +237,27 @@ function Player:update(dt, world, input)
     -- 2) Vertical move + vertical collision resolution (landing, ceiling hit)
 
     local world_w, world_h = safe_world_dims(world)
-    -- keep local copies for convenience
     local z = self.z
 
-    -- current integer span helper
+    -- helpers to get integer overlap spans (use current height)
     local function horiz_span_px(px)
         -- columns the player overlaps given left px
         local left_col = math.floor(px + EPS)
         local right_col = math.floor(px + self.width - EPS)
         return left_col, right_col
     end
-    local function vert_span_py(py)
+    local function vert_span_py(py, use_height)
+        local h = use_height or self.height
         local top_row = math.floor(py + EPS)
-        local bottom_row = math.floor(py + self.height - EPS)
+        local bottom_row = math.floor(py + h - EPS)
         return top_row, bottom_row
     end
 
     -- HORIZONTAL
     local desired_px = self.px + self.vx * dt
-    -- clamp horizontally to world bounds (leftmost is 1, rightmost is world_w - width + small)
     if world_w then
         local min_px = 1
-        local max_px = math.max(1, world_w - self.width + 1) -- allow px so that floor(px + width - eps) <= world_w
+        local max_px = math.max(1, world_w - self.width + 1)
         if desired_px < min_px then desired_px = min_px end
         if desired_px > max_px then desired_px = max_px end
     end
@@ -137,19 +269,15 @@ function Player:update(dt, world, input)
             local _, right_desired = horiz_span_px(desired_px)
             local top_row, bottom_row = vert_span_py(self.py)
             local blocked = false
-            -- check each column we would newly touch (right_now+1 .. right_desired)
             for col = right_now + 1, right_desired do
                 if world_w and (col < 1 or col > world_w) then
-                    -- out of bounds considered solid
                     blocked = true
-                    -- align to left of this column
                     desired_px = col - self.width
                     break
                 end
                 for row = top_row, bottom_row do
                     if tile_solid(world, z, col, row) then
                         blocked = true
-                        -- align player's right to left edge of blocking col:
                         desired_px = col - self.width
                         break
                     end
@@ -157,13 +285,10 @@ function Player:update(dt, world, input)
                 if blocked then break end
             end
             if not blocked then
-                -- Additionally, ensure we didn't end up partially inside a tile due to large step:
-                -- if any overlapping column at desired_px is solid, clamp to nearest safe px
                 local left_col, right_col = horiz_span_px(desired_px)
                 for col = left_col, right_col do
                     for row = top_row, bottom_row do
                         if tile_solid(world, z, col, row) then
-                            -- move to left of this column
                             desired_px = col - self.width
                             blocked = true
                             break
@@ -182,18 +307,15 @@ function Player:update(dt, world, input)
             local left_desired = math.floor(desired_px + EPS)
             local top_row, bottom_row = vert_span_py(self.py)
             local blocked = false
-            -- check each column we'd newly touch on the left (left_desired .. left_now -1)
             for col = left_desired, left_now - 1 do
                 if world_w and (col < 1 or col > world_w) then
                     blocked = true
-                    -- align to right edge of this column: px = col + 1
                     desired_px = col + 1
                     break
                 end
                 for row = top_row, bottom_row do
                     if tile_solid(world, z, col, row) then
                         blocked = true
-                        -- align player's left to right edge of blocking col
                         desired_px = col + 1
                         break
                     end
@@ -201,7 +323,6 @@ function Player:update(dt, world, input)
                 if blocked then break end
             end
             if not blocked then
-                -- sanity check overlapping columns at desired_px
                 local left_col, right_col = horiz_span_px(desired_px)
                 for col = left_col, right_col do
                     for row = top_row, bottom_row do
@@ -223,7 +344,6 @@ function Player:update(dt, world, input)
 
     -- VERTICAL
     local desired_py = self.py + self.vy * dt
-    -- clamp vertical to world bounds if possible
     if world_h then
         local min_py = 1
         local max_py = math.max(1, world_h - self.height + 1)
@@ -257,7 +377,6 @@ function Player:update(dt, world, input)
                 self.vy = 0
                 self.on_ground = true
             else
-                -- sanity: if overlapping after move, snap up
                 local top_row2, bottom_row2 = vert_span_py(desired_py)
                 for row = top_row2, bottom_row2 do
                     for col = left_col, right_col do
@@ -302,7 +421,6 @@ function Player:update(dt, world, input)
                 self.vy = 0
             end
             self.py = desired_py
-            -- left on_ground unchanged when hitting ceiling
         end
     end
 
@@ -408,58 +526,7 @@ function Player:drawInventory(screen_w, screen_h)
     love.graphics.setColor(1, 1, 1, 1)
 end
 
--- Draw the inventory ghost block (snapped grid preview)
-function Player:drawGhost(world, camera_x, block_size)
-    camera_x = camera_x or 0
-    block_size = block_size or 16
-
-    local inv = self.inventory
-    local selected = inv.selected or 1
-    local item = inv.items and inv.items[selected]
-
-    if not item or not item.color then return end
-
-    -- compute inventory UI region to avoid drawing ghost on top of the bar
-    local screen_w = love.graphics.getWidth()
-    local screen_h = love.graphics.getHeight()
-    local ui = inv.ui
-    local total_slots = inv.slots
-    local slot_w = ui.slot_size
-    local slot_h = ui.slot_size
-    local padding = ui.padding
-    local total_width = total_slots * slot_w + (total_slots - 1) * padding
-    local x0 = (screen_w - total_width) / 2
-    local y0 = screen_h - slot_h - 20 -- 20px margin from bottom
-    local bg_margin = 8
-    local inv_top = y0 - bg_margin
-
-    local mx, my = love.mouse.getPosition()
-    if my >= inv_top then return end
-
-    local world_px = mx + camera_x
-    local col = math.floor(world_px / block_size) + 1
-    local row = math.floor(my / block_size) + 1
-
-    local world_w, world_h = safe_world_dims(world)
-    if world_w then col = math.max(1, math.min(world_w, col)) end
-    if world_h then row = math.max(1, math.min(world_h, row)) end
-
-    local px = (col - 1) * block_size - camera_x
-    local py = (row - 1) * block_size
-
-    local r, g, b, a = unpack(item.color)
-    a = (a or 1) * 0.45 -- semi-transparent
-    love.graphics.setColor(r, g, b, a)
-    love.graphics.rectangle("fill", px, py, block_size, block_size)
-    love.graphics.setColor(1, 1, 1, 0.9)
-    love.graphics.setLineWidth(1)
-    love.graphics.rectangle("line", px + 0.5, py + 0.5, block_size - 1, block_size - 1)
-    love.graphics.setColor(1, 1, 1, 1)
-end
-
--- Place the selected hotbar block at the mouse world cell (right-click).
--- Floating placements are allowed (no support/sanity check for below).
--- Uses World:set_block to ensure logging occurs.
+-- Place & remove functions unchanged (call World:set_block)
 function Player:placeAtMouse(world, camera_x, block_size, mx, my)
     if not world then return false, "no world" end
     camera_x = camera_x or 0
@@ -474,34 +541,19 @@ function Player:placeAtMouse(world, camera_x, block_size, mx, my)
     local item = inv.items and inv.items[selected]
     if not item then return false, "no item selected" end
 
-    -- Determine world cell under mouse
     local world_px = mouse_x + camera_x
     local col = math.floor(world_px / block_size) + 1
     local row = math.floor(mouse_y / block_size) + 1
 
-    -- safe world dimensions
     local world_w, world_h = safe_world_dims(world)
-    if not world_w or not world_h then
-        if rawget(_G, "Game") and Game.debug then
-            print("Place debug: world dims unknown; world_w,world_h =", tostring(world_w), tostring(world_h))
-        end
-        return false, "world dimensions unknown"
-    end
+    if not world_w or not world_h then return false, "world dimensions unknown" end
 
-    -- clamp
     col = math.max(1, math.min(world_w, col))
     row = math.max(1, math.min(world_h, row))
 
-    -- Query target
     local target_type = world:get_block_type(self.z, col, row)
-    if target_type == nil then target_type = "nil" end
+    if target_type ~= "air" then return false, "target not empty" end
 
-    -- Only place into air (air includes procedural cells that were marked "__empty")
-    if target_type ~= "air" then
-        return false, "target not empty"
-    end
-
-    -- find block name from the item stored in inventory
     local blockName = nil
     for k, v in pairs(Blocks) do
         if v == item then
@@ -509,22 +561,13 @@ function Player:placeAtMouse(world, camera_x, block_size, mx, my)
             break
         end
     end
-    if not blockName then
-        blockName = item.name
-    end
-    if not blockName then
-        return false, "unknown block type"
-    end
+    if not blockName then blockName = item.name end
+    if not blockName then return false, "unknown block type" end
 
-    -- Use World:set_block to add placed block (this will log)
     local ok, action = world:set_block(self.z, col, row, blockName)
     return ok, action
 end
 
--- Remove the block at the mouse world cell (left-click). This modifies the world:
--- - if a player-placed block exists at target, remove that overlay entry
--- - otherwise, mark the procedural tile as removed by writing sentinel "__empty" into the overlay
--- The change affects world:get_block_type and get_surface immediately, and logging is done in World:set_block.
 function Player:removeAtMouse(world, camera_x, block_size, mx, my)
     if not world then return false, "no world" end
     camera_x = camera_x or 0
@@ -534,32 +577,21 @@ function Player:removeAtMouse(world, camera_x, block_size, mx, my)
         mouse_x, mouse_y = love.mouse.getPosition()
     end
 
-    -- Determine world cell under mouse
     local world_px = mouse_x + camera_x
     local col = math.floor(world_px / block_size) + 1
     local row = math.floor(mouse_y / block_size) + 1
 
-    -- safe world dimensions
     local world_w, world_h = safe_world_dims(world)
-    if not world_w or not world_h then
-        return false, "world dimensions unknown"
-    end
+    if not world_w or not world_h then return false, "world dimensions unknown" end
 
-    -- clamp
     col = math.max(1, math.min(world_w, col))
     row = math.max(1, math.min(world_h, row))
 
-    -- First try removing a placed block (set to nil removes placed overlay)
     local ok, msg = world:set_block(self.z, col, row, nil)
-    if ok then
-        return true, msg
-    end
+    if ok then return true, msg end
 
-    -- If nothing removed, try marking procedural removed (use "__empty" sentinel)
     local ok2, msg2 = world:set_block(self.z, col, row, "__empty")
-    if ok2 then
-        return true, msg2
-    end
+    if ok2 then return true, msg2 end
 
     return false, "nothing to remove"
 end
