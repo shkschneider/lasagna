@@ -85,7 +85,11 @@ function love.update(dt)
         ingredient.x = ingredient.x + ingredient.speed * ingredient.direction * dt
         
         -- Bounce off walls
-        if ingredient.x <= 0 or ingredient.x + ingredient.width >= love.graphics.getWidth() then
+        if ingredient.x <= 0 then
+            ingredient.x = 0
+            ingredient.direction = -ingredient.direction
+        elseif ingredient.x + ingredient.width >= love.graphics.getWidth() then
+            ingredient.x = love.graphics.getWidth() - ingredient.width
             ingredient.direction = -ingredient.direction
         end
         
@@ -124,8 +128,6 @@ function dropIngredient()
     if #stack == 0 then return end
     
     local topPiece = stack[#stack]
-    local targetX = topPiece.x + topPiece.width / 2
-    local ingredientCenter = ingredient.x + ingredient.width / 2
     
     -- Calculate overlap
     local leftEdge = math.max(ingredient.x, topPiece.x)
