@@ -2,15 +2,17 @@
 -- Responsibilities:
 --  - generate per-layer surface heights and dirt/stone limits
 --  - provide small query API (get_surface, get_block_type, width/height)
---  - support placing blocks at arbitrary grid cells (placed overlay)
+--  - support placing/removing/replacing blocks via a single set_block API
 --  - provide a drawing helper: World:draw(z, canvas, blocks, block_size)
 --
--- NOTE: get_surface now computes the surface dynamically by scanning for the
--- first non-air cell (considers placed overlay). This makes placed/removed
--- blocks affect the "true" world surface and not only the visuals.
+-- This version adds logging (lib.log) for:
+--  - world creation (seed)
+--  - adding / destroying / replacing blocks via World:set_block
+--  - World:place_block still exists for compatibility but delegates to set_block where appropriate.
 --
 local noise = require("noise1d")
 local Blocks = require("blocks") -- used for drawing placed blocks
+local log = require("lib.log")   -- rxi/log.lua-style logging
 
 local World = {}
 World.__index = World
@@ -49,7 +51,7 @@ function World.new(seed, opts)
 
     -- internal storage
     self.layers = {} -- layers[z] = { heights = {}, dirt_limit = {}, stone_limit = {} }
-    self.placed = {} -- placed[z] = { [x] = { [y] = blockName_or_special } }
+    self.placed = {} -- placed[z] = { [x] = { [y] = blockName_or_sentinel } }
 
     -- initialize noise and generate
     if self.seed ~= nil then
@@ -57,6 +59,9 @@ function World.new(seed, opts)
     end
     noise.init(self.seed)
     self:regenerate()
+
+    -- log world creation
+    log.info("World created with seed:", tostring(self.seed))
     return self
 end
 
@@ -94,7 +99,7 @@ function World:regenerate()
 end
 
 -- return surface/top (row number) for layer z at column x, or nil if out of range
--- NOTE: This now computes the surface dynamically by scanning from top to bottom
+-- NOTE: This computes the surface dynamically by scanning from top to bottom
 -- and returning the first non-air block (considers placed overlay + procedural).
 function World:get_surface(z, x)
     if x < 1 or x > self.width then return nil end
@@ -111,6 +116,7 @@ end
 -- Place a block into the placed-overlay at (z, x, y)
 -- blockName is a string like "grass", "dirt", "stone" that corresponds to Blocks[blockName]
 -- Returns true on success, false and optional reason on failure.
+-- Kept for compatibility; it will refuse to overwrite non-air procedural tiles.
 function World:place_block(z, x, y, blockName)
     if not z or not x or not y or not blockName then
         return false, "invalid parameters"
@@ -121,18 +127,78 @@ function World:place_block(z, x, y, blockName)
     if not self.placed[z] then self.placed[z] = {} end
     if not self.placed[z][x] then self.placed[z][x] = {} end
     -- don't overwrite an existing placed block
-    if self.placed[z][x][y] ~= nil then
+    if self.placed[z][x][y] ~= nil and self.placed[z][x][y] ~= "__empty" then
         return false, "cell not empty (placed)"
     end
-    -- don't place if get_block_type isn't air (unless that cell was previously marked removed,
-    -- in which case get_block_type will return "air" because placed value is "__empty")
+    -- also don't overwrite a world tile (grass/dirt/stone)
     local existing = self:get_block_type(z, x, y)
     if existing ~= "air" then
         return false, "cell not empty (world)"
     end
 
     self.placed[z][x][y] = blockName
+    log.info(string.format("World: added block '%s' at z=%d x=%d y=%d", tostring(blockName), z, x, y))
     return true
+end
+
+-- set_block: unified setter that adds/removes/replaces placed overlay entries.
+-- blockName:
+--   - string (e.g. "grass"): set/overwrite placed block at this cell
+--   - "__empty": mark procedural tile as removed (treat as air)
+--   - nil: remove any placed overlay at that cell (if procedural exists it remains)
+-- Returns (ok, reason/action)
+function World:set_block(z, x, y, blockName)
+    if not z or not x or not y then
+        return false, "invalid parameters"
+    end
+    if x < 1 or x > self.width or y < 1 or y > self.height then
+        return false, "out of bounds"
+    end
+
+    if not self.placed[z] then self.placed[z] = {} end
+    if not self.placed[z][x] then self.placed[z][x] = {} end
+
+    local prev_placed = self.placed[z][x][y] -- may be nil, "__empty", or blockName
+    local prev_type = self:get_block_type(z, x, y) -- resolves placed overlay or procedural
+
+    -- Determine requested action
+    if blockName == nil then
+        -- remove any placed overlay; if there was a "__empty" sentinel, removing it will restore procedural
+        if prev_placed ~= nil then
+            self.placed[z][x][y] = nil
+            log.info(string.format("World: removed placed overlay at z=%d x=%d y=%d (prev placed=%s, prev_type=%s)", z, x, y, tostring(prev_placed), tostring(prev_type)))
+            return true, "removed placed overlay"
+        end
+        -- nothing to remove
+        return false, "nothing to remove"
+    end
+
+    -- blockName == "__empty" means mark procedural tile removed
+    if blockName == "__empty" then
+        -- if there is an existing placed block, remove it instead (prefer player-placed removal)
+        if prev_placed ~= nil and prev_placed ~= "__empty" then
+            self.placed[z][x][y] = nil
+            log.info(string.format("World: removed player-placed block at z=%d x=%d y=%d (was %s)", z, x, y, tostring(prev_placed)))
+            return true, "removed placed"
+        end
+        -- otherwise write sentinel to mark as removed
+        self.placed[z][x][y] = "__empty"
+        log.info(string.format("World: removed procedural block (marked __empty) at z=%d x=%d y=%d (prev_type=%s)", z, x, y, tostring(prev_type)))
+        return true, "removed procedural"
+    end
+
+    -- Otherwise blockName is a real block to set; this overwrites any existing placed overlay
+    local action = nil
+    if prev_type == "air" then
+        action = "added"
+    else
+        -- if prev was placed and different, it's a replace of placed; if prev was procedural it's a replace
+        action = "replaced"
+    end
+
+    self.placed[z][x][y] = blockName
+    log.info(string.format("World: %s block '%s' at z=%d x=%d y=%d (prev_type=%s, prev_placed=%s)", action, tostring(blockName), z, x, y, tostring(prev_type), tostring(prev_placed)))
+    return true, action
 end
 
 -- get block type at (z, x, by)

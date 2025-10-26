@@ -1,8 +1,6 @@
--- Main application (forward wheel events to Player; Player draws inventory and ghost; clicks modify world)
+-- Main application (keeps lib.log and lib.classic; logs layer switches)
 --
--- This main.lua sets up the world, player, and basic input/GUI. Inventory UI +
--- wheel handling, ghost handling and placement/removal are owned by Player.
--- Main forwards mouse events and redraws the affected layer canvas when changes occur.
+-- Updated to log when switching player layer (q/e) using lib.log.
 
 -- Global game table
 Game = {
@@ -42,13 +40,22 @@ local World = require("world")
 local Player = require("player")
 local Blocks = require("blocks")
 
+-- keep rxi-style libs exposed through lib/* so you can require("lib.log") / require("lib.classic")
+local log = require("lib.log")         -- now resolves to lib/log.lua
+local classic = require("lib.classic") -- now resolves to lib/classic.lua
+
+-- configure logger level from Game.debug
+if Game.debug then
+    log.level = "debug"
+else
+    log.level = "info"
+end
+
 -- Expose Blocks in global scope for compatibility (optional)
 _G.Blocks = Blocks
 
 -- compatibility for unpack across Lua versions (Lua 5.2+ vs 5.1 / LuaJIT)
-local unpack = table.unpack or unpack or function(t)
-    return t[1], t[2], t[3], t[4]
-end
+local unpack = table.unpack or unpack or function(t) return t[1], t[2], t[3], t[4] end
 
 -- Helper: clamp camera horizontally
 local function clamp_camera()
@@ -107,6 +114,8 @@ function love.load()
     Game.player = Player.new{ px = 50, z = 0 }
 
     regenerate_world()
+
+    log.info("Game loaded")
 end
 
 function love.resize(w, h)
@@ -117,15 +126,23 @@ end
 
 function love.keypressed(key)
     if key == "q" then
+        local old_z = Game.player.z
         Game.player.z = math.max(-1, Game.player.z - 1)
         local top = Game.world:get_surface(Game.player.z, math.floor(Game.player.px)) or (Game.WORLD_HEIGHT - 1)
         Game.player.py = top - Game.player.height
         Game.player.vy = 0
+        if Game.player.z ~= old_z then
+            log.info(string.format("Switched layer: %d -> %d", old_z, Game.player.z))
+        end
     elseif key == "e" then
+        local old_z = Game.player.z
         Game.player.z = math.min(1, Game.player.z + 1)
         local top = Game.world:get_surface(Game.player.z, math.floor(Game.player.px)) or (Game.WORLD_HEIGHT - 1)
         Game.player.py = top - Game.player.height
         Game.player.vy = 0
+        if Game.player.z ~= old_z then
+            log.info(string.format("Switched layer: %d -> %d", old_z, Game.player.z))
+        end
     elseif key == "escape" then
         love.event.quit()
     elseif key == "space" or key == "up" then
@@ -143,55 +160,40 @@ function love.wheelmoved(x, y)
     end
 end
 
--- Forward mouse presses:
---  - left click (1) removes block under mouse (player.removeAtMouse)
---  - right click (2) places selected block (player.placeAtMouse)
--- After successful change we redraw the affected layer canvas so changes become visible.
 function love.mousepressed(x, y, button, istouch, presses)
-    if not Game.player then return end
-
-    if (button == 1 or button == "l") and Game.player.removeAtMouse then
-        local ok, err = Game.player:removeAtMouse(Game.world, Game.camera_x, Game.BLOCK_SIZE, x, y)
-        if ok then
-            if Game.world and Game.canvases and Game.canvases[Game.player.z] then
-                Game.world:draw(Game.player.z, Game.canvases[Game.player.z], Blocks, Game.BLOCK_SIZE)
-            end
-            if Game.debug then print("Remove succeeded:", tostring(err)) end
-        else
-            if Game.debug then print("Remove failed:\t", tostring(err)) end
-        end
-        return
-    end
-
-    if (button == 2 or button == "r") and Game.player.placeAtMouse then
+    if Game.player and Game.player.placeAtMouse and (button == 2 or button == "r") then
         local ok, err = Game.player:placeAtMouse(Game.world, Game.camera_x, Game.BLOCK_SIZE, x, y)
         if ok then
             if Game.world and Game.canvases and Game.canvases[Game.player.z] then
                 Game.world:draw(Game.player.z, Game.canvases[Game.player.z], Blocks, Game.BLOCK_SIZE)
             end
-            if Game.debug then print("Place succeeded:", tostring(err)) end
+            log.info("Place succeeded:", tostring(err))
         else
-            if Game.debug then print("Place failed:\t", tostring(err)) end
+            log.warn("Place failed:", tostring(err))
         end
-        return
+    elseif Game.player and Game.player.removeAtMouse and (button == 1 or button == "l") then
+        local ok, err = Game.player:removeAtMouse(Game.world, Game.camera_x, Game.BLOCK_SIZE, x, y)
+        if ok then
+            if Game.world and Game.canvases and Game.canvases[Game.player.z] then
+                Game.world:draw(Game.player.z, Game.canvases[Game.player.z], Blocks, Game.BLOCK_SIZE)
+            end
+            log.info("Remove succeeded:", tostring(err))
+        else
+            log.warn("Remove failed:", tostring(err))
+        end
     end
 end
 
 function love.update(dt)
-    -- Build a simple input table for the player
     local input = {
         left = love.keyboard.isDown("a"),
         right = love.keyboard.isDown("d"),
         jump = false
     }
 
-    -- Player update (world is pure logic)
     Game.player:update(dt, Game.world, input)
 
-    -- Clamp player x inside world
     Game.player.px = math.max(1, math.min(Game.WORLD_WIDTH - Game.player.width, Game.player.px))
-
-    -- Smooth camera horizontally (center on player)
     Game.camera_x = (Game.player.px + Game.player.width / 2) * Game.BLOCK_SIZE - Game.screen_width / 2
     clamp_camera()
 end
@@ -249,7 +251,7 @@ function love.draw()
         local block_type = get_block_type_at(layer_z, col, by)
 
         local debug_lines = {}
-        debug_lines[#debug_lines+1] = "DEBUG MODE: ON (toggle with Backspace)"
+        debug_lines[#debug_lines+1] = "DEBUG MODE: ON"
         debug_lines[#debug_lines+1] = string.format("Inventory selected: %d / %d (mouse wheel)", Game.player.inventory.selected, Game.player.inventory.slots)
         debug_lines[#debug_lines+1] = string.format("Mouse pixel: %.0f, %.0f", mx, my)
         debug_lines[#debug_lines+1] = string.format("World col,row: %d, %d", col, by)
@@ -259,7 +261,7 @@ function love.draw()
         -- draw semi-opaque background box for readability
         local padding = 6
         local line_h = 14
-        local box_w = 360
+        local box_w = 420
         local box_h = #debug_lines * line_h + padding * 2
         love.graphics.setColor(0, 0, 0, 0.6)
         love.graphics.rectangle("fill", 6, 6, box_w, box_h)

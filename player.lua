@@ -2,6 +2,9 @@
 -- Left click removes the highlighted block from the world (procedural or placed).
 -- Right click places the selected hotbar block (floating placement allowed).
 --
+-- Updated to use World:set_block / World:place_block instead of mutating world.placed directly,
+-- so world-side logging will be emitted for all add/remove/replace actions.
+--
 local Player = {}
 Player.__index = Player
 
@@ -253,6 +256,7 @@ end
 
 -- Place the selected hotbar block at the mouse world cell (right-click).
 -- Floating placements are allowed (no support/sanity check for below).
+-- Uses World:set_block to ensure logging occurs.
 function Player:placeAtMouse(world, camera_x, block_size, mx, my)
     if not world then return false, "no world" end
     camera_x = camera_x or 0
@@ -289,28 +293,8 @@ function Player:placeAtMouse(world, camera_x, block_size, mx, my)
     local target_type = world:get_block_type(self.z, col, row)
     if target_type == nil then target_type = "nil" end
 
-    -- Diagnostics when placement fails (only print when Game.debug)
-    local function diag(msg)
-        if rawget(_G, "Game") and Game.debug then
-            local placed_val = nil
-            if world.placed and world.placed[self.z] and world.placed[self.z][col] then
-                placed_val = world.placed[self.z][col][row]
-            end
-            print(string.format("Place debug: %s | z=%d col=%d row=%d target_type=%s placed_overlay=%s",
-                    msg, self.z, col, row, tostring(target_type), tostring(placed_val)))
-            local layer = world.layers and world.layers[self.z]
-            if layer and layer.heights then
-                local h = layer.heights[col]
-                local dirt = layer.dirt_limit and layer.dirt_limit[col]
-                local stone = layer.stone_limit and layer.stone_limit[col]
-                print(string.format("  layer heights: top=%s dirt_lim=%s stone_lim=%s", tostring(h), tostring(dirt), tostring(stone)))
-            end
-        end
-    end
-
     -- Only place into air (air includes procedural cells that were marked "__empty")
     if target_type ~= "air" then
-        diag("target not empty")
         return false, "target not empty"
     end
 
@@ -326,21 +310,18 @@ function Player:placeAtMouse(world, camera_x, block_size, mx, my)
         blockName = item.name
     end
     if not blockName then
-        diag("unknown block type")
         return false, "unknown block type"
     end
 
-    local ok, err = world:place_block(self.z, col, row, blockName)
-    if not ok then
-        diag("place_block failed: "..tostring(err))
-    end
-    return ok, err
+    -- Use World:set_block to add placed block (this will log)
+    local ok, action = world:set_block(self.z, col, row, blockName)
+    return ok, action
 end
 
 -- Remove the block at the mouse world cell (left-click). This modifies the world:
 -- - if a player-placed block exists at target, remove that overlay entry
--- - otherwise, mark the procedural tile as removed by writing sentinel "__empty" into placed overlay
--- The change affects world:get_block_type and get_surface immediately.
+-- - otherwise, mark the procedural tile as removed by writing sentinel "__empty" into the overlay
+-- The change affects world:get_block_type and get_surface immediately, and logging is done in World:set_block.
 function Player:removeAtMouse(world, camera_x, block_size, mx, my)
     if not world then return false, "no world" end
     camera_x = camera_x or 0
@@ -365,34 +346,19 @@ function Player:removeAtMouse(world, camera_x, block_size, mx, my)
     col = math.max(1, math.min(world_w, col))
     row = math.max(1, math.min(world_h, row))
 
-    -- check placed overlay
-    if not world.placed then world.placed = {} end
-    if not world.placed[self.z] then world.placed[self.z] = {} end
-    if not world.placed[self.z][col] then world.placed[self.z][col] = {} end
-
-    local placed_val = world.placed[self.z][col][row]
-    if placed_val ~= nil and placed_val ~= "__empty" then
-        -- remove player-placed block
-        world.placed[self.z][col][row] = nil
-        if rawget(_G, "Game") and Game.debug then
-            print(string.format("Remove debug: removed placed block at z=%d col=%d row=%d", self.z, col, row))
-        end
-        return true, "removed placed"
+    -- First try removing a placed block (set to nil removes placed overlay)
+    local ok, msg = world:set_block(self.z, col, row, nil)
+    if ok then
+        return true, msg
     end
 
-    -- no placed block found — check procedural block
-    local cur = world:get_block_type(self.z, col, row)
-    if cur == nil then cur = "nil" end
-    if cur == "air" or cur == "out" then
-        return false, "nothing to remove"
+    -- If nothing removed, try marking procedural removed (use "__empty" sentinel)
+    local ok2, msg2 = world:set_block(self.z, col, row, "__empty")
+    if ok2 then
+        return true, msg2
     end
 
-    -- mark procedural tile removed via sentinel so get_block_type will treat as air
-    world.placed[self.z][col][row] = "__empty"
-    if rawget(_G, "Game") and Game.debug then
-        print(string.format("Remove debug: marked procedural block removed at z=%d col=%d row=%d (was %s)", self.z, col, row, tostring(cur)))
-    end
-    return true, "removed procedural"
+    return false, "nothing to remove"
 end
 
 return Player
