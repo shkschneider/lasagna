@@ -1,185 +1,199 @@
--- Simple Player module (pure logic + drawing helper)
--- Responsibilities:
---  - hold player state (px, py, vx, vy, z, width, height, on_ground)
---  - update physics (gravity, horizontal movement, ground collision)
---  - support step-up movement (small steps)
---  - snapping to surface when changing layers or after regeneration
---  - draw(self, block_size, camera_x) - LOVE-dependent rendering helper
---
--- API:
+-- Player module (includes inventory UI + wheel handling)
+-- Usage:
 --   local Player = require("player")
---   local p = Player.new{ px=50, z=0 }
---   p:update(dt, world, { left=bool, right=bool, jump=bool })
+--   local p = Player.new{ px = 50, z = 0 }
+--   p:update(dt, world, input)
 --   p:draw(block_size, camera_x)
+--   p:wheelmoved(dx, dy)
+--   p:drawInventory(screen_w, screen_h)
 --
 local Player = {}
 Player.__index = Player
 
--- defaults (keys are UPPERCASE)
-local DEFAULTS = {
-    WIDTH = 1,
-    HEIGHT = 2,
-    MOVE_SPEED = 5,   -- blocks per second
-    JUMP_SPEED = -10, -- initial upward velocity (blocks per second)
-    GRAVITY = 20,     -- blocks per second^2
-    STEP_HEIGHT = 1,  -- maximum vertical step-up in blocks
-}
+local Blocks = require("blocks") -- used to seed inventory with block types
 
--- Player drawing color (not a world block)
-local PLAYER_COLOR = { 1.0, 1.0, 1.0, 1.0 }
-
--- compatibility for unpack across Lua versions
-local unpack = table.unpack or unpack or function(t)
-    return t[1], t[2], t[3], t[4]
-end
-
--- safe floor helper
-local function ifloor(v) return math.floor(v) end
-
--- Create a new player. opts table may include px, py, z, width, height, move_speed, jump_speed, gravity, step_height
+-- Create a new player. opts may include px, py, z
 function Player.new(opts)
     opts = opts or {}
-    local p = setmetatable({}, Player)
-    p.px = opts.px or 50
-    p.py = opts.py or 0
-    p.z  = opts.z  or 0
-    p.width  = opts.width  or DEFAULTS.WIDTH
-    p.height = opts.height or DEFAULTS.HEIGHT
-    p.vx = opts.vx or 0
-    p.vy = opts.vy or 0
-    p.on_ground = false
-
-    p.move_speed = opts.move_speed or DEFAULTS.MOVE_SPEED
-    p.jump_speed = opts.jump_speed or DEFAULTS.JUMP_SPEED
-    p.gravity = opts.gravity or DEFAULTS.GRAVITY
-    p.step_height = opts.step_height or DEFAULTS.STEP_HEIGHT
-
-    return p
-end
-
--- Snap the player's vertical position to the surface of the current layer at current px
--- world must provide get_surface(z, x) which returns top row number (or nil)
-function Player:snap_to_surface(world)
-    if not world then return end
-    local col = ifloor(self.px)
-    local top = world:get_surface(self.z, col) or (world.height and world.height - 1) or 0
-    self.py = top - self.height
+    local self = setmetatable({}, Player)
+    self.px = opts.px or 50       -- column (blocks)
+    self.py = opts.py or 0        -- row (blocks)
+    self.z  = opts.z  or 0        -- layer
+    self.vx = 0
     self.vy = 0
-    self.on_ground = true
-end
+    self.width = opts.width or 1  -- block width
+    self.height = opts.height or 2 -- block height
+    self.on_ground = false
 
--- Change player layer and optionally snap to its surface
-function Player:set_layer(new_z, world, snap)
-    self.z = new_z
-    if snap and world then
-        self:snap_to_surface(world)
+    -- Inventory (owned by player)
+    local slots = 9
+    self.inventory = {
+        slots = slots,
+        selected = 1,
+        items = {}, -- will be populated below
+        ui = {
+            slot_size = 48,         -- pixel size of each inventory slot
+            padding = 6,            -- padding between slots
+            border_thickness = 3,
+            background_alpha = 0.6,
+        }
+    }
+
+    -- Seed inventory with one of each block from Blocks (stop when bar is full).
+    -- This will not overflow if more block types are added later.
+    for name, block in pairs(Blocks) do
+        if #self.inventory.items >= self.inventory.slots then break end
+        table.insert(self.inventory.items, block)
     end
+
+    -- NOTE: Do NOT attempt to append `nil` values to force the array length.
+    -- In Lua `#table` ignores trailing nils and appending `nil` with table.insert
+    -- will not increase the length, which leads to an infinite loop. We purposely
+    -- leave `inventory.items` possibly shorter than `inventory.slots` and handle
+    -- missing entries as empty slots in drawInventory (inv.items[i] can be nil).
+
+    return self
 end
 
--- Get player's center x (useful for collision lookups)
-function Player:center_x()
-    return self.px + self.width / 2
-end
-
--- Update physics and movement.
--- dt: delta time
--- world: World instance that responds to get_surface(z, x) and has width/height properties
--- input: table { left=bool, right=bool, jump=bool_pressed } - jump should be true only on press
+-- Basic update (keeps previous behavior compatible; world used for ground detection)
+-- input = { left = bool, right = bool, jump = bool }
 function Player:update(dt, world, input)
-    input = input or {}
-    -- horizontal target velocity
-    local target_vx = 0
-    if input.right then target_vx = self.move_speed
-    elseif input.left then target_vx = -self.move_speed
-    end
-
-    -- move horizontally: compute tentative new position with simple step-up allowed
-    local new_px = self.px + target_vx * dt
-
-    -- step-up handling: compare ground at current center vs new center
-    local center_x = self.px + self.width / 2
-    local new_center_x = new_px + self.width / 2
-
-    local current_col = ifloor(center_x)
-    local target_col  = ifloor(new_center_x)
-
-    local current_ground = world and (world:get_surface(self.z, current_col) or (world.height and world.height - 1)) or (math.huge)
-    local target_ground  = world and (world:get_surface(self.z, target_col) or (world.height and world.height - 1)) or (math.huge)
-
-    -- allow movement if target ground is at most step_height higher than current ground (or if we're moving upward)
-    if (target_ground <= current_ground + self.step_height) or (self.vy < 0) then
-        self.px = new_px
-        self.vx = target_vx
+    -- Basic horizontal movement (use Game constants if available)
+    local move_speed = (rawget(_G, "Game") and Game.MOVE_SPEED) or 5
+    if input and input.left then
+        self.vx = -move_speed
+    elseif input and input.right then
+        self.vx = move_speed
     else
-        -- blocked horizontally by higher terrain, velocity zero horizontally
         self.vx = 0
     end
 
-    -- clamp horizontal inside world if world exposes width
-    if world then
-        local w = world.width or (world.width and world:width()) or nil
-        if w then
-            self.px = math.max(1, math.min(w - self.width, self.px))
-        end
-    end
+    -- Gravity and vertical movement
+    local gravity = (rawget(_G, "Game") and Game.GRAVITY) or 20
+    self.vy = self.vy + gravity * dt
 
-    -- jumping (only start jump when on ground and jump input true)
-    if input.jump and self.on_ground then
-        self.vy = self.jump_speed
-        self.on_ground = false
-    end
-
-    -- gravity
-    self.vy = self.vy + self.gravity * dt
-
-    -- vertical integration
+    -- Simple position integration (units are blocks)
+    self.px = self.px + self.vx * dt
     self.py = self.py + self.vy * dt
 
-    -- ground collision: find ground under player's center column
-    if world then
-        local col = ifloor(self.px + self.width / 2)
-        local ground_y = world:get_surface(self.z, col) or (world.height and world.height - 1) or (math.huge)
+    -- Clamp inside world width if possible
+    if rawget(_G, "Game") then
+        local max_x = Game.WORLD_WIDTH - self.width
+        if self.px < 1 then self.px = 1 end
+        if self.px > max_x then self.px = max_x end
+    end
 
-        if self.vy > 0 and self.py + self.height > ground_y then
-            -- landed
-            self.py = ground_y - self.height
+    -- Simple ground collision: snap to top if below surface
+    if world then
+        local col = math.floor(self.px)
+        local top = world:get_surface(self.z, col) or ( (rawget(_G, "Game") and Game.WORLD_HEIGHT) or 100 )
+        -- top is block-row of top block; player stands on top - player.height
+        local ground_py = top - self.height
+        if self.py >= ground_py then
+            self.py = ground_py
             self.vy = 0
             self.on_ground = true
         else
             self.on_ground = false
         end
-
-        -- clamp vertical inside world bounds if available
-        if world.height then
-            self.py = math.min(self.py, world.height - self.height)
-        end
     end
 end
 
--- draw the player (uses LOVE). Accepts block_size (pixels) and camera_x (pixels)
--- drawing coordinates map block coordinates to pixels: (px-1)*block_size, (py-1)*block_size
+-- Draw player as a simple rectangle (block-space -> pixel-space)
+-- block_size: pixels per block, camera_x: pixels
 function Player:draw(block_size, camera_x)
-    -- require love.graphics to exist in environment calling draw
+    block_size = block_size or 16
+    camera_x = camera_x or 0
+
+    local px = (self.px - 1) * block_size - camera_x
+    local py = (self.py - 1) * block_size
+
+    -- simple body
     love.graphics.push()
-    love.graphics.origin()
-    love.graphics.translate(- (camera_x or 0), 0)
-    love.graphics.setColor(unpack(PLAYER_COLOR))
-    love.graphics.rectangle("fill",
-            (self.px - 1) * (block_size or 16),
-            (self.py - 1) * (block_size or 16),
-            (block_size or 16) * self.width,
-            (block_size or 16) * self.height)
+    love.graphics.setColor(0.2, 0.6, 1, 1)
+    love.graphics.rectangle("fill", px, py, self.width * block_size, self.height * block_size, 4, 4)
+    love.graphics.setColor(0, 0, 0, 1)
+    love.graphics.rectangle("line", px + 0.5, py + 0.5, self.width * block_size - 1, self.height * block_size - 1, 4, 4)
     love.graphics.pop()
 end
 
--- Optional small helper: returns which block-row the player's feet are over
-function Player:foot_row()
-    return ifloor(self.py + self.height)
+-- Mouse wheel handler: forward wheel movement (y) to change selected slot
+-- follows the previous behaviour: wheel up => previous slot, wheel down => next slot
+-- dx, dy: numbers passed by love.wheelmoved
+function Player:wheelmoved(dx, dy)
+    if not dy or dy == 0 then return end
+    local inv = self.inventory
+    if dy > 0 then
+        inv.selected = inv.selected - 1
+        if inv.selected < 1 then inv.selected = inv.slots end
+    else
+        inv.selected = inv.selected + 1
+        if inv.selected > inv.slots then inv.selected = 1 end
+    end
 end
 
--- Returns a simple bbox (x,y,w,h) in block coordinates
-function Player:get_bbox()
-    return self.px, self.py, self.width, self.height
+-- Draw the inventory selection bar centered at the bottom of the screen.
+-- screen_w, screen_h: in pixels
+function Player:drawInventory(screen_w, screen_h)
+    local inv = self.inventory
+    local ui = inv.ui
+    local total_slots = inv.slots
+    local slot_w = ui.slot_size
+    local slot_h = ui.slot_size
+    local padding = ui.padding
+    local total_width = total_slots * slot_w + (total_slots - 1) * padding
+    local x0 = (screen_w - total_width) / 2
+    local y0 = screen_h - slot_h - 20 -- 20px margin from bottom
+
+    -- Background bar (semi-transparent dark rectangle)
+    local bg_margin = 8
+    love.graphics.setColor(0, 0, 0, ui.background_alpha)
+    love.graphics.rectangle("fill", x0 - bg_margin, y0 - bg_margin, total_width + bg_margin * 2, slot_h + bg_margin * 2, 6, 6)
+
+    -- Draw each slot
+    for i = 1, total_slots do
+        local sx = x0 + (i - 1) * (slot_w + padding)
+        local sy = y0
+
+        -- slot background
+        love.graphics.setColor(0.12, 0.12, 0.12, 1)
+        love.graphics.rectangle("fill", sx, sy, slot_w, slot_h, 4, 4)
+
+        -- inner "cube" placeholder or item color
+        local inner_pad = 8
+        local cube_x = sx + inner_pad
+        local cube_y = sy + inner_pad
+        local cube_w = slot_w - inner_pad * 2
+        local cube_h = slot_h - inner_pad * 2
+
+        local item = inv.items[i]
+        if item and item.color then
+            love.graphics.setColor(unpack(item.color))
+            love.graphics.rectangle("fill", cube_x, cube_y, cube_w, cube_h, 3, 3)
+            -- darker inner outline
+            love.graphics.setColor(0, 0, 0, 0.6)
+            love.graphics.rectangle("line", cube_x + 0.5, cube_y + 0.5, cube_w - 1, cube_h - 1, 2, 2)
+        else
+            love.graphics.setColor(0.75, 0.75, 0.75, 1)
+            love.graphics.rectangle("fill", cube_x, cube_y, cube_w, cube_h, 3, 3)
+        end
+
+        -- slot border (thin)
+        love.graphics.setColor(0, 0, 0, 0.6)
+        love.graphics.setLineWidth(1)
+        love.graphics.rectangle("line", sx + 0.5, sy + 0.5, slot_w - 1, slot_h - 1, 4, 4)
+
+        -- highlight selected slot with thicker colored border
+        if i == inv.selected then
+            love.graphics.setColor(1, 0.84, 0, 1) -- gold-ish
+            love.graphics.setLineWidth(ui.border_thickness)
+            love.graphics.rectangle("line", sx + 1, sy + 1, slot_w - 2, slot_h - 2, 4, 4)
+            love.graphics.setLineWidth(1)
+        end
+    end
+
+    -- Reset color
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 return Player

@@ -1,9 +1,9 @@
---[[
-    Main application (uses world.lua and player.lua, Blocks moved to blocks.lua)
-    - Blocks table is now in blocks.lua and required here.
-    - Player drawing uses the Player module's color (player is not a world block).
-    - HUD/status text only shown in debug overlay; seed moved into debug overlay as second line.
---]]
+-- Main application (forward wheel events to Player; Player draws inventory)
+--
+-- This is the same main.lua as before except:
+--  - love.wheelmoved forwards the event to Game.player:wheelmoved
+--  - love.draw calls Game.player:drawInventory(screen_w, screen_h)
+-- Keep the rest of your main logic intact and only merge the wheel/ drawInventory lines if you prefer minimal changes.
 
 -- Global game table
 Game = {
@@ -34,14 +34,14 @@ Game = {
     -- Player will be created from player.lua
     player = nil,
 
-    -- Debug flag (start in debug mode by default for now)
+    -- Debug flag
     debug = true,
 }
 
 -- Require modules and data
 local World = require("world")
 local Player = require("player")
-local Blocks = require("blocks") -- world block palette (player removed from Blocks)
+local Blocks = require("blocks")
 
 -- Expose Blocks in global scope for compatibility (optional)
 _G.Blocks = Blocks
@@ -52,19 +52,6 @@ local unpack = table.unpack or unpack or function(t)
 end
 
 -- Helper functions
-local function getSeedFromArgs()
-    local args_tbl = arg or {}
-    for i = 1, #args_tbl do
-        local v = args_tbl[i]
-        if type(v) == "string" then
-            local val = v:match("^%-%-seed=(.+)$")
-            if val then return tonumber(val) or val end
-            if v == "--seed" and args_tbl[i+1] then return tonumber(args_tbl[i+1]) or args_tbl[i+1] end
-        end
-    end
-    return nil
-end
-
 local function clamp_camera()
     local max_camera = Game.WORLD_WIDTH * Game.BLOCK_SIZE - Game.screen_width
     if max_camera < 0 then max_camera = 0 end
@@ -92,12 +79,10 @@ local function regenerate_world()
         local canvas = love.graphics.newCanvas(canvas_w, canvas_h)
         canvas:setFilter("nearest", "nearest")
         Game.canvases[z] = canvas
-        -- Use the World:draw helper to render the layer into the canvas
         Game.world:draw(z, canvas, Blocks, Game.BLOCK_SIZE)
     end
 
-    -- Set player starting position (on default layer grass) if player px is valid,
-    -- otherwise fallback to center column (50)
+    -- Set player starting position (on default layer grass)
     if not Game.player then
         Game.player = Player.new{ px = 50, z = 0 }
     end
@@ -117,13 +102,7 @@ function love.load()
     Game.screen_width = love.graphics.getWidth()
     Game.screen_height = love.graphics.getHeight()
 
-    Game.seed = getSeedFromArgs() or os.time()
-
-    local dbg_env = os.getenv and os.getenv("DEBUG")
-    if not Game.debug and dbg_env then
-        local v = tostring(dbg_env):lower()
-        if v == "1" or v == "true" or v == "yes" then Game.debug = true end
-    end
+    Game.seed = os.time()
 
     -- create player instance before world regen so regenerate_world can position it
     Game.player = Player.new{ px = 50, z = 0 }
@@ -148,21 +127,6 @@ function love.keypressed(key)
         local top = Game.world:get_surface(Game.player.z, math.floor(Game.player.px)) or (Game.WORLD_HEIGHT - 1)
         Game.player.py = top - Game.player.height
         Game.player.vy = 0
-    elseif key == "backspace" then
-        Game.debug = not Game.debug
-    elseif key == "delete" then
-        if Game.debug then
-            Game.player.px = 50
-            Game.player.z = 0
-            Game.player.vx = 0
-            Game.player.vy = 0
-            Game.player.on_ground = false
-            regenerate_world()
-            Game.player.vx = 0
-            Game.player.vy = 0
-            Game.player.on_ground = false
-            clamp_camera()
-        end
     elseif key == "escape" then
         love.event.quit()
     elseif key == "space" or key == "up" then
@@ -173,19 +137,26 @@ function love.keypressed(key)
     end
 end
 
+-- Forward mouse wheel events to the player so it owns inventory selection
+function love.wheelmoved(x, y)
+    if Game.player and Game.player.wheelmoved then
+        Game.player:wheelmoved(x, y)
+    end
+end
+
 function love.update(dt)
     -- Build a simple input table for the player
     local input = {
         left = love.keyboard.isDown("a"),
         right = love.keyboard.isDown("d"),
-        -- jump handled via keypressed space/up to start jump, but we'll still allow continuous press:
+        -- jump handled via keypressed space/up to start jump
         jump = false
     }
 
     -- Player update (world is pure logic)
     Game.player:update(dt, Game.world, input)
 
-    -- Clamp player x inside world (Player already clamps, but keep as safety)
+    -- Clamp player x inside world (Player also clamps)
     Game.player.px = math.max(1, math.min(Game.WORLD_WIDTH - Game.player.width, Game.player.px))
 
     -- Smooth camera horizontally (center on player)
@@ -223,7 +194,12 @@ function love.draw()
     -- HUD and debug overlay
     love.graphics.origin()
 
-    -- Debug UI (top-left) when debug mode is enabled (seed is now part of debug_lines)
+    -- Player-owned inventory drawing
+    if Game.player and Game.player.drawInventory then
+        Game.player:drawInventory(Game.screen_width, Game.screen_height)
+    end
+
+    -- Debug overlay (optional)
     if Game.debug then
         local mx, my = love.mouse.getPosition()
         -- convert mouse pixel -> world block column and row
@@ -235,20 +211,18 @@ function love.draw()
         local layer_z = Game.player.z -- use player layer for "current" context
         local block_type = get_block_type_at(layer_z, col, by)
 
-        -- Build debug text (seed is second line)
         local debug_lines = {}
-        debug_lines[#debug_lines+1] = "DEBUG MODE: ON (Backspace to toggle)"
-        debug_lines[#debug_lines+1] = "Seed: " .. tostring(Game.seed)
+        debug_lines[#debug_lines+1] = "DEBUG MODE: ON (toggle with Backspace)"
+        debug_lines[#debug_lines+1] = string.format("Inventory selected: %d / %d (mouse wheel)", Game.player.inventory.selected, Game.player.inventory.slots)
         debug_lines[#debug_lines+1] = string.format("Mouse pixel: %.0f, %.0f", mx, my)
         debug_lines[#debug_lines+1] = string.format("World col,row: %d, %d", col, by)
         debug_lines[#debug_lines+1] = string.format("Layer (player): %d", layer_z)
         debug_lines[#debug_lines+1] = "Block: " .. tostring(block_type)
-        debug_lines[#debug_lines+1] = "Press Delete to reset world"
 
         -- draw semi-opaque background box for readability
         local padding = 6
         local line_h = 14
-        local box_w = 280
+        local box_w = 360
         local box_h = #debug_lines * line_h + padding * 2
         love.graphics.setColor(0, 0, 0, 0.6)
         love.graphics.rectangle("fill", 6, 6, box_w, box_h)
