@@ -1,8 +1,8 @@
 --[[
-    Main application (uses world.lua for generation + drawing helpers)
-    - The per-layer drawing helper was moved into World:draw().
-    - main.lua now delegates layer rendering to Game.world:draw(...)
-    - LOVE-specific code (input, canvases, draw loop) remains here
+    Main application (uses world.lua and player.lua, Blocks moved to blocks.lua)
+    - Blocks table is now in blocks.lua and required here.
+    - Player drawing uses the Player module's color (player is not a world block).
+    - HUD/status text only shown in debug overlay; seed moved into debug overlay as second line.
 --]]
 
 -- Global game table
@@ -31,28 +31,25 @@ Game = {
     screen_height = 0,
     seed = nil,
 
-    -- Player state
-    player = { px = 50, py = 0, width = 1, height = 2, vx = 0, vy = 0, z = 0, on_ground = false },
+    -- Player will be created from player.lua
+    player = nil,
 
-    -- Debug flag
-    debug = false,
+    -- Debug flag (start in debug mode by default for now)
+    debug = true,
 }
 
--- Blocks table
-Blocks = {
-    grass = { color = {0.2, 0.6, 0.2, 1.0}, name = "grass" },
-    dirt  = { color = {0.6, 0.3, 0.1, 1.0}, name = "dirt"  },
-    stone = { color = {0.5, 0.52, 0.55, 1.0}, name = "stone" },
-    player = { color = {1.0, 1.0, 1.0, 1.0}, name = "player" },
-}
+-- Require modules and data
+local World = require("world")
+local Player = require("player")
+local Blocks = require("blocks") -- world block palette (player removed from Blocks)
+
+-- Expose Blocks in global scope for compatibility (optional)
+_G.Blocks = Blocks
 
 -- compatibility for unpack across Lua versions (Lua 5.2+ vs 5.1 / LuaJIT)
 local unpack = table.unpack or unpack or function(t)
     return t[1], t[2], t[3], t[4]
 end
-
--- Require the World module
-local World = require("world")
 
 -- Helper functions
 local function getSeedFromArgs()
@@ -95,11 +92,15 @@ local function regenerate_world()
         local canvas = love.graphics.newCanvas(canvas_w, canvas_h)
         canvas:setFilter("nearest", "nearest")
         Game.canvases[z] = canvas
-        -- Use the new World:draw helper to render the layer into the canvas
+        -- Use the World:draw helper to render the layer into the canvas
         Game.world:draw(z, canvas, Blocks, Game.BLOCK_SIZE)
     end
 
-    -- Position player on default layer surface
+    -- Set player starting position (on default layer grass) if player px is valid,
+    -- otherwise fallback to center column (50)
+    if not Game.player then
+        Game.player = Player.new{ px = 50, z = 0 }
+    end
     if not Game.player.px or Game.player.px < 1 or Game.player.px > Game.WORLD_WIDTH then
         Game.player.px = 50
     end
@@ -123,6 +124,9 @@ function love.load()
         local v = tostring(dbg_env):lower()
         if v == "1" or v == "true" or v == "yes" then Game.debug = true end
     end
+
+    -- create player instance before world regen so regenerate_world can position it
+    Game.player = Player.new{ px = 50, z = 0 }
 
     regenerate_world()
 end
@@ -170,40 +174,21 @@ function love.keypressed(key)
 end
 
 function love.update(dt)
-    Game.player.vx = 0
-    if love.keyboard.isDown("d") then
-        Game.player.vx = Game.MOVE_SPEED
-    elseif love.keyboard.isDown("a") then
-        Game.player.vx = -Game.MOVE_SPEED
-    end
+    -- Build a simple input table for the player
+    local input = {
+        left = love.keyboard.isDown("a"),
+        right = love.keyboard.isDown("d"),
+        -- jump handled via keypressed space/up to start jump, but we'll still allow continuous press:
+        jump = false
+    }
 
-    local new_px = Game.player.px + Game.player.vx * dt
-    local center_x = Game.player.px + Game.player.width / 2
-    local new_center_x = new_px + Game.player.width / 2
+    -- Player update (world is pure logic)
+    Game.player:update(dt, Game.world, input)
 
-    local current_ground_y = Game.world:get_surface(Game.player.z, math.floor(center_x)) or (Game.WORLD_HEIGHT - 1)
-    local target_ground_y  = Game.world:get_surface(Game.player.z, math.floor(new_center_x)) or (Game.WORLD_HEIGHT - 1)
-
-    if target_ground_y <= current_ground_y + Game.STEP_HEIGHT or Game.player.vy < 0 then
-        Game.player.px = new_px
-    end
-
+    -- Clamp player x inside world (Player already clamps, but keep as safety)
     Game.player.px = math.max(1, math.min(Game.WORLD_WIDTH - Game.player.width, Game.player.px))
 
-    Game.player.vy = Game.player.vy + Game.GRAVITY * dt
-    Game.player.py = Game.player.py + Game.player.vy * dt
-
-    local ground_y = Game.world:get_surface(Game.player.z, math.floor(Game.player.px + Game.player.width / 2)) or (Game.WORLD_HEIGHT - 1)
-    if Game.player.vy > 0 and Game.player.py + Game.player.height > ground_y then
-        Game.player.py = ground_y - Game.player.height
-        Game.player.vy = 0
-        Game.player.on_ground = true
-    else
-        Game.player.on_ground = false
-    end
-
-    Game.player.py = math.min(Game.player.py, Game.WORLD_HEIGHT - Game.player.height)
-
+    -- Smooth camera horizontally (center on player)
     Game.camera_x = (Game.player.px + Game.player.width / 2) * Game.BLOCK_SIZE - Game.screen_width / 2
     clamp_camera()
 end
@@ -230,46 +215,40 @@ function love.draw()
     for z = -1, Game.player.z do
         draw_layer(z)
         if z == Game.player.z then
-            love.graphics.push()
-            love.graphics.origin()
-            love.graphics.translate(-Game.camera_x, 0)
-            love.graphics.setColor(unpack(Blocks.player.color))
-            love.graphics.rectangle("fill",
-                    (Game.player.px - 1) * Game.BLOCK_SIZE,
-                    (Game.player.py - 1) * Game.BLOCK_SIZE,
-                    Game.BLOCK_SIZE * Game.player.width,
-                    Game.BLOCK_SIZE * Game.player.height)
-            love.graphics.pop()
+            -- delegate player drawing to the Player module
+            Game.player:draw(Game.BLOCK_SIZE, Game.camera_x)
         end
     end
 
+    -- HUD and debug overlay
     love.graphics.origin()
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.print("Seed: " .. tostring(Game.seed), Game.screen_width / 2 - 30, 10)
-    love.graphics.print(string.format("Layer: %d  Pos: %.2f, %.2f  OnGround: %s  Vx: %.2f Vy: %.2f",
-            Game.player.z, Game.player.px, Game.player.py, tostring(Game.player.on_ground), Game.player.vx, Game.player.vy), 10, 10)
 
+    -- Debug UI (top-left) when debug mode is enabled (seed is now part of debug_lines)
     if Game.debug then
         local mx, my = love.mouse.getPosition()
+        -- convert mouse pixel -> world block column and row
         local col = math.floor((mx + Game.camera_x) / Game.BLOCK_SIZE) + 1
         col = math.max(1, math.min(Game.WORLD_WIDTH, col))
         local by = math.floor(my / Game.BLOCK_SIZE) + 1
         by = math.max(1, math.min(Game.WORLD_HEIGHT, by))
 
-        local layer_z = Game.player.z
+        local layer_z = Game.player.z -- use player layer for "current" context
         local block_type = get_block_type_at(layer_z, col, by)
 
+        -- Build debug text (seed is second line)
         local debug_lines = {}
         debug_lines[#debug_lines+1] = "DEBUG MODE: ON (Backspace to toggle)"
+        debug_lines[#debug_lines+1] = "Seed: " .. tostring(Game.seed)
         debug_lines[#debug_lines+1] = string.format("Mouse pixel: %.0f, %.0f", mx, my)
         debug_lines[#debug_lines+1] = string.format("World col,row: %d, %d", col, by)
         debug_lines[#debug_lines+1] = string.format("Layer (player): %d", layer_z)
         debug_lines[#debug_lines+1] = "Block: " .. tostring(block_type)
         debug_lines[#debug_lines+1] = "Press Delete to reset world"
 
+        -- draw semi-opaque background box for readability
         local padding = 6
         local line_h = 14
-        local box_w = 260
+        local box_w = 280
         local box_h = #debug_lines * line_h + padding * 2
         love.graphics.setColor(0, 0, 0, 0.6)
         love.graphics.rectangle("fill", 6, 6, box_w, box_h)

@@ -19,15 +19,15 @@ local noise = require("noise1d")
 local World = {}
 World.__index = World
 
--- default options
+-- default options (keys are UPPERCASE)
 local DEFAULTS = {
-    width = 500,
-    height = 100,
-    dirt_thickness = 10,
-    stone_thickness = 10,
-    layer_base_heights = { [-1] = 20, [0] = 30, [1] = 40 },
-    amplitude = { [-1] = 15, [0] = 10, [1] = 10 },
-    frequency = { [-1] = 1/40, [0] = 1/50, [1] = 1/60 },
+    WIDTH = 500,
+    HEIGHT = 100,
+    DIRT_THICKNESS = 10,
+    STONE_THICKNESS = 10,
+    LAYER_BASE_HEIGHTS = { [-1] = 20, [0] = 30, [1] = 40 },
+    AMPLITUDE = { [-1] = 15, [0] = 10, [1] = 10 },
+    FREQUENCY = { [-1] = 1/40, [0] = 1/50, [1] = 1/60 },
 }
 
 -- compatibility for unpack across Lua versions (Lua 5.2+ vs 5.1 / LuaJIT)
@@ -36,38 +36,50 @@ local unpack = table.unpack or unpack or function(t)
 end
 
 -- create a new world instance
+-- seed: number or string (passed to noise.init)
+-- opts: table overrides from DEFAULTS (optional)
 function World.new(seed, opts)
     opts = opts or {}
     local self = setmetatable({}, World)
     self.seed = seed
-    self.width = opts.width or DEFAULTS.width
-    self.height = opts.height or DEFAULTS.height
-    self.dirt_thickness = opts.dirt_thickness or DEFAULTS.dirt_thickness
-    self.stone_thickness = opts.stone_thickness or DEFAULTS.stone_thickness
-    self.layer_base_heights = opts.layer_base_heights or DEFAULTS.layer_base_heights
-    self.amplitude = opts.amplitude or DEFAULTS.amplitude
-    self.frequency = opts.frequency or DEFAULTS.frequency
-    self.layers = {}
-    if self.seed ~= nil then math.randomseed(self.seed) end
+    -- shallow copy defaults, overridden by opts
+    self.width = opts.width or DEFAULTS.WIDTH
+    self.height = opts.height or DEFAULTS.HEIGHT
+    self.dirt_thickness = opts.dirt_thickness or DEFAULTS.DIRT_THICKNESS
+    self.stone_thickness = opts.stone_thickness or DEFAULTS.STONE_THICKNESS
+    self.layer_base_heights = opts.layer_base_heights or DEFAULTS.LAYER_BASE_HEIGHTS
+    self.amplitude = opts.amplitude or DEFAULTS.AMPLITUDE
+    self.frequency = opts.frequency or DEFAULTS.FREQUENCY
+
+    -- internal storage
+    self.layers = {} -- layers[z] = { heights = {}, dirt_limit = {}, stone_limit = {} }
+
+    -- initialize noise and generate
+    if self.seed ~= nil then
+        math.randomseed(self.seed)
+    end
     noise.init(self.seed)
     self:regenerate()
     return self
 end
 
--- regenerate the world's layers
+-- regenerate the world's layers (keeps the same seed unless you set self.seed)
 function World:regenerate()
-    if self.seed ~= nil then math.randomseed(self.seed) end
+    if self.seed ~= nil then
+        math.randomseed(self.seed)
+    end
     noise.init(self.seed)
 
     for z = -1, 1 do
         local layer = { heights = {}, dirt_limit = {}, stone_limit = {} }
-        local base = (self.layer_base_heights and self.layer_base_heights[z]) or DEFAULTS.layer_base_heights[z]
-        local amp = (self.amplitude and self.amplitude[z]) or DEFAULTS.amplitude[z]
-        local freq = (self.frequency and self.frequency[z]) or DEFAULTS.frequency[z]
+        local base = (self.layer_base_heights and self.layer_base_heights[z]) or DEFAULTS.LAYER_BASE_HEIGHTS[z]
+        local amp = (self.amplitude and self.amplitude[z]) or DEFAULTS.AMPLITUDE[z]
+        local freq = (self.frequency and self.frequency[z]) or DEFAULTS.FREQUENCY[z]
 
         for x = 1, self.width do
             local n = noise.perlin1d(x * freq + (z * 100))
             local top = math.floor(base + amp * n)
+            -- clamp top inside world bounds (leave at least 1 row above and 1 below)
             top = math.max(1, math.min(self.height - 1, top))
 
             local dirt_lim = math.min(self.height, top + self.dirt_thickness)
@@ -82,7 +94,7 @@ function World:regenerate()
     end
 end
 
--- return surface/top (row number) for layer z at column x
+-- return surface/top (row number) for layer z at column x, or nil if out of range
 function World:get_surface(z, x)
     if x < 1 or x > self.width then return nil end
     local layer = self.layers[z]
@@ -91,6 +103,7 @@ function World:get_surface(z, x)
 end
 
 -- get block type at (z, x, by)
+-- by = block-row (1..height), x = column
 -- returns: "out" (out of world bounds), "air", "grass", "dirt", "stone"
 function World:get_block_type(z, x, by)
     if x < 1 or x > self.width or by < 1 or by > self.height then
@@ -116,7 +129,11 @@ end
 
 function World:width() return self.width end
 function World:height() return self.height end
-function World:get_layer(z) return self.layers[z] end
+
+-- optional helper: return the internal layer table for read-only inspection
+function World:get_layer(z)
+    return self.layers[z]
+end
 
 -- Draw a layer into the provided LOVE canvas.
 -- Parameters:
