@@ -1,9 +1,8 @@
--- Main application (forward wheel events to Player; Player draws inventory)
+-- Main application (forward wheel events to Player; Player draws inventory and ghost; clicks modify world)
 --
--- This is the same main.lua as before except:
---  - love.wheelmoved forwards the event to Game.player:wheelmoved
---  - love.draw calls Game.player:drawInventory(screen_w, screen_h)
--- Keep the rest of your main logic intact and only merge the wheel/ drawInventory lines if you prefer minimal changes.
+-- This main.lua sets up the world, player, and basic input/GUI. Inventory UI +
+-- wheel handling, ghost handling and placement/removal are owned by Player.
+-- Main forwards mouse events and redraws the affected layer canvas when changes occur.
 
 -- Global game table
 Game = {
@@ -51,7 +50,7 @@ local unpack = table.unpack or unpack or function(t)
     return t[1], t[2], t[3], t[4]
 end
 
--- Helper functions
+-- Helper: clamp camera horizontally
 local function clamp_camera()
     local max_camera = Game.WORLD_WIDTH * Game.BLOCK_SIZE - Game.screen_width
     if max_camera < 0 then max_camera = 0 end
@@ -82,7 +81,7 @@ local function regenerate_world()
         Game.world:draw(z, canvas, Blocks, Game.BLOCK_SIZE)
     end
 
-    -- Set player starting position (on default layer grass)
+    -- Ensure player exists and is placed on the ground
     if not Game.player then
         Game.player = Player.new{ px = 50, z = 0 }
     end
@@ -144,19 +143,52 @@ function love.wheelmoved(x, y)
     end
 end
 
+-- Forward mouse presses:
+--  - left click (1) removes block under mouse (player.removeAtMouse)
+--  - right click (2) places selected block (player.placeAtMouse)
+-- After successful change we redraw the affected layer canvas so changes become visible.
+function love.mousepressed(x, y, button, istouch, presses)
+    if not Game.player then return end
+
+    if (button == 1 or button == "l") and Game.player.removeAtMouse then
+        local ok, err = Game.player:removeAtMouse(Game.world, Game.camera_x, Game.BLOCK_SIZE, x, y)
+        if ok then
+            if Game.world and Game.canvases and Game.canvases[Game.player.z] then
+                Game.world:draw(Game.player.z, Game.canvases[Game.player.z], Blocks, Game.BLOCK_SIZE)
+            end
+            if Game.debug then print("Remove succeeded:", tostring(err)) end
+        else
+            if Game.debug then print("Remove failed:\t", tostring(err)) end
+        end
+        return
+    end
+
+    if (button == 2 or button == "r") and Game.player.placeAtMouse then
+        local ok, err = Game.player:placeAtMouse(Game.world, Game.camera_x, Game.BLOCK_SIZE, x, y)
+        if ok then
+            if Game.world and Game.canvases and Game.canvases[Game.player.z] then
+                Game.world:draw(Game.player.z, Game.canvases[Game.player.z], Blocks, Game.BLOCK_SIZE)
+            end
+            if Game.debug then print("Place succeeded:", tostring(err)) end
+        else
+            if Game.debug then print("Place failed:\t", tostring(err)) end
+        end
+        return
+    end
+end
+
 function love.update(dt)
     -- Build a simple input table for the player
     local input = {
         left = love.keyboard.isDown("a"),
         right = love.keyboard.isDown("d"),
-        -- jump handled via keypressed space/up to start jump
         jump = false
     }
 
     -- Player update (world is pure logic)
     Game.player:update(dt, Game.world, input)
 
-    -- Clamp player x inside world (Player also clamps)
+    -- Clamp player x inside world
     Game.player.px = math.max(1, math.min(Game.WORLD_WIDTH - Game.player.width, Game.player.px))
 
     -- Smooth camera horizontally (center on player)
@@ -183,6 +215,7 @@ local function get_block_type_at(z, x, by)
 end
 
 function love.draw()
+    -- draw world layers up to player's layer
     for z = -1, Game.player.z do
         draw_layer(z)
         if z == Game.player.z then
@@ -199,10 +232,14 @@ function love.draw()
         Game.player:drawInventory(Game.screen_width, Game.screen_height)
     end
 
+    -- draw ghost block preview under mouse (player-owned)
+    if Game.player and Game.player.drawGhost then
+        Game.player:drawGhost(Game.world, Game.camera_x, Game.BLOCK_SIZE)
+    end
+
     -- Debug overlay (optional)
     if Game.debug then
         local mx, my = love.mouse.getPosition()
-        -- convert mouse pixel -> world block column and row
         local col = math.floor((mx + Game.camera_x) / Game.BLOCK_SIZE) + 1
         col = math.max(1, math.min(Game.WORLD_WIDTH, col))
         local by = math.floor(my / Game.BLOCK_SIZE) + 1

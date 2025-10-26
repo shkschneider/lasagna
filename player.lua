@@ -1,16 +1,32 @@
--- Player module (includes inventory UI + wheel handling)
--- Usage:
---   local Player = require("player")
---   local p = Player.new{ px = 50, z = 0 }
---   p:update(dt, world, input)
---   p:draw(block_size, camera_x)
---   p:wheelmoved(dx, dy)
---   p:drawInventory(screen_w, screen_h)
+-- Player module (includes inventory UI + wheel handling + held-block ghost + placement/removal)
+-- Left click removes the highlighted block from the world (procedural or placed).
+-- Right click places the selected hotbar block (floating placement allowed).
 --
 local Player = {}
 Player.__index = Player
 
 local Blocks = require("blocks") -- used to seed inventory with block types
+
+-- Helper: safe getters for world dimensions (tries numeric field, then method, then Game fallback)
+local function safe_world_dims(world)
+    local w, h = nil, nil
+    if world then
+        if type(world.width) == "number" then w = world.width end
+        if type(world.height) == "number" then h = world.height end
+        -- try methods if fields not present
+        if not w then
+            local ok, val = pcall(function() return world:width() end)
+            if ok and type(val) == "number" then w = val end
+        end
+        if not h then
+            local ok, val = pcall(function() return world:height() end)
+            if ok and type(val) == "number" then h = val end
+        end
+    end
+    if not w and rawget(_G, "Game") and Game.WORLD_WIDTH then w = Game.WORLD_WIDTH end
+    if not h and rawget(_G, "Game") and Game.WORLD_HEIGHT then h = Game.WORLD_HEIGHT end
+    return w, h
+end
 
 -- Create a new player. opts may include px, py, z
 function Player.new(opts)
@@ -40,17 +56,10 @@ function Player.new(opts)
     }
 
     -- Seed inventory with one of each block from Blocks (stop when bar is full).
-    -- This will not overflow if more block types are added later.
     for name, block in pairs(Blocks) do
         if #self.inventory.items >= self.inventory.slots then break end
         table.insert(self.inventory.items, block)
     end
-
-    -- NOTE: Do NOT attempt to append `nil` values to force the array length.
-    -- In Lua `#table` ignores trailing nils and appending `nil` with table.insert
-    -- will not increase the length, which leads to an infinite loop. We purposely
-    -- leave `inventory.items` possibly shorter than `inventory.slots` and handle
-    -- missing entries as empty slots in drawInventory (inv.items[i] can be nil).
 
     return self
 end
@@ -118,8 +127,6 @@ function Player:draw(block_size, camera_x)
 end
 
 -- Mouse wheel handler: forward wheel movement (y) to change selected slot
--- follows the previous behaviour: wheel up => previous slot, wheel down => next slot
--- dx, dy: numbers passed by love.wheelmoved
 function Player:wheelmoved(dx, dy)
     if not dy or dy == 0 then return end
     local inv = self.inventory
@@ -133,7 +140,6 @@ function Player:wheelmoved(dx, dy)
 end
 
 -- Draw the inventory selection bar centered at the bottom of the screen.
--- screen_w, screen_h: in pixels
 function Player:drawInventory(screen_w, screen_h)
     local inv = self.inventory
     local ui = inv.ui
@@ -194,6 +200,199 @@ function Player:drawInventory(screen_w, screen_h)
 
     -- Reset color
     love.graphics.setColor(1, 1, 1, 1)
+end
+
+-- Draw the inventory ghost block (snapped grid preview)
+function Player:drawGhost(world, camera_x, block_size)
+    camera_x = camera_x or 0
+    block_size = block_size or 16
+
+    local inv = self.inventory
+    local selected = inv.selected or 1
+    local item = inv.items and inv.items[selected]
+
+    if not item or not item.color then return end
+
+    -- compute inventory UI region to avoid drawing ghost on top of the bar
+    local screen_w = love.graphics.getWidth()
+    local screen_h = love.graphics.getHeight()
+    local ui = inv.ui
+    local total_slots = inv.slots
+    local slot_w = ui.slot_size
+    local slot_h = ui.slot_size
+    local padding = ui.padding
+    local total_width = total_slots * slot_w + (total_slots - 1) * padding
+    local x0 = (screen_w - total_width) / 2
+    local y0 = screen_h - slot_h - 20 -- 20px margin from bottom
+    local bg_margin = 8
+    local inv_top = y0 - bg_margin
+
+    local mx, my = love.mouse.getPosition()
+    if my >= inv_top then return end
+
+    local world_px = mx + camera_x
+    local col = math.floor(world_px / block_size) + 1
+    local row = math.floor(my / block_size) + 1
+
+    local world_w, world_h = safe_world_dims(world)
+    if world_w then col = math.max(1, math.min(world_w, col)) end
+    if world_h then row = math.max(1, math.min(world_h, row)) end
+
+    local px = (col - 1) * block_size - camera_x
+    local py = (row - 1) * block_size
+
+    local r, g, b, a = unpack(item.color)
+    a = (a or 1) * 0.45 -- semi-transparent
+    love.graphics.setColor(r, g, b, a)
+    love.graphics.rectangle("fill", px, py, block_size, block_size)
+    love.graphics.setColor(1, 1, 1, 0.9)
+    love.graphics.setLineWidth(1)
+    love.graphics.rectangle("line", px + 0.5, py + 0.5, block_size - 1, block_size - 1)
+    love.graphics.setColor(1, 1, 1, 1)
+end
+
+-- Place the selected hotbar block at the mouse world cell (right-click).
+-- Floating placements are allowed (no support/sanity check for below).
+function Player:placeAtMouse(world, camera_x, block_size, mx, my)
+    if not world then return false, "no world" end
+    camera_x = camera_x or 0
+    block_size = block_size or 16
+    local mouse_x, mouse_y = mx, my
+    if not mouse_x or not mouse_y then
+        mouse_x, mouse_y = love.mouse.getPosition()
+    end
+
+    local inv = self.inventory
+    local selected = inv.selected or 1
+    local item = inv.items and inv.items[selected]
+    if not item then return false, "no item selected" end
+
+    -- Determine world cell under mouse
+    local world_px = mouse_x + camera_x
+    local col = math.floor(world_px / block_size) + 1
+    local row = math.floor(mouse_y / block_size) + 1
+
+    -- safe world dimensions
+    local world_w, world_h = safe_world_dims(world)
+    if not world_w or not world_h then
+        if rawget(_G, "Game") and Game.debug then
+            print("Place debug: world dims unknown; world_w,world_h =", tostring(world_w), tostring(world_h))
+        end
+        return false, "world dimensions unknown"
+    end
+
+    -- clamp
+    col = math.max(1, math.min(world_w, col))
+    row = math.max(1, math.min(world_h, row))
+
+    -- Query target
+    local target_type = world:get_block_type(self.z, col, row)
+    if target_type == nil then target_type = "nil" end
+
+    -- Diagnostics when placement fails (only print when Game.debug)
+    local function diag(msg)
+        if rawget(_G, "Game") and Game.debug then
+            local placed_val = nil
+            if world.placed and world.placed[self.z] and world.placed[self.z][col] then
+                placed_val = world.placed[self.z][col][row]
+            end
+            print(string.format("Place debug: %s | z=%d col=%d row=%d target_type=%s placed_overlay=%s",
+                    msg, self.z, col, row, tostring(target_type), tostring(placed_val)))
+            local layer = world.layers and world.layers[self.z]
+            if layer and layer.heights then
+                local h = layer.heights[col]
+                local dirt = layer.dirt_limit and layer.dirt_limit[col]
+                local stone = layer.stone_limit and layer.stone_limit[col]
+                print(string.format("  layer heights: top=%s dirt_lim=%s stone_lim=%s", tostring(h), tostring(dirt), tostring(stone)))
+            end
+        end
+    end
+
+    -- Only place into air (air includes procedural cells that were marked "__empty")
+    if target_type ~= "air" then
+        diag("target not empty")
+        return false, "target not empty"
+    end
+
+    -- find block name from the item stored in inventory
+    local blockName = nil
+    for k, v in pairs(Blocks) do
+        if v == item then
+            blockName = k
+            break
+        end
+    end
+    if not blockName then
+        blockName = item.name
+    end
+    if not blockName then
+        diag("unknown block type")
+        return false, "unknown block type"
+    end
+
+    local ok, err = world:place_block(self.z, col, row, blockName)
+    if not ok then
+        diag("place_block failed: "..tostring(err))
+    end
+    return ok, err
+end
+
+-- Remove the block at the mouse world cell (left-click). This modifies the world:
+-- - if a player-placed block exists at target, remove that overlay entry
+-- - otherwise, mark the procedural tile as removed by writing sentinel "__empty" into placed overlay
+-- The change affects world:get_block_type and get_surface immediately.
+function Player:removeAtMouse(world, camera_x, block_size, mx, my)
+    if not world then return false, "no world" end
+    camera_x = camera_x or 0
+    block_size = block_size or 16
+    local mouse_x, mouse_y = mx, my
+    if not mouse_x or not mouse_y then
+        mouse_x, mouse_y = love.mouse.getPosition()
+    end
+
+    -- Determine world cell under mouse
+    local world_px = mouse_x + camera_x
+    local col = math.floor(world_px / block_size) + 1
+    local row = math.floor(mouse_y / block_size) + 1
+
+    -- safe world dimensions
+    local world_w, world_h = safe_world_dims(world)
+    if not world_w or not world_h then
+        return false, "world dimensions unknown"
+    end
+
+    -- clamp
+    col = math.max(1, math.min(world_w, col))
+    row = math.max(1, math.min(world_h, row))
+
+    -- check placed overlay
+    if not world.placed then world.placed = {} end
+    if not world.placed[self.z] then world.placed[self.z] = {} end
+    if not world.placed[self.z][col] then world.placed[self.z][col] = {} end
+
+    local placed_val = world.placed[self.z][col][row]
+    if placed_val ~= nil and placed_val ~= "__empty" then
+        -- remove player-placed block
+        world.placed[self.z][col][row] = nil
+        if rawget(_G, "Game") and Game.debug then
+            print(string.format("Remove debug: removed placed block at z=%d col=%d row=%d", self.z, col, row))
+        end
+        return true, "removed placed"
+    end
+
+    -- no placed block found — check procedural block
+    local cur = world:get_block_type(self.z, col, row)
+    if cur == nil then cur = "nil" end
+    if cur == "air" or cur == "out" then
+        return false, "nothing to remove"
+    end
+
+    -- mark procedural tile removed via sentinel so get_block_type will treat as air
+    world.placed[self.z][col][row] = "__empty"
+    if rawget(_G, "Game") and Game.debug then
+        print(string.format("Remove debug: marked procedural block removed at z=%d col=%d row=%d (was %s)", self.z, col, row, tostring(cur)))
+    end
+    return true, "removed procedural"
 end
 
 return Player
