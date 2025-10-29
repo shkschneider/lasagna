@@ -122,7 +122,7 @@ function Player:render_to_canvas(block_size)
     self.canvas_dirty = false
 end
 
--- Player:update now only reads input and sets intent; physics is applied by World:update
+-- Player:update now only reads input and sets intent; physics is applied by Player:apply_physics
 function Player:update(dt)
     local left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
     local right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
@@ -133,7 +133,110 @@ function Player:update(dt)
     self.intent.right = right
     self.intent.crouch = crouch
     self.intent.run = run
-    -- jump is a one-shot, do not clear it here; World:update will consume it after use
+    -- jump is a one-shot, do not clear it here; apply_physics will consume it after use
+end
+
+-- Apply physics and movement based on intent (called by Game)
+function Player:apply_physics(dt, world)
+    if not world then return end
+    
+    self.intent = self.intent or {}
+    local intent = self.intent
+
+    local MAX_SPEED = (self.max_speed ~= nil) and self.max_speed or Game.MAX_SPEED
+    local accel = (self.move_accel ~= nil) and self.move_accel or Game.MOVE_ACCEL
+
+    if intent.run then
+        MAX_SPEED = Game.RUN_SPEED_MULT * MAX_SPEED
+        accel = Game.RUN_ACCEL_MULT * accel
+    end
+    if intent.crouch or self.crouching then
+        MAX_SPEED = math.min(MAX_SPEED, Game.CROUCH_MAX_SPEED)
+    end
+    if not self.on_ground then accel = accel * Game.AIR_ACCEL_MULT end
+
+    local dir = 0
+    if intent.left then dir = dir - 1 end
+    if intent.right then dir = dir + 1 end
+
+    local target_vx = dir * MAX_SPEED
+
+    if dir ~= 0 then
+        local use_accel = accel
+        if self.crouching then use_accel = accel * 0.6 end
+        if self.vx < target_vx then
+            self.vx = math.min(target_vx, self.vx + use_accel * dt)
+        elseif self.vx > target_vx then
+            self.vx = math.max(target_vx, self.vx - use_accel * dt)
+        end
+    else
+        if self.crouching then
+            local dec = Game.CROUCH_DECEL * dt
+            if math.abs(self.vx) <= dec then self.vx = 0 else self.vx = self.vx - (self.vx > 0 and 1 or -1) * dec end
+        else
+            if self.on_ground then
+                local dec = Game.GROUND_FRICTION * dt
+                if math.abs(self.vx) <= dec then self.vx = 0 else self.vx = self.vx - (self.vx > 0 and 1 or -1) * dec end
+            else
+                local dec = Game.AIR_FRICTION * dt
+                if math.abs(self.vx) <= dec then self.vx = 0 else self.vx = self.vx - (self.vx > 0 and 1 or -1) * dec end
+            end
+        end
+    end
+
+    if intent.jump then
+        if self.on_ground then
+            self.vy = Game.JUMP_SPEED
+            self.on_ground = false
+        end
+        self.intent.jump = false
+    end
+
+    self.vy = self.vy + Game.GRAVITY * dt
+
+    local dx = self.vx * dt
+    local dy = self.vy * dt
+
+    -- Use Movements module for collision-aware movement
+    local Movements = require("entities.movements")
+    if type(Movements.move) == "function" then
+        Movements.move(self, dx, dy, world)
+    end
+
+    -- crouch/stand mechanics
+    if intent.crouch then
+        if not self.crouching then
+            local height_diff = self.stand_height - self.crouch_height
+            self.crouching = true
+            self.py = self.py + height_diff
+            self.height = self.crouch_height
+            self.canvas_dirty = true
+        end
+    else
+        if self.crouching then
+            local height_diff = self.stand_height - self.crouch_height
+            local new_py = self.py - height_diff
+            local new_height = self.stand_height
+            local left_col = math.floor(self.px + 1e-6)
+            local right_col = math.floor(self.px + self.width - 1e-6)
+            local can_stand = true
+            for col = left_col, right_col do
+                for row = math.floor(new_py + 1e-6), math.floor(new_py + new_height - 1e-6) do
+                    if world:is_solid(self.z, col, row) then
+                        can_stand = false
+                        break
+                    end
+                end
+                if not can_stand then break end
+            end
+            if can_stand then
+                self.crouching = false
+                self.py = new_py
+                self.height = new_height
+                self.canvas_dirty = true
+            end
+        end
+    end
 end
 
 -- Draw uses Game.BLOCK_SIZE and Game.camera_x
