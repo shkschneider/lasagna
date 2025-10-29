@@ -1,5 +1,5 @@
--- Main application (updated: dim layers below the player by 25% per depth)
--- Fixed Player instantiation to use Object{}-style callable classes (Player{...}) instead of Player.new
+-- Main application (updated to instantiate Player() and World.new(seed) without opts tables)
+-- Uses World.new(seed) and Player() which now use internal defaults.
 
 -- Global game table
 Game = {
@@ -7,11 +7,11 @@ Game = {
     BLOCK_SIZE = 16,
     WORLD_WIDTH = 500,
     WORLD_HEIGHT = 100,
-    GRAVITY = 20,    -- Block / second^2
+    GRAVITY = 20,    -- blocks / second^2
 
     -- Movement tuning (smooth accel / friction)
-    MOVE_ACCEL = 60, -- Block / second^2 (horizontal accel on ground)
-    MAX_SPEED = 6,   -- Block / second (base horizontal velocity)
+    MOVE_ACCEL = 60, -- blocks / second^2 (horizontal accel on ground)
+    MAX_SPEED = 6,   -- blocks / second (base horizontal velocity)
     GROUND_FRICTION = 30, -- deceleration when no input and on ground
     AIR_ACCEL_MULT = 0.35, -- fraction of MOVE_ACCEL available in air
     AIR_FRICTION = 1.5, -- small deceleration in air when no input
@@ -24,8 +24,8 @@ Game = {
     CROUCH_DECEL = 120,
     CROUCH_MAX_SPEED = 3,
 
-    JUMP_SPEED = -10,-- initial jump velocity (Block per second)
-    STEP_HEIGHT = 1, -- maximum step-up in Block
+    JUMP_SPEED = -10,-- initial jump velocity (blocks per second)
+    STEP_HEIGHT = 1, -- maximum step-up in blocks
 
     -- How much dirt above stone and how thick stone is
     DIRT_THICKNESS = 10,
@@ -52,7 +52,7 @@ Game = {
 -- Require modules and data
 local World = require("world")
 local Player = require("player")
-local Block = require("block")
+local Blocks = require("blocks")
 
 -- logging and utilities
 local log = require("lib.log")
@@ -65,8 +65,8 @@ else
     log.level = "info"
 end
 
--- Expose Block in global scope for compatibility (optional)
-_G.Block = Block
+-- Expose Blocks in global scope for compatibility (optional)
+_G.Blocks = Blocks
 
 table.unpack = table.unpack or unpack
 
@@ -78,15 +78,9 @@ local function clamp_camera()
 end
 
 local function regenerate_world()
-    -- Use legacy constructor World.new(seed, opts) as in repository world.lua
+    -- Use World.new(seed) which now uses defaults internally
     if not Game.world then
-        Game.world = World.new(Game.seed, {
-            width = Game.WORLD_WIDTH,
-            height = Game.WORLD_HEIGHT,
-            dirt_thickness = Game.DIRT_THICKNESS,
-            stone_thickness = Game.STONE_THICKNESS,
-            layer_base_heights = Game.LAYER_BASE_HEIGHTS,
-        })
+        Game.world = World.new(Game.seed)
     else
         Game.world:regenerate()
     end
@@ -98,12 +92,11 @@ local function regenerate_world()
         local canvas = love.graphics.newCanvas(canvas_w, canvas_h)
         canvas:setFilter("nearest", "nearest")
         Game.canvases[z] = canvas
-        Game.world:draw(z, canvas, Block, Game.BLOCK_SIZE)
+        Game.world:draw(z, canvas, Blocks, Game.BLOCK_SIZE)
     end
 
     if not Game.player then
-        -- Player is an Object{} prototype and should be called as Player{...}
-        Game.player = Player{ px = 50, z = 0 }
+        Game.player = Player()
     end
     if not Game.player.px or Game.player.px < 1 or Game.player.px > Game.WORLD_WIDTH then
         Game.player.px = 50
@@ -124,7 +117,7 @@ function love.load()
     Game.seed = os.time()
 
     -- create player instance before world regen so regenerate_world can position it
-    Game.player = Player{ px = 50, z = 0 }
+    Game.player = Player()
 
     regenerate_world()
 
@@ -178,7 +171,7 @@ function love.mousepressed(x, y, button, istouch, presses)
         if ok then
             local target_z = z_changed or Game.player.z
             if Game.world and Game.canvases and Game.canvases[target_z] then
-                Game.world:draw(target_z, Game.canvases[target_z], Block, Game.BLOCK_SIZE)
+                Game.world:draw(target_z, Game.canvases[target_z], Blocks, Game.BLOCK_SIZE)
             end
             log.info("Place succeeded:", tostring(err))
         else
@@ -197,7 +190,7 @@ function love.mousepressed(x, y, button, istouch, presses)
         if ok then
             local target_z = z_changed or Game.player.z
             if Game.world and Game.canvases and Game.canvases[target_z] then
-                Game.world:draw(target_z, Game.canvases[target_z], Block, Game.BLOCK_SIZE)
+                Game.world:draw(target_z, Game.canvases[target_z], Blocks, Game.BLOCK_SIZE)
             end
             log.info("Remove succeeded:", tostring(err))
         else

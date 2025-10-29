@@ -1,78 +1,75 @@
 -- Player implemented as an Object (uses lib.object).
 -- Player follows a simple LOVE-like API:
---   player = Player:new{ px = 50, z = 0 }
---   player:update(dt)   -- reads keyboard state itself, uses Game.world
---   player:draw()       -- draws at Game.camera_x and Game.BLOCK_SIZE
+--   player = Player()           -- create with defaults
+--   player:update(dt)           -- reads keyboard state itself, uses Game.world
+--   player:draw(block_size, camera_x)
 local Object = require("lib.object")
-local Block = require("block")
+local Blocks = require("blocks")
 local log = require("lib.log")
 
 local EPS = 1e-6
 
-local Player = Object {
-    -- init expects opts table: { px = number, py = number (optional), z = number (optional) }
-    init = function(self, opts)
-        opts = opts or {}
-        self.px = opts.px or 50
-        self.py = opts.py or 1
-        self.z  = opts.z  or 0
+local Player = Object {} -- create the prototype first, then attach methods below
 
-        self.width = opts.width or 1
-        self.height = opts.height or 2
-        self.stand_height = self.height
-        self.crouch_height = 1
-        self.crouching = false
-        self.on_ground = false
+-- init() no opts table anymore — use defaults internal to the prototype
+function Player.init(self)
+    -- defaults
+    self.px = 50
+    self.py = 1
+    self.z  = 0
 
-        self.vx = 0
-        self.vy = 0
+    self.width = 1
+    self.height = 2
+    self.stand_height = self.height
+    self.crouch_height = 1
+    self.crouching = false
+    self.on_ground = false
 
-        local slots = 9
-        self.inventory = {
-            slots = slots,
-            selected = 1,
-            items = {},
-            ui = {
-                slot_size = 48,
-                padding = 6,
-                border_thickness = 3,
-                background_alpha = 0.6,
-            },
-        }
+    self.vx = 0
+    self.vy = 0
 
-        -- populate inventory deterministically and safely:
-        -- Prefer Block.list() if provided (ordered list of prototypes).
-        -- Otherwise, collect only block prototypes (tables) and ignore helper functions.
-        local items_source = nil
-        if type(Block) == "table" and type(Block.list) == "function" then
-            items_source = Block.list()
-        else
-            local names = {}
-            for k, v in pairs(Block) do
-                if type(k) == "string" and type(v) == "table" then
-                    table.insert(names, k)
-                end
-            end
-            table.sort(names)
-            items_source = {}
-            for _, name in ipairs(names) do
-                local b = Block[name]
-                if type(b) == "table" then
-                    -- ensure prototype has a name field for compatibility
-                    if not b.name then b.name = name end
-                    table.insert(items_source, b)
-                end
+    local slots = 9
+    self.inventory = {
+        slots = slots,
+        selected = 1,
+        items = {},
+        ui = {
+            slot_size = 48,
+            padding = 6,
+            border_thickness = 3,
+            background_alpha = 0.6,
+        },
+    }
+
+    -- populate inventory deterministically and safely:
+    local items_source = nil
+    if type(Blocks) == "table" and type(Blocks.list) == "function" then
+        items_source = Blocks.list()
+    else
+        local names = {}
+        for k, v in pairs(Blocks) do
+            if type(k) == "string" and type(v) == "table" then
+                table.insert(names, k)
             end
         end
-
-        for _, b in ipairs(items_source) do
-            if #self.inventory.items >= self.inventory.slots then break end
-            table.insert(self.inventory.items, b)
+        table.sort(names)
+        items_source = {}
+        for _, name in ipairs(names) do
+            local b = Blocks[name]
+            if type(b) == "table" then
+                if not b.name then b.name = name end
+                table.insert(items_source, b)
+            end
         end
+    end
 
-        self.ghost = { mx = 0, my = 0, z = self.z }
-    end,
-}
+    for _, b in ipairs(items_source) do
+        if #self.inventory.items >= self.inventory.slots then break end
+        table.insert(self.inventory.items, b)
+    end
+
+    self.ghost = { mx = 0, my = 0, z = self.z }
+end
 
 local function tile_solid(world, z, col, row)
     if not world then return false end
@@ -85,7 +82,7 @@ local function tile_solid(world, z, col, row)
     local t = column[row]
     if t == nil then return false end
     -- world stores blockName strings in this repo
-    local blk = Block[t]
+    local blk = Blocks[t]
     if blk then
         if type(blk.is_solid) == "function" then return blk:is_solid() end
         if blk.solid ~= nil then return blk.solid end
@@ -100,10 +97,10 @@ end
 -- Update reads input directly (WASD / arrows), jump handled on keypress (love.keypressed)
 function Player:update(dt)
     -- read controls directly
-    local left = love.keyboard.isDown("a")
-    local right = love.keyboard.isDown("d")
-    local crouch = love.keyboard.isDown("lctrl")
-    local run = love.keyboard.isDown("lshift")
+    local left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
+    local right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
+    local crouch = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
+    local run = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
 
     -- movement constants
     local MAX_SPEED = Game.MAX_SPEED
@@ -291,9 +288,9 @@ function Player:update(dt)
 end
 
 -- Draw uses Game.BLOCK_SIZE and Game.camera_x
-function Player:draw()
-    local block_size = Game.BLOCK_SIZE
-    local camera_x = Game.camera_x or 0
+function Player:draw(block_size, camera_x)
+    block_size = block_size or Game.BLOCK_SIZE
+    camera_x = camera_x or 0
 
     local px = (self.px - 1) * block_size - camera_x
     local py = (self.py - 1) * block_size
@@ -455,7 +452,7 @@ function Player:placeAtMouse(world, camera_x, block_size, mx, my, z_override)
     end
 
     local blockName = item.name
-    for k, v in pairs(Block) do if v == item then blockName = k break end end
+    for k, v in pairs(Blocks) do if v == item then blockName = k break end end
     if not blockName then return false, "unknown block type", z end
 
     local ok, action = world:set_block(z, col, row, blockName)

@@ -1,9 +1,9 @@
 -- World module — converted to an Object{} prototype (no inheritance).
 -- Usage:
 --   local World = require("world")          -- returns the prototype table
---   local world = World(seed, opts)         -- create an instance (calls init)
+--   local world = World(seed)               -- create an instance (calls init)
 -- Backwards compatible helper:
---   local world = World.new(seed, opts)
+--   local world = World.new(seed)
 --
 local Object = require("lib.object")
 local noise = require("noise1d")
@@ -21,34 +21,34 @@ local DEFAULTS = {
 }
 
 -- World prototype (callable) using lib.object
-local World = Object {
-    -- init(self, seed, opts)
-    init = function(self, seed, opts)
-        opts = opts or {}
-        self.seed = seed
-        self.width = opts.width or DEFAULTS.WIDTH
-        self.height = opts.height or DEFAULTS.HEIGHT
-        self.dirt_thickness = opts.dirt_thickness or DEFAULTS.DIRT_THICKNESS
-        self.stone_thickness = opts.stone_thickness or DEFAULTS.STONE_THICKNESS
-        self.layer_base_heights = opts.layer_base_heights or DEFAULTS.LAYER_BASE_HEIGHTS
-        self.amplitude = opts.amplitude or DEFAULTS.AMPLITUDE
-        self.frequency = opts.frequency or DEFAULTS.FREQUENCY
+local World = Object {} -- create prototype, attach methods below
 
-        -- materialized tiles: tiles[z][x][y] = blockName (string) or nil == air
-        self.layers = {}   -- keep layer metadata (useful if you want to regenerate)
-        self.tiles = {}    -- tiles[z] = { [x] = { [y] = blockName_or_nil } }
+-- init(self, seed)
+function World.init(self, seed)
+    self.seed = seed
+    -- Use internal defaults rather than an opts table
+    self.width = DEFAULTS.WIDTH
+    self.height = DEFAULTS.HEIGHT
+    self.dirt_thickness = DEFAULTS.DIRT_THICKNESS
+    self.stone_thickness = DEFAULTS.STONE_THICKNESS
+    self.layer_base_heights = DEFAULTS.LAYER_BASE_HEIGHTS
+    self.amplitude = DEFAULTS.AMPLITUDE
+    self.frequency = DEFAULTS.FREQUENCY
 
-        if self.seed ~= nil then math.randomseed(self.seed) end
-        noise.init(self.seed)
-        self:regenerate()
+    -- materialized tiles: tiles[z][x][y] = blockName (string) or nil == air
+    self.layers = {}   -- keep layer metadata (useful if you want to regenerate)
+    self.tiles = {}    -- tiles[z] = { [x] = { [y] = blockName_or_nil } }
 
-        log.info("World created with seed:", tostring(self.seed))
-    end,
-}
+    if self.seed ~= nil then math.randomseed(self.seed) end
+    noise.init(self.seed)
+    self:regenerate()
+
+    log.info("World created with seed:", tostring(self.seed))
+end
 
 -- Backwards-compatible constructor function (some code called World.new)
-function World.new(seed, opts)
-    return World(seed, opts)
+function World.new(seed)
+    return World(seed)
 end
 
 -- regenerate procedural world into explicit tiles grid (clears any runtime edits)
