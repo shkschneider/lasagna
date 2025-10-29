@@ -1,6 +1,6 @@
--- blocks.lua
--- Thin initializer that registers named block prototypes using world.block.
--- Creates prototypes by calling the Block constructor (Block(name, color)).
+
+
+
 local Block = require("world.block")
 
 local Blocks = {
