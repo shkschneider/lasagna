@@ -10,7 +10,10 @@ local log = require("lib.log")
 
 local EPS = 1e-6
 
-local Player = Object {} -- create prototype, attach methods below
+local Player = Object {
+    WIDTH = 1,
+    HEIGHT = 2,
+} -- create prototype, attach methods below
 
 -- constructor (instance initializer)
 function Player:new()
@@ -19,10 +22,8 @@ function Player:new()
     self.py = 1
     self.z  = 0
 
-    self.width = 1
-    self.height = 2
-    self.stand_height = self.height
-    self.crouch_height = 1
+    self.width = Player.WIDTH
+    self.height = Player.HEIGHT
     self.crouching = false
     self.on_ground = false
 
@@ -42,29 +43,7 @@ function Player:new()
         },
     }
 
-    -- populate inventory deterministically and safely:
-    local items_source = nil
-    if type(Blocks) == "table" and type(Blocks.list) == "function" then
-        items_source = Blocks.list()
-    else
-        local names = {}
-        for k, v in pairs(Blocks) do
-            if type(k) == "string" and type(v) == "table" then
-                table.insert(names, k)
-            end
-        end
-        table.sort(names)
-        items_source = {}
-        for _, name in ipairs(names) do
-            local b = Blocks[name]
-            if type(b) == "table" then
-                if not b.name then b.name = name end
-                table.insert(items_source, b)
-            end
-        end
-    end
-
-    for _, b in ipairs(items_source) do
+    for _, b in ipairs(Blocks) do
         if #self.inventory.items >= self.inventory.slots then break end
         table.insert(self.inventory.items, b)
     end

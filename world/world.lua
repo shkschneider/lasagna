@@ -3,8 +3,8 @@
 -- This file owns environment queries and coordinates entity simulation.
 local Object = require("lib.object")
 local noise = require("lib.noise")
-local Blocks = require("world.blocks") -- legacy/compat; prototypes are drawn directly now
 local log = require("lib.log")
+local Player = require("entities.player")
 local Movements = require("entities.movements")
 
 -- Put the former defaults on the prototype directly (discoverable),
@@ -22,45 +22,32 @@ local World = Object {
 -- constructor (instance initializer)
 -- Called on the instance when a World instance is created (via World(...) or Object.new(World, ...))
 function World:new(seed)
+    assert(seed ~= nil)
     self.seed = seed
-
-    -- No per-instance width/height defaults here; use Game.* at runtime.
-
-    -- materialized tiles: tiles[z][x][y] = prototype table or nil == air
+    math.randomseed(self.seed)
     self.layers = {}
     self.tiles = {}
-
-    -- entities registered with the world (player, NPCs, etc.)
     self.entities = {}
-
-    if self.seed ~= nil then math.randomseed(self.seed) end
     noise.init(self.seed)
-
-    log.info("World created with seed:", tostring(self.seed))
+    log.info("World prepared with seed:", tostring(self.seed))
 end
 
 -- regenerate procedural world into explicit tiles grid (clears any runtime edits)
 -- Now stores prototypes (Blocks.grass/dirt/stone) instead of strings.
 function World:load()
-    -- use Game globals for sizing/params
-    local world_w = Game.WORLD_WIDTH
-    local world_h = Game.WORLD_HEIGHT
-    local dirt_thickness = Game.DIRT_THICKNESS
-    local stone_thickness = Game.STONE_THICKNESS
-
     for z = -1, 1 do
         local layer = { heights = {}, dirt_limit = {}, stone_limit = {} }
         local tiles_for_layer = {}
-        for x = 1, world_w do
+        for x = 1, Game.WORLD_WIDTH do
             local freq = (self.frequency and self.frequency[z]) or Game.FREQUENCY[z]
             local n = noise.perlin1d(x * freq + (z * 100))
             local base = (self.layer_base_heights and self.layer_base_heights[z]) or Game.LAYER_BASE_HEIGHTS[z]
             local amp = (self.amplitude and self.amplitude[z]) or Game.AMPLITUDE[z]
             local top = math.floor(base + amp * n)
-            top = math.max(1, math.min(world_h - 1, top))
+            top = math.max(1, math.min(Game.WORLD_HEIGHT - 1, top))
 
-            local dirt_lim = math.min(world_h, top + dirt_thickness)
-            local stone_lim = math.min(world_h, top + dirt_thickness + stone_thickness)
+            local dirt_lim = math.min(Game.WORLD_HEIGHT, top + Game.DIRT_THICKNESS)
+            local stone_lim = math.min(Game.WORLD_HEIGHT, top + Game.DIRT_THICKNESS + Game.STONE_THICKNESS)
 
             layer.heights[x] = top
             layer.dirt_limit[x] = dirt_lim
@@ -68,7 +55,7 @@ function World:load()
 
             -- materialize column x for this layer (store prototypes)
             tiles_for_layer[x] = {}
-            for y = 1, world_h do
+            for y = 1, Game.WORLD_HEIGHT do
                 local proto = nil
                 if y == top then
                     proto = Blocks and Blocks.grass
@@ -176,17 +163,17 @@ function World.update(self, dt)
         if intent.crouch then
             if not e.crouching then
                 -- enter crouch: lower height, keep feet in place
-                local height_diff = e.stand_height - e.crouch_height
+                local height_diff = (Player.HEIGHT / 2)
                 e.crouching = true
                 e.py = e.py + height_diff
-                e.height = e.crouch_height
+                e.height = (Player.HEIGHT / 2)
             end
         else
             if e.crouching then
                 -- attempt to stand up: check for space above
-                local height_diff = e.stand_height - e.crouch_height
+                local height_diff = (Player.HEIGHT / 2)
                 local new_py = e.py - height_diff
-                local new_height = e.stand_height
+                local new_height = Player.HEIGHT
                 local left_col = math.floor(e.px + 1e-6)
                 local right_col = math.floor(e.px + e.width - 1e-6)
                 local can_stand = true
@@ -202,7 +189,7 @@ function World.update(self, dt)
                 if can_stand then
                     e.crouching = false
                     e.py = new_py
-                    e.height = e.stand_height
+                    e.height = Player.HEIGHT
                 end
             end
         end
