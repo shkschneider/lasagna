@@ -2,7 +2,7 @@
 -- Thin initializer that registers named block prototypes using block.lua.
 -- This module keeps a small, data-first structure: it creates prototypes and
 -- exposes an ordered list for inventories/UI.
-local Block = require("block")
+local Block = require("world.block")
 
 local Blocks = {}
 

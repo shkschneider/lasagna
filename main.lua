@@ -42,9 +42,9 @@ Game = {
 }
 
 -- Require modules and data
-local World = require("world")
-local Player = require("player")
-local Blocks = require("blocks")
+local World = require("world.world")
+local Player = require("entities.player")
+local Blocks = require("world.blocks")
 
 -- logging and utilities
 local log = require("lib.log")

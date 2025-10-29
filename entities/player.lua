@@ -5,7 +5,7 @@
 --   player:draw(block_size, camera_x)
 -- Physics (movement / collision) are handled by World:update which operates on registered entities.
 local Object = require("lib.object")
-local Blocks = require("blocks")
+local Blocks = require("world.blocks")
 local log = require("lib.log")
 
 local EPS = 1e-6

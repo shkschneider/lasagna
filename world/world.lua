@@ -4,8 +4,8 @@
 --  - draw_layer(z, canvas, blocks, block_size)  -- draws a single layer into a canvas
 --  - draw(camera_x, canvases, player, block_size, screen_w, screen_h, debug) -- full-scene draw
 local Object = require("lib.object")
-local noise = require("noise1d")
-local Blocks = require("blocks") -- legacy/compat; prototypes are drawn directly now
+local noise = require("lib.noise")
+local Blocks = require("world.blocks") -- legacy/compat; prototypes are drawn directly now
 local log = require("lib.log")
 
 local DEFAULTS = {
