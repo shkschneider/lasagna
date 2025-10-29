@@ -1,18 +1,14 @@
--- World module — materialized tiles edition
--- - Procedural generation now writes an explicit tiles[z][x][y] grid (strings for block names, nil == air).
--- - set_block directly modifies tiles (so world tiles are mutable at runtime).
--- - get_block_type reads tiles first (nil => "air"), so reading/writing is straightforward:
---     world.tiles[z][x][y] = nil  -- remove block (air)
---     world.tiles[z][x][y] = "dirt" -- place block
--- - Kept compat helpers place_block / set_block for convenience and logging.
--- - World:draw now draws from the materialized tiles table.
+-- World module — converted to an Object{} prototype (no inheritance).
+-- Usage:
+--   local World = require("world")          -- returns the prototype table
+--   local world = World(seed, opts)         -- create an instance (calls init)
+-- Backwards compatible helper:
+--   local world = World.new(seed, opts)
 --
+local Object = require("lib.object")
 local noise = require("noise1d")
-local Blocks = require("blocks") -- used for drawing block colors
+local Blocks = require("blocks") -- used for drawing block colors / block.draw
 local log = require("lib.log")
-
-local World = {}
-World.__index = World
 
 local DEFAULTS = {
     WIDTH = 500,
@@ -24,37 +20,38 @@ local DEFAULTS = {
     FREQUENCY = { [-1] = 1/40, [0] = 1/50, [1] = 1/60 },
 }
 
-local unpack = table.unpack or unpack or function(t)
-    return t[1], t[2], t[3], t[4]
-end
+-- World prototype (callable) using lib.object
+local World = Object {
+    -- init(self, seed, opts)
+    init = function(self, seed, opts)
+        opts = opts or {}
+        self.seed = seed
+        self.width = opts.width or DEFAULTS.WIDTH
+        self.height = opts.height or DEFAULTS.HEIGHT
+        self.dirt_thickness = opts.dirt_thickness or DEFAULTS.DIRT_THICKNESS
+        self.stone_thickness = opts.stone_thickness or DEFAULTS.STONE_THICKNESS
+        self.layer_base_heights = opts.layer_base_heights or DEFAULTS.LAYER_BASE_HEIGHTS
+        self.amplitude = opts.amplitude or DEFAULTS.AMPLITUDE
+        self.frequency = opts.frequency or DEFAULTS.FREQUENCY
 
--- Create a new world
+        -- materialized tiles: tiles[z][x][y] = blockName (string) or nil == air
+        self.layers = {}   -- keep layer metadata (useful if you want to regenerate)
+        self.tiles = {}    -- tiles[z] = { [x] = { [y] = blockName_or_nil } }
+
+        if self.seed ~= nil then math.randomseed(self.seed) end
+        noise.init(self.seed)
+        self:regenerate()
+
+        log.info("World created with seed:", tostring(self.seed))
+    end,
+}
+
+-- Backwards-compatible constructor function (some code called World.new)
 function World.new(seed, opts)
-    opts = opts or {}
-    local self = setmetatable({}, World)
-    self.seed = seed
-    self.width = opts.width or DEFAULTS.WIDTH
-    self.height = opts.height or DEFAULTS.HEIGHT
-    self.dirt_thickness = opts.dirt_thickness or DEFAULTS.DIRT_THICKNESS
-    self.stone_thickness = opts.stone_thickness or DEFAULTS.STONE_THICKNESS
-    self.layer_base_heights = opts.layer_base_heights or DEFAULTS.LAYER_BASE_HEIGHTS
-    self.amplitude = opts.amplitude or DEFAULTS.AMPLITUDE
-    self.frequency = opts.frequency or DEFAULTS.FREQUENCY
-
-    -- materialized tiles: tiles[z][x][y] = blockName (string) or nil == air
-    self.layers = {}   -- keep layer metadata (useful if you want to regenerate)
-    self.tiles = {}    -- tiles[z] = { [x] = { [y] = blockName_or_nil } }
-
-    if self.seed ~= nil then math.randomseed(self.seed) end
-    noise.init(self.seed)
-    self:regenerate()
-
-    log.info("World created with seed:", tostring(self.seed))
-    return self
+    return World(seed, opts)
 end
 
 -- regenerate procedural world into explicit tiles grid (clears any runtime edits)
--- If you want to preserve player edits across regen, you'll need to merge them back in afterwards.
 function World:regenerate()
     if self.seed ~= nil then math.randomseed(self.seed) end
     noise.init(self.seed)
@@ -99,7 +96,6 @@ function World:regenerate()
 end
 
 -- Return surface/top (row) for layer z at column x, or nil if out of range
--- now simply scans the tiles grid for first non-nil block
 function World:get_surface(z, x)
     if x < 1 or x > self.width then return nil end
     local tiles_z = self.tiles[z]
@@ -165,9 +161,10 @@ function World:width() return self.width end
 function World:height() return self.height end
 function World:get_layer(z) return self.layers[z] end
 
--- Draw a layer into the provided LOVE canvas by iterating the materialized tiles.
+-- Draw a layer into the provided LOVE canvas by delegating tile drawing to Blocks.draw.
+-- Signature kept compatible with previous API: World:draw(z, canvas, blocks, block_size)
 function World:draw(z, canvas, blocks, block_size)
-    if not canvas or not blocks or not block_size then return end
+    if not canvas or not block_size then return end
     local tiles_z = self.tiles[z]
     if not tiles_z then return end
 
@@ -176,25 +173,14 @@ function World:draw(z, canvas, blocks, block_size)
     love.graphics.origin()
 
     for x = 1, self.width do
-        local px = (x - 1) * block_size
         local column = tiles_z[x]
         if column then
             for y = 1, self.height do
                 local blockName = column[y]
                 if blockName ~= nil then
-                    local py = (y - 1) * block_size
-                    local color = nil
-                    if Blocks[blockName] and Blocks[blockName].color then
-                        color = Blocks[blockName].color
-                    elseif blocks and blocks[blockName] and blocks[blockName].color then
-                        color = blocks[blockName].color
-                    end
-                    if color then
-                        love.graphics.setColor(unpack(color))
-                    else
-                        love.graphics.setColor(1,1,1,1)
-                    end
-                    love.graphics.rectangle("fill", px, py, block_size, block_size)
+                    -- Use Blocks.draw(blockIdentifier, col, row, block_size, camera_x)
+                    -- When drawing into a full-world canvas, camera_x is 0.
+                    Blocks.draw(blockName, x, y, block_size, 0)
                 end
             end
         end
