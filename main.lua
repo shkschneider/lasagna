@@ -1,40 +1,41 @@
--- Main application (updated instance construction sites to use callable prototypes)
+-- Main application
+-- Player produces intents; World.update(dt) applies physics/collision to registered entities.
+-- World.draw handles full-scene composition; World.draw_layer draws a single canvas layer.
 
--- Global game table
+-- Global game table (world-related defaults moved here)
 Game = {
+    -- world geometry & rendering
     BLOCK_SIZE = 16,
     WORLD_WIDTH = 500,
     WORLD_HEIGHT = 100,
-    GRAVITY = 20,    -- blocks / second^2
+    DIRT_THICKNESS = 10,
+    STONE_THICKNESS = 10,
 
+    -- procedural generation parameters (per-layer tables)
+    LAYER_BASE_HEIGHTS = { [-1] = 20, [0] = 30, [1] = 40 },
+    AMPLITUDE = { [-1] = 15, [0] = 10, [1] = 10 },
+    FREQUENCY = { [-1] = 1/40, [0] = 1/50, [1] = 1/60 },
+
+    -- gameplay constants
+    GRAVITY = 20,    -- blocks / second^2
     MOVE_ACCEL = 60, -- blocks / second^2 (horizontal accel on ground)
     MAX_SPEED = 6,   -- blocks / second (base horizontal velocity)
     GROUND_FRICTION = 30, -- deceleration when no input and on ground
     AIR_ACCEL_MULT = 0.35, -- fraction of MOVE_ACCEL available in air
     AIR_FRICTION = 1.5, -- small deceleration in air when no input
-
-    RUN_SPEED_MULT = 1.6, -- multiplier to MAX_SPEED when running
-    RUN_ACCEL_MULT = 1.2, -- multiplier to MOVE_ACCEL when running
-
+    RUN_SPEED_MULT = 1.6,
+    RUN_ACCEL_MULT = 1.2,
     CROUCH_DECEL = 120,
     CROUCH_MAX_SPEED = 3,
+    JUMP_SPEED = -10, -- initial jump velocity (blocks per second)
+    STEP_HEIGHT = 1,  -- maximum step-up in blocks
 
-    JUMP_SPEED = -10,-- initial jump velocity (blocks per second)
-    STEP_HEIGHT = 1, -- maximum step-up in blocks
-
-    DIRT_THICKNESS = 10,
-    STONE_THICKNESS = 10,
-
-    LAYER_BASE_HEIGHTS = { [-1] = 20, [0] = 30, [1] = 40 },
-
+    -- UI / runtime state
     world = nil,
     canvases = {},
     camera_x = 0,
     screen_width = 0,
     screen_height = 0,
-    seed = nil,
-
-    player = nil,
 
     debug = true,
 }
@@ -54,11 +55,6 @@ else
     log.level = "info"
 end
 
--- Expose Blocks in global scope for compatibility (optional)
-_G.Blocks = Blocks
-
-table.unpack = table.unpack or unpack
-
 -- Helper: clamp camera horizontally
 local function clamp_camera()
     local max_camera = Game.WORLD_WIDTH * Game.BLOCK_SIZE - Game.screen_width
@@ -72,7 +68,7 @@ local function regenerate_world()
         -- create a World instance by calling the prototype
         Game.world = World(Game.seed)
     else
-        Game.world:regenerate()
+        Game.world:load()
     end
 
     local canvas_w = Game.WORLD_WIDTH * Game.BLOCK_SIZE

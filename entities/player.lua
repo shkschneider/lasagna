@@ -142,7 +142,7 @@ function Player:drawInventory(screen_w, screen_h)
 
         local item = inv.items[i]
         if item and item.color then
-            love.graphics.setColor(table.unpack(item.color))
+            love.graphics.setColor(unpack(item.color))
             love.graphics.rectangle("fill", cube_x, cube_y, cube_w, cube_h, 3, 3)
             love.graphics.setColor(0,0,0,0.6)
             love.graphics.rectangle("line", cube_x + 0.5, cube_y + 0.5, cube_w - 1, cube_h - 1, 2, 2)

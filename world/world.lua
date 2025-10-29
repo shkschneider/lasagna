@@ -20,9 +20,37 @@ local DEFAULTS = {
 
 local World = Object {} -- prototype
 
+-- constructor (instance initializer)
+-- Called on the instance when a World instance is created (via World(...) or Object.new(World, ...))
+function World:new(seed)
+    self.seed = seed
+    -- Use Game-provided defaults
+    self.width = Game.WORLD_WIDTH
+    self.height = Game.WORLD_HEIGHT
+    self.dirt_thickness = Game.DIRT_THICKNESS
+    self.stone_thickness = Game.STONE_THICKNESS
+    self.layer_base_heights = Game.LAYER_BASE_HEIGHTS
+    self.amplitude = Game.AMPLITUDE
+    self.frequency = Game.FREQUENCY
+
+    -- materialized tiles: tiles[z][x][y] = prototype table or nil == air
+    self.layers = {}
+    self.tiles = {}
+
+    -- entities registered with the world (player, NPCs, etc.)
+    self.entities = {}
+
+    if self.seed ~= nil then math.randomseed(self.seed) end
+    noise.init(self.seed)
+    -- regenerate the world now that instance fields are set and methods are available
+    self:load()
+
+    log.info("World created with seed:", tostring(self.seed))
+end
+
 -- regenerate procedural world into explicit tiles grid (clears any runtime edits)
 -- Now stores prototypes (Blocks.grass/dirt/stone) instead of strings.
-function World:regenerate()
+function World:load()
     if self.seed ~= nil then math.randomseed(self.seed) end
     noise.init(self.seed)
 
@@ -30,9 +58,10 @@ function World:regenerate()
         local layer = { heights = {}, dirt_limit = {}, stone_limit = {} }
         local tiles_for_layer = {}
         for x = 1, self.width do
-            local n = noise.perlin1d(x * (self.frequency and self.frequency[z] or DEFAULTS.FREQUENCY[z]) + (z * 100))
-            local base = (self.layer_base_heights and self.layer_base_heights[z]) or DEFAULTS.LAYER_BASE_HEIGHTS[z]
-            local amp = (self.amplitude and self.amplitude[z]) or DEFAULTS.AMPLITUDE[z]
+            local freq = (self.frequency and self.frequency[z]) or Game.FREQUENCY[z]
+            local n = noise.perlin1d(x * freq + (z * 100))
+            local base = (self.layer_base_heights and self.layer_base_heights[z]) or Game.LAYER_BASE_HEIGHTS[z]
+            local amp = (self.amplitude and self.amplitude[z]) or Game.AMPLITUDE[z]
             local top = math.floor(base + amp * n)
             top = math.max(1, math.min(self.height - 1, top))
 
@@ -63,34 +92,6 @@ function World:regenerate()
         self.layers[z] = layer
         self.tiles[z] = tiles_for_layer
     end
-end
-
--- constructor (instance initializer)
--- Called on the instance when a World instance is created (via World(...) or Object.new(World, ...))
-function World:new(seed)
-    self.seed = seed
-    -- Use internal defaults
-    self.width = DEFAULTS.WIDTH
-    self.height = DEFAULTS.HEIGHT
-    self.dirt_thickness = DEFAULTS.DIRT_THICKNESS
-    self.stone_thickness = DEFAULTS.STONE_THICKNESS
-    self.layer_base_heights = DEFAULTS.LAYER_BASE_HEIGHTS
-    self.amplitude = DEFAULTS.AMPLITUDE
-    self.frequency = DEFAULTS.FREQUENCY
-
-    -- materialized tiles: tiles[z][x][y] = prototype table or nil == air
-    self.layers = {}
-    self.tiles = {}
-
-    -- entities registered with the world (player, NPCs, etc.)
-    self.entities = {}
-
-    if self.seed ~= nil then math.randomseed(self.seed) end
-    noise.init(self.seed)
-    -- regenerate the world now that instance fields are set and methods are available
-    self:regenerate()
-
-    log.info("World created with seed:", tostring(self.seed))
 end
 
 -- Note: the factory helper World.new (as a function returning Object.new(World, seed))
