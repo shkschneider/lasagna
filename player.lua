@@ -436,8 +436,33 @@ function Player:placeAtMouse(world, camera_x, block_size, mx, my, z_override)
 
     local z = z_override or self.z
 
+    -- Only allow placement into empty cell
     local target_type = world:get_block_type(z, col, row)
     if target_type ~= "air" then return false, "target not empty", z end
+
+    -- New rule: only allow placement if the target cell touches an existing block on the same layer.
+    -- Touch includes orthogonal and diagonal neighbors (8-neighborhood).
+    local touches_existing = false
+    for dx = -1, 1 do
+        for dy = -1, 1 do
+            if not (dx == 0 and dy == 0) then
+                local nx, ny = col + dx, row + dy
+                -- ensure neighbor coordinates within world bounds before querying
+                if nx >= 1 and nx <= Game.WORLD_WIDTH and ny >= 1 and ny <= Game.WORLD_HEIGHT then
+                    local neigh = world:get_block_type(z, nx, ny)
+                    if neigh and neigh ~= "air" and neigh ~= "out" then
+                        touches_existing = true
+                        break
+                    end
+                end
+            end
+        end
+        if touches_existing then break end
+    end
+
+    if not touches_existing then
+        return false, "must touch an existing block on the same layer", z
+    end
 
     local blockName = item.name
     for k, v in pairs(Blocks) do if v == item then blockName = k break end end
@@ -490,6 +515,11 @@ function Player:removeAtMouse(world, camera_x, block_size, mx, my, z_override)
     end
 
     return false, "nothing to remove", nil
+end
+
+-- small helper (sign) used by movement code (kept local here)
+function sign(x)
+    if x > 0 then return 1 elseif x < 0 then return -1 else return 0 end
 end
 
 return Player
