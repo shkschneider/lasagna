@@ -1,9 +1,10 @@
 -- World module — converted to an Object{} prototype (no inheritance).
 -- World.tiles store block prototypes (Blocks.grass / Blocks.dirt / Blocks.stone) or nil for air.
--- This file owns environment queries and coordinates entity simulation.
+-- This file owns environment queries and now owns per-layer canvases and partial-redraw helpers.
 local Object = require("lib.object")
 local noise = require("lib.noise")
 local log = require("lib.log")
+local Blocks = require("world.blocks")
 local Movements = require("entities.movements")
 
 local World = Object {
@@ -22,6 +23,9 @@ function World:new(seed)
     self.tiles = {}
     self.entities = {}
 
+    -- canvases owned by the world (per-layer)
+    self.canvases = {}
+
     if self.seed ~= nil then math.randomseed(self.seed) end
     noise.init(self.seed)
     self:load()
@@ -33,7 +37,7 @@ function World:load()
     if self.seed ~= nil then math.randomseed(self.seed) end
     noise.init(self.seed)
 
-    -- Use Game globals for sizes/params
+    -- Use Game globals for sizing/params
     for z = -1, 1 do
         local layer = { heights = {}, dirt_limit = {}, stone_limit = {} }
         local tiles_for_layer = {}
@@ -55,6 +59,7 @@ function World:load()
             tiles_for_layer[x] = {}
             for y = 1, Game.WORLD_HEIGHT do
                 local proto = nil
+                -- Blocks is expected to be available globally (main.lua sets _G.Blocks)
                 if y == top then
                     proto = Blocks and Blocks.grass
                 elseif y > top and y <= dirt_lim then
@@ -73,21 +78,68 @@ function World:load()
     end
 end
 
--- Create per-layer full-world canvases and store them in Game.canvases.
+-- Create per-layer full-world canvases and store them on the World instance.
 -- Also draws each layer into its canvas.
 function World:create_canvases(block_size)
     block_size = block_size or Game.BLOCK_SIZE
     local canvas_w = Game.WORLD_WIDTH * block_size
     local canvas_h = Game.WORLD_HEIGHT * block_size
-    Game.canvases = Game.canvases or {}
+    self.canvases = self.canvases or {}
 
     for z = -1, 1 do
+        -- replace existing canvas if present
+        if self.canvases[z] and self.canvases[z].release then
+            pcall(function() self.canvases[z]:release() end)
+        end
         local canvas = love.graphics.newCanvas(canvas_w, canvas_h)
         canvas:setFilter("nearest", "nearest")
-        Game.canvases[z] = canvas
+        self.canvases[z] = canvas
         -- draw full layer into canvas
         self:draw_layer(z, canvas, nil, block_size)
     end
+end
+
+-- Draw a single column (world column index) of a layer into its canvas.
+-- This is used to avoid full-layer redraws on single-tile edits.
+function World:draw_column(z, col, block_size)
+    block_size = block_size or Game.BLOCK_SIZE
+    if not self.canvases or not self.canvases[z] then return end
+    if col < 1 or col > Game.WORLD_WIDTH then return end
+
+    local canvas = self.canvases[z]
+    local tiles_z = self.tiles[z]
+    if not tiles_z then return end
+
+    local px = (col - 1) * block_size
+    -- Draw only the column area: use scissor to limit drawing region
+    love.graphics.push()
+    love.graphics.setCanvas(canvas)
+    love.graphics.setScissor(px, 0, block_size, Game.WORLD_HEIGHT * block_size)
+    -- clear the column region to transparent
+    love.graphics.clear(0, 0, 0, 0)
+    love.graphics.origin()
+
+    local column = tiles_z[col]
+    if column then
+        for row = 1, Game.WORLD_HEIGHT do
+            local proto = column[row]
+            if proto ~= nil then
+                local py = (row - 1) * block_size
+                if type(proto.draw) == "function" then
+                    proto:draw(px, py, block_size)
+                elseif proto.color and love and love.graphics then
+                    local c = proto.color
+                    love.graphics.setColor(c[1], c[2], c[3], c[4] or 1)
+                    love.graphics.rectangle("fill", px, py, block_size, block_size)
+                    love.graphics.setColor(1,1,1,1)
+                end
+            end
+        end
+    end
+
+    love.graphics.setScissor()
+    love.graphics.setCanvas()
+    love.graphics.pop()
 end
 
 -- Optional per-world update hook; will be responsible for physics/contacts
@@ -365,31 +417,13 @@ function World:get_surface(z, x)
     return nil
 end
 
--- Compatibility helper: place a block only if the cell is empty (air)
--- returns true/false, msg
--- Accepts either prototype or string (string will be converted), stores prototype internally.
+-- place_block kept for compatibility; it uses set_block internally
 function World:place_block(z, x, y, block)
-    if not z or not x or not y or not block then return false, "invalid parameters" end
-    if x < 1 or x > Game.WORLD_WIDTH or y < 1 or y > Game.WORLD_HEIGHT then return false, "out of bounds" end
-    if not self.tiles[z] or not self.tiles[z][x] then return false, "internal tiles not initialized" end
-
-    local proto = nil
-    if type(block) == "string" then
-        proto = Blocks[block]
-        if not proto then return false, "unknown block name" end
-    elseif type(block) == "table" then
-        proto = block
-    else
-        return false, "invalid block type"
-    end
-
-    if self.tiles[z][x][y] ~= nil then return false, "cell not empty" end
-    self.tiles[z][x][y] = proto
-    log.info(string.format("World: placed block '%s' at z=%d x=%d y=%d", tostring(proto.name), z, x, y))
-    return true
+    return self:set_block(z, x, y, block)
 end
 
 -- Unified setter: setting block to nil removes the block (air), setting to prototype or name places/overwrites.
+-- After a successful change we redraw only the affected column in the layer canvas.
 function World:set_block(z, x, y, block)
     if not z or not x or not y then return false, "invalid parameters" end
     if x < 1 or x > Game.WORLD_WIDTH or y < 1 or y > Game.WORLD_HEIGHT then return false, "out of bounds" end
@@ -416,11 +450,14 @@ function World:set_block(z, x, y, block)
         end
         self.tiles[z][x][y] = nil
         log.info(string.format("World: removed block at z=%d x=%d y=%d (was=%s)", z, x, y, tostring(prev and prev.name)))
+        -- redraw affected column only
+        if self.canvases and self.canvases[z] then self:draw_column(z, x, Game.BLOCK_SIZE) end
         return true, "removed"
     else
         local action = (prev == nil) and "added" or "replaced"
         self.tiles[z][x][y] = proto
         log.info(string.format("World: %s block '%s' at z=%d x=%d y=%d (prev=%s)", action, tostring(proto.name), z, x, y, tostring(prev and prev.name)))
+        if self.canvases and self.canvases[z] then self:draw_column(z, x, Game.BLOCK_SIZE) end
         return true, action
     end
 end
@@ -435,9 +472,7 @@ function World:get_block_type(z, x, by)
     return t
 end
 
--- draw_layer: draw a single layer into provided canvas (legacy single-layer API)
--- signature kept compatible: (self, z, canvas, blocks, block_size)
--- blocks argument is ignored; prototypes draw themselves directly.
+-- draw_layer: draw a single layer into provided canvas (legacy API)
 function World.draw_layer(self, z, canvas, blocks, block_size)
     if not canvas or not block_size then return end
     local tiles_z = self.tiles[z]
@@ -472,9 +507,10 @@ function World.draw_layer(self, z, canvas, blocks, block_size)
     love.graphics.setCanvas()
 end
 
--- draw: full-scene draw (camera_x, canvases, player, block_size, screen_w, screen_h, debug)
+-- draw: full-scene draw (camera_x, canvases optional, player, block_size, screen_w, screen_h, debug)
+-- If canvases not passed, draws using self.canvases
 function World.draw(self, camera_x, canvases, player, block_size, screen_w, screen_h, debug)
-    canvases = canvases or (Game and Game.canvases)
+    canvases = canvases or self.canvases
     player = player or (Game and Game.player)
     block_size = block_size or (Game and Game.BLOCK_SIZE) or 16
     screen_w = screen_w or (Game and Game.screen_width) or (love.graphics.getWidth and love.graphics.getWidth())

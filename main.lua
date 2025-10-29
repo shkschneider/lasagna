@@ -35,7 +35,6 @@ Game = {
 
     -- UI / runtime state
     world = nil,
-    canvases = {},
     camera_x = 0,
     screen_width = 0,
     screen_height = 0,
@@ -97,6 +96,7 @@ local function regenerate_world()
     Game.player.py = top - Game.player.height
 
     -- create UI canvas owned by main (covers screen size)
+    if Game.ui_canvas and Game.ui_canvas.release then pcall(function() Game.ui_canvas:release() end) end
     Game.ui_canvas = love.graphics.newCanvas(Game.screen_width, Game.screen_height)
     Game.ui_canvas:setFilter("nearest", "nearest")
 
@@ -124,9 +124,7 @@ function love.resize(w, h)
     Game.screen_width = w
     Game.screen_height = h
     -- recreate UI canvas to match new screen size
-    if Game.ui_canvas then
-        pcall(function() Game.ui_canvas:release() end)
-    end
+    if Game.ui_canvas and Game.ui_canvas.release then pcall(function() Game.ui_canvas:release() end) end
     Game.ui_canvas = love.graphics.newCanvas(Game.screen_width, Game.screen_height)
     Game.ui_canvas:setFilter("nearest", "nearest")
     clamp_camera()
@@ -179,8 +177,7 @@ function love.mousepressed(x, y, button, istouch, presses)
     if Game.player.placeAtMouse and (button == 2 or button == "r") then
         local ok, err, z_changed = Game.player:placeAtMouse(Game.world, Game.camera_x, Game.BLOCK_SIZE, x, y)
         if ok then
-            local target_z = z_changed or Game.player.z
-            Game.world:draw_layer(target_z, Game.canvases[target_z], Blocks, Game.BLOCK_SIZE)
+            -- World:set_block will call draw_column to update the layer canvas.
             log.info("Place succeeded:", tostring(err))
         else
             log.warn("Place failed:", tostring(err))
@@ -195,8 +192,7 @@ function love.mousepressed(x, y, button, istouch, presses)
         print(string.format("[DEBUG] Left click at screen(%d,%d) -> world col,row = %d,%d  player.z = %d", mouse_x, mouse_y, col, row, Game.player.z))
         local ok, err, z_changed = Game.player:removeAtMouse(Game.world, Game.camera_x, Game.BLOCK_SIZE, x, y)
         if ok then
-            local target_z = z_changed or Game.player.z
-            Game.world:draw_layer(target_z, Game.canvases[target_z], Blocks, Game.BLOCK_SIZE)
+            -- World:set_block will call draw_column to update the layer canvas.
             log.info("Remove succeeded:", tostring(err))
         else
             log.warn("Remove failed:", tostring(err))
@@ -214,8 +210,8 @@ function love.update(dt)
 end
 
 function love.draw()
-    -- World composes layer canvases + player + hud
-    Game.world:draw(Game.camera_x, Game.canvases, Game.player, Game.BLOCK_SIZE, Game.screen_width, Game.screen_height, Game.debug)
+    -- World composes layer canvases + player + hud (World.draw uses self.canvases by default)
+    Game.world:draw(Game.camera_x, nil, Game.player, Game.BLOCK_SIZE, Game.screen_width, Game.screen_height, Game.debug)
 
     -- UI canvas usage (main owns it). Draw UI into Game.ui_canvas, then composite.
     if Game.ui_canvas then
@@ -224,8 +220,6 @@ function love.draw()
         love.graphics.clear(0,0,0,0)
         love.graphics.origin()
 
-        -- Player inventory/hud are still drawn via Player:drawInventory (keeps same visual),
-        -- but we render them into the UI canvas so main controls the UI layer.
         if Game.player and Game.player.drawInventory then
             Game.player:drawInventory(Game.screen_width, Game.screen_height)
         end
@@ -233,14 +227,12 @@ function love.draw()
         love.graphics.setCanvas()
         love.graphics.pop()
 
-        -- Draw UI canvas on top
         love.graphics.push()
         love.graphics.setColor(1,1,1,1)
         love.graphics.draw(Game.ui_canvas, 0, 0)
         love.graphics.pop()
     end
 
-    -- Debug overlay — drawn here inside love.draw if enabled
     if Game.debug then
         local mx, my = 0, 0
         if love.mouse and love.mouse.getPosition then
