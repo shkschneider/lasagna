@@ -1,6 +1,4 @@
--- Main application (updated to use World.draw_layer for canvas population and World.draw for full-scene)
--- Player produces intents; World.update(dt) applies physics/collision to registered entities.
--- World.draw handles full-scene composition; World.draw_layer draws a single canvas layer.
+-- Main application (updated instance construction sites to use callable prototypes)
 
 -- Global game table
 Game = {
@@ -69,9 +67,10 @@ local function clamp_camera()
 end
 
 local function regenerate_world()
-    -- Use World.new(seed)
+    -- create or regenerate the world
     if not Game.world then
-        Game.world = World.new(Game.seed)
+        -- create a World instance by calling the prototype
+        Game.world = World(Game.seed)
     else
         Game.world:regenerate()
     end
@@ -90,6 +89,7 @@ local function regenerate_world()
     end
 
     if not Game.player then
+        -- create player instance by calling the prototype
         Game.player = Player()
     end
 

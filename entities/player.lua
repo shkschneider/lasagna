@@ -12,8 +12,8 @@ local EPS = 1e-6
 
 local Player = Object {} -- create prototype, attach methods below
 
--- load() no opts table anymore — use defaults internal to the prototype
-function Player.load(self)
+-- constructor (instance initializer)
+function Player:new()
     -- defaults
     self.px = 50
     self.py = 1

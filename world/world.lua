@@ -65,8 +65,9 @@ function World:regenerate()
     end
 end
 
--- load(self, seed)
-function World.load(self, seed)
+-- constructor (instance initializer)
+-- Called on the instance when a World instance is created (via World(...) or Object.new(World, ...))
+function World:new(seed)
     self.seed = seed
     -- Use internal defaults
     self.width = DEFAULTS.WIDTH
@@ -92,10 +93,11 @@ function World.load(self, seed)
     log.info("World created with seed:", tostring(self.seed))
 end
 
--- Backwards-compatible constructor
-function World.new(seed)
-    return World(seed)
-end
+-- Note: the factory helper World.new (as a function returning Object.new(World, seed))
+-- was removed because the prototype is callable and Object.new will invoke the prototype:new initializer.
+-- Create World instances with either:
+--   local w = World(seed)        -- callable prototype
+--   local w = Object.new(World, seed)
 
 -- Optional per-world update hook; will be responsible for physics/contacts
 function World.update(self, dt)

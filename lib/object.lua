@@ -1,31 +1,29 @@
---[[
-    local Animal = Object {}
-    local dog = Animal()
-    local cat = Animal()
---]]
-
 local Object = {}
 
-function Object:load() end
-function Object:update(dt) end
-function Object:draw() end
+function Object.new(prototype, ...)
+    if type(prototype) ~= "table" then
+        error("Object.new: prototype must be a table", 2)
+    end
+    -- instance delegates to prototype for methods/defaults
+    local instance = setmetatable({}, { __index = prototype })
+    -- call instance-level constructor method if present
+    if type(instance.new) == "function" then
+        instance:new(...)
+    end
+    return instance
+end
 
 setmetatable(Object, {
-    __call = function(self, data)
-        return setmetatable(data or {}, {
-            __call = function(_, ...)
-                local instance = setmetatable({}, { __index = data })
-                for k, v in pairs(data) do
-                    if type(v) ~= "function" then
-                        if not (type(k) == "string" and k:match("^__")) then
-                            instance[k] = v
-                        end
-                    end
-                end
-                if type(instance.load) == "function" then
-                    instance:load(...)
-                end
-                return instance
+    __call = function(_, prototype)
+        prototype = prototype or {}
+        if type(prototype.new) ~= "function" then
+            prototype.new = function(self, ...)
+                return Object.new(self, ...)
+            end
+        end
+        return setmetatable(prototype, {
+            __call = function(instance, ...)
+                return Object.new(instance, ...)
             end,
         })
     end,
