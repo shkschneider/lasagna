@@ -5,7 +5,7 @@
 --  - draw(camera_x, canvases, player, block_size, screen_w, screen_h, debug) -- full-scene draw
 local Object = require("lib.object")
 local noise = require("noise1d")
-local Blocks = require("blocks") -- used for drawing block colors / block.draw
+local Blocks = require("blocks") -- legacy/compat; prototypes are drawn directly now
 local log = require("lib.log")
 
 local DEFAULTS = {
@@ -48,11 +48,11 @@ function World:regenerate()
             for y = 1, self.height do
                 local proto = nil
                 if y == top then
-                    proto = Blocks.grass
+                    proto = Blocks and Blocks.grass
                 elseif y > top and y <= dirt_lim then
-                    proto = Blocks.dirt
+                    proto = Blocks and Blocks.dirt
                 elseif y > dirt_lim and y <= stone_lim then
-                    proto = Blocks.stone
+                    proto = Blocks and Blocks.stone
                 else
                     proto = nil -- air
                 end
@@ -370,11 +370,12 @@ end
 
 -- Return surface/top (row) for layer z at column x, or nil if out of range
 function World:get_surface(z, x)
+    if type(x) ~= "number" then return nil end
     if x < 1 or x > self.width then return nil end
-    local tiles_z = self.tiles[z]
+    local tiles_z = self.tiles and self.tiles[z]
     if not tiles_z then return nil end
     for y = 1, self.height do
-        local t = tiles_z[x][y]
+        local t = tiles_z[x] and tiles_z[x][y]
         if t ~= nil then
             return y
         end
@@ -453,11 +454,9 @@ function World:get_block_type(z, x, by)
     return t
 end
 
-function World:width() return self.width end
-function World:height() return self.height end
-function World:get_layer(z) return self.layers[z] end
-
 -- draw_layer: draw a single layer into provided canvas (legacy single-layer API)
+-- signature kept compatible: (self, z, canvas, blocks, block_size)
+-- blocks argument is ignored; prototypes draw themselves directly.
 function World.draw_layer(self, z, canvas, blocks, block_size)
     if not canvas or not block_size then return end
     local tiles_z = self.tiles[z]
@@ -467,13 +466,22 @@ function World.draw_layer(self, z, canvas, blocks, block_size)
     love.graphics.clear(0, 0, 0, 0)
     love.graphics.origin()
 
-    for x = 1, self.width do
-        local column = tiles_z[x]
+    for col = 1, self.width do
+        local column = tiles_z[col]
         if column then
-            for y = 1, self.height do
-                local proto = column[y]
+            for row = 1, self.height do
+                local proto = column[row]
                 if proto ~= nil then
-                    Blocks.draw(proto, x, y, block_size, 0)
+                    local px = (col - 1) * block_size
+                    local py = (row - 1) * block_size
+                    if type(proto.draw) == "function" then
+                        proto:draw(px, py, block_size)
+                    elseif proto.color and love and love.graphics then
+                        local c = proto.color
+                        love.graphics.setColor(c[1], c[2], c[3], c[4] or 1)
+                        love.graphics.rectangle("fill", px, py, block_size, block_size)
+                        love.graphics.setColor(1,1,1,1)
+                    end
                 end
             end
         end
@@ -566,5 +574,9 @@ function World.draw(self, camera_x, canvases, player, block_size, screen_w, scre
         end
     end
 end
+
+function World:width() return self.width end
+function World:height() return self.height end
+function World:get_layer(z) return self.layers[z] end
 
 return World
