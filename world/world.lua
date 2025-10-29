@@ -7,6 +7,7 @@ local Object = require("lib.object")
 local noise = require("lib.noise")
 local Blocks = require("world.blocks") -- legacy/compat; prototypes are drawn directly now
 local log = require("lib.log")
+local Movements = require("entities.movements")
 
 local DEFAULTS = {
     WIDTH = 500,
@@ -172,7 +173,7 @@ function World.update(self, dt)
         local dx = e.vx * dt
         local dy = e.vy * dt
 
-        self:move_entity(e, dx, dy)
+        Movements.move(e, dx, dy, self)
 
         -- crouch/stand mechanics: entry is by holding crouch intent; standing should be validated by headroom
         if intent.crouch then
