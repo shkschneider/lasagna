@@ -89,20 +89,15 @@ local function regenerate_world()
         canvas:setFilter("nearest", "nearest")
         Game.canvases[z] = canvas
         -- legacy single-layer draw: use draw_layer
-        if Game.world and Game.world.draw_layer then
-            Game.world:draw_layer(z, canvas, Blocks, Game.BLOCK_SIZE)
-        end
+        Game.world:draw_layer(z, canvas, Blocks, Game.BLOCK_SIZE)
     end
 
+    -- create and register player (assume globals will be initialized)
     if not Game.player then
-        -- create player instance by calling the prototype
         Game.player = Player()
     end
 
-    -- register player with world so World.update will simulate it
-    if Game.world then
-        Game.world:add_entity(Game.player)
-    end
+    Game.world:add_entity(Game.player)
 
     if not Game.player.px or Game.player.px < 1 or Game.player.px > Game.WORLD_WIDTH then
         Game.player.px = 50
@@ -171,35 +166,27 @@ function love.keypressed(key)
         love.event.quit()
     elseif key == "space" or key == "up" then
         -- set jump intent; World.update will consume it (one-shot)
-        if Game.player then
-            Game.player.intent = Game.player.intent or {}
-            Game.player.intent.jump = true
-        end
+        Game.player.intent = Game.player.intent or {}
+        Game.player.intent.jump = true
     end
 end
 
 function love.wheelmoved(x, y)
-    if Game.player and Game.player.wheelmoved then
-        Game.player:wheelmoved(x, y)
-    end
+    Game.player:wheelmoved(x, y)
 end
 
 function love.mousepressed(x, y, button, istouch, presses)
-    if Game.player and Game.player.placeAtMouse and (button == 2 or button == "r") then
+    if Game.player.placeAtMouse and (button == 2 or button == "r") then
         local ok, err, z_changed = Game.player:placeAtMouse(Game.world, Game.camera_x, Game.BLOCK_SIZE, x, y)
         if ok then
             local target_z = z_changed or Game.player.z
-            if Game.world and Game.canvases and Game.canvases[target_z] then
-                -- re-draw only affected layer
-                if Game.world.draw_layer then
-                    Game.world:draw_layer(target_z, Game.canvases[target_z], Blocks, Game.BLOCK_SIZE)
-                end
-            end
+            -- re-draw only affected layer
+            Game.world:draw_layer(target_z, Game.canvases[target_z], Blocks, Game.BLOCK_SIZE)
             log.info("Place succeeded:", tostring(err))
         else
             log.warn("Place failed:", tostring(err))
         end
-    elseif Game.player and Game.player.removeAtMouse and (button == 1 or button == "l") then
+    elseif Game.player.removeAtMouse and (button == 1 or button == "l") then
         -- debug: compute column/row and log layer
         local mouse_x, mouse_y = x, y
         local world_px = mouse_x + Game.camera_x
@@ -211,11 +198,7 @@ function love.mousepressed(x, y, button, istouch, presses)
         local ok, err, z_changed = Game.player:removeAtMouse(Game.world, Game.camera_x, Game.BLOCK_SIZE, x, y)
         if ok then
             local target_z = z_changed or Game.player.z
-            if Game.world and Game.canvases and Game.canvases[target_z] then
-                if Game.world.draw_layer then
-                    Game.world:draw_layer(target_z, Game.canvases[target_z], Blocks, Game.BLOCK_SIZE)
-                end
-            end
+            Game.world:draw_layer(target_z, Game.canvases[target_z], Blocks, Game.BLOCK_SIZE)
             log.info("Remove succeeded:", tostring(err))
         else
             log.warn("Remove failed:", tostring(err))
@@ -224,15 +207,11 @@ function love.mousepressed(x, y, button, istouch, presses)
 end
 
 function love.update(dt)
-    -- Player still reads input and sets intent
-    if Game.player and Game.player.update then
-        Game.player:update(dt)
-    end
+    -- Player reads input and sets intent (assume Game.player exists)
+    Game.player:update(dt)
 
-    -- World applies physics & collision to registered entities
-    if Game.world and Game.world.update then
-        Game.world:update(dt)
-    end
+    -- World applies physics & collision to registered entities (assume Game.world exists)
+    Game.world:update(dt)
 
     Game.player.px = math.max(1, math.min(Game.WORLD_WIDTH - Game.player.width, Game.player.px))
     Game.camera_x = (Game.player.px + Game.player.width / 2) * Game.BLOCK_SIZE - Game.screen_width / 2
@@ -241,12 +220,10 @@ end
 
 function love.draw()
     -- Full-scene draw using World:draw (composes canvases + player + HUD)
-    if Game.world and Game.world.draw then
-        Game.world:draw(Game.camera_x, Game.canvases, Game.player, Game.BLOCK_SIZE, Game.screen_width, Game.screen_height, Game.debug)
-    end
+    Game.world:draw(Game.camera_x, Game.canvases, Game.player, Game.BLOCK_SIZE, Game.screen_width, Game.screen_height, Game.debug)
 
-    -- Debug overlay — moved here from world.draw so UI remains within LÖVE callbacks
-    if Game.debug and Game.world then
+    -- Debug overlay — drawn here inside love.draw
+    if Game.debug then
         local mx, my = 0, 0
         if love.mouse and love.mouse.getPosition then
             mx, my = love.mouse.getPosition()
@@ -255,15 +232,13 @@ function love.draw()
         col = math.max(1, math.min(Game.WORLD_WIDTH, col))
         local by = math.floor(my / Game.BLOCK_SIZE) + 1
         by = math.max(1, math.min(Game.WORLD_HEIGHT, by))
-        local layer_z = Game.player and Game.player.z or 0
+        local layer_z = Game.player.z
         local block_type = Game.world:get_block_type(layer_z, col, by)
         local block_name = (type(block_type) == "table" and block_type.name) or tostring(block_type)
 
         local debug_lines = {}
         debug_lines[#debug_lines+1] = "DEBUG MODE: ON"
-        if Game.player and Game.player.inventory then
-            debug_lines[#debug_lines+1] = string.format("Inventory selected: %d / %d (mouse wheel)", Game.player.inventory.selected, Game.player.inventory.slots)
-        end
+        debug_lines[#debug_lines+1] = string.format("Inventory selected: %d / %d (mouse wheel)", Game.player.inventory.selected, Game.player.inventory.slots)
         debug_lines[#debug_lines+1] = string.format("Mouse pixel: %.0f, %.0f", mx, my)
         debug_lines[#debug_lines+1] = string.format("World col,row: %d, %d", col, by)
         debug_lines[#debug_lines+1] = string.format("Layer (player): %d", layer_z)
