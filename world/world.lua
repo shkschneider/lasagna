@@ -5,6 +5,7 @@ local Object = require("lib.object")
 local noise = require("lib.noise")
 local log = require("lib.log")
 local Blocks = require("world.blocks")
+local Player = require("entities.player")
 local Movements = require("entities.movements")
 
 local World = Object {
@@ -76,6 +77,8 @@ function World:load()
         self.layers[z] = layer
         self.tiles[z] = tiles_for_layer
     end
+
+    self.entities = { Player() }
 end
 
 -- Create per-layer full-world canvases and store them on the World instance.
