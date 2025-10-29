@@ -1,40 +1,32 @@
--- Main application (updated to instantiate Player() and World.new(seed) without opts tables)
--- Uses World.new(seed) and Player() which now use internal defaults.
+-- Main application (updated to use prototypes in world.tiles and Player()/World.new(seed) defaults)
 
 -- Global game table
 Game = {
-    -- Constants (UPPERCASE)
     BLOCK_SIZE = 16,
     WORLD_WIDTH = 500,
     WORLD_HEIGHT = 100,
-    GRAVITY = 20,    -- blocks / second^2
+    GRAVITY = 20,
 
-    -- Movement tuning (smooth accel / friction)
-    MOVE_ACCEL = 60, -- blocks / second^2 (horizontal accel on ground)
-    MAX_SPEED = 6,   -- blocks / second (base horizontal velocity)
-    GROUND_FRICTION = 30, -- deceleration when no input and on ground
-    AIR_ACCEL_MULT = 0.35, -- fraction of MOVE_ACCEL available in air
-    AIR_FRICTION = 1.5, -- small deceleration in air when no input
+    MOVE_ACCEL = 60,
+    MAX_SPEED = 6,
+    GROUND_FRICTION = 30,
+    AIR_ACCEL_MULT = 0.35,
+    AIR_FRICTION = 1.5,
 
-    -- sprint / run tuning (Shift)
-    RUN_SPEED_MULT = 1.6, -- multiplier to MAX_SPEED when running
-    RUN_ACCEL_MULT = 1.2, -- multiplier to MOVE_ACCEL when running
+    RUN_SPEED_MULT = 1.6,
+    RUN_ACCEL_MULT = 1.2,
 
-    -- crouch tuning
     CROUCH_DECEL = 120,
     CROUCH_MAX_SPEED = 3,
 
-    JUMP_SPEED = -10,-- initial jump velocity (blocks per second)
-    STEP_HEIGHT = 1, -- maximum step-up in blocks
+    JUMP_SPEED = -10,
+    STEP_HEIGHT = 1,
 
-    -- How much dirt above stone and how thick stone is
     DIRT_THICKNESS = 10,
     STONE_THICKNESS = 10,
 
-    -- Layer base heights per z
     LAYER_BASE_HEIGHTS = { [-1] = 20, [0] = 30, [1] = 40 },
 
-    -- Mutable world/state
     world = nil,
     canvases = {},
     camera_x = 0,
@@ -42,35 +34,25 @@ Game = {
     screen_height = 0,
     seed = nil,
 
-    -- Player will be created from player.lua
     player = nil,
 
-    -- Debug flag
     debug = true,
 }
 
--- Require modules and data
 local World = require("world")
 local Player = require("player")
 local Blocks = require("blocks")
-
--- logging and utilities
 local log = require("lib.log")
--- lib.classic removed from repo; do not require it.
 
--- configure logger level from Game.debug
 if Game.debug then
     log.level = "debug"
 else
     log.level = "info"
 end
 
--- Expose Blocks in global scope for compatibility (optional)
 _G.Blocks = Blocks
-
 table.unpack = table.unpack or unpack
 
--- Helper: clamp camera horizontally
 local function clamp_camera()
     local max_camera = Game.WORLD_WIDTH * Game.BLOCK_SIZE - Game.screen_width
     if max_camera < 0 then max_camera = 0 end
@@ -78,7 +60,6 @@ local function clamp_camera()
 end
 
 local function regenerate_world()
-    -- Use World.new(seed) which now uses defaults internally
     if not Game.world then
         Game.world = World.new(Game.seed)
     else
@@ -116,7 +97,6 @@ function love.load()
 
     Game.seed = os.time()
 
-    -- create player instance before world regen so regenerate_world can position it
     Game.player = Player()
 
     regenerate_world()
@@ -178,7 +158,6 @@ function love.mousepressed(x, y, button, istouch, presses)
             log.warn("Place failed:", tostring(err))
         end
     elseif Game.player and Game.player.removeAtMouse and (button == 1 or button == "l") then
-        -- debug: compute column/row and log layer
         local mouse_x, mouse_y = x, y
         local world_px = mouse_x + Game.camera_x
         local col = math.floor(world_px / Game.BLOCK_SIZE) + 1
@@ -200,17 +179,8 @@ function love.mousepressed(x, y, button, istouch, presses)
 end
 
 function love.update(dt)
-    -- Build input table; note the keys for crouch/run are intentionally strict:
-    -- crouch only using left Ctrl ("lctrl"), run only using left Shift ("lshift")
-    local input = {
-        left = love.keyboard.isDown("a"),
-        right = love.keyboard.isDown("d"),
-        jump = false,
-        crouch = love.keyboard.isDown("lctrl"), -- only left ctrl triggers crouch
-        run = love.keyboard.isDown("lshift"),   -- only left shift triggers run
-    }
-
-    Game.player:update(dt, Game.world, input)
+    -- Build input table is no longer passed; Player:update reads input directly
+    Game.player:update(dt)
 
     Game.player.px = math.max(1, math.min(Game.WORLD_WIDTH - Game.player.width, Game.player.px))
     Game.camera_x = (Game.player.px + Game.player.width / 2) * Game.BLOCK_SIZE - Game.screen_width / 2
@@ -225,7 +195,6 @@ local function draw_layer(z)
     love.graphics.origin()
     love.graphics.translate(-Game.camera_x, 0)
 
-    -- compute alpha: if layer is below player, dim 25% per depth
     local alpha = 1
     if Game.player and type(Game.player.z) == "number" and z < Game.player.z then
         local depth = Game.player.z - z
@@ -269,6 +238,7 @@ function love.draw()
         by = math.max(1, math.min(Game.WORLD_HEIGHT, by))
         local layer_z = Game.player.z
         local block_type = get_block_type_at(layer_z, col, by)
+        local block_name = (type(block_type) == "table" and block_type.name) or tostring(block_type)
 
         local debug_lines = {}
         debug_lines[#debug_lines+1] = "DEBUG MODE: ON"
@@ -276,7 +246,7 @@ function love.draw()
         debug_lines[#debug_lines+1] = string.format("Mouse pixel: %.0f, %.0f", mx, my)
         debug_lines[#debug_lines+1] = string.format("World col,row: %d, %d", col, by)
         debug_lines[#debug_lines+1] = string.format("Layer (player): %d", layer_z)
-        debug_lines[#debug_lines+1] = "Block: " .. tostring(block_type)
+        debug_lines[#debug_lines+1] = "Block: " .. block_name
 
         local padding = 6
         local line_h = 14

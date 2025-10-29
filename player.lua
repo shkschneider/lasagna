@@ -9,10 +9,10 @@ local log = require("lib.log")
 
 local EPS = 1e-6
 
-local Player = Object {} -- create the prototype first, then attach methods below
+local Player = Object {} -- create prototype, attach methods below
 
 -- init() no opts table anymore — use defaults internal to the prototype
-function Player.init(self)
+function Player.load(self)
     -- defaults
     self.px = 50
     self.py = 1
@@ -81,8 +81,13 @@ local function tile_solid(world, z, col, row)
     if not column then return false end
     local t = column[row]
     if t == nil then return false end
-    -- world stores blockName strings in this repo
-    local blk = Blocks[t]
+    -- t may be a prototype table (preferred) or a legacy string; handle both.
+    local blk = nil
+    if type(t) == "string" then
+        blk = Blocks[t]
+    else
+        blk = t
+    end
     if blk then
         if type(blk.is_solid) == "function" then return blk:is_solid() end
         if blk.solid ~= nil then return blk.solid end
@@ -102,6 +107,45 @@ function Player:update(dt)
     local crouch = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
     local run = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
 
+    -- Handle crouch/stand state and adjust height/py appropriately.
+    -- When crouching, lower the player's top (py increases) so feet stay in place.
+    -- When standing, attempt to rise if there's room above.
+    local world = Game.world
+    if crouch then
+        if not self.crouching then
+            -- enter crouch
+            self.crouching = true
+            self.py = self.py + (self.stand_height - self.crouch_height)
+            self.height = self.crouch_height
+        end
+    else
+        if self.crouching then
+            -- attempt to stand up: check for space above
+            local height_diff = self.stand_height - self.crouch_height
+            local new_py = self.py - height_diff
+            local new_height = self.stand_height
+            local left_col = math.floor(self.px + EPS)
+            local right_col = math.floor(self.px + self.width - EPS)
+            local can_stand = true
+            for col = left_col, right_col do
+                for row = math.floor(new_py + EPS), math.floor(new_py + new_height - EPS) do
+                    if tile_solid(world, self.z, col, row) then
+                        can_stand = false
+                        break
+                    end
+                end
+                if not can_stand then break end
+            end
+            if can_stand then
+                self.crouching = false
+                self.py = new_py
+                self.height = self.stand_height
+            else
+                -- remain crouched
+            end
+        end
+    end
+
     -- movement constants
     local MAX_SPEED = Game.MAX_SPEED
     local accel = Game.MOVE_ACCEL
@@ -109,7 +153,7 @@ function Player:update(dt)
         MAX_SPEED = Game.RUN_SPEED_MULT * MAX_SPEED
         accel = Game.RUN_ACCEL_MULT * accel
     end
-    if crouch then
+    if self.crouching then
         MAX_SPEED = math.min(MAX_SPEED, Game.CROUCH_MAX_SPEED)
     end
     if not self.on_ground then accel = accel * Game.AIR_ACCEL_MULT end
@@ -153,7 +197,6 @@ function Player:update(dt)
     self.vy = self.vy + Game.GRAVITY * dt
 
     -- integrate axis-separated movement with collision against Game.world
-    local world = Game.world
     -- horizontal
     local desired_px = self.px + self.vx * dt
     if world and world.width then
@@ -426,8 +469,8 @@ function Player:placeAtMouse(world, camera_x, block_size, mx, my, z_override)
 
     local z = z_override or self.z
 
-    local target_type = world:get_block_type(z, col, row)
-    if target_type ~= "air" then return false, "target not empty", z end
+    local target = world:get_block_type(z, col, row)
+    if target ~= "air" then return false, "target not empty", z end
 
     -- require touching an existing block on same layer (8-neighborhood)
     local touches_existing = false
@@ -451,11 +494,8 @@ function Player:placeAtMouse(world, camera_x, block_size, mx, my, z_override)
         return false, "must touch an existing block on the same layer", z
     end
 
-    local blockName = item.name
-    for k, v in pairs(Blocks) do if v == item then blockName = k break end end
-    if not blockName then return false, "unknown block type", z end
-
-    local ok, action = world:set_block(z, col, row, blockName)
+    -- item is already a prototype; world:set_block accepts prototype or name
+    local ok, action = world:set_block(z, col, row, item)
     return ok, action, z
 end
 

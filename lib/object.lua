@@ -6,7 +6,9 @@
 
 local Object = {}
 
-function Object:init(...) end
+function Object:load() end
+function Object:update(dt) end
+function Object:draw() end
 
 function Object:extend(data)
     data = data or {}
@@ -20,8 +22,8 @@ function Object:extend(data)
                     end
                 end
             end
-            if type(instance.init) == "function" then
-                instance:init(...)
+            if type(instance.load) == "function" then
+                instance:load(...)
             end
             return instance
         end,
