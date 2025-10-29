@@ -1,5 +1,5 @@
 -- World module — converted to an Object{} prototype (no inheritance).
--- World.tiles now store block prototypes (Blocks.grass / Blocks.dirt / Blocks.stone) or nil for air.
+-- World.tiles store block prototypes (Blocks.grass / Blocks.dirt / Blocks.stone) or nil for air.
 -- This eliminates the need for string-to-prototype resolution at draw time.
 local Object = require("lib.object")
 local noise = require("noise1d")
@@ -18,7 +18,7 @@ local DEFAULTS = {
 
 local World = Object {} -- prototype
 
--- init(self, seed)
+-- load(self, seed)
 function World.load(self, seed)
     self.seed = seed
     -- Use internal defaults
@@ -44,6 +44,11 @@ end
 -- Backwards-compatible constructor
 function World.new(seed)
     return World(seed)
+end
+
+-- Optional per-world update hook; empty for now (keeps Object API consistency)
+function World.update(self, dt)
+    -- intentionally empty; implement world-level updates here if needed
 end
 
 -- regenerate procedural world into explicit tiles grid (clears any runtime edits)

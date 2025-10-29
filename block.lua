@@ -2,12 +2,23 @@
 -- Block prototype factory using lib.object; provides Block.load(name, color)
 -- and stores created prototypes in the returned module table so callers can iterate it.
 local Object = require("lib.object")
-local Block = {}
 
-local function make_block_proto(name, color)
+local Block = Object {} -- prototype table for block registry
+
+-- Create or return an existing prototype.
+-- Usage:
+--   local Block = require "block"
+--   local grass = Block.load("grass", {r,g,b,a})
+function Block.load(name, color)
+    if type(name) ~= "string" then error("Block.load: name must be a string") end
+    if Block[name] then
+        return Block[name]
+    end
+
+    -- create prototype using Object {}
     local proto = Object {}
-    -- attach methods/fields after creation for consistency with other prototypes
-    function proto.init(self) end
+
+    -- lifecycle methods for the prototype (called on instances)
     function proto.load(self) end
     function proto.update(self, dt) end
     function proto.draw(self, x, y, block_size)
@@ -21,25 +32,9 @@ local function make_block_proto(name, color)
     proto.name = name
     proto.color = color
 
-    return proto
-end
-
--- Create or return an existing prototype. This matches the call-site you wanted:
---   local Block = require "block"
---   local grass = Block.load("grass", {r,g,b,a})
-function Block.load(name, color)
-    if type(name) ~= "string" then error("Block.load: name must be a string") end
-    if Block[name] then
-        return Block[name]
-    end
-    local proto = make_block_proto(name, color)
     Block[name] = proto
     return proto
 end
-
-function Block.update(self, dt) end
-
-function Block.draw(self) end
 
 -- Optional convenience: return prototypes in deterministic order if needed
 function Block.list()
