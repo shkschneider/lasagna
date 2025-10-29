@@ -514,7 +514,7 @@ end
 -- If canvases not passed, draws using self.canvases
 function World.draw(self, camera_x, canvases, player, block_size, screen_w, screen_h, debug)
     canvases = canvases or self.canvases
-    player = player or (Game and Game.player)
+    player = player or (Game and Game.player and Game:player())
     block_size = block_size or (Game and Game.BLOCK_SIZE) or 16
     screen_w = screen_w or (Game and Game.screen_width) or (love.graphics.getWidth and love.graphics.getWidth())
     screen_h = screen_h or (Game and Game.screen_height) or (love.graphics.getHeight and love.graphics.getHeight())
