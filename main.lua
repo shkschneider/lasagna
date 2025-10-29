@@ -77,6 +77,7 @@ local function regenerate_world()
     if not Game.world then
         -- create a World instance by calling the prototype
         Game.world = World(Game.seed)
+        Game.world:load(Game.seed)
     else
         Game.world:load()
     end

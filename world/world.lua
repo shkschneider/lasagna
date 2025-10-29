@@ -1,15 +1,15 @@
 -- World module — converted to an Object{} prototype (no inheritance).
 -- World.tiles store block prototypes (Blocks.grass / Blocks.dirt / Blocks.stone) or nil for air.
--- This file owns physics/collision for registered entities and provides both:
---  - draw_layer(z, canvas, blocks, block_size)  -- draws a single layer into a canvas
---  - draw(camera_x, canvases, player, block_size, screen_w, screen_h, debug) -- full-scene draw
+-- This file owns environment queries and coordinates entity simulation.
 local Object = require("lib.object")
 local noise = require("lib.noise")
 local Blocks = require("world.blocks") -- legacy/compat; prototypes are drawn directly now
 local log = require("lib.log")
 local Movements = require("entities.movements")
 
-local DEFAULTS = {
+-- Put the former defaults on the prototype directly (discoverable),
+-- runtime code should use Game.* (the canonical defaults).
+local World = Object {
     WIDTH = 500,
     HEIGHT = 100,
     DIRT_THICKNESS = 10,
@@ -19,20 +19,12 @@ local DEFAULTS = {
     FREQUENCY = { [-1] = 1/40, [0] = 1/50, [1] = 1/60 },
 }
 
-local World = Object {} -- prototype
-
 -- constructor (instance initializer)
 -- Called on the instance when a World instance is created (via World(...) or Object.new(World, ...))
 function World:new(seed)
     self.seed = seed
-    -- Use Game-provided defaults
-    self.width = Game.WORLD_WIDTH
-    self.height = Game.WORLD_HEIGHT
-    self.dirt_thickness = Game.DIRT_THICKNESS
-    self.stone_thickness = Game.STONE_THICKNESS
-    self.layer_base_heights = Game.LAYER_BASE_HEIGHTS
-    self.amplitude = Game.AMPLITUDE
-    self.frequency = Game.FREQUENCY
+
+    -- No per-instance width/height defaults here; use Game.* at runtime.
 
     -- materialized tiles: tiles[z][x][y] = prototype table or nil == air
     self.layers = {}
@@ -43,8 +35,6 @@ function World:new(seed)
 
     if self.seed ~= nil then math.randomseed(self.seed) end
     noise.init(self.seed)
-    -- regenerate the world now that instance fields are set and methods are available
-    self:load()
 
     log.info("World created with seed:", tostring(self.seed))
 end
@@ -52,22 +42,25 @@ end
 -- regenerate procedural world into explicit tiles grid (clears any runtime edits)
 -- Now stores prototypes (Blocks.grass/dirt/stone) instead of strings.
 function World:load()
-    if self.seed ~= nil then math.randomseed(self.seed) end
-    noise.init(self.seed)
+    -- use Game globals for sizing/params
+    local world_w = Game.WORLD_WIDTH
+    local world_h = Game.WORLD_HEIGHT
+    local dirt_thickness = Game.DIRT_THICKNESS
+    local stone_thickness = Game.STONE_THICKNESS
 
     for z = -1, 1 do
         local layer = { heights = {}, dirt_limit = {}, stone_limit = {} }
         local tiles_for_layer = {}
-        for x = 1, self.width do
+        for x = 1, world_w do
             local freq = (self.frequency and self.frequency[z]) or Game.FREQUENCY[z]
             local n = noise.perlin1d(x * freq + (z * 100))
             local base = (self.layer_base_heights and self.layer_base_heights[z]) or Game.LAYER_BASE_HEIGHTS[z]
             local amp = (self.amplitude and self.amplitude[z]) or Game.AMPLITUDE[z]
             local top = math.floor(base + amp * n)
-            top = math.max(1, math.min(self.height - 1, top))
+            top = math.max(1, math.min(world_h - 1, top))
 
-            local dirt_lim = math.min(self.height, top + self.dirt_thickness)
-            local stone_lim = math.min(self.height, top + self.dirt_thickness + self.stone_thickness)
+            local dirt_lim = math.min(world_h, top + dirt_thickness)
+            local stone_lim = math.min(world_h, top + dirt_thickness + stone_thickness)
 
             layer.heights[x] = top
             layer.dirt_limit[x] = dirt_lim
@@ -75,7 +68,7 @@ function World:load()
 
             -- materialize column x for this layer (store prototypes)
             tiles_for_layer[x] = {}
-            for y = 1, self.height do
+            for y = 1, world_h do
                 local proto = nil
                 if y == top then
                     proto = Blocks and Blocks.grass
@@ -93,13 +86,9 @@ function World:load()
         self.layers[z] = layer
         self.tiles[z] = tiles_for_layer
     end
-end
 
--- Note: the factory helper World.new (as a function returning Object.new(World, seed))
--- was removed because the prototype is callable and Object.new will invoke the prototype:new initializer.
--- Create World instances with either:
---   local w = World(seed)        -- callable prototype
---   local w = Object.new(World, seed)
+    log.info("World loaded with seed:", tostring(self.seed))
+end
 
 -- Optional per-world update hook; will be responsible for physics/contacts
 function World.update(self, dt)
@@ -173,7 +162,15 @@ function World.update(self, dt)
         local dx = e.vx * dt
         local dy = e.vy * dt
 
-        Movements.move(e, dx, dy, self)
+        -- delegate movement to the Movements/Physics helper; it will use Game globals for bounds
+        if type(Movements.move) == "function" then
+            Movements.move(e, dx, dy, self)
+        else
+            -- fallback: try world-side mover if present
+            if type(self.move_entity) == "function" then
+                self:move_entity(e, dx, dy)
+            end
+        end
 
         -- crouch/stand mechanics: entry is by holding crouch intent; standing should be validated by headroom
         if intent.crouch then
@@ -232,7 +229,8 @@ end
 
 -- Tile solidity check: treats stored prototype tables as authoritative
 function World:is_solid(z, col, row)
-    if col < 1 or col > self.width or row < 1 or row > self.height then return false end
+    -- use Game dimensions for bounds
+    if col < 1 or col > Game.WORLD_WIDTH or row < 1 or row > Game.WORLD_HEIGHT then return false end
     local tz = self.tiles and self.tiles[z]
     if not tz then return false end
     local column = tz[col]
@@ -247,15 +245,14 @@ function World:is_solid(z, col, row)
     return true
 end
 
--- Move an entity with axis-separated resolution against the tile grid.
--- e must have: px, py, width, height, vx, vy, z, on_ground
+-- Fallback world-side mover (kept for compatibility)
 function World:move_entity(e, dx, dy)
     -- horizontal
     if dx ~= 0 then
         local desired_px = e.px + dx
-        -- clamp to world bounds
+        -- clamp to world bounds (use Game globals)
         if desired_px < 1 then desired_px = 1 end
-        if desired_px > math.max(1, self.width - e.width + 1) then desired_px = math.max(1, self.width - e.width + 1) end
+        if desired_px > math.max(1, Game.WORLD_WIDTH - e.width + 1) then desired_px = math.max(1, Game.WORLD_WIDTH - e.width + 1) end
 
         if desired_px > e.px then
             local right_now = math.floor(e.px + e.width - 1e-6)
@@ -264,7 +261,7 @@ function World:move_entity(e, dx, dy)
             local bottom_row = math.floor(e.py + e.height - 1e-6)
             local blocked = false
             for col = right_now + 1, right_desired do
-                if (col < 1 or col > self.width) then blocked = true desired_px = col - e.width break end
+                if (col < 1 or col > Game.WORLD_WIDTH) then blocked = true desired_px = col - e.width break end
                 for row = top_row, bottom_row do
                     if self:is_solid(e.z, col, row) then blocked = true desired_px = col - e.width break end
                 end
@@ -289,7 +286,7 @@ function World:move_entity(e, dx, dy)
             local bottom_row = math.floor(e.py + e.height - 1e-6)
             local blocked = false
             for col = left_desired, left_now - 1 do
-                if (col < 1 or col > self.width) then blocked = true desired_px = col + 1 break end
+                if (col < 1 or col > Game.WORLD_WIDTH) then blocked = true desired_px = col + 1 break end
                 for row = top_row, bottom_row do
                     if self:is_solid(e.z, col, row) then blocked = true desired_px = col + 1 break end
                 end
@@ -315,7 +312,7 @@ function World:move_entity(e, dx, dy)
         local desired_py = e.py + dy
         -- clamp world bounds
         if desired_py < 1 then desired_py = 1 end
-        if desired_py > math.max(1, self.height - e.height + 1) then desired_py = math.max(1, self.height - e.height + 1) end
+        if desired_py > math.max(1, Game.WORLD_HEIGHT - e.height + 1) then desired_py = math.max(1, Game.WORLD_HEIGHT - e.height + 1) end
 
         if desired_py > e.py then
             -- moving down
@@ -326,7 +323,7 @@ function World:move_entity(e, dx, dy)
             local right_col = math.floor(e.px + e.width - 1e-6)
             local blocked = false
             for row = bottom_now + 1, bottom_desired do
-                if (row < 1 or row > self.height) then blocked = true desired_py = row - e.height break end
+                if (row < 1 or row > Game.WORLD_HEIGHT) then blocked = true desired_py = row - e.height break end
                 for col = left_col, right_col do
                     if self:is_solid(e.z, col, row) then blocked = true desired_py = row - e.height break end
                 end
@@ -360,7 +357,7 @@ function World:move_entity(e, dx, dy)
             local right_col = math.floor(e.px + e.width - 1e-6)
             local blocked = false
             for row = top_desired, top_now - 1 do
-                if (row < 1 or row > self.height) then blocked = true desired_py = row + 1 break end
+                if (row < 1 or row > Game.WORLD_HEIGHT) then blocked = true desired_py = row + 1 break end
                 for col = left_col, right_col do
                     if self:is_solid(e.z, col, row) then blocked = true desired_py = row + 1 break end
                 end
@@ -375,10 +372,10 @@ end
 -- Return surface/top (row) for layer z at column x, or nil if out of range
 function World:get_surface(z, x)
     if type(x) ~= "number" then return nil end
-    if x < 1 or x > self.width then return nil end
+    if x < 1 or x > Game.WORLD_WIDTH then return nil end
     local tiles_z = self.tiles and self.tiles[z]
     if not tiles_z then return nil end
-    for y = 1, self.height do
+    for y = 1, Game.WORLD_HEIGHT do
         local t = tiles_z[x] and tiles_z[x][y]
         if t ~= nil then
             return y
@@ -392,7 +389,7 @@ end
 -- Accepts either prototype or string (string will be converted), stores prototype internally.
 function World:place_block(z, x, y, block)
     if not z or not x or not y or not block then return false, "invalid parameters" end
-    if x < 1 or x > self.width or y < 1 or y > self.height then return false, "out of bounds" end
+    if x < 1 or x > Game.WORLD_WIDTH or y < 1 or y > Game.WORLD_HEIGHT then return false, "out of bounds" end
     if not self.tiles[z] or not self.tiles[z][x] then return false, "internal tiles not initialized" end
 
     -- normalize block to prototype
@@ -415,7 +412,7 @@ end
 -- Unified setter: setting block to nil removes the block (air), setting to prototype or name places/overwrites.
 function World:set_block(z, x, y, block)
     if not z or not x or not y then return false, "invalid parameters" end
-    if x < 1 or x > self.width or y < 1 or y > self.height then return false, "out of bounds" end
+    if x < 1 or x > Game.WORLD_WIDTH or y < 1 or y > Game.WORLD_HEIGHT then return false, "out of bounds" end
     if not self.tiles[z] or not self.tiles[z][x] then return false, "internal tiles not initialized" end
 
     if block == "__empty" then block = nil end
@@ -451,7 +448,7 @@ end
 -- get block type at (z, x, by)
 -- returns: "out", "air" or prototype table
 function World:get_block_type(z, x, by)
-    if x < 1 or x > self.width or by < 1 or by > self.height then return "out" end
+    if x < 1 or x > Game.WORLD_WIDTH or by < 1 or by > Game.WORLD_HEIGHT then return "out" end
     if not self.tiles[z] or not self.tiles[z][x] then return "air" end
     local t = self.tiles[z][x][by]
     if t == nil then return "air" end
@@ -470,10 +467,10 @@ function World.draw_layer(self, z, canvas, blocks, block_size)
     love.graphics.clear(0, 0, 0, 0)
     love.graphics.origin()
 
-    for col = 1, self.width do
+    for col = 1, Game.WORLD_WIDTH do
         local column = tiles_z[col]
         if column then
-            for row = 1, self.height do
+            for row = 1, Game.WORLD_HEIGHT do
                 local proto = column[row]
                 if proto ~= nil then
                     local px = (col - 1) * block_size
@@ -546,8 +543,8 @@ function World.draw(self, camera_x, canvases, player, block_size, screen_w, scre
     end
 end
 
-function World:width() return self.width end
-function World:height() return self.height end
+function World:width() return Game.WORLD_WIDTH end
+function World:height() return Game.WORLD_HEIGHT end
 function World:get_layer(z) return self.layers[z] end
 
 return World

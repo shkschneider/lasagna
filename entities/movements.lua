@@ -15,7 +15,7 @@ local Physics = {}
 local function move_right(entity, desired_px, world)
     -- clamp world bounds
     if desired_px < 1 then desired_px = 1 end
-    if desired_px > math.max(1, world.width - entity.width + 1) then desired_px = math.max(1, world.width - entity.width + 1) end
+    if desired_px > math.max(1, world.width() - entity.width + 1) then desired_px = math.max(1, world.width() - entity.width + 1) end
 
     local right_now = math.floor(entity.px + entity.width - 1e-6)
     local right_desired = math.floor(desired_px + entity.width - 1e-6)
@@ -24,7 +24,7 @@ local function move_right(entity, desired_px, world)
     local blocked = false
 
     for col = right_now + 1, right_desired do
-        if (col < 1 or col > world.width) then
+        if (col < 1 or col > world.width()) then
             blocked = true
             desired_px = col - entity.width
             break
@@ -62,7 +62,7 @@ end
 local function move_left(entity, desired_px, world)
     -- clamp world bounds
     if desired_px < 1 then desired_px = 1 end
-    if desired_px > math.max(1, world.width - entity.width + 1) then desired_px = math.max(1, world.width - entity.width + 1) end
+    if desired_px > math.max(1, world.width() - entity.width + 1) then desired_px = math.max(1, world.width() - entity.width + 1) end
 
     local left_now = math.floor(entity.px + 1e-6)
     local left_desired = math.floor(desired_px + 1e-6)
@@ -71,7 +71,7 @@ local function move_left(entity, desired_px, world)
     local blocked = false
 
     for col = left_desired, left_now - 1 do
-        if (col < 1 or col > world.width) then
+        if (col < 1 or col > world.width()) then
             blocked = true
             desired_px = col + 1
             break
@@ -109,7 +109,7 @@ end
 local function move_down(entity, desired_py, world)
     -- clamp world bounds
     if desired_py < 1 then desired_py = 1 end
-    if desired_py > math.max(1, world.height - entity.height + 1) then desired_py = math.max(1, world.height - entity.height + 1) end
+    if desired_py > math.max(1, world.height() - entity.height + 1) then desired_py = math.max(1, world.height() - entity.height + 1) end
 
     local top_row = math.floor(entity.py + 1e-6)
     local bottom_now = math.floor(entity.py + entity.height - 1e-6)
@@ -119,7 +119,7 @@ local function move_down(entity, desired_py, world)
     local blocked = false
 
     for row = bottom_now + 1, bottom_desired do
-        if (row < 1 or row > world.height) then
+        if (row < 1 or row > world.height()) then
             blocked = true
             desired_py = row - entity.height
             break
@@ -165,7 +165,7 @@ end
 local function move_up(entity, desired_py, world)
     -- clamp world bounds
     if desired_py < 1 then desired_py = 1 end
-    if desired_py > math.max(1, world.height - entity.height + 1) then desired_py = math.max(1, world.height - entity.height + 1) end
+    if desired_py > math.max(1, world.height() - entity.height + 1) then desired_py = math.max(1, world.height() - entity.height + 1) end
 
     local top_now = math.floor(entity.py + 1e-6)
     local top_desired = math.floor(desired_py + 1e-6)
@@ -174,7 +174,7 @@ local function move_up(entity, desired_py, world)
     local blocked = false
 
     for row = top_desired, top_now - 1 do
-        if (row < 1 or row > world.height) then
+        if (row < 1 or row > world.height()) then
             blocked = true
             desired_py = row + 1
             break
