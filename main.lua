@@ -1,26 +1,28 @@
--- Main application (updated to use prototypes in world.tiles and Player()/World.new(seed) defaults)
+-- Main application (updated to use World.draw_layer for canvas population and World.draw for full-scene)
+-- Player produces intents; World.update(dt) applies physics/collision to registered entities.
+-- World.draw handles full-scene composition; World.draw_layer draws a single canvas layer.
 
 -- Global game table
 Game = {
     BLOCK_SIZE = 16,
     WORLD_WIDTH = 500,
     WORLD_HEIGHT = 100,
-    GRAVITY = 20,
+    GRAVITY = 20,    -- blocks / second^2
 
-    MOVE_ACCEL = 60,
-    MAX_SPEED = 6,
-    GROUND_FRICTION = 30,
-    AIR_ACCEL_MULT = 0.35,
-    AIR_FRICTION = 1.5,
+    MOVE_ACCEL = 60, -- blocks / second^2 (horizontal accel on ground)
+    MAX_SPEED = 6,   -- blocks / second (base horizontal velocity)
+    GROUND_FRICTION = 30, -- deceleration when no input and on ground
+    AIR_ACCEL_MULT = 0.35, -- fraction of MOVE_ACCEL available in air
+    AIR_FRICTION = 1.5, -- small deceleration in air when no input
 
-    RUN_SPEED_MULT = 1.6,
-    RUN_ACCEL_MULT = 1.2,
+    RUN_SPEED_MULT = 1.6, -- multiplier to MAX_SPEED when running
+    RUN_ACCEL_MULT = 1.2, -- multiplier to MOVE_ACCEL when running
 
     CROUCH_DECEL = 120,
     CROUCH_MAX_SPEED = 3,
 
-    JUMP_SPEED = -10,
-    STEP_HEIGHT = 1,
+    JUMP_SPEED = -10,-- initial jump velocity (blocks per second)
+    STEP_HEIGHT = 1, -- maximum step-up in blocks
 
     DIRT_THICKNESS = 10,
     STONE_THICKNESS = 10,
@@ -39,20 +41,27 @@ Game = {
     debug = true,
 }
 
+-- Require modules and data
 local World = require("world")
 local Player = require("player")
 local Blocks = require("blocks")
+
+-- logging and utilities
 local log = require("lib.log")
 
+-- configure logger level from Game.debug
 if Game.debug then
     log.level = "debug"
 else
     log.level = "info"
 end
 
+-- Expose Blocks in global scope for compatibility (optional)
 _G.Blocks = Blocks
+
 table.unpack = table.unpack or unpack
 
+-- Helper: clamp camera horizontally
 local function clamp_camera()
     local max_camera = Game.WORLD_WIDTH * Game.BLOCK_SIZE - Game.screen_width
     if max_camera < 0 then max_camera = 0 end
@@ -60,6 +69,7 @@ local function clamp_camera()
 end
 
 local function regenerate_world()
+    -- Use World.new(seed)
     if not Game.world then
         Game.world = World.new(Game.seed)
     else
@@ -73,12 +83,21 @@ local function regenerate_world()
         local canvas = love.graphics.newCanvas(canvas_w, canvas_h)
         canvas:setFilter("nearest", "nearest")
         Game.canvases[z] = canvas
-        Game.world:draw(z, canvas, Blocks, Game.BLOCK_SIZE)
+        -- legacy single-layer draw: use draw_layer
+        if Game.world and Game.world.draw_layer then
+            Game.world:draw_layer(z, canvas, Blocks, Game.BLOCK_SIZE)
+        end
     end
 
     if not Game.player then
         Game.player = Player()
     end
+
+    -- register player with world so World.update will simulate it
+    if Game.world then
+        Game.world:add_entity(Game.player)
+    end
+
     if not Game.player.px or Game.player.px < 1 or Game.player.px > Game.WORLD_WIDTH then
         Game.player.px = 50
     end
@@ -97,6 +116,7 @@ function love.load()
 
     Game.seed = os.time()
 
+    -- create player instance before world regen so regenerate_world can position it
     Game.player = Player()
 
     regenerate_world()
@@ -132,9 +152,10 @@ function love.keypressed(key)
     elseif key == "escape" then
         love.event.quit()
     elseif key == "space" or key == "up" then
-        if Game.player.on_ground then
-            Game.player.vy = Game.JUMP_SPEED
-            Game.player.on_ground = false
+        -- set jump intent; World.update will consume it (one-shot)
+        if Game.player then
+            Game.player.intent = Game.player.intent or {}
+            Game.player.intent.jump = true
         end
     end
 end
@@ -151,13 +172,17 @@ function love.mousepressed(x, y, button, istouch, presses)
         if ok then
             local target_z = z_changed or Game.player.z
             if Game.world and Game.canvases and Game.canvases[target_z] then
-                Game.world:draw(target_z, Game.canvases[target_z], Blocks, Game.BLOCK_SIZE)
+                -- re-draw only affected layer
+                if Game.world.draw_layer then
+                    Game.world:draw_layer(target_z, Game.canvases[target_z], Blocks, Game.BLOCK_SIZE)
+                end
             end
             log.info("Place succeeded:", tostring(err))
         else
             log.warn("Place failed:", tostring(err))
         end
     elseif Game.player and Game.player.removeAtMouse and (button == 1 or button == "l") then
+        -- debug: compute column/row and log layer
         local mouse_x, mouse_y = x, y
         local world_px = mouse_x + Game.camera_x
         local col = math.floor(world_px / Game.BLOCK_SIZE) + 1
@@ -169,7 +194,9 @@ function love.mousepressed(x, y, button, istouch, presses)
         if ok then
             local target_z = z_changed or Game.player.z
             if Game.world and Game.canvases and Game.canvases[target_z] then
-                Game.world:draw(target_z, Game.canvases[target_z], Blocks, Game.BLOCK_SIZE)
+                if Game.world.draw_layer then
+                    Game.world:draw_layer(target_z, Game.canvases[target_z], Blocks, Game.BLOCK_SIZE)
+                end
             end
             log.info("Remove succeeded:", tostring(err))
         else
@@ -179,84 +206,24 @@ function love.mousepressed(x, y, button, istouch, presses)
 end
 
 function love.update(dt)
-    -- Build input table is no longer passed; Player:update reads input directly
-    Game.player:update(dt)
+    -- Player still reads input and sets intent
+    if Game.player and Game.player.update then
+        Game.player:update(dt)
+    end
+
+    -- World applies physics & collision to registered entities
+    if Game.world and Game.world.update then
+        Game.world:update(dt)
+    end
 
     Game.player.px = math.max(1, math.min(Game.WORLD_WIDTH - Game.player.width, Game.player.px))
     Game.camera_x = (Game.player.px + Game.player.width / 2) * Game.BLOCK_SIZE - Game.screen_width / 2
     clamp_camera()
 end
 
--- Draw a layer by blitting its canvas, now with per-layer dimming below player
-local function draw_layer(z)
-    local canvas = Game.canvases[z]
-    if not canvas then return end
-    love.graphics.push()
-    love.graphics.origin()
-    love.graphics.translate(-Game.camera_x, 0)
-
-    local alpha = 1
-    if Game.player and type(Game.player.z) == "number" and z < Game.player.z then
-        local depth = Game.player.z - z
-        alpha = 1 - 0.25 * depth
-        if alpha < 0 then alpha = 0 end
-    end
-
-    love.graphics.setColor(1, 1, 1, alpha)
-    love.graphics.draw(canvas, 0, 0)
-    love.graphics.pop()
-    love.graphics.setColor(1,1,1,1)
-end
-
-local function get_block_type_at(z, x, by)
-    if not Game.world then return "out" end
-    return Game.world:get_block_type(z, x, by)
-end
-
 function love.draw()
-    for z = -1, Game.player.z do
-        draw_layer(z)
-        if z == Game.player.z then
-            Game.player:draw(Game.BLOCK_SIZE, Game.camera_x)
-        end
-    end
-
-    love.graphics.origin()
-
-    if Game.player and Game.player.drawInventory then
-        Game.player:drawInventory(Game.screen_width, Game.screen_height)
-    end
-    if Game.player and Game.player.drawGhost then
-        Game.player:drawGhost(Game.world, Game.camera_x, Game.BLOCK_SIZE)
-    end
-
-    if Game.debug then
-        local mx, my = love.mouse.getPosition()
-        local col = math.floor((mx + Game.camera_x) / Game.BLOCK_SIZE) + 1
-        col = math.max(1, math.min(Game.WORLD_WIDTH, col))
-        local by = math.floor(my / Game.BLOCK_SIZE) + 1
-        by = math.max(1, math.min(Game.WORLD_HEIGHT, by))
-        local layer_z = Game.player.z
-        local block_type = get_block_type_at(layer_z, col, by)
-        local block_name = (type(block_type) == "table" and block_type.name) or tostring(block_type)
-
-        local debug_lines = {}
-        debug_lines[#debug_lines+1] = "DEBUG MODE: ON"
-        debug_lines[#debug_lines+1] = string.format("Inventory selected: %d / %d (mouse wheel)", Game.player.inventory.selected, Game.player.inventory.slots)
-        debug_lines[#debug_lines+1] = string.format("Mouse pixel: %.0f, %.0f", mx, my)
-        debug_lines[#debug_lines+1] = string.format("World col,row: %d, %d", col, by)
-        debug_lines[#debug_lines+1] = string.format("Layer (player): %d", layer_z)
-        debug_lines[#debug_lines+1] = "Block: " .. block_name
-
-        local padding = 6
-        local line_h = 14
-        local box_w = 420
-        local box_h = #debug_lines * line_h + padding * 2
-        love.graphics.setColor(0, 0, 0, 0.6)
-        love.graphics.rectangle("fill", 6, 6, box_w, box_h)
-        love.graphics.setColor(1, 1, 1, 1)
-        for i, ln in ipairs(debug_lines) do
-            love.graphics.print(ln, 10, 6 + padding + (i-1) * line_h)
-        end
+    -- Full-scene draw using World:draw (composes canvases + player + HUD)
+    if Game.world and Game.world.draw then
+        Game.world:draw(Game.camera_x, Game.canvases, Game.player, Game.BLOCK_SIZE, Game.screen_width, Game.screen_height, Game.debug)
     end
 end
