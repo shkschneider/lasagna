@@ -1,11 +1,6 @@
--- Main application (updated input mapping: crouch only on lctrl, run only on lshift)
---
--- This is the project entrypoint. I updated the input table so:
---  - crouch is true only when left Ctrl ("lctrl") is held (NOT rctrl or generic "ctrl")
---  - run is true only when left Shift ("lshift") is held (NOT rshift or generic "shift")
---
--- The rest of the file is the same as the previous main.lua you were using (world/player setup,
--- logging, rendering, etc.). Replace your existing main.lua with this file to apply the input changes.
+-- Main application (updated: dim layers below the player by 25% per depth)
+-- This file is the repository main.lua with a small change in draw_layer:
+-- for any layer z below the player's layer, we reduce the draw alpha by 0.25 per layer depth.
 
 -- Global game table
 Game = {
@@ -62,7 +57,7 @@ local Blocks = require("blocks")
 
 -- logging and utilities
 local log = require("lib.log")
-local classic = require("lib.classic")
+-- lib.classic removed from repo; do not require it.
 
 -- configure logger level from Game.debug
 if Game.debug then
@@ -84,6 +79,7 @@ local function clamp_camera()
 end
 
 local function regenerate_world()
+    -- Use legacy constructor World.new(seed, opts) as in repository world.lua
     if not Game.world then
         Game.world = World.new(Game.seed, {
             width = Game.WORLD_WIDTH,
@@ -228,16 +224,26 @@ function love.update(dt)
     clamp_camera()
 end
 
--- Draw a layer by blitting its canvas
+-- Draw a layer by blitting its canvas, now with per-layer dimming below player
 local function draw_layer(z)
     local canvas = Game.canvases[z]
     if not canvas then return end
     love.graphics.push()
     love.graphics.origin()
     love.graphics.translate(-Game.camera_x, 0)
-    love.graphics.setColor(1, 1, 1, 1)
+
+    -- compute alpha: if layer is below player, dim 25% per depth
+    local alpha = 1
+    if Game.player and type(Game.player.z) == "number" and z < Game.player.z then
+        local depth = Game.player.z - z
+        alpha = 1 - 0.25 * depth
+        if alpha < 0 then alpha = 0 end
+    end
+
+    love.graphics.setColor(1, 1, 1, alpha)
     love.graphics.draw(canvas, 0, 0)
     love.graphics.pop()
+    love.graphics.setColor(1,1,1,1)
 end
 
 local function get_block_type_at(z, x, by)
