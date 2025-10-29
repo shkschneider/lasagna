@@ -2,12 +2,14 @@
 -- Player follows a simple LOVE-like API:
 --   player = Player()           -- create with defaults
 --   player:update(dt)           -- reads keyboard state itself (produces intent)
+--   player:apply_physics(dt, world) -- applies physics and movement
 --   player:draw(block_size, camera_x)
 -- This file now gives the player its own canvas (self.canvas) which the player
 -- creates/maintains and re-renders when dirty (self.canvas_dirty). This keeps
 -- player rendering isolated and allows the world to own layer canvases.
 local Object = require("lib.object")
 local Blocks = require("world.blocks")
+local Movements = require("entities.movements")
 local log = require("lib.log")
 
 local EPS = 1e-6
@@ -198,7 +200,6 @@ function Player:apply_physics(dt, world)
     local dy = self.vy * dt
 
     -- Use Movements module for collision-aware movement
-    local Movements = require("entities.movements")
     if type(Movements.move) == "function" then
         Movements.move(self, dx, dy, world)
     end
