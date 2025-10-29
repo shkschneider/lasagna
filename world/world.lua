@@ -543,39 +543,6 @@ function World.draw(self, camera_x, canvases, player, block_size, screen_w, scre
     if player and player.drawGhost then
         player:drawGhost(self, camera_x, block_size)
     end
-
-    -- Debug overlay (recreates the same info as main.lua previously)
-    if debug then
-        local mx, my = love.mouse.getPosition()
-        local col = math.floor((mx + camera_x) / block_size) + 1
-        col = math.max(1, math.min(Game.WORLD_WIDTH, col))
-        local by = math.floor(my / block_size) + 1
-        by = math.max(1, math.min(Game.WORLD_HEIGHT, by))
-        local layer_z = player and player.z or 0
-        local block_type = self:get_block_type(layer_z, col, by)
-        local block_name = (type(block_type) == "table" and block_type.name) or tostring(block_type)
-
-        local debug_lines = {}
-        debug_lines[#debug_lines+1] = "DEBUG MODE: ON"
-        if player and player.inventory then
-            debug_lines[#debug_lines+1] = string.format("Inventory selected: %d / %d (mouse wheel)", player.inventory.selected, player.inventory.slots)
-        end
-        debug_lines[#debug_lines+1] = string.format("Mouse pixel: %.0f, %.0f", mx, my)
-        debug_lines[#debug_lines+1] = string.format("World col,row: %d, %d", col, by)
-        debug_lines[#debug_lines+1] = string.format("Layer (player): %d", layer_z)
-        debug_lines[#debug_lines+1] = "Block: " .. block_name
-
-        local padding = 6
-        local line_h = 14
-        local box_w = 420
-        local box_h = #debug_lines * line_h + padding * 2
-        love.graphics.setColor(0, 0, 0, 0.6)
-        love.graphics.rectangle("fill", 6, 6, box_w, box_h)
-        love.graphics.setColor(1, 1, 1, 1)
-        for i, ln in ipairs(debug_lines) do
-            love.graphics.print(ln, 10, 6 + padding + (i-1) * line_h)
-        end
-    end
 end
 
 function World:width() return self.width end

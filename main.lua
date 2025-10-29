@@ -23,12 +23,15 @@ Game = {
     GROUND_FRICTION = 30, -- deceleration when no input and on ground
     AIR_ACCEL_MULT = 0.35, -- fraction of MOVE_ACCEL available in air
     AIR_FRICTION = 1.5, -- small deceleration in air when no input
-    RUN_SPEED_MULT = 1.6,
-    RUN_ACCEL_MULT = 1.2,
+
+    RUN_SPEED_MULT = 1.6, -- multiplier to MAX_SPEED when running
+    RUN_ACCEL_MULT = 1.2, -- multiplier to MOVE_ACCEL when running
+
     CROUCH_DECEL = 120,
     CROUCH_MAX_SPEED = 3,
-    JUMP_SPEED = -10, -- initial jump velocity (blocks per second)
-    STEP_HEIGHT = 1,  -- maximum step-up in blocks
+
+    JUMP_SPEED = -10,-- initial jump velocity (blocks per second)
+    STEP_HEIGHT = 1, -- maximum step-up in blocks
 
     -- UI / runtime state
     world = nil,
@@ -36,8 +39,10 @@ Game = {
     camera_x = 0,
     screen_width = 0,
     screen_height = 0,
+    seed = nil,
 
-    debug = true,
+    -- debug off by default
+    debug = os.getenv("DEBUG") == "true",
 }
 
 -- Require modules and data
@@ -54,6 +59,11 @@ if Game.debug then
 else
     log.level = "info"
 end
+
+-- Expose Blocks in global scope for compatibility (optional)
+_G.Blocks = Blocks
+
+table.unpack = table.unpack or unpack
 
 -- Helper: clamp camera horizontally
 local function clamp_camera()
@@ -127,6 +137,18 @@ function love.resize(w, h)
 end
 
 function love.keypressed(key)
+    -- Backspace toggles debug mode at runtime
+    if key == "backspace" then
+        Game.debug = not Game.debug
+        if Game.debug then
+            log.level = "debug"
+        else
+            log.level = "info"
+        end
+        log.info("Debug mode: " .. tostring(Game.debug))
+        return
+    end
+
     if key == "q" then
         local old_z = Game.player.z
         Game.player.z = math.max(-1, Game.player.z - 1)
@@ -221,5 +243,42 @@ function love.draw()
     -- Full-scene draw using World:draw (composes canvases + player + HUD)
     if Game.world and Game.world.draw then
         Game.world:draw(Game.camera_x, Game.canvases, Game.player, Game.BLOCK_SIZE, Game.screen_width, Game.screen_height, Game.debug)
+    end
+
+    -- Debug overlay — moved here from world.draw so UI remains within LÖVE callbacks
+    if Game.debug and Game.world then
+        local mx, my = 0, 0
+        if love.mouse and love.mouse.getPosition then
+            mx, my = love.mouse.getPosition()
+        end
+        local col = math.floor((mx + Game.camera_x) / Game.BLOCK_SIZE) + 1
+        col = math.max(1, math.min(Game.WORLD_WIDTH, col))
+        local by = math.floor(my / Game.BLOCK_SIZE) + 1
+        by = math.max(1, math.min(Game.WORLD_HEIGHT, by))
+        local layer_z = Game.player and Game.player.z or 0
+        local block_type = Game.world:get_block_type(layer_z, col, by)
+        local block_name = (type(block_type) == "table" and block_type.name) or tostring(block_type)
+
+        local debug_lines = {}
+        debug_lines[#debug_lines+1] = "DEBUG MODE: ON"
+        if Game.player and Game.player.inventory then
+            debug_lines[#debug_lines+1] = string.format("Inventory selected: %d / %d (mouse wheel)", Game.player.inventory.selected, Game.player.inventory.slots)
+        end
+        debug_lines[#debug_lines+1] = string.format("Mouse pixel: %.0f, %.0f", mx, my)
+        debug_lines[#debug_lines+1] = string.format("World col,row: %d, %d", col, by)
+        debug_lines[#debug_lines+1] = string.format("Layer (player): %d", layer_z)
+        debug_lines[#debug_lines+1] = "Block: " .. block_name
+
+        local padding = 6
+        local line_h = 14
+        local box_w = 420
+        local box_h = #debug_lines * line_h + padding * 2
+        love.graphics.setColor(0, 0, 0, 0.6)
+        love.graphics.rectangle("fill", 6, 6, box_w, box_h)
+        love.graphics.setColor(1, 1, 1, 1)
+        for i, ln in ipairs(debug_lines) do
+            love.graphics.print(ln, 10, 6 + padding + (i-1) * line_h)
+        end
+        love.graphics.setColor(1,1,1,1)
     end
 end
