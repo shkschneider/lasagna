@@ -4,11 +4,8 @@
 local Object = require("lib.object")
 local noise = require("lib.noise")
 local log = require("lib.log")
-local Player = require("entities.player")
 local Movements = require("entities.movements")
 
--- Put the former defaults on the prototype directly (discoverable),
--- runtime code should use Game.* (the canonical defaults).
 local World = Object {
     WIDTH = 500,
     HEIGHT = 100,
@@ -19,22 +16,24 @@ local World = Object {
     FREQUENCY = { [-1] = 1/40, [0] = 1/50, [1] = 1/60 },
 }
 
--- constructor (instance initializer)
--- Called on the instance when a World instance is created (via World(...) or Object.new(World, ...))
 function World:new(seed)
-    assert(seed ~= nil)
     self.seed = seed
-    math.randomseed(self.seed)
     self.layers = {}
     self.tiles = {}
     self.entities = {}
+
+    if self.seed ~= nil then math.randomseed(self.seed) end
     noise.init(self.seed)
-    log.info("World prepared with seed:", tostring(self.seed))
+    self:load()
+
+    log.info("World created with seed:", tostring(self.seed))
 end
 
--- regenerate procedural world into explicit tiles grid (clears any runtime edits)
--- Now stores prototypes (Blocks.grass/dirt/stone) instead of strings.
 function World:load()
+    if self.seed ~= nil then math.randomseed(self.seed) end
+    noise.init(self.seed)
+
+    -- Use Game globals for sizes/params
     for z = -1, 1 do
         local layer = { heights = {}, dirt_limit = {}, stone_limit = {} }
         local tiles_for_layer = {}
@@ -53,7 +52,6 @@ function World:load()
             layer.dirt_limit[x] = dirt_lim
             layer.stone_limit[x] = stone_lim
 
-            -- materialize column x for this layer (store prototypes)
             tiles_for_layer[x] = {}
             for y = 1, Game.WORLD_HEIGHT do
                 local proto = nil
@@ -64,7 +62,7 @@ function World:load()
                 elseif y > dirt_lim and y <= stone_lim then
                     proto = Blocks and Blocks.stone
                 else
-                    proto = nil -- air
+                    proto = nil
                 end
                 tiles_for_layer[x][y] = proto
             end
@@ -73,22 +71,33 @@ function World:load()
         self.layers[z] = layer
         self.tiles[z] = tiles_for_layer
     end
+end
 
-    log.info("World loaded with seed:", tostring(self.seed))
+-- Create per-layer full-world canvases and store them in Game.canvases.
+-- Also draws each layer into its canvas.
+function World:create_canvases(block_size)
+    block_size = block_size or Game.BLOCK_SIZE
+    local canvas_w = Game.WORLD_WIDTH * block_size
+    local canvas_h = Game.WORLD_HEIGHT * block_size
+    Game.canvases = Game.canvases or {}
+
+    for z = -1, 1 do
+        local canvas = love.graphics.newCanvas(canvas_w, canvas_h)
+        canvas:setFilter("nearest", "nearest")
+        Game.canvases[z] = canvas
+        -- draw full layer into canvas
+        self:draw_layer(z, canvas, nil, block_size)
+    end
 end
 
 -- Optional per-world update hook; will be responsible for physics/contacts
 function World.update(self, dt)
-    -- Update block prototypes if needed
     if Blocks and type(Blocks.update) == "function" then Blocks.update(dt) end
 
-    -- Process each entity registered with the world
     for _, e in ipairs(self.entities) do
-        -- ensure entity has intent table
         e.intent = e.intent or {}
         local intent = e.intent
 
-        -- movement constants derived from Game and entity overrides (use entity fields if present)
         local MAX_SPEED = (e.max_speed ~= nil) and e.max_speed or Game.MAX_SPEED
         local accel = (e.move_accel ~= nil) and e.move_accel or Game.MOVE_ACCEL
 
@@ -107,7 +116,6 @@ function World.update(self, dt)
 
         local target_vx = dir * MAX_SPEED
 
-        -- accelerate / decelerate horizontally
         if dir ~= 0 then
             local use_accel = accel
             if e.crouching then use_accel = accel * 0.6 end
@@ -117,7 +125,6 @@ function World.update(self, dt)
                 e.vx = math.max(target_vx, e.vx - use_accel * dt)
             end
         else
-            -- apply friction / deceleration
             if e.crouching then
                 local dec = Game.CROUCH_DECEL * dt
                 if math.abs(e.vx) <= dec then e.vx = 0 else e.vx = e.vx - (e.vx > 0 and 1 or -1) * dec end
@@ -132,48 +139,41 @@ function World.update(self, dt)
             end
         end
 
-        -- jump intent: translate to vertical velocity if on_ground
         if intent.jump then
             if e.on_ground then
                 e.vy = Game.JUMP_SPEED
                 e.on_ground = false
             end
-            -- consume the jump intent (one-shot)
             e.intent.jump = false
         end
 
-        -- gravity
         e.vy = e.vy + Game.GRAVITY * dt
 
-        -- integrate movement (axis-separated with collision resolution)
         local dx = e.vx * dt
         local dy = e.vy * dt
 
-        -- delegate movement to the Movements/Physics helper; it will use Game globals for bounds
         if type(Movements.move) == "function" then
             Movements.move(e, dx, dy, self)
         else
-            -- fallback: try world-side mover if present
             if type(self.move_entity) == "function" then
                 self:move_entity(e, dx, dy)
             end
         end
 
-        -- crouch/stand mechanics: entry is by holding crouch intent; standing should be validated by headroom
+        -- crouch/stand mechanics (kept here for now). Mark player's canvas dirty when posture changes.
         if intent.crouch then
             if not e.crouching then
-                -- enter crouch: lower height, keep feet in place
-                local height_diff = (Player.HEIGHT / 2)
+                local height_diff = e.stand_height - e.crouch_height
                 e.crouching = true
                 e.py = e.py + height_diff
-                e.height = (Player.HEIGHT / 2)
+                e.height = e.crouch_height
+                if type(e.canvas_dirty) ~= "nil" then e.canvas_dirty = true end
             end
         else
             if e.crouching then
-                -- attempt to stand up: check for space above
-                local height_diff = (Player.HEIGHT / 2)
+                local height_diff = e.stand_height - e.crouch_height
                 local new_py = e.py - height_diff
-                local new_height = Player.HEIGHT
+                local new_height = e.stand_height
                 local left_col = math.floor(e.px + 1e-6)
                 local right_col = math.floor(e.px + e.width - 1e-6)
                 local can_stand = true
@@ -189,7 +189,8 @@ function World.update(self, dt)
                 if can_stand then
                     e.crouching = false
                     e.py = new_py
-                    e.height = Player.HEIGHT
+                    e.height = e.stand_height
+                    if type(e.canvas_dirty) ~= "nil" then e.canvas_dirty = true end
                 end
             end
         end
@@ -216,7 +217,6 @@ end
 
 -- Tile solidity check: treats stored prototype tables as authoritative
 function World:is_solid(z, col, row)
-    -- use Game dimensions for bounds
     if col < 1 or col > Game.WORLD_WIDTH or row < 1 or row > Game.WORLD_HEIGHT then return false end
     local tz = self.tiles and self.tiles[z]
     if not tz then return false end
@@ -234,10 +234,8 @@ end
 
 -- Fallback world-side mover (kept for compatibility)
 function World:move_entity(e, dx, dy)
-    -- horizontal
     if dx ~= 0 then
         local desired_px = e.px + dx
-        -- clamp to world bounds (use Game globals)
         if desired_px < 1 then desired_px = 1 end
         if desired_px > math.max(1, Game.WORLD_WIDTH - e.width + 1) then desired_px = math.max(1, Game.WORLD_WIDTH - e.width + 1) end
 
@@ -294,15 +292,12 @@ function World:move_entity(e, dx, dy)
         end
     end
 
-    -- vertical
     if dy ~= 0 then
         local desired_py = e.py + dy
-        -- clamp world bounds
         if desired_py < 1 then desired_py = 1 end
         if desired_py > math.max(1, Game.WORLD_HEIGHT - e.height + 1) then desired_py = math.max(1, Game.WORLD_HEIGHT - e.height + 1) end
 
         if desired_py > e.py then
-            -- moving down
             local top_row = math.floor(e.py + 1e-6)
             local bottom_now = math.floor(e.py + e.height - 1e-6)
             local bottom_desired = math.floor(desired_py + e.height - 1e-6)
@@ -337,7 +332,6 @@ function World:move_entity(e, dx, dy)
             end
             e.py = desired_py
         else
-            -- moving up
             local top_now = math.floor(e.py + 1e-6)
             local top_desired = math.floor(desired_py + 1e-6)
             local left_col = math.floor(e.px + 1e-6)
@@ -379,7 +373,6 @@ function World:place_block(z, x, y, block)
     if x < 1 or x > Game.WORLD_WIDTH or y < 1 or y > Game.WORLD_HEIGHT then return false, "out of bounds" end
     if not self.tiles[z] or not self.tiles[z][x] then return false, "internal tiles not initialized" end
 
-    -- normalize block to prototype
     local proto = nil
     if type(block) == "string" then
         proto = Blocks[block]
@@ -416,7 +409,7 @@ function World:set_block(z, x, y, block)
         return false, "invalid block type"
     end
 
-    local prev = self.tiles[z][x][y] -- may be nil or prototype
+    local prev = self.tiles[z][x][y]
     if proto == nil then
         if prev == nil then
             return false, "nothing to remove"
@@ -512,7 +505,6 @@ function World.draw(self, camera_x, canvases, player, block_size, screen_w, scre
         end
 
         if player and z == player_z then
-            -- draw player on top of the player's layer
             if player.draw then
                 player:draw(block_size, camera_x)
             end
@@ -521,7 +513,6 @@ function World.draw(self, camera_x, canvases, player, block_size, screen_w, scre
 
     love.graphics.origin()
 
-    -- HUD: inventory and ghost preview
     if player and player.drawInventory then
         player:drawInventory(screen_w, screen_h)
     end
@@ -530,8 +521,8 @@ function World.draw(self, camera_x, canvases, player, block_size, screen_w, scre
     end
 end
 
+function World:get_layer(z) return self.layers[z] end
 function World:width() return Game.WORLD_WIDTH end
 function World:height() return Game.WORLD_HEIGHT end
-function World:get_layer(z) return self.layers[z] end
 
 return World

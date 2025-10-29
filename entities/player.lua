@@ -3,17 +3,16 @@
 --   player = Player()           -- create with defaults
 --   player:update(dt)           -- reads keyboard state itself (produces intent)
 --   player:draw(block_size, camera_x)
--- Physics (movement / collision) are handled by World:update which operates on registered entities.
+-- This file now gives the player its own canvas (self.canvas) which the player
+-- creates/maintains and re-renders when dirty (self.canvas_dirty). This keeps
+-- player rendering isolated and allows the world to own layer canvases.
 local Object = require("lib.object")
 local Blocks = require("world.blocks")
 local log = require("lib.log")
 
 local EPS = 1e-6
 
-local Player = Object {
-    WIDTH = 1,
-    HEIGHT = 2,
-} -- create prototype, attach methods below
+local Player = Object {} -- create prototype, attach methods below
 
 -- constructor (instance initializer)
 function Player:new()
@@ -22,13 +21,21 @@ function Player:new()
     self.py = 1
     self.z  = 0
 
-    self.width = Player.WIDTH
-    self.height = Player.HEIGHT
+    self.width = 1
+    self.height = 2
+    self.stand_height = self.height
+    self.crouch_height = 1
     self.crouching = false
     self.on_ground = false
 
     self.vx = 0
     self.vy = 0
+
+    -- per-player canvas (player draws itself into this when dirty)
+    self.canvas = nil
+    self.canvas_w = 0
+    self.canvas_h = 0
+    self.canvas_dirty = true
 
     local slots = 9
     self.inventory = {
@@ -43,7 +50,29 @@ function Player:new()
         },
     }
 
-    for _, b in ipairs(Blocks) do
+    -- populate inventory deterministically and safely:
+    local items_source = nil
+    if type(Blocks) == "table" and type(Blocks.list) == "function" then
+        items_source = Blocks.list()
+    else
+        local names = {}
+        for k, v in pairs(Blocks) do
+            if type(k) == "string" and type(v) == "table" then
+                table.insert(names, k)
+            end
+        end
+        table.sort(names)
+        items_source = {}
+        for _, name in ipairs(names) do
+            local b = Blocks[name]
+            if type(b) == "table" then
+                if not b.name then b.name = name end
+                table.insert(items_source, b)
+            end
+        end
+    end
+
+    for _, b in ipairs(items_source) do
         if #self.inventory.items >= self.inventory.slots then break end
         table.insert(self.inventory.items, b)
     end
@@ -52,6 +81,45 @@ function Player:new()
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
 
     self.ghost = { mx = 0, my = 0, z = self.z }
+end
+
+-- Ensure the player's canvas exists and is large enough for current width/height at block_size.
+function Player:ensure_canvas(block_size)
+    block_size = block_size or Game.BLOCK_SIZE
+    local w_px = math.max(1, math.floor(self.width * block_size))
+    local h_px = math.max(1, math.floor(self.height * block_size))
+    if (not self.canvas) or self.canvas_w ~= w_px or self.canvas_h ~= h_px then
+        -- create/replace canvas
+        if self.canvas and self.canvas.release then
+            -- release previous canvas if API supports it (safe no-op otherwise)
+            pcall(function() self.canvas:release() end)
+        end
+        self.canvas = love.graphics.newCanvas(w_px, h_px)
+        self.canvas:setFilter("nearest", "nearest")
+        self.canvas_w = w_px
+        self.canvas_h = h_px
+        self.canvas_dirty = true
+    end
+end
+
+-- Render the player's visual into its canvas (called when canvas_dirty is true).
+function Player:render_to_canvas(block_size)
+    block_size = block_size or Game.BLOCK_SIZE
+    if not self.canvas then return end
+
+    love.graphics.push()
+    love.graphics.origin()
+    love.graphics.setCanvas(self.canvas)
+    love.graphics.clear(0, 0, 0, 0)
+
+    -- Draw the player at (0,0) in canvas-local coordinates
+    love.graphics.setColor(1,1,1,1)
+    love.graphics.rectangle("fill", 0, 0, self.width * block_size, self.height * block_size)
+
+    love.graphics.setCanvas()
+    love.graphics.pop()
+
+    self.canvas_dirty = false
 end
 
 -- Player:update now only reads input and sets intent; physics is applied by World:update
@@ -69,15 +137,29 @@ function Player:update(dt)
 end
 
 -- Draw uses Game.BLOCK_SIZE and Game.camera_x
+-- Now draws the player's cached canvas (re-rendering it when dirty).
 function Player:draw(block_size, camera_x)
     block_size = block_size or Game.BLOCK_SIZE
     camera_x = camera_x or 0
 
-    local px = (self.px - 1) * block_size - camera_x
-    local py = (self.py - 1) * block_size
+    -- Ensure canvas matches current size & state
+    self:ensure_canvas(block_size)
+    if self.canvas_dirty then
+        self:render_to_canvas(block_size)
+    end
+
+    -- compute screen position in pixels
+    local sx = (self.px - 1) * block_size - camera_x
+    local sy = (self.py - 1) * block_size
+
     love.graphics.push()
     love.graphics.setColor(1,1,1,1)
-    love.graphics.rectangle("fill", px, py, self.width * block_size, self.height * block_size)
+    if self.canvas then
+        love.graphics.draw(self.canvas, sx, sy)
+    else
+        -- fallback: draw rectangle directly if canvas unavailable
+        love.graphics.rectangle("fill", sx, sy, self.width * block_size, self.height * block_size)
+    end
     love.graphics.pop()
 end
 
@@ -121,7 +203,10 @@ function Player:drawInventory(screen_w, screen_h)
 
         local item = inv.items[i]
         if item and item.color then
-            love.graphics.setColor(unpack(item.color))
+            -- robust color handling: accept 0..1 or 0..255
+            local r,g,b,a = unpack(item.color)
+            if r and r > 1 then r,g,b,a = r/255, (g or 0)/255, (b or 0)/255, (a or 255)/255 end
+            love.graphics.setColor(r or 1, g or 1, b or 1, a or 1)
             love.graphics.rectangle("fill", cube_x, cube_y, cube_w, cube_h, 3, 3)
             love.graphics.setColor(0,0,0,0.6)
             love.graphics.rectangle("line", cube_x + 0.5, cube_y + 0.5, cube_w - 1, cube_h - 1, 2, 2)
