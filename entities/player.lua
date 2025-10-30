@@ -1,42 +1,36 @@
--- Player implemented as an Object (uses lib.object).
--- Player follows a simple LOVE-like API:
---   player = Player()           -- create with defaults
---   player:update(dt)           -- reads keyboard state itself (produces intent)
---   player:draw(block_size, camera_x)
--- This file now gives the player its own canvas (self.canvas) which the player
--- creates/maintains and re-renders when dirty (self.canvas_dirty). This keeps
--- player rendering isolated and allows the world to own layer canvases.
+
+
+
+
+
+
+
+
 local Object = require("lib.object")
 local Blocks = require("world.blocks")
 local log = require("lib.log")
 
 local EPS = 1e-6
 
-local Player = Object {} -- create prototype, attach methods below
+local Player = Object {}
 
--- constructor (instance initializer)
+
 function Player:new()
-    -- defaults
     self.px = 50
     self.py = 1
     self.z  = 0
-
     self.width = 1
     self.height = 2
     self.stand_height = self.height
     self.crouch_height = 1
     self.crouching = false
     self.on_ground = false
-
     self.vx = 0
     self.vy = 0
-
-    -- per-player canvas (player draws itself into this when dirty)
     self.canvas = nil
     self.canvas_w = 0
     self.canvas_h = 0
     self.canvas_dirty = true
-
     local slots = 9
     self.inventory = {
         slots = slots,
@@ -49,8 +43,6 @@ function Player:new()
             background_alpha = 0.6,
         },
     }
-
-    -- populate inventory deterministically and safely:
     local items_source = nil
     if type(Blocks) == "table" and type(Blocks.list) == "function" then
         items_source = Blocks.list()
@@ -71,27 +63,21 @@ function Player:new()
             end
         end
     end
-
     for _, b in ipairs(items_source) do
         if #self.inventory.items >= self.inventory.slots then break end
         table.insert(self.inventory.items, b)
     end
-
-    -- intent table describes desired actions for the next physics tick
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
-
     self.ghost = { mx = 0, my = 0, z = self.z }
 end
 
--- Ensure the player's canvas exists and is large enough for current width/height at block_size.
+
 function Player:ensure_canvas(block_size)
     block_size = block_size or Game.BLOCK_SIZE
     local w_px = math.max(1, math.floor(self.width * block_size))
     local h_px = math.max(1, math.floor(self.height * block_size))
     if (not self.canvas) or self.canvas_w ~= w_px or self.canvas_h ~= h_px then
-        -- create/replace canvas
         if self.canvas and self.canvas.release then
-            -- release previous canvas if API supports it (safe no-op otherwise)
             pcall(function() self.canvas:release() end)
         end
         self.canvas = love.graphics.newCanvas(w_px, h_px)
@@ -102,68 +88,55 @@ function Player:ensure_canvas(block_size)
     end
 end
 
--- Render the player's visual into its canvas (called when canvas_dirty is true).
+
 function Player:render_to_canvas(block_size)
     block_size = block_size or Game.BLOCK_SIZE
     if not self.canvas then return end
-
     love.graphics.push()
     love.graphics.origin()
     love.graphics.setCanvas(self.canvas)
     love.graphics.clear(0, 0, 0, 0)
-
-    -- Draw the player at (0,0) in canvas-local coordinates
     love.graphics.setColor(1,1,1,1)
     love.graphics.rectangle("fill", 0, 0, self.width * block_size, self.height * block_size)
-
     love.graphics.setCanvas()
     love.graphics.pop()
-
     self.canvas_dirty = false
 end
 
--- Player:update now only reads input and sets intent; physics is applied by World:update
+
 function Player:update(dt)
     local left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
     local right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
     local crouch = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
     local run = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
-    -- keep any jump flag set by love.keypressed (one-shot) unless consumed
     self.intent.left = left
     self.intent.right = right
     self.intent.crouch = crouch
     self.intent.run = run
-    -- jump is a one-shot, do not clear it here; World:update will consume it after use
 end
 
--- Draw uses Game.BLOCK_SIZE and Game.camera_x
--- Now draws the player's cached canvas (re-rendering it when dirty).
+
+
 function Player:draw(block_size, camera_x)
     block_size = block_size or Game.BLOCK_SIZE
     camera_x = camera_x or 0
-
-    -- Ensure canvas matches current size & state
     self:ensure_canvas(block_size)
     if self.canvas_dirty then
         self:render_to_canvas(block_size)
     end
-
-    -- compute screen position in pixels
     local sx = (self.px - 1) * block_size - camera_x
     local sy = (self.py - 1) * block_size
-
     love.graphics.push()
     love.graphics.setColor(1,1,1,1)
     if self.canvas then
         love.graphics.draw(self.canvas, sx, sy)
     else
-        -- fallback: draw rectangle directly if canvas unavailable
         love.graphics.rectangle("fill", sx, sy, self.width * block_size, self.height * block_size)
     end
     love.graphics.pop()
 end
 
--- Mouse wheel: change hotbar slot
+
 function Player:wheelmoved(dx, dy)
     if not dy or dy == 0 then return end
     local inv = self.inventory
@@ -176,7 +149,7 @@ function Player:wheelmoved(dx, dy)
     end
 end
 
--- Draw inventory bar centered bottom
+
 function Player:drawInventory(screen_w, screen_h)
     local inv = self.inventory
     local ui = inv.ui
@@ -187,23 +160,18 @@ function Player:drawInventory(screen_w, screen_h)
     local x0 = (screen_w - total_width) / 2
     local y0 = screen_h - slot_h - 20
     local bg_margin = 8
-
     love.graphics.setColor(0,0,0,ui.background_alpha)
     love.graphics.rectangle("fill", x0 - bg_margin, y0 - bg_margin, total_width + bg_margin*2, slot_h + bg_margin*2, 6, 6)
-
     for i = 1, total_slots do
         local sx = x0 + (i-1)*(slot_w + padding)
         local sy = y0
         love.graphics.setColor(0.12,0.12,0.12,1)
         love.graphics.rectangle("fill", sx, sy, slot_w, slot_h, 4, 4)
-
         local inner_pad = 8
         local cube_x, cube_y = sx + inner_pad, sy + inner_pad
         local cube_w, cube_h = slot_w - inner_pad*2, slot_h - inner_pad*2
-
         local item = inv.items[i]
         if item and item.color then
-            -- robust color handling: accept 0..1 or 0..255
             local r,g,b,a = unpack(item.color)
             if r and r > 1 then r,g,b,a = r/255, (g or 0)/255, (b or 0)/255, (a or 255)/255 end
             love.graphics.setColor(r or 1, g or 1, b or 1, a or 1)
@@ -214,11 +182,9 @@ function Player:drawInventory(screen_w, screen_h)
             love.graphics.setColor(0.75,0.75,0.75,1)
             love.graphics.rectangle("fill", cube_x, cube_y, cube_w, cube_h, 3, 3)
         end
-
         love.graphics.setColor(0,0,0,0.6)
         love.graphics.setLineWidth(1)
         love.graphics.rectangle("line", sx + 0.5, sy + 0.5, slot_w - 1, slot_h - 1, 4, 4)
-
         if i == inv.selected then
             love.graphics.setColor(1, 0.84, 0, 1)
             love.graphics.setLineWidth(ui.border_thickness)
@@ -226,19 +192,16 @@ function Player:drawInventory(screen_w, screen_h)
             love.graphics.setLineWidth(1)
         end
     end
-
     love.graphics.setColor(1,1,1,1)
 end
 
 function Player:drawGhost(world, camera_x, block_size)
     camera_x = camera_x or 0
     block_size = block_size or Game.BLOCK_SIZE
-
     local inv = self.inventory
     local selected = inv.selected or 1
     local item = inv.items and inv.items[selected]
     if not item or not item.color then return end
-
     local screen_w, screen_h = love.graphics.getWidth(), love.graphics.getHeight()
     local ui = inv.ui
     local total_slots = inv.slots
@@ -250,20 +213,15 @@ function Player:drawGhost(world, camera_x, block_size)
     local y0 = screen_h - slot_h - 20
     local bg_margin = 8
     local inv_top = y0 - bg_margin
-
     local mx, my = love.mouse.getPosition()
     if my >= inv_top then return end
-
     local world_px = mx + camera_x
     local col = math.floor(world_px / block_size) + 1
     local row = math.floor(my / block_size) + 1
-
     col = math.max(1, math.min(Game.WORLD_WIDTH, col))
     row = math.max(1, math.min(Game.WORLD_HEIGHT, row))
-
     local px = (col - 1) * block_size - camera_x
     local py = (row - 1) * block_size
-
     love.graphics.setColor(1,1,1,1)
     love.graphics.setLineWidth(2)
     love.graphics.rectangle("line", px + 0.5, py + 0.5, block_size - 1, block_size - 1)
@@ -277,25 +235,18 @@ function Player:placeAtMouse(world, camera_x, block_size, mx, my, z_override)
     block_size = block_size or Game.BLOCK_SIZE
     local mouse_x, mouse_y = mx, my
     if not mouse_x or not mouse_y then mouse_x, mouse_y = love.mouse.getPosition() end
-
     local inv = self.inventory
     local selected = inv.selected or 1
     local item = inv.items and inv.items[selected]
     if not item then return false, "no item selected" end
-
     local world_px = mouse_x + camera_x
     local col = math.floor(world_px / block_size) + 1
     local row = math.floor(mouse_y / block_size) + 1
-
     col = math.max(1, math.min(Game.WORLD_WIDTH, col))
     row = math.max(1, math.min(Game.WORLD_HEIGHT, row))
-
     local z = z_override or self.z
-
     local target = world:get_block_type(z, col, row)
     if target ~= "air" then return false, "target not empty", z end
-
-    -- require touching an existing block on same layer (8-neighborhood)
     local touches_existing = false
     for dx = -1, 1 do
         for dy = -1, 1 do
@@ -312,12 +263,9 @@ function Player:placeAtMouse(world, camera_x, block_size, mx, my, z_override)
         end
         if touches_existing then break end
     end
-
     if not touches_existing then
         return false, "must touch an existing block on the same layer", z
     end
-
-    -- item is already a prototype; world:set_block accepts prototype or name
     local ok, action = world:set_block(z, col, row, item)
     return ok, action, z
 end
@@ -328,14 +276,11 @@ function Player:removeAtMouse(world, camera_x, block_size, mx, my, z_override)
     block_size = block_size or Game.BLOCK_SIZE
     local mouse_x, mouse_y = mx, my
     if not mouse_x or not mouse_y then mouse_x, mouse_y = love.mouse.getPosition() end
-
     local world_px = mouse_x + camera_x
     local col = math.floor(world_px / block_size) + 1
     local row = math.floor(mouse_y / block_size) + 1
-
     col = math.max(1, math.min(Game.WORLD_WIDTH, col))
     row = math.max(1, math.min(Game.WORLD_HEIGHT, row))
-
     if z_override then
         local z = z_override
         local ok, msg = world:set_block(z, col, row, nil)
@@ -344,7 +289,6 @@ function Player:removeAtMouse(world, camera_x, block_size, mx, my, z_override)
         if ok2 then return true, msg2, z end
         return false, "nothing to remove", nil
     end
-
     local layer_order = {1, 0, -1}
     for _, z in ipairs(layer_order) do
         local t = world:get_block_type(z, col, row)
@@ -362,7 +306,6 @@ function Player:removeAtMouse(world, camera_x, block_size, mx, my, z_override)
             return false, "failed to remove block at target layer", z
         end
     end
-
     return false, "nothing to remove", nil
 end
 
