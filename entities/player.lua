@@ -3,6 +3,17 @@ local Blocks = require("world.blocks")
 local Movements = require("entities.movements")
 local log = require("lib.log")
 
+-- Player state enums
+local MovementState = {
+    GROUNDED = "GROUNDED",
+    AIRBORNE = "AIRBORNE",
+}
+
+local Stance = {
+    STANDING = "STANDING",
+    CROUCHING = "CROUCHING",
+}
+
 local Player = Object {}
 
 function Player:new()
@@ -13,10 +24,13 @@ function Player:new()
     self.height = 2
     self.stand_height = self.height
     self.crouch_height = self.height / 2
-    self.crouching = false
-    self.on_ground = false
     self.vx = 0
     self.vy = 0
+    
+    -- State system
+    self.movement_state = MovementState.AIRBORNE
+    self.stance = Stance.STANDING
+    
     local slots = 9
     self.inventory = {
         slots = slots,
@@ -34,7 +48,14 @@ function Player:new()
         table.insert(self.inventory.items, b)
     end
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
-    self.ghost = { mx = 0, my = 0, z = self.z }
+end
+
+function Player:is_grounded()
+    return self.movement_state == MovementState.GROUNDED
+end
+
+function Player:is_crouching()
+    return self.stance == Stance.CROUCHING
 end
 
 function Player:keypressed(key)
@@ -69,10 +90,12 @@ function Player:update(dt)
         MAX_SPEED = C.RUN_SPEED_MULT * MAX_SPEED
         accel = C.RUN_ACCEL_MULT * accel
     end
-    if self.intent.crouch or self.crouching then
+    if self:is_crouching() then
         MAX_SPEED = math.min(MAX_SPEED, C.CROUCH_MAX_SPEED)
     end
-    if not self.on_ground then accel = accel * C.AIR_ACCEL_MULT end
+    if not self:is_grounded() then 
+        accel = accel * C.AIR_ACCEL_MULT 
+    end
     
     local dir = 0
     if self.intent.left then dir = dir - 1 end
@@ -81,18 +104,18 @@ function Player:update(dt)
     
     if dir ~= 0 then
         local use_accel = accel
-        if self.crouching then use_accel = accel * 0.6 end
+        if self:is_crouching() then use_accel = accel * 0.6 end
         if self.vx < target_vx then
             self.vx = math.min(target_vx, self.vx + use_accel * dt)
         elseif self.vx > target_vx then
             self.vx = math.max(target_vx, self.vx - use_accel * dt)
         end
     else
-        if self.crouching then
+        if self:is_crouching() then
             local dec = C.CROUCH_DECEL * dt
             if math.abs(self.vx) <= dec then self.vx = 0 else self.vx = self.vx - (self.vx > 0 and 1 or -1) * dec end
         else
-            if self.on_ground then
+            if self:is_grounded() then
                 local dec = C.GROUND_FRICTION * dt
                 if math.abs(self.vx) <= dec then self.vx = 0 else self.vx = self.vx - (self.vx > 0 and 1 or -1) * dec end
             else
@@ -103,9 +126,9 @@ function Player:update(dt)
     end
     
     if self.intent.jump then
-        if self.on_ground then
+        if self:is_grounded() then
             self.vy = C.JUMP_SPEED
-            self.on_ground = false
+            self.movement_state = MovementState.AIRBORNE
         end
         self.intent.jump = false
     end
@@ -115,16 +138,16 @@ function Player:update(dt)
     local dy = self.vy * dt
     Movements.move(self, dx, dy, G.world)
     
-    -- Handle crouching
+    -- Handle stance (crouching/standing)
     if self.intent.crouch then
-        if not self.crouching then
+        if self.stance == Stance.STANDING then
             local height_diff = self.stand_height - self.crouch_height
-            self.crouching = true
+            self.stance = Stance.CROUCHING
             self.py = self.py + height_diff
             self.height = self.crouch_height
         end
     else
-        if self.crouching then
+        if self.stance == Stance.CROUCHING then
             local height_diff = self.stand_height - self.crouch_height
             local new_py = self.py - height_diff
             local new_height = self.stand_height
@@ -141,7 +164,7 @@ function Player:update(dt)
                 if not can_stand then break end
             end
             if can_stand then
-                self.crouching = false
+                self.stance = Stance.STANDING
                 self.py = new_py
                 self.height = self.stand_height
             end

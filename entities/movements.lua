@@ -98,7 +98,9 @@ local function move_down(entity, desired_py, world)
     end
     if blocked then
         entity.vy = 0
-        entity.on_ground = true
+        if entity.movement_state then
+            entity.movement_state = "GROUNDED"
+        end
     else
         local top_row2 = math.floor(desired_py + C.EPS)
         local bottom_row2 = math.floor(desired_py + entity.height - C.EPS)
@@ -114,9 +116,13 @@ local function move_down(entity, desired_py, world)
         end
         if blocked then
             entity.vy = 0
-            entity.on_ground = true
+            if entity.movement_state then
+                entity.movement_state = "GROUNDED"
+            end
         else
-            entity.on_ground = false
+            if entity.movement_state then
+                entity.movement_state = "AIRBORNE"
+            end
         end
     end
     entity.py = desired_py
