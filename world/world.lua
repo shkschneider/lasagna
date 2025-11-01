@@ -4,6 +4,7 @@ local log = require("lib.log")
 local Blocks = require("world.blocks")
 local Player = require("entities.player")
 local Movements = require("entities.movements")
+local Layer = require("world.layer")
 
 local World = Object {
     HEIGHT = 100,
@@ -17,19 +18,16 @@ local World = Object {
 function World:new(seed)
     self.seed = seed
     self.layers = {}
-    self.tiles = {}
     self.entities = {}
-    self.canvases = {}
     log.info("World created with seed:", tostring(self.seed))
 end
 
 function World:load()
     if self.seed ~= nil then math.randomseed(self.seed) end
     noise.init(self.seed)
-    -- Initialize layer structures
+    -- Initialize layer objects
     for z = -1, 1 do
-        self.layers[z] = { heights = {}, dirt_limit = {}, stone_limit = {} }
-        self.tiles[z] = {}
+        self.layers[z] = Layer(z)
     end
     -- Generate initial terrain around spawn point (x = 50)
     local spawn_x = 50
@@ -38,16 +36,15 @@ function World:load()
     end
     -- player
     self.entities = { Player() }
-    -- canvas will be created/updated dynamically
-    self.canvases = {}
 end
 
 -- Generate terrain for a specific column
 function World:generate_column(z, x)
-    if not self.layers[z] or not self.tiles[z] then return end
+    local layer = self.layers[z]
+    if not layer then return end
 
     -- Skip if already generated
-    if self.tiles[z][x] then return end
+    if layer.tiles[x] then return end
 
     local freq = (self.frequency and self.frequency[z]) or Game.FREQUENCY[z]
     local n = noise.perlin1d(x * freq + (z * 100))
@@ -58,11 +55,11 @@ function World:generate_column(z, x)
     local dirt_lim = math.min(Game.WORLD_HEIGHT, top + Game.DIRT_THICKNESS)
     local stone_lim = math.min(Game.WORLD_HEIGHT, top + Game.DIRT_THICKNESS + Game.STONE_THICKNESS)
 
-    self.layers[z].heights[x] = top
-    self.layers[z].dirt_limit[x] = dirt_lim
-    self.layers[z].stone_limit[x] = stone_lim
+    layer.heights[x] = top
+    layer.dirt_limit[x] = dirt_lim
+    layer.stone_limit[x] = stone_lim
 
-    self.tiles[z][x] = {}
+    layer.tiles[x] = {}
     for y = 1, Game.WORLD_HEIGHT do
         local proto = nil
         if y == top then
@@ -74,7 +71,7 @@ function World:generate_column(z, x)
         else
             proto = nil
         end
-        self.tiles[z][x][y] = proto
+        layer.tiles[x][y] = proto
     end
 end
 
@@ -193,9 +190,9 @@ end
 function World:is_solid(z, col, row)
     if row < 1 or row > Game.WORLD_HEIGHT then return false end
     -- Remove horizontal bounds check - terrain can extend infinitely
-    local tz = self.tiles and self.tiles[z]
-    if not tz then return false end
-    local column = tz[col]
+    local layer = self.layers and self.layers[z]
+    if not layer then return false end
+    local column = layer.tiles[col]
     if not column then return false end
     local t = column[row]
     if t == nil then return false end
@@ -320,19 +317,19 @@ end
 
 function World:get_surface(z, x)
     if type(x) ~= "number" then return nil end
-    local tiles_z = self.tiles and self.tiles[z]
-    if not tiles_z then return nil end
+    local layer = self.layers and self.layers[z]
+    if not layer then return nil end
 
     local col = math.floor(x)
 
     -- Generate terrain if it doesn't exist
-    if not tiles_z[col] then
+    if not layer.tiles[col] then
         self:generate_column(z, col)
     end
 
     -- Find the surface (first non-nil block from top)
     for y = 1, Game.WORLD_HEIGHT do
-        local t = tiles_z[col] and tiles_z[col][y]
+        local t = layer.tiles[col] and layer.tiles[col][y]
         if t ~= nil then
             return y
         end
@@ -349,12 +346,13 @@ function World:set_block(z, x, y, block)
     if y < 1 or y > Game.WORLD_HEIGHT then return false, "out of bounds" end
     -- Remove horizontal bounds check - allow infinite terrain
     -- Ensure column exists before setting
-    if not self.tiles[z] then return false, "layer not initialized" end
-    if not self.tiles[z][x] then
+    local layer = self.layers[z]
+    if not layer then return false, "layer not initialized" end
+    if not layer.tiles[x] then
         -- Generate this column if it doesn't exist
         self:generate_column(z, x)
     end
-    if not self.tiles[z][x] then return false, "internal tiles not initialized" end
+    if not layer.tiles[x] then return false, "internal tiles not initialized" end
     if block == "__empty" then block = nil end
     local proto = nil
     if type(block) == "string" then
@@ -367,17 +365,17 @@ function World:set_block(z, x, y, block)
     else
         return false, "invalid block type"
     end
-    local prev = self.tiles[z][x][y]
+    local prev = layer.tiles[x][y]
     if proto == nil then
         if prev == nil then
             return false, "nothing to remove"
         end
-        self.tiles[z][x][y] = nil
+        layer.tiles[x][y] = nil
         log.info(string.format("World: removed block at z=%d x=%d y=%d (was=%s)", z, x, y, tostring(prev and prev.name)))
         return true, "removed"
     else
         local action = (prev == nil) and "added" or "replaced"
-        self.tiles[z][x][y] = proto
+        layer.tiles[x][y] = proto
         log.info(string.format("World: %s block '%s' at z=%d x=%d y=%d (prev=%s)", action, tostring(proto.name), z, x, y, tostring(prev and prev.name)))
         return true, action
     end
@@ -388,8 +386,9 @@ end
 function World:get_block_type(z, x, by)
     if by < 1 or by > Game.WORLD_HEIGHT then return "out" end
     -- Remove horizontal bounds check - allow infinite terrain
-    if not self.tiles[z] or not self.tiles[z][x] then return "air" end
-    local t = self.tiles[z][x][by]
+    local layer = self.layers[z]
+    if not layer or not layer.tiles[x] then return "air" end
+    local t = layer.tiles[x][by]
     if t == nil then return "air" end
     return t
 end
@@ -410,11 +409,14 @@ function World.draw(self, camera_x, canvases, player, block_size, screen_w, scre
 
     -- Draw each layer
     for z = -1, player_z do
-        local tiles_z = self.tiles[z]
-        if tiles_z then
-            love.graphics.push()
-            love.graphics.origin()
-            love.graphics.translate(-camera_x, 0)
+        local layer = self.layers[z]
+        if layer then
+            -- Generate terrain for visible columns if needed
+            for col = left_col, right_col do
+                if not layer.tiles[col] then
+                    self:generate_column(z, col)
+                end
+            end
 
             local alpha = 1
             if player and type(player.z) == "number" and z < player.z then
@@ -423,35 +425,8 @@ function World.draw(self, camera_x, canvases, player, block_size, screen_w, scre
                 if alpha < 0 then alpha = 0 end
             end
 
-            -- Draw visible columns
-            for col = left_col, right_col do
-                -- Generate terrain if not yet generated (safety check)
-                if not tiles_z[col] then
-                    self:generate_column(z, col)
-                end
-
-                local column = tiles_z[col]
-                if column then
-                    for row = 1, Game.WORLD_HEIGHT do
-                        local proto = column[row]
-                        if proto ~= nil then
-                            local px = (col - 1) * block_size
-                            local py = (row - 1) * block_size
-                            if type(proto.draw) == "function" then
-                                love.graphics.setColor(1, 1, 1, alpha)
-                                proto:draw(px, py, block_size)
-                            elseif proto.color and love and love.graphics then
-                                local c = proto.color
-                                love.graphics.setColor(c[1], c[2], c[3], (c[4] or 1) * alpha)
-                                love.graphics.rectangle("fill", px, py, block_size, block_size)
-                            end
-                        end
-                    end
-                end
-            end
-
-            love.graphics.pop()
-            love.graphics.setColor(1,1,1,1)
+            -- Draw the layer
+            layer:draw(camera_x, block_size, screen_w, screen_h, alpha)
         end
 
         if player and z == player_z then
