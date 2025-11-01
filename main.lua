@@ -17,7 +17,6 @@ function love.load()
         { resizable = true, minwidth = resolutions.sd.width, minheight = resolutions.sd.height })
     love.window.setTitle(Game.NAME)
     Game:load(os.getenv("SEED") or os.time())
-    log.info("Game loaded")
 end
 
 function love.resize(width, height)
@@ -30,6 +29,8 @@ end
 function love.keypressed(key)
     if key == "escape" then
         love.event.quit()
+    elseif key == "delete" then
+        Game:load(Game.world.seed)
     else
         Game:keypressed(key)
     end

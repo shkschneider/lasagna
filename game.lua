@@ -69,7 +69,7 @@ function Game:load(seed)
     self:player().py = top - self:player().height
     -- canvas
     self:resize(love.graphics.getWidth(), love.graphics.getHeight())
-    log.info("Game loaded")
+    log.info("Game loaded: " .. tostring(seed))
 end
 
 function Game:player()
@@ -82,12 +82,6 @@ function Game:resize(width, height)
     if self.canvas and self.canvas.release then pcall(function() self.canvas:release() end) end
     self.canvas = love.graphics.newCanvas(self.screen_width, self.screen_height)
     self.canvas:setFilter("nearest", "nearest")
-    self:clamp_camera()
-end
-
-function Game:clamp_camera()
-    -- No camera clamping for infinite world
-    -- Camera can follow player anywhere
 end
 
 function Game:keypressed(key)
@@ -148,9 +142,7 @@ end
 function Game:update(dt)
     self.world:update(dt)
     self:player():update(dt)
-    -- No player position clamping for infinite world
     self.camera_x = (self:player().px + self:player().width / 2) * self.BLOCK_SIZE - self.screen_width / 2
-    self:clamp_camera()
 end
 
 function Game:draw()

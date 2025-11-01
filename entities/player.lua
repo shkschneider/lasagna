@@ -34,27 +34,7 @@ function Player:new()
             background_alpha = 0.6,
         },
     }
-    local items_source = nil
-    if type(Blocks) == "table" and type(Blocks.list) == "function" then
-        items_source = Blocks.list()
-    else
-        local names = {}
-        for k, v in pairs(Blocks) do
-            if type(k) == "string" and type(v) == "table" then
-                table.insert(names, k)
-            end
-        end
-        table.sort(names)
-        items_source = {}
-        for _, name in ipairs(names) do
-            local b = Blocks[name]
-            if type(b) == "table" then
-                if not b.name then b.name = name end
-                table.insert(items_source, b)
-            end
-        end
-    end
-    for _, b in ipairs(items_source) do
+    for _, b in pairs(Blocks) do
         if #self.inventory.items >= self.inventory.slots then break end
         table.insert(self.inventory.items, b)
     end

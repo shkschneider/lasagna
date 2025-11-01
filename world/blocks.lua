@@ -1,6 +1,4 @@
 
-
-
 local Block = require("world.block")
 
 local Blocks = {

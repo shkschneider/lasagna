@@ -85,27 +85,8 @@ function World:generate_terrain_range(z, x_start, x_end)
     end
 end
 
--- Check and generate terrain around player position
-function World:update_terrain_generation(player_x, player_z)
-    local buffer = 100 -- generate this many blocks ahead/behind player
-    local x_start = math.floor(player_x - buffer)
-    local x_end = math.floor(player_x + buffer)
-    
-    -- Generate for all layers since player can switch layers with Q/E keys
-    for z = -1, 1 do
-        self:generate_terrain_range(z, x_start, x_end)
-    end
-end
-
 function World.update(self, dt)
-    if Blocks and type(Blocks.update) == "function" then Blocks.update(dt) end
-    
-    -- Update terrain generation based on player position
-    local player = self.entities[1]
-    if player and player.px then
-        self:update_terrain_generation(player.px, player.z or 0)
-    end
-    
+    if type(Blocks.update) == "function" then Blocks.update(dt) end
     for _, e in ipairs(self.entities) do
         e.intent = e.intent or {}
         local intent = e.intent
@@ -155,13 +136,7 @@ function World.update(self, dt)
         e.vy = e.vy + Game.GRAVITY * dt
         local dx = e.vx * dt
         local dy = e.vy * dt
-        if type(Movements.move) == "function" then
-            Movements.move(e, dx, dy, self)
-        else
-            if type(self.move_entity) == "function" then
-                self:move_entity(e, dx, dy)
-            end
-        end
+        Movements.move(e, dx, dy, self)
         if intent.crouch then
             if not e.crouching then
                 local height_diff = e.stand_height - e.crouch_height
