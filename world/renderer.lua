@@ -52,7 +52,8 @@ function Renderer:draw_column(world, z, col, block_size, alpha)
     local column = tiles_z[col]
     if not column then return end
     
-    for row = 1, Game.WORLD_HEIGHT do
+    local world_height = world:height() or 100
+    for row = 1, world_height do
         local proto = column[row]
         if proto ~= nil then
             local px = (col - 1) * block_size
@@ -87,11 +88,22 @@ end
 
 -- Main draw function - draws all layers and entities
 function Renderer:draw(world, camera_x, player, block_size, screen_w, screen_h, debug)
+    -- Provide defaults for optional parameters
     player = player or (Game and Game.player and Game:player())
-    block_size = block_size or (Game and Game.BLOCK_SIZE) or 16
-    screen_w = screen_w or (Game and Game.screen_width) or (love.graphics.getWidth and love.graphics.getWidth())
-    screen_h = screen_h or (Game and Game.screen_height) or (love.graphics.getHeight and love.graphics.getHeight())
-    debug = (debug ~= nil) and debug or (Game and Game.debug)
+    
+    -- Get defaults from Game or use fallbacks
+    if not block_size then
+        block_size = (Game and Game.BLOCK_SIZE) or 16
+    end
+    if not screen_w then
+        screen_w = (Game and Game.screen_width) or (love.graphics.getWidth and love.graphics.getWidth()) or 800
+    end
+    if not screen_h then
+        screen_h = (Game and Game.screen_height) or (love.graphics.getHeight and love.graphics.getHeight()) or 600
+    end
+    if debug == nil then
+        debug = (Game and Game.debug) or false
+    end
     
     -- Calculate visible columns
     local left_col, right_col = self:get_visible_columns(camera_x, screen_w, block_size)
