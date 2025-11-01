@@ -37,16 +37,16 @@ function Player:new()
     self.ghost = { mx = 0, my = 0, z = self.z }
 end
 
-function Player:keypressed(key, world)
+function Player:keypressed(key)
     if key == "q" then
         self.z = math.max(C.LAYER_MIN, self.z - 1)
-        local top = world:get_surface(self.z, math.floor(self.px)) or (C.WORLD_HEIGHT - 1)
+        local top = G.world:get_surface(self.z, math.floor(self.px)) or (C.WORLD_HEIGHT - 1)
         self.py = top - self.height
         self.vy = 0
         log.info(string.format("Layer: %d", self.z))
     elseif key == "e" then
         self.z = math.min(C.LAYER_MAX, self.z + 1)
-        local top = world:get_surface(self.z, math.floor(self.px)) or (C.WORLD_HEIGHT - 1)
+        local top = G.world:get_surface(self.z, math.floor(self.px)) or (C.WORLD_HEIGHT - 1)
         self.py = top - self.height
         self.vy = 0
         log.info(string.format("Layer: %d", self.z))
@@ -55,7 +55,7 @@ function Player:keypressed(key, world)
     end
 end
 
-function Player:update(dt, world)
+function Player:update(dt)
     -- Handle continuous input (movement keys)
     self.intent.left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
     self.intent.right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
@@ -113,7 +113,7 @@ function Player:update(dt, world)
     self.vy = self.vy + C.GRAVITY * dt
     local dx = self.vx * dt
     local dy = self.vy * dt
-    Movements.move(self, dx, dy, world)
+    Movements.move(self, dx, dy, G.world)
     
     -- Handle crouching
     if self.intent.crouch then
@@ -133,7 +133,7 @@ function Player:update(dt, world)
             local can_stand = true
             for col = left_col, right_col do
                 for row = math.floor(new_py + C.EPS), math.floor(new_py + new_height - C.EPS) do
-                    if world:is_solid(self.z, col, row) then
+                    if G.world:is_solid(self.z, col, row) then
                         can_stand = false
                         break
                     end
@@ -149,10 +149,11 @@ function Player:update(dt, world)
     end
 end
 
-function Player:draw(cx)
-    cx = cx or 0
-    local sx = (self.px - 1) * C.BLOCK_SIZE - cx
+function Player:draw()
+    local sx = (self.px - 1) * C.BLOCK_SIZE - G.cx
     local sy = (self.py - 1) * C.BLOCK_SIZE
+    love.graphics.rectangle("fill", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE)
+end
     love.graphics.rectangle("fill", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE)
 end
 
@@ -207,8 +208,7 @@ function Player:drawInventory()
     love.graphics.setColor(1,1,1,1)
 end
 
-function Player:drawGhost(world, cx)
-    cx = cx or 0
+function Player:drawGhost()
     local item = self.inventory.items and self.inventory.items[self.inventory.selected or 1]
     if not item or not item.color then return end
     local total_width = self.inventory.slots * self.inventory.ui.slot_size + (self.inventory.slots - 1) * self.inventory.ui.padding
@@ -217,11 +217,11 @@ function Player:drawGhost(world, cx)
     local bg_margin = 8
     local inv_top = y0 - bg_margin
     if G.my >= inv_top then return end
-    local world_px = G.mx + cx
+    local world_px = G.mx + G.cx
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(G.my / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
-    local px = (col - 1) * C.BLOCK_SIZE - cx
+    local px = (col - 1) * C.BLOCK_SIZE - G.cx
     local py = (row - 1) * C.BLOCK_SIZE
     love.graphics.setColor(1,1,1,1)
     love.graphics.setLineWidth(2)
@@ -230,22 +230,19 @@ function Player:drawGhost(world, cx)
     love.graphics.setColor(1,1,1,1)
 end
 
-function Player:placeAtMouse(world, cx, block_size, mx, my, z_override)
-    if not world then return false, "no world" end
-    cx = cx or 0
-    block_size = block_size or C.BLOCK_SIZE
+function Player:placeAtMouse(mx, my, z_override)
     local mouse_x, mouse_y = mx, my
     if not mouse_x or not mouse_y then mouse_x, mouse_y = love.mouse.getPosition() end
     local inv = self.inventory
     local selected = inv.selected or 1
     local item = inv.items and inv.items[selected]
     if not item then return false, "no item selected" end
-    local world_px = mouse_x + cx
-    local col = math.floor(world_px / block_size) + 1
-    local row = math.floor(mouse_y / block_size) + 1
+    local world_px = mouse_x + G.cx
+    local col = math.floor(world_px / C.BLOCK_SIZE) + 1
+    local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
     local z = z_override or self.z
-    local target = world:get_block_type(z, col, row)
+    local target = G.world:get_block_type(z, col, row)
     if target ~= "air" then return false, "target not empty", z end
     local touches_existing = false
     for dx = -1, 1 do
@@ -253,7 +250,7 @@ function Player:placeAtMouse(world, cx, block_size, mx, my, z_override)
             if not (dx == 0 and dy == 0) then
                 local nx, ny = col + dx, row + dy
                 if ny >= 1 and ny <= C.WORLD_HEIGHT then
-                    local neigh = world:get_block_type(z, nx, ny)
+                    local neigh = G.world:get_block_type(z, nx, ny)
                     if neigh and neigh ~= "air" and neigh ~= "out" then
                         touches_existing = true
                         break
@@ -266,38 +263,35 @@ function Player:placeAtMouse(world, cx, block_size, mx, my, z_override)
     if not touches_existing then
         return false, "must touch an existing block on the same layer", z
     end
-    local ok, action = world:set_block(z, col, row, item)
+    local ok, action = G.world:set_block(z, col, row, item)
     return ok, action, z
 end
 
-function Player:removeAtMouse(world, cx, block_size, mx, my, z_override)
-    if not world then return false, "no world" end
-    cx = cx or 0
-    block_size = block_size or C.BLOCK_SIZE
+function Player:removeAtMouse(mx, my, z_override)
     local mouse_x, mouse_y = mx, my
     if not mouse_x or not mouse_y then mouse_x, mouse_y = love.mouse.getPosition() end
-    local world_px = mouse_x + cx
-    local col = math.floor(world_px / block_size) + 1
-    local row = math.floor(mouse_y / block_size) + 1
+    local world_px = mouse_x + G.cx
+    local col = math.floor(world_px / C.BLOCK_SIZE) + 1
+    local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
     if z_override then
         local z = z_override
-        local ok, msg = world:set_block(z, col, row, nil)
+        local ok, msg = G.world:set_block(z, col, row, nil)
         if ok then return true, msg, z end
-        local ok2, msg2 = world:set_block(z, col, row, "__empty")
+        local ok2, msg2 = G.world:set_block(z, col, row, "__empty")
         if ok2 then return true, msg2, z end
         return false, "nothing to remove", nil
     end
     local layer_order = {1, 0, -1}
     for _, z in ipairs(layer_order) do
-        local t = world:get_block_type(z, col, row)
+        local t = G.world:get_block_type(z, col, row)
         if t and t ~= "air" and t ~= "out" then
-            local ok, msg = world:set_block(z, col, row, nil)
+            local ok, msg = G.world:set_block(z, col, row, nil)
             if ok then
                 log.info(string.format("Removed block at z=%d, col=%d, row=%d (overlay)", z, col, row))
                 return true, msg, z
             end
-            local ok2, msg2 = world:set_block(z, col, row, "__empty")
+            local ok2, msg2 = G.world:set_block(z, col, row, "__empty")
             if ok2 then
                 log.info(string.format("Marked procedural block removed at z=%d, col=%d, row=%d", z, col, row))
                 return true, msg2, z

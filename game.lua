@@ -65,7 +65,7 @@ function Game:keypressed(key)
         end
     else
         -- Delegate player controls to Player
-        self:player():keypressed(key, self.world)
+        self:player():keypressed(key)
     end
 end
 
@@ -75,15 +75,12 @@ end
 
 function Game:mousepressed(x, y, button, istouch, presses)
     if self:player().placeAtMouse and (button == 2 or button == "r") then
-        local ok, err, z_changed = self:player():placeAtMouse(self.world, self.cx, C.BLOCK_SIZE, x, y)
+        local ok, err, z_changed = self:player():placeAtMouse(x, y)
         if not ok then
             log.warn("Place failed:", tostring(err))
         end
     elseif self:player().removeAtMouse and (button == 1 or button == "l") then
-        local col = math.floor(x + self.cx / C.BLOCK_SIZE) + 1
-        local row = math.floor(y / C.BLOCK_SIZE) + 1
-        row = math.max(1, math.min(C.WORLD_HEIGHT, row))
-        local ok, err, z_changed = self:player():removeAtMouse(self.world, self.cx, C.BLOCK_SIZE, x, y)
+        local ok, err, z_changed = self:player():removeAtMouse(x, y)
         if not ok then
             log.warn("Remove failed:", tostring(err))
         end
@@ -96,11 +93,11 @@ function Game:update(dt)
 end
 
 function Game:draw()
-    self.world:draw(self.cx)
+    self.world:draw()
     self.mx, self.my = love.mouse.getPosition()
-    self:player():draw(self.cx)
+    self:player():draw()
     self:player():drawInventory()
-    self:player():drawGhost(self.world, self.cx)
+    self:player():drawGhost()
     if self.debug then
         local col = math.floor((self.mx + self.cx) / C.BLOCK_SIZE) + 1
         local by = math.max(1, math.min(C.WORLD_HEIGHT, math.floor(self.my / C.BLOCK_SIZE) + 1))

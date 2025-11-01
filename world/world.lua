@@ -40,7 +40,7 @@ function World:update(dt)
     -- Entities handle their own update logic
     for _, e in ipairs(self.entities) do
         if type(e.update) == "function" then
-            e:update(dt, self)
+            e:update(dt)
         end
     end
 end
@@ -141,10 +141,10 @@ function World:get_block_type(z, x, by)
     return t
 end
 
-function World:draw(cx)
+function World:draw()
     -- Calculate visible columns
-    local left_col = math.floor(cx / C.BLOCK_SIZE)
-    local right_col = math.ceil((cx + G.width) / C.BLOCK_SIZE) + 1
+    local left_col = math.floor(G.cx / C.BLOCK_SIZE)
+    local right_col = math.ceil((G.cx + G.width) / C.BLOCK_SIZE) + 1
     -- Draw each layer
     for z = C.LAYER_MIN, C.LAYER_MAX do
         local layer = self.layers[z]
@@ -158,7 +158,7 @@ function World:draw(cx)
                     layer:generate_column(col, freq, base, amp)
                 end
             end
-            layer:draw(cx, G.width, G.height)
+            layer:draw()
         end
         if z == self:player().z then return end
     end
