@@ -357,11 +357,17 @@ end
 
 function World:get_surface(z, x)
     if type(x) ~= "number" then return nil end
-    -- Remove horizontal bounds check - allow infinite terrain
     local tiles_z = self.tiles and self.tiles[z]
     if not tiles_z then return nil end
+    
+    -- Generate terrain if it doesn't exist
+    if not tiles_z[x] then
+        self:generate_column(z, math.floor(x))
+    end
+    
+    -- Find the surface (first non-nil block from top)
     for y = 1, Game.WORLD_HEIGHT do
-        local t = tiles_z[x] and tiles_z[x][y]
+        local t = tiles_z[math.floor(x)] and tiles_z[math.floor(x)][y]
         if t ~= nil then
             return y
         end
