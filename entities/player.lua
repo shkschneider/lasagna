@@ -67,26 +67,21 @@ function Player:wheelmoved(dx, dy)
 end
 
 function Player:drawInventory()
-    local inv = self.inventory
-    local ui = inv.ui
-    local total_slots = inv.slots
-    local slot_w, slot_h = ui.slot_size, ui.slot_size
-    local padding = ui.padding
-    local total_width = total_slots * slot_w + (total_slots - 1) * padding
+    local total_width = self.inventory.slots * self.inventory.ui.slot_size + (self.inventory.slots - 1) * self.inventory.ui.padding
     local x0 = (G.width - total_width) / 2
-    local y0 = G.height - slot_h - 20
+    local y0 = G.height - self.inventory.ui.slot_size - 20
     local bg_margin = 8
-    love.graphics.setColor(0,0,0,ui.background_alpha)
-    love.graphics.rectangle("fill", x0 - bg_margin, y0 - bg_margin, total_width + bg_margin*2, slot_h + bg_margin*2, 6, 6)
-    for i = 1, total_slots do
-        local sx = x0 + (i-1)*(slot_w + padding)
+    love.graphics.setColor(0,0,0,self.inventory.ui.background_alpha)
+    love.graphics.rectangle("fill", x0 - bg_margin, y0 - bg_margin, total_width + bg_margin*2, self.inventory.ui.slot_size + bg_margin*2, 6, 6)
+    for i = 1, self.inventory.slots do
+        local sx = x0 + (i-1)*(self.inventory.ui.slot_size + self.inventory.ui.padding)
         local sy = y0
         love.graphics.setColor(0.12,0.12,0.12,1)
-        love.graphics.rectangle("fill", sx, sy, slot_w, slot_h, 4, 4)
+        love.graphics.rectangle("fill", sx, sy, self.inventory.ui.slot_size, self.inventory.ui.slot_size, 4, 4)
         local inner_pad = 8
         local cube_x, cube_y = sx + inner_pad, sy + inner_pad
-        local cube_w, cube_h = slot_w - inner_pad*2, slot_h - inner_pad*2
-        local item = inv.items[i]
+        local cube_w, cube_h = self.inventory.ui.slot_size - inner_pad*2, self.inventory.ui.slot_size - inner_pad*2
+        local item = self.inventory.items[i]
         if item and item.color then
             local r,g,b,a = unpack(item.color)
             if r and r > 1 then r,g,b,a = r/255, (g or 0)/255, (b or 0)/255, (a or 255)/255 end
@@ -95,16 +90,15 @@ function Player:drawInventory()
             love.graphics.setColor(0,0,0,0.6)
             love.graphics.rectangle("line", cube_x + 0.5, cube_y + 0.5, cube_w - 1, cube_h - 1, 2, 2)
         else
-            love.graphics.setColor(0.75,0.75,0.75,1)
             love.graphics.rectangle("fill", cube_x, cube_y, cube_w, cube_h, 3, 3)
         end
         love.graphics.setColor(0,0,0,0.6)
         love.graphics.setLineWidth(1)
-        love.graphics.rectangle("line", sx + 0.5, sy + 0.5, slot_w - 1, slot_h - 1, 4, 4)
-        if i == inv.selected then
+        love.graphics.rectangle("line", sx + 0.5, sy + 0.5, self.inventory.ui.slot_size - 1, self.inventory.ui.slot_size - 1, 4, 4)
+        if i == self.inventory.selected then
             love.graphics.setColor(1, 0.84, 0, 1)
-            love.graphics.setLineWidth(ui.border_thickness)
-            love.graphics.rectangle("line", sx + 1, sy + 1, slot_w - 2, slot_h - 2, 4, 4)
+            love.graphics.setLineWidth(self.inventory.ui.border_thickness)
+            love.graphics.rectangle("line", sx + 1, sy + 1, self.inventory.ui.slot_size - 2, self.inventory.ui.slot_size - 2, 4, 4)
             love.graphics.setLineWidth(1)
         end
     end
