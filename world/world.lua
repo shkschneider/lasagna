@@ -239,7 +239,6 @@ function World:draw(cx)
             end
             layer:draw(cx, G.width, G.height)
         end
-        end
         if z == self:player().z then return end
     end
 end

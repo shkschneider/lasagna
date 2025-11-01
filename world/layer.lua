@@ -20,10 +20,9 @@ function Layer:update(dt) end
 function Layer:generate_column(x, freq, base, amp)
     -- Skip if already generated
     if self.tiles[x] then return end
-    
+
     local n = noise.perlin1d(x * freq + (self.z * 100))
-    local top = math.floor(base + amp * n)
-    top = math.max(1, math.min(C.WORLD_HEIGHT - 1, top))
+    local top = math.max(1, math.min(C.WORLD_HEIGHT - 1, math.floor(base + amp * n)))
     local dirt_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS)
     local stone_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS + C.STONE_THICKNESS)
 
