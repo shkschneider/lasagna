@@ -202,7 +202,6 @@ function Player:drawGhost(world, camera_x, block_size)
     local world_px = mx + camera_x
     local col = math.floor(world_px / block_size) + 1
     local row = math.floor(my / block_size) + 1
-    col = math.max(1, math.min(Game.WORLD_WIDTH, col))
     row = math.max(1, math.min(Game.WORLD_HEIGHT, row))
     local px = (col - 1) * block_size - camera_x
     local py = (row - 1) * block_size
@@ -226,7 +225,6 @@ function Player:placeAtMouse(world, camera_x, block_size, mx, my, z_override)
     local world_px = mouse_x + camera_x
     local col = math.floor(world_px / block_size) + 1
     local row = math.floor(mouse_y / block_size) + 1
-    col = math.max(1, math.min(Game.WORLD_WIDTH, col))
     row = math.max(1, math.min(Game.WORLD_HEIGHT, row))
     local z = z_override or self.z
     local target = world:get_block_type(z, col, row)
@@ -236,7 +234,7 @@ function Player:placeAtMouse(world, camera_x, block_size, mx, my, z_override)
         for dy = -1, 1 do
             if not (dx == 0 and dy == 0) then
                 local nx, ny = col + dx, row + dy
-                if nx >= 1 and nx <= Game.WORLD_WIDTH and ny >= 1 and ny <= Game.WORLD_HEIGHT then
+                if ny >= 1 and ny <= Game.WORLD_HEIGHT then
                     local neigh = world:get_block_type(z, nx, ny)
                     if neigh and neigh ~= "air" and neigh ~= "out" then
                         touches_existing = true
@@ -263,7 +261,6 @@ function Player:removeAtMouse(world, camera_x, block_size, mx, my, z_override)
     local world_px = mouse_x + camera_x
     local col = math.floor(world_px / block_size) + 1
     local row = math.floor(mouse_y / block_size) + 1
-    col = math.max(1, math.min(Game.WORLD_WIDTH, col))
     row = math.max(1, math.min(Game.WORLD_HEIGHT, row))
     if z_override then
         local z = z_override

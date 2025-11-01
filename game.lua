@@ -9,7 +9,6 @@ local Game = Object {
 
     -- world geometry & rendering
     BLOCK_SIZE = 16,
-    WORLD_WIDTH = 500,
     WORLD_HEIGHT = 100,
     DIRT_THICKNESS = 10,
     STONE_THICKNESS = 10,
@@ -62,8 +61,8 @@ function Game:load(seed)
         self.world = World(seed)
     end
     self.world:load()
-    -- player
-    if not self:player().px or self:player().px < 1 or self:player().px > self.WORLD_WIDTH then
+    -- player - spawn at a reasonable position
+    if not self:player().px or self:player().px < -1000 or self:player().px > 1000 then
         self:player().px = 50
     end
     local top = self.world:get_surface(0, math.floor(self:player().px)) or (self.WORLD_HEIGHT - 1)
@@ -87,9 +86,8 @@ function Game:resize(width, height)
 end
 
 function Game:clamp_camera()
-    local max_camera = self.WORLD_WIDTH * self.BLOCK_SIZE - self.screen_width
-    if max_camera < 0 then max_camera = 0 end
-    self.camera_x = math.max(0, math.min(self.camera_x, max_camera))
+    -- No camera clamping for infinite world
+    -- Camera can follow player anywhere
 end
 
 function Game:keypressed(key)
@@ -139,7 +137,6 @@ function Game:mousepressed(x, y, button, istouch, presses)
         local world_px = mouse_x + self.camera_x
         local col = math.floor(world_px / self.BLOCK_SIZE) + 1
         local row = math.floor(mouse_y / self.BLOCK_SIZE) + 1
-        col = math.max(1, math.min(self.WORLD_WIDTH, col))
         row = math.max(1, math.min(self.WORLD_HEIGHT, row))
         local ok, err, z_changed = self:player():removeAtMouse(self.world, self.camera_x, self.BLOCK_SIZE, x, y)
         if not ok then
@@ -151,7 +148,7 @@ end
 function Game:update(dt)
     self.world:update(dt)
     self:player():update(dt)
-    self:player().px = math.max(1, math.min(self.WORLD_WIDTH - self:player().width, self:player().px))
+    -- No player position clamping for infinite world
     self.camera_x = (self:player().px + self:player().width / 2) * self.BLOCK_SIZE - self.screen_width / 2
     self:clamp_camera()
 end
@@ -175,7 +172,6 @@ function Game:draw()
             mx, my = love.mouse.getPosition()
         end
         local col = math.floor((mx + self.camera_x) / self.BLOCK_SIZE) + 1
-        col = math.max(1, math.min(self.WORLD_WIDTH, col))
         local by = math.floor(my / self.BLOCK_SIZE) + 1
         by = math.max(1, math.min(self.WORLD_HEIGHT, by))
         local layer_z = self:player().z

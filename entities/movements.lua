@@ -1,19 +1,13 @@
 local Physics = {}
 
 local function move_right(entity, desired_px, world)
-    if desired_px < 1 then desired_px = 1 end
-    if desired_px > math.max(1, world.width() - entity.width + 1) then desired_px = math.max(1, world.width() - entity.width + 1) end
+    -- No horizontal bounds clamping for infinite world
     local right_now = math.floor(entity.px + entity.width - 1e-6)
     local right_desired = math.floor(desired_px + entity.width - 1e-6)
     local top_row = math.floor(entity.py + 1e-6)
     local bottom_row = math.floor(entity.py + entity.height - 1e-6)
     local blocked = false
     for col = right_now + 1, right_desired do
-        if (col < 1 or col > world.width()) then
-            blocked = true
-            desired_px = col - entity.width
-            break
-        end
         for row = top_row, bottom_row do
             if world:is_solid(entity.z, col, row) then
                 blocked = true
@@ -42,19 +36,13 @@ local function move_right(entity, desired_px, world)
 end
 
 local function move_left(entity, desired_px, world)
-    if desired_px < 1 then desired_px = 1 end
-    if desired_px > math.max(1, world.width() - entity.width + 1) then desired_px = math.max(1, world.width() - entity.width + 1) end
+    -- No horizontal bounds clamping for infinite world
     local left_now = math.floor(entity.px + 1e-6)
     local left_desired = math.floor(desired_px + 1e-6)
     local top_row = math.floor(entity.py + 1e-6)
     local bottom_row = math.floor(entity.py + entity.height - 1e-6)
     local blocked = false
     for col = left_desired, left_now - 1 do
-        if (col < 1 or col > world.width()) then
-            blocked = true
-            desired_px = col + 1
-            break
-        end
         for row = top_row, bottom_row do
             if world:is_solid(entity.z, col, row) then
                 blocked = true
