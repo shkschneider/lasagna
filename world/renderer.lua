@@ -4,6 +4,11 @@ local Object = require("lib.object")
 
 local Renderer = Object {}
 
+-- Default constants for fallback values
+local DEFAULT_WORLD_HEIGHT = 100
+local DEFAULT_SCREEN_WIDTH = 800
+local DEFAULT_SCREEN_HEIGHT = 600
+
 function Renderer:new()
     self.canvases = {}
 end
@@ -52,7 +57,7 @@ function Renderer:draw_column(world, z, col, block_size, alpha)
     local column = tiles_z[col]
     if not column then return end
     
-    local world_height = world:height() or 100
+    local world_height = world:height() or DEFAULT_WORLD_HEIGHT
     for row = 1, world_height do
         local proto = column[row]
         if proto ~= nil then
@@ -96,10 +101,10 @@ function Renderer:draw(world, camera_x, player, block_size, screen_w, screen_h, 
         block_size = (Game and Game.BLOCK_SIZE) or 16
     end
     if not screen_w then
-        screen_w = (Game and Game.screen_width) or (love.graphics.getWidth and love.graphics.getWidth()) or 800
+        screen_w = (Game and Game.screen_width) or (love.graphics.getWidth and love.graphics.getWidth()) or DEFAULT_SCREEN_WIDTH
     end
     if not screen_h then
-        screen_h = (Game and Game.screen_height) or (love.graphics.getHeight and love.graphics.getHeight()) or 600
+        screen_h = (Game and Game.screen_height) or (love.graphics.getHeight and love.graphics.getHeight()) or DEFAULT_SCREEN_HEIGHT
     end
     if debug == nil then
         debug = (Game and Game.debug) or false
