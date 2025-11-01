@@ -13,15 +13,12 @@ function Player:new()
     self.width = 1
     self.height = 2
     self.stand_height = self.height
-    self.crouch_height = 1
+    self.crouch_height = self.height / 2
     self.crouching = false
     self.on_ground = false
     self.vx = 0
     self.vy = 0
     self.canvas = nil
-    self.canvas_w = 0
-    self.canvas_h = 0
-    self.canvas_dirty = true
     local slots = 9
     self.inventory = {
         slots = slots,
@@ -42,64 +39,18 @@ function Player:new()
     self.ghost = { mx = 0, my = 0, z = self.z }
 end
 
-function Player:ensure_canvas(block_size)
-    block_size = block_size or Game.BLOCK_SIZE
-    local w_px = math.max(1, math.floor(self.width * block_size))
-    local h_px = math.max(1, math.floor(self.height * block_size))
-    if (not self.canvas) or self.canvas_w ~= w_px or self.canvas_h ~= h_px then
-        if self.canvas and self.canvas.release then
-            pcall(function() self.canvas:release() end)
-        end
-        self.canvas = love.graphics.newCanvas(w_px, h_px)
-        self.canvas:setFilter("nearest", "nearest")
-        self.canvas_w = w_px
-        self.canvas_h = h_px
-        self.canvas_dirty = true
-    end
-end
-
-function Player:render_to_canvas(block_size)
-    block_size = block_size or Game.BLOCK_SIZE
-    if not self.canvas then return end
-    love.graphics.push()
-    love.graphics.origin()
-    love.graphics.setCanvas(self.canvas)
-    love.graphics.clear(0, 0, 0, 0)
-    love.graphics.setColor(1,1,1,1)
-    love.graphics.rectangle("fill", 0, 0, self.width * block_size, self.height * block_size)
-    love.graphics.setCanvas()
-    love.graphics.pop()
-    self.canvas_dirty = false
-end
-
 function Player:update(dt)
-    local left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
-    local right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
-    local crouch = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
-    local run = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
-    self.intent.left = left
-    self.intent.right = right
-    self.intent.crouch = crouch
-    self.intent.run = run
+    self.intent.left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
+    self.intent.right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
+    self.intent.crouch = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
+    self.intent.run = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
 end
 
-function Player:draw(block_size, camera_x)
-    block_size = block_size or Game.BLOCK_SIZE
-    camera_x = camera_x or 0
-    self:ensure_canvas(block_size)
-    if self.canvas_dirty then
-        self:render_to_canvas(block_size)
-    end
-    local sx = (self.px - 1) * block_size - camera_x
-    local sy = (self.py - 1) * block_size
-    love.graphics.push()
-    love.graphics.setColor(1,1,1,1)
-    if self.canvas then
-        love.graphics.draw(self.canvas, sx, sy)
-    else
-        love.graphics.rectangle("fill", sx, sy, self.width * block_size, self.height * block_size)
-    end
-    love.graphics.pop()
+function Player:draw(cx)
+    cx = cx or 0
+    local sx = (self.px - 1) * C.BLOCK_SIZE - cx
+    local sy = (self.py - 1) * C.BLOCK_SIZE
+    love.graphics.rectangle("fill", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE)
 end
 
 function Player:wheelmoved(dx, dy)
@@ -114,27 +65,22 @@ function Player:wheelmoved(dx, dy)
     end
 end
 
-function Player:drawInventory(screen_w, screen_h)
-    local inv = self.inventory
-    local ui = inv.ui
-    local total_slots = inv.slots
-    local slot_w, slot_h = ui.slot_size, ui.slot_size
-    local padding = ui.padding
-    local total_width = total_slots * slot_w + (total_slots - 1) * padding
-    local x0 = (screen_w - total_width) / 2
-    local y0 = screen_h - slot_h - 20
+function Player:drawInventory()
+    local total_width = self.inventory.slots * self.inventory.ui.slot_size + (self.inventory.slots - 1) * self.inventory.ui.padding
+    local x0 = (G.width - total_width) / 2
+    local y0 = G.height - self.inventory.ui.slot_size - 20
     local bg_margin = 8
-    love.graphics.setColor(0,0,0,ui.background_alpha)
-    love.graphics.rectangle("fill", x0 - bg_margin, y0 - bg_margin, total_width + bg_margin*2, slot_h + bg_margin*2, 6, 6)
-    for i = 1, total_slots do
-        local sx = x0 + (i-1)*(slot_w + padding)
+    love.graphics.setColor(0,0,0,self.inventory.ui.background_alpha)
+    love.graphics.rectangle("fill", x0 - bg_margin, y0 - bg_margin, total_width + bg_margin*2, self.inventory.ui.slot_size + bg_margin*2, 6, 6)
+    for i = 1, self.inventory.slots do
+        local sx = x0 + (i-1)*(self.inventory.ui.slot_size + self.inventory.ui.padding)
         local sy = y0
         love.graphics.setColor(0.12,0.12,0.12,1)
-        love.graphics.rectangle("fill", sx, sy, slot_w, slot_h, 4, 4)
+        love.graphics.rectangle("fill", sx, sy, self.inventory.ui.slot_size, self.inventory.ui.slot_size, 4, 4)
         local inner_pad = 8
         local cube_x, cube_y = sx + inner_pad, sy + inner_pad
-        local cube_w, cube_h = slot_w - inner_pad*2, slot_h - inner_pad*2
-        local item = inv.items[i]
+        local cube_w, cube_h = self.inventory.ui.slot_size - inner_pad*2, self.inventory.ui.slot_size - inner_pad*2
+        local item = self.inventory.items[i]
         if item and item.color then
             local r,g,b,a = unpack(item.color)
             if r and r > 1 then r,g,b,a = r/255, (g or 0)/255, (b or 0)/255, (a or 255)/255 end
@@ -143,69 +89,58 @@ function Player:drawInventory(screen_w, screen_h)
             love.graphics.setColor(0,0,0,0.6)
             love.graphics.rectangle("line", cube_x + 0.5, cube_y + 0.5, cube_w - 1, cube_h - 1, 2, 2)
         else
-            love.graphics.setColor(0.75,0.75,0.75,1)
             love.graphics.rectangle("fill", cube_x, cube_y, cube_w, cube_h, 3, 3)
         end
         love.graphics.setColor(0,0,0,0.6)
         love.graphics.setLineWidth(1)
-        love.graphics.rectangle("line", sx + 0.5, sy + 0.5, slot_w - 1, slot_h - 1, 4, 4)
-        if i == inv.selected then
+        love.graphics.rectangle("line", sx + 0.5, sy + 0.5, self.inventory.ui.slot_size - 1, self.inventory.ui.slot_size - 1, 4, 4)
+        if i == self.inventory.selected then
             love.graphics.setColor(1, 0.84, 0, 1)
-            love.graphics.setLineWidth(ui.border_thickness)
-            love.graphics.rectangle("line", sx + 1, sy + 1, slot_w - 2, slot_h - 2, 4, 4)
+            love.graphics.setLineWidth(self.inventory.ui.border_thickness)
+            love.graphics.rectangle("line", sx + 1, sy + 1, self.inventory.ui.slot_size - 2, self.inventory.ui.slot_size - 2, 4, 4)
             love.graphics.setLineWidth(1)
         end
     end
     love.graphics.setColor(1,1,1,1)
 end
 
-function Player:drawGhost(world, camera_x, block_size)
-    camera_x = camera_x or 0
-    block_size = block_size or Game.BLOCK_SIZE
-    local inv = self.inventory
-    local selected = inv.selected or 1
-    local item = inv.items and inv.items[selected]
+function Player:drawGhost(world, cx)
+    cx = cx or 0
+    local item = self.inventory.items and self.inventory.items[self.inventory.selected or 1]
     if not item or not item.color then return end
-    local screen_w, screen_h = love.graphics.getWidth(), love.graphics.getHeight()
-    local ui = inv.ui
-    local total_slots = inv.slots
-    local slot_w = ui.slot_size
-    local slot_h = ui.slot_size
-    local padding = ui.padding
-    local total_width = total_slots * slot_w + (total_slots - 1) * padding
-    local x0 = (screen_w - total_width) / 2
-    local y0 = screen_h - slot_h - 20
+    local total_width = self.inventory.slots * self.inventory.ui.slot_size + (self.inventory.slots - 1) * self.inventory.ui.padding
+    local x0 = (G.width - total_width) / 2
+    local y0 = G.height - self.inventory.ui.slot_size - 20
     local bg_margin = 8
     local inv_top = y0 - bg_margin
-    local mx, my = love.mouse.getPosition()
-    if my >= inv_top then return end
-    local world_px = mx + camera_x
-    local col = math.floor(world_px / block_size) + 1
-    local row = math.floor(my / block_size) + 1
-    row = math.max(1, math.min(Game.WORLD_HEIGHT, row))
-    local px = (col - 1) * block_size - camera_x
-    local py = (row - 1) * block_size
+    if G.my >= inv_top then return end
+    local world_px = G.mx + cx
+    local col = math.floor(world_px / C.BLOCK_SIZE) + 1
+    local row = math.floor(G.my / C.BLOCK_SIZE) + 1
+    row = math.max(1, math.min(C.WORLD_HEIGHT, row))
+    local px = (col - 1) * C.BLOCK_SIZE - cx
+    local py = (row - 1) * C.BLOCK_SIZE
     love.graphics.setColor(1,1,1,1)
     love.graphics.setLineWidth(2)
-    love.graphics.rectangle("line", px + 0.5, py + 0.5, block_size - 1, block_size - 1)
+    love.graphics.rectangle("line", px + 0.5, py + 0.5, C.BLOCK_SIZE - 1, C.BLOCK_SIZE - 1)
     love.graphics.setLineWidth(1)
     love.graphics.setColor(1,1,1,1)
 end
 
-function Player:placeAtMouse(world, camera_x, block_size, mx, my, z_override)
+function Player:placeAtMouse(world, cx, block_size, mx, my, z_override)
     if not world then return false, "no world" end
-    camera_x = camera_x or 0
-    block_size = block_size or Game.BLOCK_SIZE
+    cx = cx or 0
+    block_size = block_size or C.BLOCK_SIZE
     local mouse_x, mouse_y = mx, my
     if not mouse_x or not mouse_y then mouse_x, mouse_y = love.mouse.getPosition() end
     local inv = self.inventory
     local selected = inv.selected or 1
     local item = inv.items and inv.items[selected]
     if not item then return false, "no item selected" end
-    local world_px = mouse_x + camera_x
+    local world_px = mouse_x + cx
     local col = math.floor(world_px / block_size) + 1
     local row = math.floor(mouse_y / block_size) + 1
-    row = math.max(1, math.min(Game.WORLD_HEIGHT, row))
+    row = math.max(1, math.min(C.WORLD_HEIGHT, row))
     local z = z_override or self.z
     local target = world:get_block_type(z, col, row)
     if target ~= "air" then return false, "target not empty", z end
@@ -214,7 +149,7 @@ function Player:placeAtMouse(world, camera_x, block_size, mx, my, z_override)
         for dy = -1, 1 do
             if not (dx == 0 and dy == 0) then
                 local nx, ny = col + dx, row + dy
-                if ny >= 1 and ny <= Game.WORLD_HEIGHT then
+                if ny >= 1 and ny <= C.WORLD_HEIGHT then
                     local neigh = world:get_block_type(z, nx, ny)
                     if neigh and neigh ~= "air" and neigh ~= "out" then
                         touches_existing = true
@@ -232,16 +167,16 @@ function Player:placeAtMouse(world, camera_x, block_size, mx, my, z_override)
     return ok, action, z
 end
 
-function Player:removeAtMouse(world, camera_x, block_size, mx, my, z_override)
+function Player:removeAtMouse(world, cx, block_size, mx, my, z_override)
     if not world then return false, "no world" end
-    camera_x = camera_x or 0
-    block_size = block_size or Game.BLOCK_SIZE
+    cx = cx or 0
+    block_size = block_size or C.BLOCK_SIZE
     local mouse_x, mouse_y = mx, my
     if not mouse_x or not mouse_y then mouse_x, mouse_y = love.mouse.getPosition() end
-    local world_px = mouse_x + camera_x
+    local world_px = mouse_x + cx
     local col = math.floor(world_px / block_size) + 1
     local row = math.floor(mouse_y / block_size) + 1
-    row = math.max(1, math.min(Game.WORLD_HEIGHT, row))
+    row = math.max(1, math.min(C.WORLD_HEIGHT, row))
     if z_override then
         local z = z_override
         local ok, msg = world:set_block(z, col, row, nil)

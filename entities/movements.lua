@@ -1,3 +1,5 @@
+local C = require("constants")
+
 local Movements = {}
 
 local function move_right(entity, desired_px, world)
@@ -72,7 +74,7 @@ end
 
 local function move_down(entity, desired_py, world)
     if desired_py < 1 then desired_py = 1 end
-    if desired_py > math.max(1, world.height() - entity.height + 1) then desired_py = math.max(1, world.height() - entity.height + 1) end
+    if desired_py > math.max(1, C.WORLD_HEIGHT - entity.height + 1) then desired_py = math.max(1, C.WORLD_HEIGHT - entity.height + 1) end
     local top_row = math.floor(entity.py + 1e-6)
     local bottom_now = math.floor(entity.py + entity.height - 1e-6)
     local bottom_desired = math.floor(desired_py + entity.height - 1e-6)
@@ -80,7 +82,7 @@ local function move_down(entity, desired_py, world)
     local right_col = math.floor(entity.px + entity.width - 1e-6)
     local blocked = false
     for row = bottom_now + 1, bottom_desired do
-        if (row < 1 or row > world.height()) then
+        if (row < 1 or row > C.WORLD_HEIGHT) then
             blocked = true
             desired_py = row - entity.height
             break
@@ -122,14 +124,14 @@ end
 
 local function move_up(entity, desired_py, world)
     if desired_py < 1 then desired_py = 1 end
-    if desired_py > math.max(1, world.height() - entity.height + 1) then desired_py = math.max(1, world.height() - entity.height + 1) end
+    if desired_py > math.max(1, C.WORLD_HEIGHT - entity.height + 1) then desired_py = math.max(1, C.WORLD_HEIGHT - entity.height + 1) end
     local top_now = math.floor(entity.py + 1e-6)
     local top_desired = math.floor(desired_py + 1e-6)
     local left_col = math.floor(entity.px + 1e-6)
     local right_col = math.floor(entity.px + entity.width - 1e-6)
     local blocked = false
     for row = top_desired, top_now - 1 do
-        if (row < 1 or row > world.height()) then
+        if (row < 1 or row > C.WORLD_HEIGHT) then
             blocked = true
             desired_py = row + 1
             break
