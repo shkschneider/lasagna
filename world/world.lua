@@ -20,8 +20,6 @@ function World:new(seed)
     self.tiles = {}
     self.entities = {}
     self.canvases = {}
-    self.min_generated_x = {} -- track min x coordinate generated per layer
-    self.max_generated_x = {} -- track max x coordinate generated per layer
     log.info("World created with seed:", tostring(self.seed))
 end
 
@@ -32,8 +30,6 @@ function World:load()
     for z = -1, 1 do
         self.layers[z] = { heights = {}, dirt_limit = {}, stone_limit = {} }
         self.tiles[z] = {}
-        self.min_generated_x[z] = nil
-        self.max_generated_x[z] = nil
     end
     -- Generate initial terrain around spawn point (x = 50)
     local spawn_x = 50
@@ -79,14 +75,6 @@ function World:generate_column(z, x)
             proto = nil
         end
         self.tiles[z][x][y] = proto
-    end
-    
-    -- Update min/max tracking
-    if not self.min_generated_x[z] or x < self.min_generated_x[z] then
-        self.min_generated_x[z] = x
-    end
-    if not self.max_generated_x[z] or x > self.max_generated_x[z] then
-        self.max_generated_x[z] = x
     end
 end
 
@@ -360,14 +348,16 @@ function World:get_surface(z, x)
     local tiles_z = self.tiles and self.tiles[z]
     if not tiles_z then return nil end
     
+    local col = math.floor(x)
+    
     -- Generate terrain if it doesn't exist
-    if not tiles_z[x] then
-        self:generate_column(z, math.floor(x))
+    if not tiles_z[col] then
+        self:generate_column(z, col)
     end
     
     -- Find the surface (first non-nil block from top)
     for y = 1, Game.WORLD_HEIGHT do
-        local t = tiles_z[math.floor(x)] and tiles_z[math.floor(x)][y]
+        local t = tiles_z[col] and tiles_z[col][y]
         if t ~= nil then
             return y
         end
@@ -460,6 +450,11 @@ function World.draw(self, camera_x, canvases, player, block_size, screen_w, scre
             
             -- Draw visible columns
             for col = left_col, right_col do
+                -- Generate terrain if not yet generated (safety check)
+                if not tiles_z[col] then
+                    self:generate_column(z, col)
+                end
+                
                 local column = tiles_z[col]
                 if column then
                     for row = 1, Game.WORLD_HEIGHT do
