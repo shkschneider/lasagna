@@ -12,7 +12,6 @@ local World = Object {
     LAYER_BASE_HEIGHTS = { [-1] = 20, [0] = 30, [1] = 40 },
     AMPLITUDE = { [-1] = 15, [0] = 10, [1] = 10 },
     FREQUENCY = { [-1] = 1/40, [0] = 1/50, [1] = 1/60 },
-    CHUNK_SIZE = 32, -- size of terrain chunks in blocks
 }
 
 function World:new(seed)
@@ -21,7 +20,6 @@ function World:new(seed)
     self.tiles = {}
     self.entities = {}
     self.canvases = {}
-    self.generated_chunks = {} -- track which chunks have been generated per layer
     self.min_generated_x = {} -- track min x coordinate generated per layer
     self.max_generated_x = {} -- track max x coordinate generated per layer
     log.info("World created with seed:", tostring(self.seed))
@@ -34,7 +32,6 @@ function World:load()
     for z = -1, 1 do
         self.layers[z] = { heights = {}, dirt_limit = {}, stone_limit = {} }
         self.tiles[z] = {}
-        self.generated_chunks[z] = {}
         self.min_generated_x[z] = nil
         self.max_generated_x[z] = nil
     end
