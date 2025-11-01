@@ -121,11 +121,13 @@ function World:set_block(z, x, y, block)
             return false, "nothing to remove"
         end
         layer.tiles[x][y] = nil
+        layer.canvas_dirty = true
         log.info(string.format("World: removed block at z=%d x=%d y=%d (was=%s)", z, x, y, tostring(prev and prev.name)))
         return true, "removed"
     else
         local action = (prev == nil) and "added" or "replaced"
         layer.tiles[x][y] = proto
+        layer.canvas_dirty = true
         log.info(string.format("World: %s block '%s' at z=%d x=%d y=%d (prev=%s)", action, tostring(proto.name), z, x, y, tostring(prev and prev.name)))
         return true, action
     end
