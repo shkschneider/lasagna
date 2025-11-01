@@ -11,7 +11,6 @@ function Layer:new(z)
     self.heights = {}
     self.dirt_limit = {}
     self.stone_limit = {}
-    self.canvas = nil
 end
 
 function Layer:update(dt) end

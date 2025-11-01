@@ -3,7 +3,6 @@ local noise = require("lib.noise")
 local log = require("lib.log")
 local Blocks = require("world.blocks")
 local Player = require("entities.player")
-local Movements = require("entities.movements")
 local Layer = require("world.layer")
 
 local World = Object {
@@ -36,90 +35,12 @@ function World:load()
     log.info(string.format("World[%d] loaded", self.seed))
 end
 
-function World.update(self, dt)
+function World:update(dt)
     if type(Blocks.update) == "function" then Blocks.update(dt) end
+    -- Entities handle their own update logic
     for _, e in ipairs(self.entities) do
-        e.intent = e.intent or {}
-        local intent = e.intent
-        local MAX_SPEED = (e.max_speed ~= nil) and e.max_speed or C.MAX_SPEED
-        local accel = (e.move_accel ~= nil) and e.move_accel or C.MOVE_ACCEL
-        if intent.run then
-            MAX_SPEED = C.RUN_SPEED_MULT * MAX_SPEED
-            accel = C.RUN_ACCEL_MULT * accel
-        end
-        if intent.crouch or e.crouching then
-            MAX_SPEED = math.min(MAX_SPEED, C.CROUCH_MAX_SPEED)
-        end
-        if not e.on_ground then accel = accel * C.AIR_ACCEL_MULT end
-        local dir = 0
-        if intent.left then dir = dir - 1 end
-        if intent.right then dir = dir + 1 end
-        local target_vx = dir * MAX_SPEED
-        if dir ~= 0 then
-            local use_accel = accel
-            if e.crouching then use_accel = accel * 0.6 end
-            if e.vx < target_vx then
-                e.vx = math.min(target_vx, e.vx + use_accel * dt)
-            elseif e.vx > target_vx then
-                e.vx = math.max(target_vx, e.vx - use_accel * dt)
-            end
-        else
-            if e.crouching then
-                local dec = C.CROUCH_DECEL * dt
-                if math.abs(e.vx) <= dec then e.vx = 0 else e.vx = e.vx - (e.vx > 0 and 1 or -1) * dec end
-            else
-                if e.on_ground then
-                    local dec = C.GROUND_FRICTION * dt
-                    if math.abs(e.vx) <= dec then e.vx = 0 else e.vx = e.vx - (e.vx > 0 and 1 or -1) * dec end
-                else
-                    local dec = C.AIR_FRICTION * dt
-                    if math.abs(e.vx) <= dec then e.vx = 0 else e.vx = e.vx - (e.vx > 0 and 1 or -1) * dec end
-                end
-            end
-        end
-        if intent.jump then
-            if e.on_ground then
-                e.vy = C.JUMP_SPEED
-                e.on_ground = false
-            end
-            e.intent.jump = false
-        end
-        e.vy = e.vy + C.GRAVITY * dt
-        local dx = e.vx * dt
-        local dy = e.vy * dt
-        Movements.move(e, dx, dy, self)
-        if intent.crouch then
-            if not e.crouching then
-                local height_diff = e.stand_height - e.crouch_height
-                e.crouching = true
-                e.py = e.py + height_diff
-                e.height = e.crouch_height
-                if type(e.canvas_dirty) ~= "nil" then e.canvas_dirty = true end
-            end
-        else
-            if e.crouching then
-                local height_diff = e.stand_height - e.crouch_height
-                local new_py = e.py - height_diff
-                local new_height = e.stand_height
-                local left_col = math.floor(e.px + 1e-6)
-                local right_col = math.floor(e.px + e.width - 1e-6)
-                local can_stand = true
-                for col = left_col, right_col do
-                    for row = math.floor(new_py + 1e-6), math.floor(new_py + new_height - 1e-6) do
-                        if self:is_solid(e.z, col, row) then
-                            can_stand = false
-                            break
-                        end
-                    end
-                    if not can_stand then break end
-                end
-                if can_stand then
-                    e.crouching = false
-                    e.py = new_py
-                    e.height = e.stand_height
-                    if type(e.canvas_dirty) ~= "nil" then e.canvas_dirty = true end
-                end
-            end
+        if type(e.update) == "function" then
+            e:update(dt, self)
         end
     end
 end

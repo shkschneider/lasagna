@@ -19,7 +19,7 @@ local Game = Object {
 
 function Game:new()
     log.info("New Game")
-    -- configure logger level from debug flag (off by default
+    -- configure logger level from debug flag (off by default)
     self.debug = os.getenv("DEBUG") == "true"
     if self.debug then
         log.level = "debug"
@@ -30,7 +30,6 @@ function Game:new()
     self.world = nil
     self.cx = 0
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
-    self.canvas = nil
 end
 
 function Game:load(seed)
@@ -48,16 +47,11 @@ function Game:load(seed)
     end
     local top = self.world:get_surface(0, math.floor(self:player().px)) or (C.WORLD_HEIGHT - 1)
     self:player().py = top - self:player().height
-    -- canvas
-    self:resize(love.graphics.getWidth(), love.graphics.getHeight())
     log.info(string.format("Game[%d] loaded", seed))
 end
 
 function Game:resize(width, height)
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
-    if self.canvas then self.canvas:release() end
-    self.canvas = love.graphics.newCanvas(self.width, self.height)
-    self.canvas:setFilter("nearest", "nearest")
     log.info(string.format("Resized: %dx%d", self.width, self.height))
 end
 
@@ -69,21 +63,9 @@ function Game:keypressed(key)
         else
             log.level = "info"
         end
-    elseif key == "q" then
-        self:player().z = math.max(C.LAYER_MIN, self:player().z - 1)
-        local top = self.world:get_surface(self:player().z, math.floor(self:player().px)) or (C.WORLD_HEIGHT - 1)
-        self:player().py = top - self:player().height
-        self:player().vy = 0
-        log.info(string.format("Layer: %d", self:player().z))
-    elseif key == "e" then
-        self:player().z = math.min(C.LAYER_MAX, self:player().z + 1)
-        local top = self.world:get_surface(self:player().z, math.floor(self:player().px)) or (C.WORLD_HEIGHT - 1)
-        self:player().py = top - self:player().height
-        self:player().vy = 0
-        log.info(string.format("Layer: %d", self:player().z))
-    elseif key == "space" or key == "up" then
-        self:player().intent = self:player().intent or {}
-        self:player().intent.jump = true
+    else
+        -- Delegate player controls to Player
+        self:player():keypressed(key, self.world)
     end
 end
 
@@ -110,7 +92,6 @@ end
 
 function Game:update(dt)
     self.world:update(dt)
-    self:player():update(dt)
     self.cx = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE - self.width / 2
 end
 
@@ -118,7 +99,6 @@ function Game:draw()
     self.world:draw(self.cx)
     self.mx, self.my = love.mouse.getPosition()
     self:player():draw(self.cx)
-    -- TODO canvas
     self:player():drawInventory()
     self:player():drawGhost(self.world, self.cx)
     if self.debug then

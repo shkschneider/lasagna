@@ -1,8 +1,7 @@
 local Object = require("lib.object")
 local Blocks = require("world.blocks")
+local Movements = require("entities.movements")
 local log = require("lib.log")
-
-local EPS = 1e-6
 
 local Player = Object {}
 
@@ -18,7 +17,6 @@ function Player:new()
     self.on_ground = false
     self.vx = 0
     self.vy = 0
-    self.canvas = nil
     local slots = 9
     self.inventory = {
         slots = slots,
@@ -39,11 +37,116 @@ function Player:new()
     self.ghost = { mx = 0, my = 0, z = self.z }
 end
 
-function Player:update(dt)
+function Player:keypressed(key, world)
+    if key == "q" then
+        self.z = math.max(C.LAYER_MIN, self.z - 1)
+        local top = world:get_surface(self.z, math.floor(self.px)) or (C.WORLD_HEIGHT - 1)
+        self.py = top - self.height
+        self.vy = 0
+        log.info(string.format("Layer: %d", self.z))
+    elseif key == "e" then
+        self.z = math.min(C.LAYER_MAX, self.z + 1)
+        local top = world:get_surface(self.z, math.floor(self.px)) or (C.WORLD_HEIGHT - 1)
+        self.py = top - self.height
+        self.vy = 0
+        log.info(string.format("Layer: %d", self.z))
+    elseif key == "space" or key == "up" then
+        self.intent.jump = true
+    end
+end
+
+function Player:update(dt, world)
+    -- Handle continuous input (movement keys)
     self.intent.left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
     self.intent.right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
     self.intent.crouch = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
     self.intent.run = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
+    
+    -- Physics and movement
+    local MAX_SPEED = C.MAX_SPEED
+    local accel = C.MOVE_ACCEL
+    if self.intent.run then
+        MAX_SPEED = C.RUN_SPEED_MULT * MAX_SPEED
+        accel = C.RUN_ACCEL_MULT * accel
+    end
+    if self.intent.crouch or self.crouching then
+        MAX_SPEED = math.min(MAX_SPEED, C.CROUCH_MAX_SPEED)
+    end
+    if not self.on_ground then accel = accel * C.AIR_ACCEL_MULT end
+    
+    local dir = 0
+    if self.intent.left then dir = dir - 1 end
+    if self.intent.right then dir = dir + 1 end
+    local target_vx = dir * MAX_SPEED
+    
+    if dir ~= 0 then
+        local use_accel = accel
+        if self.crouching then use_accel = accel * 0.6 end
+        if self.vx < target_vx then
+            self.vx = math.min(target_vx, self.vx + use_accel * dt)
+        elseif self.vx > target_vx then
+            self.vx = math.max(target_vx, self.vx - use_accel * dt)
+        end
+    else
+        if self.crouching then
+            local dec = C.CROUCH_DECEL * dt
+            if math.abs(self.vx) <= dec then self.vx = 0 else self.vx = self.vx - (self.vx > 0 and 1 or -1) * dec end
+        else
+            if self.on_ground then
+                local dec = C.GROUND_FRICTION * dt
+                if math.abs(self.vx) <= dec then self.vx = 0 else self.vx = self.vx - (self.vx > 0 and 1 or -1) * dec end
+            else
+                local dec = C.AIR_FRICTION * dt
+                if math.abs(self.vx) <= dec then self.vx = 0 else self.vx = self.vx - (self.vx > 0 and 1 or -1) * dec end
+            end
+        end
+    end
+    
+    if self.intent.jump then
+        if self.on_ground then
+            self.vy = C.JUMP_SPEED
+            self.on_ground = false
+        end
+        self.intent.jump = false
+    end
+    
+    self.vy = self.vy + C.GRAVITY * dt
+    local dx = self.vx * dt
+    local dy = self.vy * dt
+    Movements.move(self, dx, dy, world)
+    
+    -- Handle crouching
+    if self.intent.crouch then
+        if not self.crouching then
+            local height_diff = self.stand_height - self.crouch_height
+            self.crouching = true
+            self.py = self.py + height_diff
+            self.height = self.crouch_height
+        end
+    else
+        if self.crouching then
+            local height_diff = self.stand_height - self.crouch_height
+            local new_py = self.py - height_diff
+            local new_height = self.stand_height
+            local left_col = math.floor(self.px + C.EPS)
+            local right_col = math.floor(self.px + self.width - C.EPS)
+            local can_stand = true
+            for col = left_col, right_col do
+                for row = math.floor(new_py + C.EPS), math.floor(new_py + new_height - C.EPS) do
+                    if world:is_solid(self.z, col, row) then
+                        can_stand = false
+                        break
+                    end
+                end
+                if not can_stand then break end
+            end
+            if can_stand then
+                self.crouching = false
+                self.py = new_py
+                self.height = self.stand_height
+            end
+        end
+    end
 end
 
 function Player:draw(cx)
