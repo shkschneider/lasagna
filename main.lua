@@ -4,7 +4,7 @@
 -- This file now only interfaces with LÖVE APIs and delegates to Game object.
 
 local GameClass = require("game")
--- Create global Game instance for compatibility with existing code
+local log = require("lib.log")
 Game = GameClass()
 
 function love.load()
@@ -13,7 +13,7 @@ function love.load()
     Game.screen_width = love.graphics.getWidth()
     Game.screen_height = love.graphics.getHeight()
     Game.seed = os.time()
-    regenerate_world()
+    Game:regenerate_world()
     log.info("Game loaded")
 end
 
