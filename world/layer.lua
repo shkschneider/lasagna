@@ -12,8 +12,9 @@ function Layer:new(z)
     self.canvas = nil
 end
 
-function Layer:draw(camera_x, block_size, screen_w, screen_h, alpha)
+function Layer:draw(camera_x, block_size, screen_w, screen_h, alpha, world_height)
     alpha = alpha or 1
+    world_height = world_height or (Game and Game.WORLD_HEIGHT) or 100
     
     -- Calculate visible columns
     local left_col = math.floor(camera_x / block_size)
@@ -27,7 +28,7 @@ function Layer:draw(camera_x, block_size, screen_w, screen_h, alpha)
     for col = left_col, right_col do
         local column = self.tiles[col]
         if column then
-            for row = 1, Game.WORLD_HEIGHT do
+            for row = 1, world_height do
                 local proto = column[row]
                 if proto ~= nil then
                     local px = (col - 1) * block_size

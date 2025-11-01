@@ -426,7 +426,7 @@ function World.draw(self, camera_x, canvases, player, block_size, screen_w, scre
             end
 
             -- Draw the layer
-            layer:draw(camera_x, block_size, screen_w, screen_h, alpha)
+            layer:draw(camera_x, block_size, screen_w, screen_h, alpha, Game.WORLD_HEIGHT)
         end
 
         if player and z == player_z then
