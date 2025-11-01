@@ -26,57 +26,14 @@ function World:load()
     local spawn_x = 50
     for z = C.LAYER_MIN, C.LAYER_MAX do
         self.layers[z] = Layer(z)
-        -- TODO layer generates its terrain?
         local freq = (self.frequency and self.frequency[z]) or C.FREQUENCY[z]
         local base = (self.layer_base_heights and self.layer_base_heights[z]) or C.LAYER_BASE_HEIGHTS[z]
         local amp = (self.amplitude and self.amplitude[z]) or C.AMPLITUDE[z]
-        self:generate_terrain_range(z, spawn_x - 50, spawn_x + 50)
+        self.layers[z]:generate_terrain_range(spawn_x - 50, spawn_x + 50, freq, base, amp)
     end
     -- player
     self.entities = { Player() }
     log.info(string.format("World[%d] loaded", self.seed))
-end
-
--- Generate terrain for a specific column
-function World:generate_column(z, x)
-    local layer = self.layers[z]
-    assert(layer)
-    -- Skip if already generated
-    if layer.tiles[x] then return end
-    local freq = (self.frequency and self.frequency[z]) or C.FREQUENCY[z]
-    local n = noise.perlin1d(x * freq + (z * 100))
-    local base = (self.layer_base_heights and self.layer_base_heights[z]) or C.LAYER_BASE_HEIGHTS[z]
-    local amp = (self.amplitude and self.amplitude[z]) or C.AMPLITUDE[z]
-    local top = math.floor(base + amp * n)
-    top = math.max(1, math.min(C.WORLD_HEIGHT - 1, top))
-    local dirt_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS)
-    local stone_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS + C.STONE_THICKNESS)
-
-    layer.heights[x] = top
-    layer.dirt_limit[x] = dirt_lim
-    layer.stone_limit[x] = stone_lim
-
-    layer.tiles[x] = {}
-    for y = 1, C.WORLD_HEIGHT do
-        local proto = nil
-        if y == top then
-            proto = Blocks and Blocks.grass
-        elseif y > top and y <= dirt_lim then
-            proto = Blocks and Blocks.dirt
-        elseif y > dirt_lim and y <= stone_lim then
-            proto = Blocks and Blocks.stone
-        else
-            proto = nil
-        end
-        layer.tiles[x][y] = proto
-    end
-end
-
--- Generate terrain for a range of x coordinates
-function World:generate_terrain_range(z, x_start, x_end)
-    for x = x_start, x_end do
-        self:generate_column(z, x)
-    end
 end
 
 function World.update(self, dt)
@@ -194,7 +151,10 @@ function World:get_surface(z, x)
 
     -- Generate terrain if it doesn't exist
     if not layer.tiles[col] then
-        self:generate_column(z, col)
+        local freq = (self.frequency and self.frequency[z]) or C.FREQUENCY[z]
+        local base = (self.layer_base_heights and self.layer_base_heights[z]) or C.LAYER_BASE_HEIGHTS[z]
+        local amp = (self.amplitude and self.amplitude[z]) or C.AMPLITUDE[z]
+        layer:generate_column(col, freq, base, amp)
     end
 
     -- Find the surface (first non-nil block from top)
@@ -216,7 +176,10 @@ function World:set_block(z, x, y, block)
     if not layer then return false, "layer not initialized" end
     if not layer.tiles[x] then
         -- Generate this column if it doesn't exist
-        self:generate_column(z, x)
+        local freq = (self.frequency and self.frequency[z]) or C.FREQUENCY[z]
+        local base = (self.layer_base_heights and self.layer_base_heights[z]) or C.LAYER_BASE_HEIGHTS[z]
+        local amp = (self.amplitude and self.amplitude[z]) or C.AMPLITUDE[z]
+        layer:generate_column(x, freq, base, amp)
     end
     if not layer.tiles[x] then return false, "internal tiles not initialized" end
     if block == "__empty" then block = nil end
@@ -266,12 +229,16 @@ function World:draw(cx)
         local layer = self.layers[z]
         if layer then
             -- Generate terrain for visible columns if needed
+            local freq = (self.frequency and self.frequency[z]) or C.FREQUENCY[z]
+            local base = (self.layer_base_heights and self.layer_base_heights[z]) or C.LAYER_BASE_HEIGHTS[z]
+            local amp = (self.amplitude and self.amplitude[z]) or C.AMPLITUDE[z]
             for col = left_col, right_col do
                 if not layer.tiles[col] then
-                    self:generate_column(z, col)
+                    layer:generate_column(col, freq, base, amp)
                 end
             end
             layer:draw(cx, G.width, G.height)
+        end
         end
         if z == self:player().z then return end
     end

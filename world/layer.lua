@@ -1,5 +1,7 @@
 local Object = require("lib.object")
 local log = require("lib.log")
+local noise = require("lib.noise")
+local Blocks = require("world.blocks")
 
 local Layer = Object {}
 
@@ -13,6 +15,44 @@ function Layer:new(z)
 end
 
 function Layer:update(dt) end
+
+-- Generate terrain for a specific column
+function Layer:generate_column(x, freq, base, amp)
+    -- Skip if already generated
+    if self.tiles[x] then return end
+    
+    local n = noise.perlin1d(x * freq + (self.z * 100))
+    local top = math.floor(base + amp * n)
+    top = math.max(1, math.min(C.WORLD_HEIGHT - 1, top))
+    local dirt_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS)
+    local stone_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS + C.STONE_THICKNESS)
+
+    self.heights[x] = top
+    self.dirt_limit[x] = dirt_lim
+    self.stone_limit[x] = stone_lim
+
+    self.tiles[x] = {}
+    for y = 1, C.WORLD_HEIGHT do
+        local proto = nil
+        if y == top then
+            proto = Blocks and Blocks.grass
+        elseif y > top and y <= dirt_lim then
+            proto = Blocks and Blocks.dirt
+        elseif y > dirt_lim and y <= stone_lim then
+            proto = Blocks and Blocks.stone
+        else
+            proto = nil
+        end
+        self.tiles[x][y] = proto
+    end
+end
+
+-- Generate terrain for a range of x coordinates
+function Layer:generate_terrain_range(x_start, x_end, freq, base, amp)
+    for x = x_start, x_end do
+        self:generate_column(x, freq, base, amp)
+    end
+end
 
 function Layer:draw(cx)
     local alpha = 1
@@ -56,8 +96,5 @@ function Layer:draw(cx)
     love.graphics.pop()
     love.graphics.setColor(1, 1, 1, 1)
 end
-
--- TODO Layer:generate_column()
--- TODO Layer:generate_terrain_range()
 
 return Layer
