@@ -1,13 +1,5 @@
-
-
-
-
-
 local noise1d = {}
-
 local p = {}
-
-
 local OCTAVES = 4
 local PERSISTENCE = 0.5
 
@@ -35,7 +27,6 @@ function noise1d.init(seed)
     end
 end
 
-
 function noise1d.perlin1d(x)
     local total, amp, freq, max_val = 0, 1, 1, 0
     for i = 1, OCTAVES do
@@ -47,7 +38,6 @@ function noise1d.perlin1d(x)
     if max_val == 0 then return 0 end
     return total / max_val
 end
-
 
 if #p == 0 then
     noise1d.init(os.time() + math.floor((love and love.timer.getTime()) or 0))

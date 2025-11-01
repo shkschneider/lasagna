@@ -1,6 +1,3 @@
-
-
-
 local Object = require("lib.object")
 local noise = require("lib.noise")
 local log = require("lib.log")
@@ -24,9 +21,6 @@ function World:new(seed)
     self.tiles = {}
     self.entities = {}
     self.canvases = {}
-    if self.seed ~= nil then math.randomseed(self.seed) end
-    noise.init(self.seed)
-    self:load()
     log.info("World created with seed:", tostring(self.seed))
 end
 
@@ -66,28 +60,18 @@ function World:load()
         self.layers[z] = layer
         self.tiles[z] = tiles_for_layer
     end
+    -- player
     self.entities = { Player() }
-end
-
-
-
-function World:create_canvases(block_size)
-    block_size = block_size or Game.BLOCK_SIZE
-    local canvas_w = Game.WORLD_WIDTH * block_size
-    local canvas_h = Game.WORLD_HEIGHT * block_size
+    -- canvas
     self.canvases = self.canvases or {}
     for z = -1, 1 do
-        if self.canvases[z] and self.canvases[z].release then
-            pcall(function() self.canvases[z]:release() end)
-        end
-        local canvas = love.graphics.newCanvas(canvas_w, canvas_h)
+        if self.canvases[z] then elf.canvases[z]:release() end
+        local canvas = love.graphics.newCanvas(Game.WORLD_WIDTH * Game.BLOCK_SIZE, Game.WORLD_HEIGHT * Game.BLOCK_SIZE)
         canvas:setFilter("nearest", "nearest")
         self.canvases[z] = canvas
-        self:draw_layer(z, canvas, nil, block_size)
+        self:draw_layer(z, canvas, nil, Game.BLOCK_SIZE)
     end
 end
-
-
 
 function World:draw_column(z, col, block_size)
     block_size = block_size or Game.BLOCK_SIZE
@@ -219,7 +203,6 @@ function World.update(self, dt)
     end
 end
 
-
 function World:add_entity(e)
     if not e then return end
     for _, v in ipairs(self.entities) do
@@ -237,7 +220,6 @@ function World:remove_entity(e)
     end
 end
 
-
 function World:is_solid(z, col, row)
     if col < 1 or col > Game.WORLD_WIDTH or row < 1 or row > Game.WORLD_HEIGHT then return false end
     local tz = self.tiles and self.tiles[z]
@@ -253,7 +235,6 @@ function World:is_solid(z, col, row)
     end
     return true
 end
-
 
 function World:move_entity(e, dx, dy)
     if dx ~= 0 then
@@ -369,7 +350,6 @@ function World:move_entity(e, dx, dy)
     end
 end
 
-
 function World:get_surface(z, x)
     if type(x) ~= "number" then return nil end
     if x < 1 or x > Game.WORLD_WIDTH then return nil end
@@ -384,12 +364,9 @@ function World:get_surface(z, x)
     return nil
 end
 
-
 function World:place_block(z, x, y, block)
     return self:set_block(z, x, y, block)
 end
-
-
 
 function World:set_block(z, x, y, block)
     if not z or not x or not y then return false, "invalid parameters" end

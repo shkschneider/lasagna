@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 local Object = require("lib.object")
 local Blocks = require("world.blocks")
 local log = require("lib.log")
@@ -13,7 +5,6 @@ local log = require("lib.log")
 local EPS = 1e-6
 
 local Player = Object {}
-
 
 function Player:new()
     self.px = 50
@@ -71,7 +62,6 @@ function Player:new()
     self.ghost = { mx = 0, my = 0, z = self.z }
 end
 
-
 function Player:ensure_canvas(block_size)
     block_size = block_size or Game.BLOCK_SIZE
     local w_px = math.max(1, math.floor(self.width * block_size))
@@ -88,7 +78,6 @@ function Player:ensure_canvas(block_size)
     end
 end
 
-
 function Player:render_to_canvas(block_size)
     block_size = block_size or Game.BLOCK_SIZE
     if not self.canvas then return end
@@ -103,7 +92,6 @@ function Player:render_to_canvas(block_size)
     self.canvas_dirty = false
 end
 
-
 function Player:update(dt)
     local left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
     local right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
@@ -114,8 +102,6 @@ function Player:update(dt)
     self.intent.crouch = crouch
     self.intent.run = run
 end
-
-
 
 function Player:draw(block_size, camera_x)
     block_size = block_size or Game.BLOCK_SIZE
@@ -136,7 +122,6 @@ function Player:draw(block_size, camera_x)
     love.graphics.pop()
 end
 
-
 function Player:wheelmoved(dx, dy)
     if not dy or dy == 0 then return end
     local inv = self.inventory
@@ -148,7 +133,6 @@ function Player:wheelmoved(dx, dy)
         if inv.selected > inv.slots then inv.selected = 1 end
     end
 end
-
 
 function Player:drawInventory(screen_w, screen_h)
     local inv = self.inventory

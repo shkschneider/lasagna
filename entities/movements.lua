@@ -1,16 +1,4 @@
-
-
-
-
-
-
-
-
-
-
-
 local Physics = {}
-
 
 local function move_right(entity, desired_px, world)
     if desired_px < 1 then desired_px = 1 end
@@ -53,7 +41,6 @@ local function move_right(entity, desired_px, world)
     entity.px = desired_px
 end
 
-
 local function move_left(entity, desired_px, world)
     if desired_px < 1 then desired_px = 1 end
     if desired_px > math.max(1, world.width() - entity.width + 1) then desired_px = math.max(1, world.width() - entity.width + 1) end
@@ -94,7 +81,6 @@ local function move_left(entity, desired_px, world)
     if blocked then entity.vx = 0 end
     entity.px = desired_px
 end
-
 
 local function move_down(entity, desired_py, world)
     if desired_py < 1 then desired_py = 1 end
@@ -146,7 +132,6 @@ local function move_down(entity, desired_py, world)
     entity.py = desired_py
 end
 
-
 local function move_up(entity, desired_py, world)
     if desired_py < 1 then desired_py = 1 end
     if desired_py > math.max(1, world.height() - entity.height + 1) then desired_py = math.max(1, world.height() - entity.height + 1) end
@@ -173,8 +158,6 @@ local function move_up(entity, desired_py, world)
     if blocked then entity.vy = 0 end
     entity.py = desired_py
 end
-
-
 
 function Physics.move(entity, dx, dy, world)
     if dx ~= 0 then

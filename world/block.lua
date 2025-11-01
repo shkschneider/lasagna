@@ -1,12 +1,5 @@
-
-
-
 local Object = require("lib.object")
-
-
-
 local Block = Object {}
-
 
 function Block:new(name, color)
     if type(name) ~= "string" then error("Block:new: name must be a string", 2) end
@@ -14,9 +7,7 @@ function Block:new(name, color)
     self.color = color
 end
 
-
 function Block:update(dt) end
-
 
 function Block:draw(x, y, block_size)
     if not love or not love.graphics then return end

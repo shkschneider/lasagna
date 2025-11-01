@@ -8,59 +8,31 @@ local log = require("lib.log")
 Game = GameClass()
 
 function love.load()
-    love.window.setMode(1280, 720, { resizable = true, minwidth = 640, minheight = 480 })
+    local resolutions = {
+        sd = { p = 480,  width = 854,  height = 480 },
+        hd = { p = 720,  width = 1280, height = 720 },
+        fhd = { p = 1080, width = 1920, height = 1080 },
+    }
+    love.window.setMode(resolutions.hd.width, resolutions.hd.height,
+        { resizable = true, minwidth = resolutions.sd.width, minheight = resolutions.sd.height })
     love.window.setTitle(Game.NAME)
-    Game.screen_width = love.graphics.getWidth()
-    Game.screen_height = love.graphics.getHeight()
-    Game.seed = os.time()
-    Game:regenerate_world()
+    Game:load(os.getenv("SEED") or os.time())
     log.info("Game loaded")
 end
 
-function love.resize(w, h)
-    Game.screen_width = w
-    Game.screen_height = h
+function love.resize(width, height)
+    Game:resize(width, height)
     if Game.ui_canvas and Game.ui_canvas.release then pcall(function() Game.ui_canvas:release() end) end
     Game.ui_canvas = love.graphics.newCanvas(Game.screen_width, Game.screen_height)
     Game.ui_canvas:setFilter("nearest", "nearest")
-    clamp_camera()
 end
 
 function love.keypressed(key)
-    if key == "backspace" then
-        Game.debug = not Game.debug
-        if Game.debug then
-            log.level = "debug"
-        else
-            log.level = "info"
-        end
-        log.info("Debug mode: " .. tostring(Game.debug))
-        return
-    end
-    if key == "q" then
-        local old_z = Game.player().z
-        Game.player().z = math.max(-1, Game.player().z - 1)
-        local top = Game.world:get_surface(Game.player().z, math.floor(Game.player().px)) or (Game.WORLD_HEIGHT - 1)
-        Game.player().py = top - Game.player().height
-        Game.player().vy = 0
-        if Game.player().z ~= old_z then
-            log.info(string.format("Switched layer: %d -> %d", old_z, Game.player().z))
-        end
-    elseif key == "e" then
-        local old_z = Game.player().z
-        Game.player().z = math.min(1, Game.player().z + 1)
-        local top = Game.world:get_surface(Game.player().z, math.floor(Game.player().px)) or (Game.WORLD_HEIGHT - 1)
-        Game.player().py = top - Game.player().height
-        Game.player().vy = 0
-        if Game.player().z ~= old_z then
-            log.info(string.format("Switched layer: %d -> %d", old_z, Game.player().z))
-        end
-    elseif key == "escape" then
+    if key == "escape" then
         love.event.quit()
-        return
+    else
+        Game:keypressed(key)
     end
-    
-    Game:keypressed(key)
 end
 
 function love.wheelmoved(x, y)
