@@ -4,6 +4,7 @@ local log = require("lib.log")
 local Blocks = require("world.blocks")
 local Player = require("entities.player")
 local Movements = require("entities.movements")
+local Renderer = require("world.renderer")
 
 local World = Object {
     HEIGHT = 100,
@@ -19,7 +20,7 @@ function World:new(seed)
     self.layers = {}
     self.tiles = {}
     self.entities = {}
-    self.canvases = {}
+    self.renderer = Renderer()
     log.info("World created with seed:", tostring(self.seed))
 end
 
@@ -38,8 +39,6 @@ function World:load()
     end
     -- player
     self.entities = { Player() }
-    -- canvas will be created/updated dynamically
-    self.canvases = {}
 end
 
 -- Generate terrain for a specific column
@@ -396,78 +395,8 @@ end
 
 
 function World.draw(self, camera_x, canvases, player, block_size, screen_w, screen_h, debug)
-    player = player or (Game and Game.player and Game:player())
-    block_size = block_size or (Game and Game.BLOCK_SIZE) or 16
-    screen_w = screen_w or (Game and Game.screen_width) or (love.graphics.getWidth and love.graphics.getWidth())
-    screen_h = screen_h or (Game and Game.screen_height) or (love.graphics.getHeight and love.graphics.getHeight())
-    debug = (debug ~= nil) and debug or (Game and Game.debug)
-
-    -- Calculate visible columns
-    local left_col = math.floor(camera_x / block_size)
-    local right_col = math.ceil((camera_x + screen_w) / block_size) + 1
-
-    local player_z = player and player.z or 0
-
-    -- Draw each layer
-    for z = -1, player_z do
-        local tiles_z = self.tiles[z]
-        if tiles_z then
-            love.graphics.push()
-            love.graphics.origin()
-            love.graphics.translate(-camera_x, 0)
-
-            local alpha = 1
-            if player and type(player.z) == "number" and z < player.z then
-                local depth = player.z - z
-                alpha = 1 - 0.25 * depth
-                if alpha < 0 then alpha = 0 end
-            end
-
-            -- Draw visible columns
-            for col = left_col, right_col do
-                -- Generate terrain if not yet generated (safety check)
-                if not tiles_z[col] then
-                    self:generate_column(z, col)
-                end
-
-                local column = tiles_z[col]
-                if column then
-                    for row = 1, Game.WORLD_HEIGHT do
-                        local proto = column[row]
-                        if proto ~= nil then
-                            local px = (col - 1) * block_size
-                            local py = (row - 1) * block_size
-                            if type(proto.draw) == "function" then
-                                love.graphics.setColor(1, 1, 1, alpha)
-                                proto:draw(px, py, block_size)
-                            elseif proto.color and love and love.graphics then
-                                local c = proto.color
-                                love.graphics.setColor(c[1], c[2], c[3], (c[4] or 1) * alpha)
-                                love.graphics.rectangle("fill", px, py, block_size, block_size)
-                            end
-                        end
-                    end
-                end
-            end
-
-            love.graphics.pop()
-            love.graphics.setColor(1,1,1,1)
-        end
-
-        if player and z == player_z then
-            if player.draw then
-                player:draw(block_size, camera_x)
-            end
-        end
-    end
-
-    love.graphics.origin()
-    if player and player.drawInventory then
-        player:drawInventory(screen_w, screen_h)
-    end
-    if player and player.drawGhost then
-        player:drawGhost(self, camera_x, block_size)
-    end
+    -- Delegate to renderer
+    self.renderer:draw(self, camera_x, player, block_size, screen_w, screen_h, debug)
 end
 
 function World:get_layer(z) return self.layers[z] end
