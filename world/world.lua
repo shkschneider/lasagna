@@ -45,10 +45,10 @@ end
 -- Generate terrain for a specific column
 function World:generate_column(z, x)
     if not self.layers[z] or not self.tiles[z] then return end
-    
+
     -- Skip if already generated
     if self.tiles[z][x] then return end
-    
+
     local freq = (self.frequency and self.frequency[z]) or Game.FREQUENCY[z]
     local n = noise.perlin1d(x * freq + (z * 100))
     local base = (self.layer_base_heights and self.layer_base_heights[z]) or Game.LAYER_BASE_HEIGHTS[z]
@@ -57,11 +57,11 @@ function World:generate_column(z, x)
     top = math.max(1, math.min(Game.WORLD_HEIGHT - 1, top))
     local dirt_lim = math.min(Game.WORLD_HEIGHT, top + Game.DIRT_THICKNESS)
     local stone_lim = math.min(Game.WORLD_HEIGHT, top + Game.DIRT_THICKNESS + Game.STONE_THICKNESS)
-    
+
     self.layers[z].heights[x] = top
     self.layers[z].dirt_limit[x] = dirt_lim
     self.layers[z].stone_limit[x] = stone_lim
-    
+
     self.tiles[z][x] = {}
     for y = 1, Game.WORLD_HEIGHT do
         local proto = nil
@@ -322,14 +322,14 @@ function World:get_surface(z, x)
     if type(x) ~= "number" then return nil end
     local tiles_z = self.tiles and self.tiles[z]
     if not tiles_z then return nil end
-    
+
     local col = math.floor(x)
-    
+
     -- Generate terrain if it doesn't exist
     if not tiles_z[col] then
         self:generate_column(z, col)
     end
-    
+
     -- Find the surface (first non-nil block from top)
     for y = 1, Game.WORLD_HEIGHT do
         local t = tiles_z[col] and tiles_z[col][y]
@@ -401,13 +401,13 @@ function World.draw(self, camera_x, canvases, player, block_size, screen_w, scre
     screen_w = screen_w or (Game and Game.screen_width) or (love.graphics.getWidth and love.graphics.getWidth())
     screen_h = screen_h or (Game and Game.screen_height) or (love.graphics.getHeight and love.graphics.getHeight())
     debug = (debug ~= nil) and debug or (Game and Game.debug)
-    
+
     -- Calculate visible columns
     local left_col = math.floor(camera_x / block_size)
     local right_col = math.ceil((camera_x + screen_w) / block_size) + 1
-    
+
     local player_z = player and player.z or 0
-    
+
     -- Draw each layer
     for z = -1, player_z do
         local tiles_z = self.tiles[z]
@@ -415,21 +415,21 @@ function World.draw(self, camera_x, canvases, player, block_size, screen_w, scre
             love.graphics.push()
             love.graphics.origin()
             love.graphics.translate(-camera_x, 0)
-            
+
             local alpha = 1
             if player and type(player.z) == "number" and z < player.z then
                 local depth = player.z - z
                 alpha = 1 - 0.25 * depth
                 if alpha < 0 then alpha = 0 end
             end
-            
+
             -- Draw visible columns
             for col = left_col, right_col do
                 -- Generate terrain if not yet generated (safety check)
                 if not tiles_z[col] then
                     self:generate_column(z, col)
                 end
-                
+
                 local column = tiles_z[col]
                 if column then
                     for row = 1, Game.WORLD_HEIGHT do
@@ -449,18 +449,18 @@ function World.draw(self, camera_x, canvases, player, block_size, screen_w, scre
                     end
                 end
             end
-            
+
             love.graphics.pop()
             love.graphics.setColor(1,1,1,1)
         end
-        
+
         if player and z == player_z then
             if player.draw then
                 player:draw(block_size, camera_x)
             end
         end
     end
-    
+
     love.graphics.origin()
     if player and player.drawInventory then
         player:drawInventory(screen_w, screen_h)

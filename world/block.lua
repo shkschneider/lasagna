@@ -11,10 +11,11 @@ function Block:update(dt) end
 
 function Block:draw(x, y, block_size)
     if not love or not love.graphics then return end
-    local c = self.color or {1,1,1,1}
-    love.graphics.setColor(c[1], c[2], c[3], c[4] or 1)
+    local c = self.color or { 1, 1, 1, 1 }
+    local r, g, b, a = love.graphics.getColor()
+    love.graphics.setColor(c[1], c[2], c[3], (c[4] or 1) * (a or 1))
     love.graphics.rectangle("fill", x, y, block_size, block_size)
-    love.graphics.setColor(1,1,1,1)
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 return Block
