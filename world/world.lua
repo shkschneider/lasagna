@@ -103,21 +103,11 @@ function World:update_terrain_generation(player_x, player_z)
     local x_start = math.floor(player_x - buffer)
     local x_end = math.floor(player_x + buffer)
     
-    -- Generate for current layer and adjacent layers
+    -- Generate for all layers since player can switch layers with Q/E keys
     for z = -1, 1 do
         self:generate_terrain_range(z, x_start, x_end)
     end
 end
-
-function World:draw_column(z, col, block_size)
-    -- This function is now only used for updating after block placement/removal
-    -- Rendering is done directly in draw_layer
-    block_size = block_size or Game.BLOCK_SIZE
-    if col < 1 then return end -- Remove upper bound check
-    local tiles_z = self.tiles[z]
-    if not tiles_z or not tiles_z[col] then return end
-end
-
 
 function World.update(self, dt)
     if Blocks and type(Blocks.update) == "function" then Blocks.update(dt) end
@@ -432,13 +422,6 @@ function World:get_block_type(z, x, by)
     if t == nil then return "air" end
     return t
 end
-
-
-function World.draw_layer(self, z, canvas, blocks, block_size)
-    -- This function is no longer used for canvas-based rendering
-    -- Drawing is now done directly in the draw function
-end
-
 
 
 function World.draw(self, camera_x, canvases, player, block_size, screen_w, screen_h, debug)
