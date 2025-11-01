@@ -19,9 +19,6 @@ function Player:new()
     self.vx = 0
     self.vy = 0
     self.canvas = nil
-    self.canvas_w = 0
-    self.canvas_h = 0
-    self.canvas_dirty = true
     local slots = 9
     self.inventory = {
         slots = slots,
@@ -49,50 +46,11 @@ function Player:update(dt)
     self.intent.run = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
 end
 
-function Player:ensure_canvas()
-    local w_px = math.max(1, math.floor(self.width * C.BLOCK_SIZE))
-    local h_px = math.max(1, math.floor(self.height * C.BLOCK_SIZE))
-    if (not self.canvas) or self.canvas_w ~= w_px or self.canvas_h ~= h_px then
-        if self.canvas and self.canvas.release then
-            pcall(function() self.canvas:release() end)
-        end
-        self.canvas = love.graphics.newCanvas(w_px, h_px)
-        self.canvas:setFilter("nearest", "nearest")
-        self.canvas_w = w_px
-        self.canvas_h = h_px
-        self.canvas_dirty = true
-    end
-end
-
-function Player:render_to_canvas()
-    if not self.canvas then return end
-    love.graphics.push()
-    love.graphics.origin()
-    love.graphics.setCanvas(self.canvas)
-    love.graphics.clear(0, 0, 0, 0)
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.rectangle("fill", 0, 0, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE)
-    love.graphics.setCanvas()
-    love.graphics.pop()
-    self.canvas_dirty = false
-end
-
 function Player:draw(cx)
     cx = cx or 0
-    self:ensure_canvas()
-    if self.canvas_dirty then
-        self:render_to_canvas()
-    end
     local sx = (self.px - 1) * C.BLOCK_SIZE - cx
     local sy = (self.py - 1) * C.BLOCK_SIZE
-    love.graphics.push()
-    love.graphics.setColor(1, 1, 1, 1)
-    if self.canvas then
-        love.graphics.draw(self.canvas, sx, sy)
-    else
-        love.graphics.rectangle("fill", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE)
-    end
-    love.graphics.pop()
+    love.graphics.rectangle("fill", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE)
 end
 
 function Player:wheelmoved(dx, dy)
