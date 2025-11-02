@@ -253,21 +253,13 @@ function Player:drawGhost()
     local inv_top = y0 - bg_margin
     
     -- Don't show ghost if mouse is over inventory
-    if G.my >= inv_top then return end
-    
-    -- Get current mouse position and camera position for accurate positioning
     local mx, my = love.mouse.getPosition()
-    local cx = G.cx
+    if my >= inv_top then return end
     
-    -- Calculate grid position
-    local world_px = mx + cx
-    local col = math.floor(world_px / C.BLOCK_SIZE) + 1
-    local row = math.floor(my / C.BLOCK_SIZE) + 1
-    row = math.max(1, math.min(C.WORLD_HEIGHT, row))
-    
-    -- Calculate screen position
-    local px = (col - 1) * C.BLOCK_SIZE - cx
-    local py = (row - 1) * C.BLOCK_SIZE
+    -- Snap mouse position to grid for display
+    -- This keeps the ghost aligned to screen grid, not world grid
+    local px = math.floor(mx / C.BLOCK_SIZE) * C.BLOCK_SIZE
+    local py = math.floor(my / C.BLOCK_SIZE) * C.BLOCK_SIZE
     
     -- Draw ghost outline
     love.graphics.setColor(1, 1, 1, 1)
