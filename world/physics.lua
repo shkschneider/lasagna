@@ -1,6 +1,4 @@
-local C = require("constants")
-
-local Movements = {}
+local Physics = {}
 
 local function move_right(entity, desired_px, world)
     -- No horizontal bounds clamping for infinite world
@@ -155,7 +153,7 @@ local function move_up(entity, desired_py, world)
     entity.py = desired_py
 end
 
-function Movements.move(entity, dx, dy, world)
+function Physics.move(entity, dx, dy, world)
     if dx ~= 0 then
         local desired_px = entity.px + dx
         if desired_px > entity.px then
@@ -174,4 +172,4 @@ function Movements.move(entity, dx, dy, world)
     end
 end
 
-return Movements
+return Physics

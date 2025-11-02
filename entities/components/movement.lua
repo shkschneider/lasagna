@@ -20,10 +20,10 @@ local Movement = Object {}
 --- @return table Movement component instance
 function Movement:new(player, opts)
     opts = opts or {}
-    
+
     -- Reference to the player entity
     self.player = player
-    
+
     -- Configuration (with defaults from constants)
     self.max_speed = opts.max_speed or C.MAX_SPEED
     self.accel = opts.accel or C.MOVE_ACCEL
@@ -35,12 +35,12 @@ end
 --- @param dt number Delta time in seconds
 function Movement:update(dt)
     local player = self.player
-    
+
     -- Defensive: ensure required fields exist
     if not player.intent then return end
     if not player.vx then player.vx = 0 end
     if not player.vy then player.vy = 0 end
-    
+
     -- Check if player has movement_state (grounded check)
     local function is_grounded()
         if player.movement_state then
@@ -50,7 +50,7 @@ function Movement:update(dt)
         end
         return false
     end
-    
+
     local function is_crouching()
         if player.stance then
             return player.stance == "CROUCHING"
@@ -59,35 +59,35 @@ function Movement:update(dt)
         end
         return player.intent.crouch or false
     end
-    
+
     -- Calculate effective speed limits
     local MAX_SPEED = self.max_speed
     local accel = self.accel
-    
+
     if player.intent.run then
         MAX_SPEED = (C.RUN_SPEED_MULT or 1.6) * MAX_SPEED
         accel = (C.RUN_ACCEL_MULT or 1.2) * accel
     end
-    
+
     if is_crouching() then
         MAX_SPEED = math.min(MAX_SPEED, C.CROUCH_MAX_SPEED or 3)
     end
-    
+
     if not is_grounded() then
         accel = accel * (C.AIR_ACCEL_MULT or 0.35)
     end
-    
+
     -- Horizontal movement
     local dir = 0
     if player.intent.left then dir = dir - 1 end
     if player.intent.right then dir = dir + 1 end
     local target_vx = dir * MAX_SPEED
-    
+
     if dir ~= 0 then
         -- Accelerate toward target
         local use_accel = accel
         if is_crouching() then use_accel = accel * 0.6 end
-        
+
         if player.vx < target_vx then
             player.vx = math.min(target_vx, player.vx + use_accel * dt)
         elseif player.vx > target_vx then
@@ -103,7 +103,7 @@ function Movement:update(dt)
         else
             friction = C.AIR_FRICTION or 1.5
         end
-        
+
         local dec = friction * dt
         if math.abs(player.vx) <= dec then
             player.vx = 0
@@ -111,7 +111,7 @@ function Movement:update(dt)
             player.vx = player.vx - (player.vx > 0 and 1 or -1) * dec
         end
     end
-    
+
     -- Jumping
     if player.intent.jump then
         if is_grounded() then
@@ -125,7 +125,7 @@ function Movement:update(dt)
         end
         player.intent.jump = false
     end
-    
+
     -- Gravity
     player.vy = player.vy + (C.GRAVITY or 20) * dt
 end

@@ -1,6 +1,6 @@
 local Object = require("lib.object")
 local Blocks = require("world.blocks")
-local Movements = require("entities.movements")
+local Physics = require("world.physics")
 local log = require("lib.log")
 
 -- Player state enums
@@ -136,7 +136,7 @@ function Player:update(dt)
     self.vy = self.vy + C.GRAVITY * dt
     local dx = self.vx * dt
     local dy = self.vy * dt
-    Movements.move(self, dx, dy, G.world)
+    Physics.move(self, dx, dy, G.world)
 
     -- Handle stance (crouching/standing)
     if self.intent.crouch then
