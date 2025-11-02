@@ -43,9 +43,16 @@ function Player:new()
             background_alpha = 0.6,
         },
     }
-    for _, b in pairs(Blocks) do
-        if #self.inventory.items >= self.inventory.slots then break end
-        table.insert(self.inventory.items, b)
+    -- Initialize with 64 of each block type
+    local block_types = { Blocks.grass, Blocks.dirt, Blocks.stone }
+    for i, block in ipairs(block_types) do
+        if i <= self.inventory.slots then
+            self.inventory.items[i] = {
+                proto = block,
+                count = 64,
+                data = {}
+            }
+        end
     end
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
 end
@@ -206,8 +213,11 @@ function Player:drawInventory()
         local cube_x, cube_y = sx + inner_pad, sy + inner_pad
         local cube_w, cube_h = self.inventory.ui.slot_size - inner_pad*2, self.inventory.ui.slot_size - inner_pad*2
         local item = self.inventory.items[i]
-        if item and item.color then
-            local r,g,b,a = unpack(item.color)
+        -- Handle new inventory format: { proto, count, data }
+        local proto = item and (item.proto or item)
+        local count = item and item.count
+        if proto and proto.color then
+            local r,g,b,a = unpack(proto.color)
             if r and r > 1 then r,g,b,a = r/255, (g or 0)/255, (b or 0)/255, (a or 255)/255 end
             love.graphics.setColor(r or 1, g or 1, b or 1, a or 1)
             love.graphics.rectangle("fill", cube_x, cube_y, cube_w, cube_h, 3, 3)
@@ -215,6 +225,11 @@ function Player:drawInventory()
             love.graphics.rectangle("line", cube_x + 0.5, cube_y + 0.5, cube_w - 1, cube_h - 1, 2, 2)
         else
             love.graphics.rectangle("fill", cube_x, cube_y, cube_w, cube_h, 3, 3)
+        end
+        -- Draw count if present
+        if count and count > 1 then
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.print(tostring(count), sx + 4, sy + self.inventory.ui.slot_size - 16)
         end
         love.graphics.setColor(0,0,0,0.6)
         love.graphics.setLineWidth(1)
@@ -231,7 +246,9 @@ end
 
 function Player:drawGhost()
     local item = self.inventory.items and self.inventory.items[self.inventory.selected or 1]
-    if not item or not item.color then return end
+    -- Handle new inventory format: { proto, count, data }
+    local proto = item and (item.proto or item)
+    if not proto or not proto.color then return end
     local total_width = self.inventory.slots * self.inventory.ui.slot_size + (self.inventory.slots - 1) * self.inventory.ui.padding
     local x0 = (G.width - total_width) / 2
     local y0 = G.height - self.inventory.ui.slot_size - 20
@@ -258,6 +275,13 @@ function Player:placeAtMouse(mx, my, z_override)
     local selected = inv.selected or 1
     local item = inv.items and inv.items[selected]
     if not item then return false, "no item selected" end
+    
+    -- Handle new inventory format: { proto, count, data }
+    local proto = item.proto or item
+    local count = item.count or 1
+    
+    if count <= 0 then return false, "no items left" end
+    
     local world_px = mouse_x + G.cx
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
@@ -285,7 +309,16 @@ function Player:placeAtMouse(mx, my, z_override)
     if not touches_existing then
         return false, "must touch an existing block on the same layer", z
     end
-    local ok, action = G.world:set_block(z, col, row, item)
+    local ok, action = G.world:set_block(z, col, row, proto)
+    
+    -- Decrement count on successful placement
+    if ok and item.count then
+        item.count = item.count - 1
+        if item.count <= 0 then
+            inv.items[selected] = nil
+        end
+    end
+    
     return ok, action, z
 end
 
