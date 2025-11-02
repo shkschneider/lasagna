@@ -1,6 +1,7 @@
 local Object = require("lib.object")
 local Blocks = require("world.blocks")
-local Movements = require("entities.movements")
+local Physics = require("world.physics")
+local Navigation = require("entities.components.navigation")
 local log = require("lib.log")
 
 -- Player state enums
@@ -43,11 +44,21 @@ function Player:new()
             background_alpha = 0.6,
         },
     }
-    for _, b in pairs(Blocks) do
-        if #self.inventory.items >= self.inventory.slots then break end
-        table.insert(self.inventory.items, b)
+    -- Initialize with 64 of each block type
+    local block_types = { Blocks.grass, Blocks.dirt, Blocks.stone }
+    for i, block in ipairs(block_types) do
+        if i <= self.inventory.slots then
+            self.inventory.items[i] = {
+                proto = block,
+                count = C.MAX_STACK,
+                data = {}
+            }
+        end
     end
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
+    
+    -- Initialize Navigation component
+    self.navigation = Navigation.new(self, {})
 end
 
 function Player:is_grounded()
@@ -60,17 +71,9 @@ end
 
 function Player:keypressed(key)
     if key == "q" then
-        self.z = math.max(C.LAYER_MIN, self.z - 1)
-        local top = G.world:get_surface(self.z, math.floor(self.px)) or (C.WORLD_HEIGHT - 1)
-        self.py = top - self.height
-        self.vy = 0
-        log.info(string.format("Layer: %d", self.z))
+        self.navigation:switch_layer(-1, G.world)
     elseif key == "e" then
-        self.z = math.min(C.LAYER_MAX, self.z + 1)
-        local top = G.world:get_surface(self.z, math.floor(self.px)) or (C.WORLD_HEIGHT - 1)
-        self.py = top - self.height
-        self.vy = 0
-        log.info(string.format("Layer: %d", self.z))
+        self.navigation:switch_layer(1, G.world)
     elseif key == "space" or key == "up" then
         self.intent.jump = true
     end
@@ -136,7 +139,7 @@ function Player:update(dt)
     self.vy = self.vy + C.GRAVITY * dt
     local dx = self.vx * dt
     local dy = self.vy * dt
-    Movements.move(self, dx, dy, G.world)
+    Physics.move(self, dx, dy, G.world)
 
     -- Handle stance (crouching/standing)
     if self.intent.crouch then
@@ -206,8 +209,11 @@ function Player:drawInventory()
         local cube_x, cube_y = sx + inner_pad, sy + inner_pad
         local cube_w, cube_h = self.inventory.ui.slot_size - inner_pad*2, self.inventory.ui.slot_size - inner_pad*2
         local item = self.inventory.items[i]
-        if item and item.color then
-            local r,g,b,a = unpack(item.color)
+        -- Handle new inventory format: { proto, count, data }
+        local proto = item and (item.proto or item)
+        local count = item and item.count
+        if proto and proto.color then
+            local r,g,b,a = unpack(proto.color)
             if r and r > 1 then r,g,b,a = r/255, (g or 0)/255, (b or 0)/255, (a or 255)/255 end
             love.graphics.setColor(r or 1, g or 1, b or 1, a or 1)
             love.graphics.rectangle("fill", cube_x, cube_y, cube_w, cube_h, 3, 3)
@@ -215,6 +221,11 @@ function Player:drawInventory()
             love.graphics.rectangle("line", cube_x + 0.5, cube_y + 0.5, cube_w - 1, cube_h - 1, 2, 2)
         else
             love.graphics.rectangle("fill", cube_x, cube_y, cube_w, cube_h, 3, 3)
+        end
+        -- Draw count if present
+        if count and count > 1 then
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.print(tostring(count), sx + 4, sy + self.inventory.ui.slot_size - 16)
         end
         love.graphics.setColor(0,0,0,0.6)
         love.graphics.setLineWidth(1)
@@ -230,25 +241,32 @@ function Player:drawInventory()
 end
 
 function Player:drawGhost()
-    local item = self.inventory.items and self.inventory.items[self.inventory.selected or 1]
-    if not item or not item.color then return end
+    -- Always show ghost block, even when no item is selected
     local total_width = self.inventory.slots * self.inventory.ui.slot_size + (self.inventory.slots - 1) * self.inventory.ui.padding
     local x0 = (G.width - total_width) / 2
     local y0 = G.height - self.inventory.ui.slot_size - 20
     local bg_margin = 8
     local inv_top = y0 - bg_margin
+
+    -- Don't show ghost if mouse is over inventory
     if G.my >= inv_top then return end
+
+    -- Convert mouse screen position to world position
     local world_px = G.mx + G.cx
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(G.my / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
+
+    -- Convert world grid position back to screen position
     local px = (col - 1) * C.BLOCK_SIZE - G.cx
     local py = (row - 1) * C.BLOCK_SIZE
-    love.graphics.setColor(1,1,1,1)
+
+    -- Draw ghost outline
+    love.graphics.setColor(1, 1, 1, 1)
     love.graphics.setLineWidth(2)
     love.graphics.rectangle("line", px + 0.5, py + 0.5, C.BLOCK_SIZE - 1, C.BLOCK_SIZE - 1)
     love.graphics.setLineWidth(1)
-    love.graphics.setColor(1,1,1,1)
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 function Player:placeAtMouse(mx, my, z_override)
@@ -258,6 +276,13 @@ function Player:placeAtMouse(mx, my, z_override)
     local selected = inv.selected or 1
     local item = inv.items and inv.items[selected]
     if not item then return false, "no item selected" end
+
+    -- Handle new inventory format: { proto, count, data }
+    local proto = item.proto or item
+    local count = item.count or 1
+
+    if count <= 0 then return false, "no items left" end
+
     local world_px = mouse_x + G.cx
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
@@ -285,7 +310,16 @@ function Player:placeAtMouse(mx, my, z_override)
     if not touches_existing then
         return false, "must touch an existing block on the same layer", z
     end
-    local ok, action = G.world:set_block(z, col, row, item)
+    local ok, action = G.world:set_block(z, col, row, proto)
+
+    -- Decrement count on successful placement
+    if ok and item.count then
+        item.count = item.count - 1
+        if item.count <= 0 then
+            inv.items[selected] = nil
+        end
+    end
+
     return ok, action, z
 end
 
