@@ -60,7 +60,7 @@ function DroppedItem:update(dt, world, player)
             local leftover = self.count
             if player.inventory.items then
                 -- Try to stack with existing items first
-                local max_stack = math.min(self.proto.max_stack or C.MAX_STACK, C.MAX_STACK)
+                local max_stack = self.proto.max_stack or C.MAX_STACK
                 for i = 1, player.inventory.slots do
                     local slot = player.inventory.items[i]
                     if slot and slot.proto == self.proto then

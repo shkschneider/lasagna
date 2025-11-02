@@ -351,8 +351,8 @@ function Player:removeAtMouse(mx, my, z_override)
     
     -- Spawn dropped item if removal was successful
     if ok and block_proto and block_proto ~= "air" and block_proto ~= "out" then
-        local item_x = col - 1 + 0.25  -- Center the dropped item in the block
-        local item_y = row - 1 + 0.25
+        local item_x = col - 1 + C.ITEM_DROP_OFFSET  -- Center the dropped item in the block
+        local item_y = row - 1 + C.ITEM_DROP_OFFSET
         G.world:spawn_dropped_item(block_proto, item_x, item_y, z, 1)
     end
     
