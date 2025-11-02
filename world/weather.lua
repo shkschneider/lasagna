@@ -14,16 +14,26 @@ local Weather = Object {
     MIDNIGHT = { 0.01, 0.01, 0.05, 1.0 }, -- deep black for midnight
 }
 
-function Weather:new()
+function Weather:new(seasons)
     -- Day/night cycle state
     -- Start at noon (12:00) - half-way through the day cycle
     self.time = C.DAY_DURATION / 2  -- Half-way through the day (12:00)
     self.state = Weather.DAY
+    self.seasons = seasons  -- Optional reference to seasons system
 end
 
 function Weather:update(dt)
     self.time = self.time + dt
-    local cycle_duration = self.state == Weather.DAY and C.DAY_DURATION or C.NIGHT_DURATION
+    -- Apply seasonal modifiers to day/night duration
+    local base_duration = self.state == Weather.DAY and C.DAY_DURATION or C.NIGHT_DURATION
+    local season_mult = 1.0
+    if self.seasons then
+        season_mult = self.state == Weather.DAY 
+            and self.seasons:get_day_duration_mult() 
+            or self.seasons:get_night_duration_mult()
+    end
+    local cycle_duration = base_duration * season_mult
+    
     if self.time >= cycle_duration then
         self.time = self.time - cycle_duration
         self.state = self.state == Weather.DAY and Weather.NIGHT or Weather.DAY
@@ -93,6 +103,11 @@ function Weather:get_sky_color()
         color = Weather.NIGHT
     end
 
+    -- Apply seasonal color modifiers if seasons system is available
+    if self.seasons then
+        return self.seasons:apply_color_modifier(color[1], color[2], color[3], color[4])
+    end
+    
     return color[1], color[2], color[3], color[4]
 end
 

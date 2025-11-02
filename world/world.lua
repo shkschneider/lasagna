@@ -5,6 +5,7 @@ local Blocks = require("world.blocks")
 local Player = require("entities.player")
 local Layer = require("world.layer")
 local Weather = require("world.weather")
+local Seasons = require("world.seasons")
 
 local World = Object {
     player = function (self)
@@ -17,7 +18,8 @@ function World:new(seed)
     self.seed = seed
     self.layers = {}
     self.entities = {}
-    self.weather = Weather()
+    self.seasons = Seasons()
+    self.weather = Weather(self.seasons)
 end
 
 function World:load()
@@ -38,6 +40,10 @@ function World:load()
 end
 
 function World:update(dt)
+    -- Update seasons system
+    if self.seasons then
+        self.seasons:update(dt)
+    end
     -- Update weather system
     if self.weather then
         self.weather:update(dt)

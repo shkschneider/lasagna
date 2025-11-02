@@ -97,17 +97,43 @@ end
 function Game:drawTimeHUD()
     if not self.world or not self.world.weather then return end
     local time_str = self.world.weather:get_time_string()
+    
+    -- Add season info if available
+    local season_str = ""
+    if self.world.seasons then
+        season_str = self.world.seasons:get_season_name()
+    end
+    
     local padding = 10
     local bg_padding = 6
     local font = love.graphics.getFont()
-    local text_width = font:getWidth(time_str)
     local text_height = font:getHeight()
-    local x = self.width - text_width - padding - bg_padding * 2
+    local line_spacing = 2
+    
+    -- Calculate dimensions
+    local time_width = font:getWidth(time_str)
+    local season_width = font:getWidth(season_str)
+    local max_width = math.max(time_width, season_width)
+    local total_height = season_str ~= "" and (text_height * 2 + line_spacing) or text_height
+    
+    local x = self.width - max_width - padding - bg_padding * 2
     local y = padding
+    
+    -- Draw background
     love.graphics.setColor(0, 0, 0, 0.6)
-    love.graphics.rectangle("fill", x, y, text_width + bg_padding * 2, text_height + bg_padding * 2, 4, 4)
+    love.graphics.rectangle("fill", x, y, max_width + bg_padding * 2, total_height + bg_padding * 2, 4, 4)
+    
+    -- Draw time
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print(time_str, x + bg_padding, y + bg_padding)
+    
+    -- Draw season if available
+    if season_str ~= "" then
+        love.graphics.setColor(0.9, 0.9, 0.7, 1)
+        love.graphics.print(season_str, x + bg_padding, y + bg_padding + text_height + line_spacing)
+    end
+    
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 function Game:draw()
