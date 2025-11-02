@@ -37,14 +37,9 @@ function Weather:get_sky_color()
     local from_color = self.state == Weather.DAY and Weather.DAY or Weather.NIGHT
     local to_color = self.state == Weather.DAY and Weather.NIGHT or Weather.DAY
 
-    -- Calculate transition progress
+    -- Calculate transition progress (only at end of cycle)
     local t = 0
-    if self.time < transition_duration then
-        -- Beginning of cycle - transitioning from previous phase
-        t = self.time / transition_duration
-        from_color, to_color = to_color, from_color
-        t = 1 - t
-    elseif self.time > (cycle_duration - transition_duration) then
+    if self.time > (cycle_duration - transition_duration) then
         -- End of cycle - transitioning to next phase
         t = (self.time - (cycle_duration - transition_duration)) / transition_duration
     end
