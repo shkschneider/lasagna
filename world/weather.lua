@@ -2,8 +2,12 @@ local Object = require("lib.object")
 local log = require("lib.log")
 
 local Weather = Object {
-    DAY = { 0.53, 0.81, 0.92, 1.0 }, -- light blue sky
-    NIGHT = { 0.05, 0.05, 0.15, 1.0 }, -- dark night sky
+    -- Sky colors for different times of day
+    SUNRISE = { 1.0, 0.75, 0.4, 1.0 },   -- warm yellow/orange for sunrise
+    DAY = { 0.53, 0.81, 0.92, 1.0 },     -- light blue sky
+    SUNSET = { 1.0, 0.5, 0.2, 1.0 },     -- warm orange for sunset
+    NIGHT = { 0.05, 0.05, 0.15, 1.0 },   -- dark night sky
+    MIDNIGHT = { 0.01, 0.01, 0.05, 1.0 }, -- deep black for midnight
 }
 
 function Weather:new()
@@ -26,31 +30,88 @@ function Weather:update(dt)
     end
 end
 
--- Get the current sky color with smooth transition
+-- Get the current sky color based on time of day with smooth transitions
 function Weather:get_sky_color()
-    local cycle_duration = self.state == Weather.DAY and C.DAY_DURATION or C.NIGHT_DURATION
+    local hours, minutes = self:get_time_24h()
+    local time_decimal = hours + (minutes / 60.0)
     
-    -- Transition duration: 5 seconds or 10% of cycle, whichever is smaller
-    -- This prevents overly long transitions in shorter cycles
-    local transition_duration = math.min(5, cycle_duration * 0.1)
-
-    local from_color = self.state == Weather.DAY and Weather.DAY or Weather.NIGHT
-    local to_color = self.state == Weather.DAY and Weather.NIGHT or Weather.DAY
-
-    -- Calculate transition progress (only at end of cycle)
-    local t = 0
-    if self.time > (cycle_duration - transition_duration) then
-        -- End of cycle - transitioning to next phase
-        t = (self.time - (cycle_duration - transition_duration)) / transition_duration
+    -- Define key times and their colors
+    -- 05:00 - sunrise begins
+    -- 07:00 - full day
+    -- 17:00 - sunset begins  
+    -- 19:00 - night begins
+    -- 00:00 - midnight (deepest black)
+    
+    local color
+    
+    if time_decimal >= 5 and time_decimal < 7 then
+        -- Sunrise: 05:00 to 07:00 (transition from night to sunrise to day)
+        local t = (time_decimal - 5) / 2
+        if t < 0.5 then
+            -- First half: night to sunrise
+            local t2 = t * 2
+            color = self:interpolate_color(Weather.NIGHT, Weather.SUNRISE, t2)
+        else
+            -- Second half: sunrise to day
+            local t2 = (t - 0.5) * 2
+            color = self:interpolate_color(Weather.SUNRISE, Weather.DAY, t2)
+        end
+    elseif time_decimal >= 7 and time_decimal < 17 then
+        -- Full day: 07:00 to 17:00
+        color = Weather.DAY
+    elseif time_decimal >= 17 and time_decimal < 19 then
+        -- Sunset: 17:00 to 19:00 (transition from day to sunset to night)
+        local t = (time_decimal - 17) / 2
+        if t < 0.5 then
+            -- First half: day to sunset
+            local t2 = t * 2
+            color = self:interpolate_color(Weather.DAY, Weather.SUNSET, t2)
+        else
+            -- Second half: sunset to night
+            local t2 = (t - 0.5) * 2
+            color = self:interpolate_color(Weather.SUNSET, Weather.NIGHT, t2)
+        end
+    elseif time_decimal >= 19 or time_decimal < 5 then
+        -- Night time: 19:00 to 05:00
+        -- Transition to deepest black at midnight (00:00)
+        if time_decimal >= 22 or time_decimal < 2 then
+            -- Around midnight (22:00 to 02:00) - transition to/from midnight black
+            local midnight_time
+            if time_decimal >= 22 then
+                midnight_time = time_decimal - 22  -- 0 to 2
+            else
+                midnight_time = time_decimal + 2   -- 2 to 4
+            end
+            
+            if midnight_time < 2 then
+                -- Approaching midnight: night to midnight
+                local t = midnight_time / 2
+                color = self:interpolate_color(Weather.NIGHT, Weather.MIDNIGHT, t)
+            else
+                -- After midnight: midnight to night
+                local t = (midnight_time - 2) / 2
+                color = self:interpolate_color(Weather.MIDNIGHT, Weather.NIGHT, t)
+            end
+        else
+            -- Regular night (02:00 to 05:00 or 19:00 to 22:00)
+            color = Weather.NIGHT
+        end
+    else
+        -- Default to night for any edge cases
+        color = Weather.NIGHT
     end
+    
+    return color[1], color[2], color[3], color[4]
+end
 
-    -- Interpolate between colors
-    local r = from_color[1] + (to_color[1] - from_color[1]) * t
-    local g = from_color[2] + (to_color[2] - from_color[2]) * t
-    local b = from_color[3] + (to_color[3] - from_color[3]) * t
-    local a = from_color[4] + (to_color[4] - from_color[4]) * t
-
-    return r, g, b, a
+-- Helper function to interpolate between two colors
+function Weather:interpolate_color(color1, color2, t)
+    return {
+        color1[1] + (color2[1] - color1[1]) * t,
+        color1[2] + (color2[2] - color1[2]) * t,
+        color1[3] + (color2[3] - color1[3]) * t,
+        color1[4] + (color2[4] - color1[4]) * t,
+    }
 end
 
 -- Draw the sky background
