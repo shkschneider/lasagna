@@ -41,10 +41,11 @@ local Seasons = Object {
 
 function Seasons:new()
     -- Season cycle state
-    self.current_season = Seasons.SPRING
+    self.season_order = { "SPRING", "SUMMER", "AUTUMN", "WINTER" }
+    self.current_season_index = 1  -- Start with first season (Spring)
+    self.current_season = self.season_order[self.current_season_index]
     self.season_time = 0           -- Time elapsed in current season (seconds)
     self.season_duration = 300     -- Duration of each season (seconds) - 5 minutes default
-    self.season_order = { "SPRING", "SUMMER", "AUTUMN", "WINTER" }
 end
 
 -- Update season progression
@@ -60,16 +61,8 @@ end
 
 -- Advance to the next season
 function Seasons:advance_season()
-    local current_index = 1
-    for i, season in ipairs(self.season_order) do
-        if self.current_season == season then
-            current_index = i
-            break
-        end
-    end
-    
-    local next_index = (current_index % #self.season_order) + 1
-    self.current_season = self.season_order[next_index]
+    self.current_season_index = (self.current_season_index % #self.season_order) + 1
+    self.current_season = self.season_order[self.current_season_index]
     
     log.info(string.format("Season changed to: %s", self:get_season_name()))
 end
@@ -99,11 +92,12 @@ function Seasons:apply_color_modifier(r, g, b, a)
     end
     
     local mult = config.sky_color_mult
-    return 
+    return (
         math.min(1.0, r * mult[1]),
         math.min(1.0, g * mult[2]),
         math.min(1.0, b * mult[3]),
         math.min(1.0, a * mult[4])
+    )
 end
 
 -- Get the current season name
