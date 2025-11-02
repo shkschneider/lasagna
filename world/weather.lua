@@ -3,9 +3,9 @@ local log = require("lib.log")
 
 local Weather = Object {
     -- Sky colors for different times of day
-    -- Sunrise: blend of day blue with warm golden tone
+    -- Sunrise: subtle yellowish tone that morphs into day blue
     -- Sunset: blend of night dark with warm orange tone
-    SUNRISE = { 0.76, 0.71, 0.66, 1.0 },  -- soft golden-blue (day + warm glow)
+    SUNRISE = { 0.65, 0.75, 0.80, 1.0 },  -- subtle yellowish sky (soft warm tint on blue)
     DAY = { 0.53, 0.81, 0.92, 1.0 },      -- light blue sky
     SUNSET = { 0.52, 0.27, 0.17, 1.0 },   -- muted warm tone (night + orange glow)
     NIGHT = { 0.05, 0.05, 0.15, 1.0 },    -- dark night sky
