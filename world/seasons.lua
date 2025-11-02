@@ -45,7 +45,7 @@ function Seasons:new()
     self.current_season_index = 1  -- Start with first season (Spring)
     self.current_season = self.season_order[self.current_season_index]
     self.season_time = 0           -- Time elapsed in current season (seconds)
-    self.season_duration = 300     -- Duration of each season (seconds) - 5 minutes default
+    self.season_duration = C.SEASON_DURATION
 end
 
 -- Update season progression

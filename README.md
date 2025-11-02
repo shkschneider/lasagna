@@ -19,7 +19,7 @@ The game includes a dynamic seasons system that affects gameplay:
 - **Four seasons**: Spring, Summer, Autumn, Winter
 - **Day/night cycle variations**: Longer days in summer, shorter days in winter
 - **Seasonal sky colors**: Each season has unique atmospheric tints
-- **Automatic progression**: Seasons change every 5 minutes of gameplay
+- **Automatic progression**: Seasons change every 5 minutes of gameplay (configurable via `C.SEASON_DURATION`)
 
 Each season has distinct characteristics:
 - **Spring**: Balanced day/night, slight green tint

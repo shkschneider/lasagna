@@ -36,4 +36,6 @@ return {
     -- day/night cycle
     DAY_DURATION = 15,   -- seconds
     NIGHT_DURATION = 15, -- seconds
+    -- seasons
+    SEASON_DURATION = 300, -- seconds (5 minutes per season, 20 minutes full cycle)
 }
