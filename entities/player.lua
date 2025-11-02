@@ -45,15 +45,12 @@ function Player:new()
             background_alpha = 0.6,
         },
     }
-    for _, block in pairs(Blocks) do
-        if #self.inventory.items < self.inventory.slots then
-            table.insert(self.inventory.items, {
-                proto = block,
-                count = C.MAX_STACK,
-                data = {}
-            })
-        end
-    end
+    -- Start with only 64 cobblestone
+    table.insert(self.inventory.items, {
+        proto = Blocks.cobblestone,
+        count = 64,
+        data = {}
+    })
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
 
     -- Initialize Navigation component
