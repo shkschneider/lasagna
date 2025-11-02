@@ -4,6 +4,7 @@ local log = require("lib.log")
 local Blocks = require("world.blocks")
 local Player = require("entities.player")
 local Layer = require("world.layer")
+local Weather = require("world.weather")
 
 local World = Object {
     player = function (self)
@@ -16,6 +17,7 @@ function World:new(seed)
     self.seed = seed
     self.layers = {}
     self.entities = {}
+    self.weather = Weather()
 end
 
 function World:load()
@@ -37,6 +39,10 @@ end
 
 function World:update(dt)
     if type(Blocks.update) == "function" then Blocks.update(dt) end
+    -- Update weather system
+    if self.weather then
+        self.weather:update(dt)
+    end
     -- Entities handle their own update logic
     for _, e in ipairs(self.entities) do
         if type(e.update) == "function" then
@@ -142,6 +148,11 @@ function World:get_block_type(z, x, by)
 end
 
 function World:draw()
+    -- Draw sky background
+    if self.weather then
+        self.weather:draw()
+    end
+    
     -- Calculate visible columns
     local left_col = math.floor(G.cx / C.BLOCK_SIZE)
     local right_col = math.ceil((G.cx + G.width) / C.BLOCK_SIZE) + 1

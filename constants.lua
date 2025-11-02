@@ -33,4 +33,7 @@ return {
     JUMP_SPEED = -10,-- initial jump velocity (blocks per second)
     STEP_HEIGHT = 1, -- maximum step-up in blocks
     MAX_STACK = 16,
+    -- day/night cycle
+    DAY_DURATION = 60,   -- seconds
+    NIGHT_DURATION = 30, -- seconds
 }
