@@ -26,11 +26,11 @@ function Player:new()
     self.crouch_height = self.height / 2
     self.vx = 0
     self.vy = 0
-    
+
     -- State system
     self.movement_state = MovementState.AIRBORNE
     self.stance = Stance.STANDING
-    
+
     local slots = 9
     self.inventory = {
         slots = slots,
@@ -82,7 +82,7 @@ function Player:update(dt)
     self.intent.right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
     self.intent.crouch = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
     self.intent.run = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
-    
+
     -- Physics and movement
     local MAX_SPEED = C.MAX_SPEED
     local accel = C.MOVE_ACCEL
@@ -93,15 +93,15 @@ function Player:update(dt)
     if self:is_crouching() then
         MAX_SPEED = math.min(MAX_SPEED, C.CROUCH_MAX_SPEED)
     end
-    if not self:is_grounded() then 
-        accel = accel * C.AIR_ACCEL_MULT 
+    if not self:is_grounded() then
+        accel = accel * C.AIR_ACCEL_MULT
     end
-    
+
     local dir = 0
     if self.intent.left then dir = dir - 1 end
     if self.intent.right then dir = dir + 1 end
     local target_vx = dir * MAX_SPEED
-    
+
     if dir ~= 0 then
         local use_accel = accel
         if self:is_crouching() then use_accel = accel * 0.6 end
@@ -124,7 +124,7 @@ function Player:update(dt)
             end
         end
     end
-    
+
     if self.intent.jump then
         if self:is_grounded() then
             self.vy = C.JUMP_SPEED
@@ -132,12 +132,12 @@ function Player:update(dt)
         end
         self.intent.jump = false
     end
-    
+
     self.vy = self.vy + C.GRAVITY * dt
     local dx = self.vx * dt
     local dy = self.vy * dt
     Movements.move(self, dx, dy, G.world)
-    
+
     -- Handle stance (crouching/standing)
     if self.intent.crouch then
         if self.stance == Stance.STANDING then
@@ -175,8 +175,6 @@ end
 function Player:draw()
     local sx = (self.px - 1) * C.BLOCK_SIZE - G.cx
     local sy = (self.py - 1) * C.BLOCK_SIZE
-    love.graphics.rectangle("fill", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE)
-end
     love.graphics.rectangle("fill", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE)
 end
 
