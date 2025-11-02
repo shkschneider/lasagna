@@ -3,7 +3,7 @@ local noise = require("lib.noise")
 local log = require("lib.log")
 local Blocks = require("data.blocks")
 local Player = require("entities.player")
-local DroppedItem = require("entities.dropped_item")
+local Drop = require("entities.drop")
 local Layer = require("world.layer")
 local Weather = require("world.weather")
 
@@ -157,9 +157,9 @@ end
 function World:spawn_dropped_item(proto, px, py, z, count)
     if not proto then return false end
     count = count or 1
-    local item = DroppedItem(proto, px, py, z, count)
+    local item = Drop(proto, px, py, z, count)
     table.insert(self.entities, item)
-    log.info(string.format("Spawned dropped item '%s' x%d at (%.2f, %.2f, %d)", 
+    log.info(string.format("Spawned dropped item '%s' x%d at (%.2f, %.2f, %d)",
         proto.name or "unknown", count, px, py, z))
     return true
 end
@@ -188,14 +188,14 @@ function World:draw()
             end
             layer:draw()
         end
-        
+
         -- Draw dropped items on this layer before drawing player
         for _, e in ipairs(self.entities) do
             if e ~= self:player() and e.z == z and type(e.draw) == "function" then
                 e:draw()
             end
         end
-        
+
         if z == self:player().z then return end
     end
 end

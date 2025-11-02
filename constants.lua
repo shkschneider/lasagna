@@ -35,6 +35,6 @@ return {
     MAX_STACK = 64,
     ITEM_DROP_OFFSET = 0.25, -- offset to center dropped items in blocks
     -- day/night cycle
-    DAY_DURATION = 15,   -- seconds
-    NIGHT_DURATION = 15, -- seconds
+    DAY_DURATION = 60,   -- seconds
+    NIGHT_DURATION = 30, -- seconds
 }
