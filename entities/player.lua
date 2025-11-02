@@ -245,27 +245,36 @@ function Player:drawInventory()
 end
 
 function Player:drawGhost()
-    local item = self.inventory.items and self.inventory.items[self.inventory.selected or 1]
-    -- Handle new inventory format: { proto, count, data }
-    local proto = item and (item.proto or item)
-    if not proto or not proto.color then return end
+    -- Always show ghost block, even when no item is selected
     local total_width = self.inventory.slots * self.inventory.ui.slot_size + (self.inventory.slots - 1) * self.inventory.ui.padding
     local x0 = (G.width - total_width) / 2
     local y0 = G.height - self.inventory.ui.slot_size - 20
     local bg_margin = 8
     local inv_top = y0 - bg_margin
+    
+    -- Don't show ghost if mouse is over inventory
     if G.my >= inv_top then return end
-    local world_px = G.mx + G.cx
+    
+    -- Get current mouse position and camera position for accurate positioning
+    local mx, my = love.mouse.getPosition()
+    local cx = G.cx
+    
+    -- Calculate grid position
+    local world_px = mx + cx
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
-    local row = math.floor(G.my / C.BLOCK_SIZE) + 1
+    local row = math.floor(my / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
-    local px = (col - 1) * C.BLOCK_SIZE - G.cx
+    
+    -- Calculate screen position
+    local px = (col - 1) * C.BLOCK_SIZE - cx
     local py = (row - 1) * C.BLOCK_SIZE
-    love.graphics.setColor(1,1,1,1)
+    
+    -- Draw ghost outline
+    love.graphics.setColor(1, 1, 1, 1)
     love.graphics.setLineWidth(2)
     love.graphics.rectangle("line", px + 0.5, py + 0.5, C.BLOCK_SIZE - 1, C.BLOCK_SIZE - 1)
     love.graphics.setLineWidth(1)
-    love.graphics.setColor(1,1,1,1)
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 function Player:placeAtMouse(mx, my, z_override)
