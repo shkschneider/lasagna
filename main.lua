@@ -14,9 +14,6 @@ end
 
 function love.resize(width, height)
     G:resize(width, height)
-    if G.canvas then G.canvas:release() end
-    G.canvas = love.graphics.newCanvas(G.width, G.height)
-    G.canvas:setFilter("nearest", "nearest")
 end
 
 function love.keypressed(key)

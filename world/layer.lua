@@ -11,7 +11,6 @@ function Layer:new(z)
     self.heights = {}
     self.dirt_limit = {}
     self.stone_limit = {}
-    self.canvas = nil
 end
 
 function Layer:update(dt) end
@@ -53,7 +52,7 @@ function Layer:generate_terrain_range(x_start, x_end, freq, base, amp)
     end
 end
 
-function Layer:draw(cx)
+function Layer:draw()
     local alpha = 1
     local player = G:player()
     if player and type(player.z) == "number" and self.z < player.z then
@@ -63,12 +62,13 @@ function Layer:draw(cx)
     end
 
     -- Calculate visible columns
-    local left_col = math.floor(cx / C.BLOCK_SIZE)
-    local right_col = math.ceil((cx + G.width) / C.BLOCK_SIZE) + 1
+    local left_col = math.floor(G.cx / C.BLOCK_SIZE)
+    local right_col = math.ceil((G.cx + G.width) / C.BLOCK_SIZE) + 1
 
+    -- Draw directly without canvas to avoid shaky rendering
     love.graphics.push()
     love.graphics.origin()
-    love.graphics.translate(-cx, 0)
+    love.graphics.translate(-G.cx, 0)
 
     -- Draw visible columns
     for col = left_col, right_col do
