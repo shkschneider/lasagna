@@ -262,7 +262,8 @@ function Player:placeAtMouse(mx, my, z_override)
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
-    local z = z_override or self.z
+    -- Only allow editing on current layer
+    local z = self.z
     local target = G.world:get_block_type(z, col, row)
     if target ~= "air" then return false, "target not empty", z end
     local touches_existing = false
@@ -295,32 +296,23 @@ function Player:removeAtMouse(mx, my, z_override)
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
-    if z_override then
-        local z = z_override
-        local ok, msg = G.world:set_block(z, col, row, nil)
-        if ok then return true, msg, z end
-        local ok2, msg2 = G.world:set_block(z, col, row, "__empty")
-        if ok2 then return true, msg2, z end
-        return false, "nothing to remove", nil
+    -- Only allow editing on current layer
+    local z = self.z
+    local t = G.world:get_block_type(z, col, row)
+    if not t or t == "air" or t == "out" then
+        return false, "nothing to remove", z
     end
-    local layer_order = {1, 0, -1}
-    for _, z in ipairs(layer_order) do
-        local t = G.world:get_block_type(z, col, row)
-        if t and t ~= "air" and t ~= "out" then
-            local ok, msg = G.world:set_block(z, col, row, nil)
-            if ok then
-                log.info(string.format("Removed block at z=%d, col=%d, row=%d (overlay)", z, col, row))
-                return true, msg, z
-            end
-            local ok2, msg2 = G.world:set_block(z, col, row, "__empty")
-            if ok2 then
-                log.info(string.format("Marked procedural block removed at z=%d, col=%d, row=%d", z, col, row))
-                return true, msg2, z
-            end
-            return false, "failed to remove block at target layer", z
-        end
+    local ok, msg = G.world:set_block(z, col, row, nil)
+    if ok then
+        log.info(string.format("Removed block at z=%d, col=%d, row=%d", z, col, row))
+        return true, msg, z
     end
-    return false, "nothing to remove", nil
+    local ok2, msg2 = G.world:set_block(z, col, row, "__empty")
+    if ok2 then
+        log.info(string.format("Marked procedural block removed at z=%d, col=%d, row=%d", z, col, row))
+        return true, msg2, z
+    end
+    return false, "failed to remove block", z
 end
 
 return Player
