@@ -7,8 +7,25 @@
   - `world/`: layers entities ...
     - entities: player ...
     - layer: blocks ...
+    - seasons: seasonal evolution of day/night cycles ...
+    - weather: day/night cycle & sky colors ...
 - `lib/object`: new() / load() / update() / draw()
 - `lib/noise`: init() / perlin 1d/2d ...
+
+## Features
+
+### Seasons System
+The game includes a dynamic seasons system that affects gameplay:
+- **Four seasons**: Spring, Summer, Autumn, Winter
+- **Day/night cycle variations**: Longer days in summer, shorter days in winter
+- **Seasonal sky colors**: Each season has unique atmospheric tints
+- **Automatic progression**: Seasons change every 5 minutes of gameplay
+
+Each season has distinct characteristics:
+- **Spring**: Balanced day/night, slight green tint
+- **Summer**: Longer days (30% longer), shorter nights, brighter blue skies
+- **Autumn**: Balanced day/night, warm orange tones
+- **Winter**: Shorter days (30% shorter), longer nights, cool blue tint
 
 ## Run
 
