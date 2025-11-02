@@ -98,6 +98,10 @@ function Game:draw()
     self:player():draw()
     self:player():drawInventory()
     self:player():drawGhost()
+    -- Draw time display
+    if self.world and self.world.weather then
+        self.world.weather:draw_time()
+    end
     if self.debug then
         local col = math.floor((self.mx + self.cx) / C.BLOCK_SIZE) + 1
         local by = math.max(1, math.min(C.WORLD_HEIGHT, math.floor(self.my / C.BLOCK_SIZE) + 1))

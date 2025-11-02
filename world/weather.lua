@@ -8,18 +8,23 @@ local Weather = Object {
 
 function Weather:new()
     -- Day/night cycle state
-    self.time = 0  -- time accumulator in seconds
+    -- Start at noon (12:00) - half a day has passed
+    local total_cycle = C.DAY_DURATION + C.NIGHT_DURATION
+    self.game_time = (total_cycle / 2)  -- Start at 12:00 (noon)
+    self.time = self.game_time  -- time accumulator in current cycle
     self.state = Weather.DAY
+    log.info("Weather system initialized (starting at noon)")
 end
 
 function Weather:update(dt)
     self.time = self.time + dt
+    self.game_time = self.game_time + dt
 
     local cycle_duration = self.state == Weather.DAY and C.DAY_DURATION or C.NIGHT_DURATION
 
     if self.time >= cycle_duration then
         self.time = self.time - cycle_duration
-        self.state = Weather.NIGHT
+        self.state = self.state == Weather.DAY and Weather.NIGHT or Weather.DAY
         log.info(string.format("Time changed to: %s", self.state == Weather.DAY and "DAY" or "NIGHT"))
     end
 end
@@ -58,6 +63,53 @@ function Weather:draw()
     local r, g, b, a = self:get_sky_color()
     love.graphics.setColor(r, g, b, a)
     love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+    love.graphics.setColor(1, 1, 1, 1)
+end
+
+-- Get the in-game time as hours and minutes (24h format)
+-- Full cycle (day+night) = 24 hours in-game
+function Weather:get_time_24h()
+    local total_cycle = C.DAY_DURATION + C.NIGHT_DURATION  -- seconds for full day
+    local seconds_per_hour = total_cycle / 24  -- seconds per in-game hour
+    
+    -- Convert game time to hours (0-24)
+    local total_hours = (self.game_time / seconds_per_hour) % 24
+    local hours = math.floor(total_hours)
+    local minutes = math.floor((total_hours - hours) * 60)
+    
+    return hours, minutes
+end
+
+-- Get formatted time string (HH:MM)
+function Weather:get_time_string()
+    local hours, minutes = self:get_time_24h()
+    return string.format("%02d:%02d", hours, minutes)
+end
+
+-- Draw the time display in top-right corner
+function Weather:draw_time()
+    local time_str = self:get_time_string()
+    local padding = 10
+    local bg_padding = 6
+    
+    -- Measure text size
+    local font = love.graphics.getFont()
+    local text_width = font:getWidth(time_str)
+    local text_height = font:getHeight()
+    
+    -- Position in top-right
+    local screen_width = love.graphics.getWidth()
+    local x = screen_width - text_width - padding - bg_padding * 2
+    local y = padding
+    
+    -- Draw background
+    love.graphics.setColor(0, 0, 0, 0.6)
+    love.graphics.rectangle("fill", x, y, text_width + bg_padding * 2, text_height + bg_padding * 2, 4, 4)
+    
+    -- Draw time text
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.print(time_str, x + bg_padding, y + bg_padding)
+    
     love.graphics.setColor(1, 1, 1, 1)
 end
 
