@@ -1,7 +1,8 @@
 local Object = require("lib.object")
 local World = require("world.world")
 local Player = require("entities.player")
-local Blocks = require("world.blocks")
+local Blocks = require("data.blocks")
+local Items = require("data.items")
 local log = require("lib.log")
 
 local Game = Object {
@@ -104,9 +105,9 @@ function Game:drawTimeHUD()
     local text_height = font:getHeight()
     local x = self.width - text_width - padding - bg_padding * 2
     local y = padding
-    love.graphics.setColor(0, 0, 0, 0.6)
+    love.graphics.setColor(T.bg[1], T.bg[2], T.bg[3], (T.bg[4] or 1) * 0.5)
     love.graphics.rectangle("fill", x, y, text_width + bg_padding * 2, text_height + bg_padding * 2, 4, 4)
-    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1) * 1)
     love.graphics.print(time_str, x + bg_padding, y + bg_padding)
 end
 
@@ -135,13 +136,13 @@ function Game:draw()
         local line_h = 14
         local box_w = 420
         local box_h = #debug_lines * line_h + padding * 2
-        love.graphics.setColor(0, 0, 0, 0.6)
+        love.graphics.setColor(T.bg[1], T.bg[2], T.bg[3], (T.bg[4] or 1) * 0.5)
         love.graphics.rectangle("fill", 6, 6, box_w, box_h)
-        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1) * 1)
         for i, ln in ipairs(debug_lines) do
             love.graphics.print(ln, 10, 6 + padding + (i-1) * line_h)
         end
-        love.graphics.setColor(1,1,1,1)
+        love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1) * 1)
     end
 end
 

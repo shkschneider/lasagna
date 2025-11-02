@@ -1,7 +1,7 @@
 local Object = require("lib.object")
 local log = require("lib.log")
 local noise = require("lib.noise")
-local Blocks = require("world.blocks")
+local Blocks = require("data.blocks")
 
 local Layer = Object {}
 

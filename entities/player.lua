@@ -1,5 +1,6 @@
 local Object = require("lib.object")
-local Blocks = require("world.blocks")
+local Blocks = require("data.blocks")
+local Items = require("data.items")
 local Physics = require("world.physics")
 local Navigation = require("entities.components.navigation")
 local log = require("lib.log")
@@ -44,15 +45,13 @@ function Player:new()
             background_alpha = 0.6,
         },
     }
-    -- Initialize with 64 of each block type
-    local block_types = { Blocks.grass, Blocks.dirt, Blocks.stone }
-    for i, block in ipairs(block_types) do
-        if i <= self.inventory.slots then
-            self.inventory.items[i] = {
+    for _, block in pairs(Blocks) do
+        if #self.inventory.items < self.inventory.slots then
+            table.insert(self.inventory.items, {
                 proto = block,
                 count = C.MAX_STACK,
                 data = {}
-            }
+            })
         end
     end
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
@@ -178,6 +177,7 @@ end
 function Player:draw()
     local sx = (self.px - 1) * C.BLOCK_SIZE - G.cx
     local sy = (self.py - 1) * C.BLOCK_SIZE
+    love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1))
     love.graphics.rectangle("fill", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE)
 end
 

@@ -4,6 +4,7 @@ local log = require("lib.log")
 -- GLOBALS
 C = require("constants")
 G = Game()
+T = require("data.theme")
 
 function love.load()
     love.window.setMode(C.RESOLUTIONS.HD.width, C.RESOLUTIONS.HD.height,
