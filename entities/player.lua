@@ -49,7 +49,7 @@ function Player:new()
         if i <= self.inventory.slots then
             self.inventory.items[i] = {
                 proto = block,
-                count = 64,
+                count = C.MAX_STACK,
                 data = {}
             }
         end
@@ -275,13 +275,13 @@ function Player:placeAtMouse(mx, my, z_override)
     local selected = inv.selected or 1
     local item = inv.items and inv.items[selected]
     if not item then return false, "no item selected" end
-    
+
     -- Handle new inventory format: { proto, count, data }
     local proto = item.proto or item
     local count = item.count or 1
-    
+
     if count <= 0 then return false, "no items left" end
-    
+
     local world_px = mouse_x + G.cx
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
@@ -310,7 +310,7 @@ function Player:placeAtMouse(mx, my, z_override)
         return false, "must touch an existing block on the same layer", z
     end
     local ok, action = G.world:set_block(z, col, row, proto)
-    
+
     -- Decrement count on successful placement
     if ok and item.count then
         item.count = item.count - 1
@@ -318,7 +318,7 @@ function Player:placeAtMouse(mx, my, z_override)
             inv.items[selected] = nil
         end
     end
-    
+
     return ok, action, z
 end
 
