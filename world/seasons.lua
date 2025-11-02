@@ -45,7 +45,10 @@ function Seasons:new()
     self.current_season_index = 1  -- Start with first season (Spring)
     self.current_season = self.season_order[self.current_season_index]
     self.season_time = 0           -- Time elapsed in current season (seconds)
-    self.season_duration = C.SEASON_DURATION
+    -- Convert SEASON_DURATION from in-game days to seconds
+    -- One in-game day = DAY_DURATION + NIGHT_DURATION
+    local day_cycle_duration = C.DAY_DURATION + C.NIGHT_DURATION
+    self.season_duration = C.SEASON_DURATION * day_cycle_duration
 end
 
 -- Update season progression

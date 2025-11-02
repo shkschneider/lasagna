@@ -37,5 +37,5 @@ return {
     DAY_DURATION = 15,   -- seconds
     NIGHT_DURATION = 15, -- seconds
     -- seasons
-    SEASON_DURATION = 300, -- seconds (5 minutes per season, 20 minutes full cycle)
+    SEASON_DURATION = 100, -- in-game days per season (100 days = 3000 seconds, 400 days full cycle)
 }
