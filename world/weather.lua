@@ -8,17 +8,14 @@ local Weather = Object {
 
 function Weather:new()
     -- Day/night cycle state
-    -- Start at noon (12:00) - half a day has passed
-    local total_cycle = C.DAY_DURATION + C.NIGHT_DURATION
-    self.game_time = (total_cycle / 2)  -- Start at 12:00 (noon)
-    self.time = C.DAY_DURATION / 2  -- Half-way through the day cycle
+    -- Start at noon (12:00) - half-way through the day cycle
+    self.time = C.DAY_DURATION / 2  -- Half-way through the day (12:00)
     self.state = Weather.DAY
     log.info("Weather system initialized (starting at noon)")
 end
 
 function Weather:update(dt)
     self.time = self.time + dt
-    self.game_time = self.game_time + dt
 
     local cycle_duration = self.state == Weather.DAY and C.DAY_DURATION or C.NIGHT_DURATION
 
@@ -31,8 +28,11 @@ end
 
 -- Get the current sky color with smooth transition
 function Weather:get_sky_color()
-    local transition_duration = 5  -- seconds for smooth transition
     local cycle_duration = self.state == Weather.DAY and C.DAY_DURATION or C.NIGHT_DURATION
+    
+    -- Transition duration: 5 seconds or 10% of cycle, whichever is smaller
+    -- This prevents overly long transitions in shorter cycles
+    local transition_duration = math.min(5, cycle_duration * 0.1)
 
     local from_color = self.state == Weather.DAY and Weather.DAY or Weather.NIGHT
     local to_color = self.state == Weather.DAY and Weather.NIGHT or Weather.DAY
@@ -62,15 +62,29 @@ function Weather:draw()
 end
 
 -- Get the in-game time as hours and minutes (24h format)
--- Full cycle (day+night) = 24 hours in-game
+-- Day cycle: 06:00 to 18:00 (12 hours), Night cycle: 18:00 to 06:00 (12 hours)
 function Weather:get_time_24h()
-    local total_cycle = C.DAY_DURATION + C.NIGHT_DURATION  -- seconds for full day
-    local seconds_per_hour = total_cycle / 24  -- seconds per in-game hour
+    local day_start_hour = 6   -- Day starts at 06:00
+    local night_start_hour = 18  -- Night starts at 18:00
     
-    -- Convert game time to hours (0-24)
-    local total_hours = (self.game_time / seconds_per_hour) % 24
-    local hours = math.floor(total_hours)
-    local minutes = math.floor((total_hours - hours) * 60)
+    local hours, minutes
+    
+    if self.state == Weather.DAY then
+        -- During day: map time progress (0 to DAY_DURATION) to hours (6 to 18)
+        local day_progress = self.time / C.DAY_DURATION  -- 0.0 to 1.0
+        local day_hours = day_start_hour + (day_progress * 12)  -- 6 to 18
+        hours = math.floor(day_hours)
+        minutes = math.floor((day_hours - hours) * 60)
+    else
+        -- During night: map time progress (0 to NIGHT_DURATION) to hours (18 to 30, wrapping to 6)
+        local night_progress = self.time / C.NIGHT_DURATION  -- 0.0 to 1.0
+        local night_hours = night_start_hour + (night_progress * 12)  -- 18 to 30
+        if night_hours >= 24 then
+            night_hours = night_hours - 24  -- Wrap around midnight
+        end
+        hours = math.floor(night_hours)
+        minutes = math.floor((night_hours - hours) * 60)
+    end
     
     return hours, minutes
 end
