@@ -88,16 +88,38 @@ function Game:mousepressed(x, y, button, istouch, presses)
 end
 
 function Game:update(dt)
-    self.world:update(dt)
     self.cx = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE - self.width / 2
+    self.mx, self.my = love.mouse.getPosition()
+    -- world entities ...
+    self.world:update(dt)
+end
+
+function Game:drawTimeHUD()
+    if not self.world or not self.world.weather then return end
+    local time_str = self.world.weather:get_time_string()
+    local padding = 10
+    local bg_padding = 6
+    local font = love.graphics.getFont()
+    local text_width = font:getWidth(time_str)
+    local text_height = font:getHeight()
+    local x = self.width - text_width - padding - bg_padding * 2
+    local y = padding
+    love.graphics.setColor(0, 0, 0, 0.6)
+    love.graphics.rectangle("fill", x, y, text_width + bg_padding * 2, text_height + bg_padding * 2, 4, 4)
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.print(time_str, x + bg_padding, y + bg_padding)
 end
 
 function Game:draw()
+    -- world
     self.world:draw()
-    self.mx, self.my = love.mouse.getPosition()
+    -- player
     self:player():draw()
-    self:player():drawInventory()
-    self:player():drawGhost()
+    -- hud
+    self:player():drawInventory() -- bottom-center
+    self:drawTimeHUD() -- top-right
+    self:player():drawGhost() -- at mouse
+    -- debug
     if self.debug then
         local col = math.floor((self.mx + self.cx) / C.BLOCK_SIZE) + 1
         local by = math.max(1, math.min(C.WORLD_HEIGHT, math.floor(self.my / C.BLOCK_SIZE) + 1))
@@ -106,11 +128,9 @@ function Game:draw()
         local block_name = (type(block_type) == "table" and block_type.name) or tostring(block_type)
         local debug_lines = {}
         debug_lines[#debug_lines+1] = "[DEBUG]"
-        debug_lines[#debug_lines+1] = string.format("Inventory selected: %d / %d (mouse wheel)", self:player().inventory.selected, self:player().inventory.slots)
-        debug_lines[#debug_lines+1] = string.format("Mouse pixel: %.0f, %.0f", self.mx, self.my)
-        debug_lines[#debug_lines+1] = string.format("World col,row: %d, %d", col, by)
         debug_lines[#debug_lines+1] = string.format("Layer (player): %d", lz)
-        debug_lines[#debug_lines+1] = "Block: " .. block_name
+        debug_lines[#debug_lines+1] = string.format("Mouse: %.0f,%.0f %d,%d", self.mx, self.my, col, by)
+        debug_lines[#debug_lines+1] = string.format("Block: %s", block_name)
         local padding = 6
         local line_h = 14
         local box_w = 420

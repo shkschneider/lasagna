@@ -56,9 +56,9 @@ function Player:new()
         end
     end
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
-    
+
     -- Initialize Navigation component
-    self.navigation = Navigation.new(self, {})
+    self.navigation = Navigation(G.world, self)
 end
 
 function Player:is_grounded()
