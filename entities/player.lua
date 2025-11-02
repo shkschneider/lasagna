@@ -78,7 +78,9 @@ function Player:keypressed(key)
     end
 end
 
-function Player:update(dt)
+function Player:update(dt, world, player)
+    -- Ignore world and player parameters for the Player itself
+    
     -- Handle continuous input (movement keys)
     self.intent.left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
     self.intent.right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
@@ -336,14 +338,30 @@ function Player:removeAtMouse(mx, my, z_override)
     if not t or t == "air" or t == "out" then
         return false, "nothing to remove", z
     end
+    
+    -- Store the block type before removing it
+    local block_proto = t
+    
     local ok, msg = G.world:set_block(z, col, row, nil)
     if ok then
         log.info(string.format("Removed block at z=%d, col=%d, row=%d", z, col, row))
+        -- Spawn dropped item at the block's position
+        if block_proto and block_proto ~= "air" and block_proto ~= "out" then
+            local item_x = col - 1 + 0.25  -- Center the dropped item in the block
+            local item_y = row - 1 + 0.25
+            G.world:spawn_dropped_item(block_proto, item_x, item_y, z, 1)
+        end
         return true, msg, z
     end
     local ok2, msg2 = G.world:set_block(z, col, row, "__empty")
     if ok2 then
         log.info(string.format("Marked procedural block removed at z=%d, col=%d, row=%d", z, col, row))
+        -- Spawn dropped item for procedural blocks too
+        if block_proto and block_proto ~= "air" and block_proto ~= "out" then
+            local item_x = col - 1 + 0.25
+            local item_y = row - 1 + 0.25
+            G.world:spawn_dropped_item(block_proto, item_x, item_y, z, 1)
+        end
         return true, msg2, z
     end
     return false, "failed to remove block", z
