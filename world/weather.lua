@@ -2,12 +2,14 @@ local Object = require("lib.object")
 local log = require("lib.log")
 
 local Weather = Object {
-    -- Sky colors for different times of day
-    -- Sunrise: subtle yellowish tone that morphs into day blue
-    -- Sunset: blend of night dark with warm orange tone
-    SUNRISE = { 0.65, 0.75, 0.80, 1.0 },  -- subtle yellowish sky (soft warm tint on blue)
+    -- 05:00 - sunrise begins
+    -- 07:00 - full day
+    -- 17:00 - sunset begins
+    -- 19:00 - night begins
+    -- 00:00 - midnight (deepest black)
+    SUNRISE = { 0.52, 0.27, 0.17, 1.0 },  -- muted warm tone (night + orange glow)
     DAY = { 0.53, 0.81, 0.92, 1.0 },      -- light blue sky
-    SUNSET = { 0.52, 0.27, 0.17, 1.0 },   -- muted warm tone (night + orange glow)
+    SUNSET = { 0.52, 0.27, 0.17, 1.0 },   -- muted warm tone (orange glow + night)
     NIGHT = { 0.05, 0.05, 0.15, 1.0 },    -- dark night sky
     MIDNIGHT = { 0.01, 0.01, 0.05, 1.0 }, -- deep black for midnight
 }
@@ -21,9 +23,7 @@ end
 
 function Weather:update(dt)
     self.time = self.time + dt
-
     local cycle_duration = self.state == Weather.DAY and C.DAY_DURATION or C.NIGHT_DURATION
-
     if self.time >= cycle_duration then
         self.time = self.time - cycle_duration
         self.state = self.state == Weather.DAY and Weather.NIGHT or Weather.DAY
@@ -35,7 +35,6 @@ end
 function Weather:get_sky_color()
     local hours, minutes = self:get_time_24h()
     local time_decimal = hours + (minutes / 60.0)
-
     local color
     if time_decimal >= 5 and time_decimal < 7 then
         -- Sunrise: 05:00 to 07:00 (transition from night to sunrise to day)
