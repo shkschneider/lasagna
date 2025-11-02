@@ -38,7 +38,6 @@ function World:load()
 end
 
 function World:update(dt)
-    if type(Blocks.update) == "function" then Blocks.update(dt) end
     -- Update weather system
     if self.weather then
         self.weather:update(dt)
@@ -152,7 +151,7 @@ function World:draw()
     if self.weather then
         self.weather:draw()
     end
-    
+
     -- Calculate visible columns
     local left_col = math.floor(G.cx / C.BLOCK_SIZE)
     local right_col = math.ceil((G.cx + G.width) / C.BLOCK_SIZE) + 1

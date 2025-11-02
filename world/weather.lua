@@ -2,7 +2,11 @@ local Object = require("lib.object")
 local log = require("lib.log")
 
 local Weather = Object {
-    -- Sky colors for different times of day
+    -- 05:00 - sunrise begins
+    -- 07:00 - full day
+    -- 17:00 - sunset begins
+    -- 19:00 - night begins
+    -- 00:00 - midnight (deepest black)
     SUNRISE = { 1.0, 0.75, 0.4, 1.0 },   -- warm yellow/orange for sunrise
     DAY = { 0.53, 0.81, 0.92, 1.0 },     -- light blue sky
     SUNSET = { 1.0, 0.5, 0.2, 1.0 },     -- warm orange for sunset
@@ -15,7 +19,6 @@ function Weather:new()
     -- Start at noon (12:00) - half-way through the day cycle
     self.time = C.DAY_DURATION / 2  -- Half-way through the day (12:00)
     self.state = Weather.DAY
-    log.info("Weather system initialized (starting at noon)")
 end
 
 function Weather:update(dt)
@@ -34,16 +37,8 @@ end
 function Weather:get_sky_color()
     local hours, minutes = self:get_time_24h()
     local time_decimal = hours + (minutes / 60.0)
-    
-    -- Define key times and their colors
-    -- 05:00 - sunrise begins
-    -- 07:00 - full day
-    -- 17:00 - sunset begins  
-    -- 19:00 - night begins
-    -- 00:00 - midnight (deepest black)
-    
+
     local color
-    
     if time_decimal >= 5 and time_decimal < 7 then
         -- Sunrise: 05:00 to 07:00 (transition from night to sunrise to day)
         local t = (time_decimal - 5) / 2
@@ -82,7 +77,7 @@ function Weather:get_sky_color()
             else
                 midnight_time = time_decimal + 2   -- 2 to 4
             end
-            
+
             if midnight_time < 2 then
                 -- Approaching midnight: night to midnight
                 local t = midnight_time / 2
@@ -100,7 +95,7 @@ function Weather:get_sky_color()
         -- Default to night for any edge cases
         color = Weather.NIGHT
     end
-    
+
     return color[1], color[2], color[3], color[4]
 end
 
@@ -127,9 +122,7 @@ end
 function Weather:get_time_24h()
     local day_start_hour = 6   -- Day starts at 06:00
     local night_start_hour = 18  -- Night starts at 18:00
-    
     local hours, minutes
-    
     if self.state == Weather.DAY then
         -- During day: map time progress (0 to DAY_DURATION) to hours (6 to 18)
         local day_progress = self.time / C.DAY_DURATION  -- 0.0 to 1.0
@@ -146,7 +139,7 @@ function Weather:get_time_24h()
         hours = math.floor(night_hours)
         minutes = math.floor((night_hours - hours) * 60)
     end
-    
+
     return hours, minutes
 end
 
