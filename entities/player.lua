@@ -1,6 +1,7 @@
 local Object = require("lib.object")
 local Blocks = require("world.blocks")
 local Physics = require("world.physics")
+local Navigation = require("entities.components.navigation")
 local log = require("lib.log")
 
 -- Player state enums
@@ -55,6 +56,9 @@ function Player:new()
         end
     end
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
+    
+    -- Initialize Navigation component
+    self.navigation = Navigation.new(self, {})
 end
 
 function Player:is_grounded()
@@ -67,17 +71,9 @@ end
 
 function Player:keypressed(key)
     if key == "q" then
-        self.z = math.max(C.LAYER_MIN, self.z - 1)
-        local top = G.world:get_surface(self.z, math.floor(self.px)) or (C.WORLD_HEIGHT - 1)
-        self.py = top - self.height
-        self.vy = 0
-        log.info(string.format("Layer: %d", self.z))
+        self.navigation:switch_layer(-1, G.world)
     elseif key == "e" then
-        self.z = math.min(C.LAYER_MAX, self.z + 1)
-        local top = G.world:get_surface(self.z, math.floor(self.px)) or (C.WORLD_HEIGHT - 1)
-        self.py = top - self.height
-        self.vy = 0
-        log.info(string.format("Layer: %d", self.z))
+        self.navigation:switch_layer(1, G.world)
     elseif key == "space" or key == "up" then
         self.intent.jump = true
     end
