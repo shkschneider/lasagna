@@ -11,7 +11,7 @@ function Weather:new()
     -- Start at noon (12:00) - half a day has passed
     local total_cycle = C.DAY_DURATION + C.NIGHT_DURATION
     self.game_time = (total_cycle / 2)  -- Start at 12:00 (noon)
-    self.time = self.game_time  -- time accumulator in current cycle
+    self.time = C.DAY_DURATION / 2  -- Half-way through the day cycle
     self.state = Weather.DAY
     log.info("Weather system initialized (starting at noon)")
 end
@@ -84,33 +84,6 @@ end
 function Weather:get_time_string()
     local hours, minutes = self:get_time_24h()
     return string.format("%02d:%02d", hours, minutes)
-end
-
--- Draw the time display in top-right corner
-function Weather:draw_time()
-    local time_str = self:get_time_string()
-    local padding = 10
-    local bg_padding = 6
-    
-    -- Measure text size
-    local font = love.graphics.getFont()
-    local text_width = font:getWidth(time_str)
-    local text_height = font:getHeight()
-    
-    -- Position in top-right
-    local screen_width = love.graphics.getWidth()
-    local x = screen_width - text_width - padding - bg_padding * 2
-    local y = padding
-    
-    -- Draw background
-    love.graphics.setColor(0, 0, 0, 0.6)
-    love.graphics.rectangle("fill", x, y, text_width + bg_padding * 2, text_height + bg_padding * 2, 4, 4)
-    
-    -- Draw time text
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.print(time_str, x + bg_padding, y + bg_padding)
-    
-    love.graphics.setColor(1, 1, 1, 1)
 end
 
 return Weather

@@ -92,16 +92,39 @@ function Game:update(dt)
     self.cx = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE - self.width / 2
 end
 
+function Game:drawTimeHUD()
+    if not self.world or not self.world.weather then return end
+    
+    local time_str = self.world.weather:get_time_string()
+    local padding = 10
+    local bg_padding = 6
+    
+    -- Measure text size
+    local font = love.graphics.getFont()
+    local text_width = font:getWidth(time_str)
+    local text_height = font:getHeight()
+    
+    -- Position in top-right
+    local x = self.width - text_width - padding - bg_padding * 2
+    local y = padding
+    
+    -- Draw background
+    love.graphics.setColor(0, 0, 0, 0.6)
+    love.graphics.rectangle("fill", x, y, text_width + bg_padding * 2, text_height + bg_padding * 2, 4, 4)
+    
+    -- Draw time text
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.print(time_str, x + bg_padding, y + bg_padding)
+end
+
 function Game:draw()
     self.world:draw()
     self.mx, self.my = love.mouse.getPosition()
     self:player():draw()
     self:player():drawInventory()
     self:player():drawGhost()
-    -- Draw time display
-    if self.world and self.world.weather then
-        self.world.weather:draw_time()
-    end
+    -- Draw UI/HUD
+    self:drawTimeHUD()
     if self.debug then
         local col = math.floor((self.mx + self.cx) / C.BLOCK_SIZE) + 1
         local by = math.max(1, math.min(C.WORLD_HEIGHT, math.floor(self.my / C.BLOCK_SIZE) + 1))
