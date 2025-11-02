@@ -256,10 +256,15 @@ function Player:drawGhost()
     local mx, my = love.mouse.getPosition()
     if my >= inv_top then return end
     
-    -- Snap mouse position to grid for display
-    -- This keeps the ghost aligned to screen grid, not world grid
-    local px = math.floor(mx / C.BLOCK_SIZE) * C.BLOCK_SIZE
-    local py = math.floor(my / C.BLOCK_SIZE) * C.BLOCK_SIZE
+    -- Convert mouse screen position to world position
+    local world_px = mx + G.cx
+    local col = math.floor(world_px / C.BLOCK_SIZE) + 1
+    local row = math.floor(my / C.BLOCK_SIZE) + 1
+    row = math.max(1, math.min(C.WORLD_HEIGHT, row))
+    
+    -- Convert world grid position back to screen position
+    local px = (col - 1) * C.BLOCK_SIZE - G.cx
+    local py = (row - 1) * C.BLOCK_SIZE
     
     -- Draw ghost outline
     love.graphics.setColor(1, 1, 1, 1)
