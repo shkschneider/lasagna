@@ -251,21 +251,20 @@ function Player:drawGhost()
     local y0 = G.height - self.inventory.ui.slot_size - 20
     local bg_margin = 8
     local inv_top = y0 - bg_margin
-    
+
     -- Don't show ghost if mouse is over inventory
-    local mx, my = love.mouse.getPosition()
-    if my >= inv_top then return end
-    
+    if G.my >= inv_top then return end
+
     -- Convert mouse screen position to world position
-    local world_px = mx + G.cx
+    local world_px = G.mx + G.cx
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
-    local row = math.floor(my / C.BLOCK_SIZE) + 1
+    local row = math.floor(G.my / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
-    
+
     -- Convert world grid position back to screen position
     local px = (col - 1) * C.BLOCK_SIZE - G.cx
     local py = (row - 1) * C.BLOCK_SIZE
-    
+
     -- Draw ghost outline
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.setLineWidth(2)
