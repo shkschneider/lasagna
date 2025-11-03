@@ -6,6 +6,7 @@ local Player = require("entities.player")
 local Drop = require("entities.drop")
 local Layer = require("world.layer")
 local Weather = require("world.weather")
+local Lighting = require("lib.lighting")
 
 local World = Object {
     player = function (self)
@@ -19,6 +20,7 @@ function World:new(seed)
     self.layers = {}
     self.entities = {}
     self.weather = Weather()
+    self.lighting = Lighting()
 end
 
 function World:load()
@@ -42,7 +44,52 @@ function World:update(dt)
     -- Update weather system
     if self.weather then
         self.weather:update(dt)
+        
+        -- Update ambient lighting based on time of day
+        if self.lighting then
+            local hours, minutes = self.weather:get_time_24h()
+            local time_decimal = hours + (minutes / 60.0)
+            
+            -- Calculate ambient light level based on time
+            -- Full brightness during day (7:00-17:00)
+            -- Reduced brightness at night
+            local ambient_level = 1.0
+            if time_decimal >= 7 and time_decimal < 17 then
+                ambient_level = 1.0  -- Full daylight
+            elseif time_decimal >= 5 and time_decimal < 7 then
+                -- Sunrise: 5:00-7:00
+                local t = (time_decimal - 5) / 2
+                ambient_level = 0.15 + (0.85 * t)
+            elseif time_decimal >= 17 and time_decimal < 19 then
+                -- Sunset: 17:00-19:00
+                local t = (time_decimal - 17) / 2
+                ambient_level = 1.0 - (0.85 * t)
+            else
+                -- Night time: very low ambient light
+                ambient_level = 0.15
+            end
+            
+            self.lighting:set_ambient_light(ambient_level)
+        end
     end
+    
+    -- Update lighting system
+    if self.lighting then
+        -- Clear dynamic lights each frame
+        self.lighting:clear_lights()
+        
+        -- Add player light source
+        local player = self:player()
+        if player then
+            -- Player position is in world blocks, light at center of player
+            local light_x = player.px + player.width / 2
+            local light_y = player.py + player.height / 2
+            self.lighting:add_light(light_x, light_y, player.z, 0.9, 12)
+        end
+        
+        self.lighting:update(dt)
+    end
+    
     -- Entities handle their own update logic
     -- Use reverse iteration to safely remove entities during update
     for i = #self.entities, 1, -1 do

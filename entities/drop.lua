@@ -97,14 +97,23 @@ function Drop:draw()
     local sx = (self.px - 1) * C.BLOCK_SIZE - G.cx
     local sy = (self.py - 1) * C.BLOCK_SIZE
 
+    -- Calculate lighting for this drop
+    local light_level = 1.0
+    if G.world and G.world.lighting then
+        -- Drop center position for lighting calculation
+        local drop_x = self.px + self.width / 2
+        local drop_y = self.py + self.height / 2
+        light_level = G.world.lighting:get_light_level(drop_x, drop_y, self.z)
+    end
+
     -- Draw the item as a smaller version of the block
     if self.proto and self.proto.color then
         local c = self.proto.color
-        love.graphics.setColor(c[1], c[2], c[3], c[4] or 1)
+        love.graphics.setColor(c[1] * light_level, c[2] * light_level, c[3] * light_level, c[4] or 1)
         love.graphics.rectangle("fill", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE, 2, 2)
 
         -- Draw a subtle outline
-        love.graphics.setColor(1, 1, 1, 0.5)
+        love.graphics.setColor(light_level, light_level, light_level, 0.5)
         love.graphics.rectangle("line", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE, 2, 2)
     end
 

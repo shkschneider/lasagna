@@ -79,12 +79,28 @@ function Layer:draw()
                 if proto ~= nil then
                     local px = (col - 1) * C.BLOCK_SIZE
                     local py = (row - 1) * C.BLOCK_SIZE
+                    
+                    -- Calculate lighting for this block
+                    local light_level = 1.0
+                    if G.world and G.world.lighting then
+                        -- Block center position for lighting calculation
+                        local block_x = col + 0.5
+                        local block_y = row + 0.5
+                        light_level = G.world.lighting:get_light_level(block_x, block_y, self.z)
+                    end
+                    
                     if type(proto.draw) == "function" then
-                        love.graphics.setColor(1, 1, 1, alpha)
+                        love.graphics.setColor(light_level, light_level, light_level, alpha)
                         proto:draw(px, py, C.BLOCK_SIZE)
                     elseif proto.color and love and love.graphics then
                         local c = proto.color
-                        love.graphics.setColor(c[1], c[2], c[3], (c[4] or 1) * alpha)
+                        -- Apply lighting by multiplying color values
+                        love.graphics.setColor(
+                            c[1] * light_level, 
+                            c[2] * light_level, 
+                            c[3] * light_level, 
+                            (c[4] or 1) * alpha
+                        )
                         love.graphics.rectangle("fill", px, py, C.BLOCK_SIZE, C.BLOCK_SIZE)
                     end
                 end
