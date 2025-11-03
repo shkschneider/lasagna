@@ -156,6 +156,8 @@ function Game:draw()
         -- Draw light radius visualization around player
         local player = self:player()
         local light_radius = 12  -- blocks (matches the light source radius)
+        -- Player light is at (px + width/2, py + height/2) in 1-indexed world coords
+        -- Convert to screen pixels: subtract 1 for 0-indexed, multiply by BLOCK_SIZE, subtract camera
         local px = (player.px + player.width / 2 - 1) * C.BLOCK_SIZE - self.cx
         local py = (player.py + player.height / 2 - 1) * C.BLOCK_SIZE
         love.graphics.setColor(1, 1, 0, 0.3)
