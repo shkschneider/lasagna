@@ -13,8 +13,10 @@ local Game = Object {
     camera = nil,
     -- mouse
     mx, my = 0, 0,
-    -- shader
-    shader = nil,
+    -- shaders
+    player_shader = nil,
+    sun_shader = nil,
+    combined_shader = nil,
     -- ...
     player = function (self)
         return self.world.entities[1]
@@ -35,8 +37,10 @@ function Game:new()
     self.camera = Camera()
     self.mx, self.my = 0, 0
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
-    -- Load shader
-    self.shader = love.graphics.newShader("shaders/player.glsl")
+    -- Load shaders
+    self.player_shader = love.graphics.newShader("shaders/player.glsl")
+    self.sun_shader = love.graphics.newShader("shaders/sun.glsl")
+    self.combined_shader = love.graphics.newShader("shaders/combined.glsl")
 end
 
 function Game:load(seed)
@@ -123,20 +127,56 @@ function Game:drawTimeHUD()
     love.graphics.print(time_str, x + bg_padding, y + bg_padding)
 end
 
+function Game:get_sun_params()
+    if not self.world or not self.world.weather then
+        return 0.5, 0.0  -- Default: mid-day, no angle
+    end
+    
+    local hours, minutes = self.world.weather:get_time_24h()
+    local time_decimal = hours + (minutes / 60.0)
+    
+    local sun_intensity, sun_angle
+    
+    if time_decimal >= 6 and time_decimal < 12 then
+        -- Morning: 06:00 to 12:00 (sunrise to noon)
+        local t = (time_decimal - 6) / 6
+        sun_intensity = 0.1 + (t * 0.9)  -- 0.1 to 1.0
+        sun_angle = -1.57 + (t * 1.57)   -- -90° to 0° (rising from east)
+    elseif time_decimal >= 12 and time_decimal < 18 then
+        -- Afternoon: 12:00 to 18:00 (noon to sunset)
+        local t = (time_decimal - 12) / 6
+        sun_intensity = 1.0 - (t * 0.9)  -- 1.0 to 0.1
+        sun_angle = t * 1.57             -- 0° to 90° (setting to west)
+    else
+        -- Night: 18:00 to 06:00
+        sun_intensity = 0.05  -- Very low ambient light at night
+        sun_angle = 0.0
+    end
+    
+    return sun_intensity, sun_angle
+end
+
+
 function Game:draw()
-    -- Apply shader
-    if self.shader then
-        love.graphics.setShader(self.shader)
+    -- Apply combined lighting shader
+    if self.combined_shader then
+        love.graphics.setShader(self.combined_shader)
 
         -- Calculate player screen position
         local cx = self.camera:get_x()
         local player_screen_x = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE - cx
         local player_screen_y = (self:player().py + self:player().height / 2) * C.BLOCK_SIZE
 
-        -- Set shader uniforms
-        self.shader:send("player_pos", {player_screen_x, player_screen_y})
-        self.shader:send("light_radius", 300.0)
-        self.shader:send("ambient_strength", 0.15)
+        -- Get sun parameters based on time of day
+        local sun_intensity, sun_angle = self:get_sun_params()
+
+        -- Set shader uniforms for player light
+        self.combined_shader:send("player_pos", {player_screen_x, player_screen_y})
+        self.combined_shader:send("player_radius", 300.0)
+        
+        -- Set shader uniforms for sun light
+        self.combined_shader:send("sun_intensity", sun_intensity)
+        self.combined_shader:send("sun_angle", sun_angle)
     end
 
     -- world
@@ -145,7 +185,7 @@ function Game:draw()
     self:player():draw()
 
     -- Reset shader before drawing HUD
-    if self.shader then
+    if self.combined_shader then
         love.graphics.setShader()
     end
 
@@ -161,11 +201,13 @@ function Game:draw()
         local lz = self:player().z
         local block_type = self.world:get_block_type(lz, col, by)
         local block_name = (type(block_type) == "table" and block_type.name) or tostring(block_type)
+        local sun_intensity, sun_angle = self:get_sun_params()
         local debug_lines = {}
         debug_lines[#debug_lines+1] = "[DEBUG]"
         debug_lines[#debug_lines+1] = string.format("Layer (player): %d", lz)
         debug_lines[#debug_lines+1] = string.format("Mouse: %.0f,%.0f %d,%d", self.mx, self.my, col, by)
         debug_lines[#debug_lines+1] = string.format("Block: %s", block_name)
+        debug_lines[#debug_lines+1] = string.format("Sun: %.2f @ %.2f rad", sun_intensity, sun_angle)
         local padding = 6
         local line_h = 14
         local box_w = 420
