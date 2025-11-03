@@ -35,9 +35,14 @@ function Lighting:create_canvases(width, height)
     self.occlusion_canvas = love.graphics.newCanvas(width, height)
     self.occlusion_canvas:setFilter("nearest", "nearest")
     
-    -- Create canvas for lighting overlay
+    -- Create canvas for lighting overlay and initialize it to transparent
     self.lighting_canvas = love.graphics.newCanvas(width, height)
     self.lighting_canvas:setFilter("linear", "linear")
+    
+    -- Initialize lighting canvas to transparent (no darkness)
+    love.graphics.setCanvas(self.lighting_canvas)
+    love.graphics.clear(0, 0, 0, 0)  -- Transparent black
+    love.graphics.setCanvas()
     
     log.info(string.format("Created lighting canvases: %dx%d", width, height))
 end
@@ -191,7 +196,8 @@ end
 
 -- Draw the lighting overlay on top of the world
 function Lighting:draw()
-    if self.lighting_canvas then
+    -- Only draw if shader is loaded and canvas exists
+    if self.lighting_canvas and self.shader then
         love.graphics.setColor(1, 1, 1, 1)
         love.graphics.setBlendMode("multiply", "premultiplied")
         love.graphics.draw(self.lighting_canvas, 0, 0)
