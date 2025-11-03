@@ -20,7 +20,8 @@ float calculate_occlusion(vec2 light_pos, vec2 pixel_pos) {
     dir = dir / dist;  // Normalize
     
     // Sample along the ray to check for occlusion
-    int samples = min(int(dist / 4.0), MAX_SAMPLES);  // Sample every 4 pixels
+    float sample_count = dist / 4.0;  // Sample every 4 pixels
+    int samples = int(min(sample_count, float(MAX_SAMPLES)));
     if (samples < 2) samples = 2;
     
     for (int i = 1; i < samples; i++) {
@@ -45,11 +46,8 @@ float calculate_occlusion(vec2 light_pos, vec2 pixel_pos) {
 }
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-    // Start with darkness based on ambient light
-    float darkness = 1.0 - ambient_light;
-    
     // Calculate contribution from each light source
-    float total_light = ambient_light;
+    float total_light = 0.0;  // Start with no light, add ambient and sources
     
     for (int i = 0; i < num_lights && i < 32; i++) {
         vec2 light_pos = light_positions[i].xy;
@@ -74,6 +72,9 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
             total_light = max(total_light, light_contribution);
         }
     }
+    
+    // Add ambient light (minimum light level)
+    total_light = max(total_light, ambient_light);
     
     // Clamp light level
     total_light = clamp(total_light, 0.0, 1.0);
