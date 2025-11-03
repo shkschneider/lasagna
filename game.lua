@@ -36,17 +36,7 @@ function Game:new()
     self.mx, self.my = 0, 0
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
     -- Load shader
-    local shader_path = "shaders/lighting.glsl"
-    local success, result = pcall(function()
-        return love.graphics.newShader(shader_path)
-    end)
-    if success then
-        self.shader = result
-        log.info("Lighting shader loaded successfully")
-    else
-        log.warn("Failed to load shader: " .. tostring(result))
-        self.shader = nil
-    end
+    self.shader = love.graphics.newShader("shaders/player.glsl")
 end
 
 function Game:load(seed)
@@ -137,28 +127,28 @@ function Game:draw()
     -- Apply shader
     if self.shader then
         love.graphics.setShader(self.shader)
-        
+
         -- Calculate player screen position
         local cx = self.camera:get_x()
         local player_screen_x = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE - cx
         local player_screen_y = (self:player().py + self:player().height / 2) * C.BLOCK_SIZE
-        
+
         -- Set shader uniforms
         self.shader:send("player_pos", {player_screen_x, player_screen_y})
         self.shader:send("light_radius", 300.0)
         self.shader:send("ambient_strength", 0.15)
     end
-    
+
     -- world
     self.world:draw()
     -- player
     self:player():draw()
-    
+
     -- Reset shader before drawing HUD
     if self.shader then
         love.graphics.setShader()
     end
-    
+
     -- hud
     self:player():drawInventory() -- bottom-center
     self:drawTimeHUD() -- top-right
