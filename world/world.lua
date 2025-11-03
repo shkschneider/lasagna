@@ -84,7 +84,7 @@ function World:update(dt)
             -- Player position is in world blocks, light at center of player
             local light_x = player.px + player.width / 2
             local light_y = player.py + player.height / 2
-            self.lighting:add_light(light_x, light_y, player.z, 0.9, 12)
+            self.lighting:add_light(light_x, light_y, player.z, C.PLAYER_LIGHT_INTENSITY, C.PLAYER_LIGHT_RADIUS)
         end
         
         self.lighting:update(dt)

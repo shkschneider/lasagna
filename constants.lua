@@ -36,4 +36,7 @@ return {
     -- day/night cycle
     DAY_DURATION = 60,   -- seconds
     NIGHT_DURATION = 30, -- seconds
+    -- lighting
+    PLAYER_LIGHT_INTENSITY = 0.9,  -- player light brightness (0.0-1.0)
+    PLAYER_LIGHT_RADIUS = 12,      -- player light radius in blocks
 }
