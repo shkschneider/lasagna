@@ -3,6 +3,7 @@ local Blocks = require("data.blocks")
 local Items = require("data.items")
 local Physics = require("world.physics")
 local Navigation = require("entities.components.navigation")
+local Gravity = require("entities.components.gravity")
 local log = require("lib.log")
 
 -- Player state enums
@@ -45,19 +46,17 @@ function Player:new()
             background_alpha = 0.6,
         },
     }
-    for _, block in pairs(Blocks) do
-        if #self.inventory.items < self.inventory.slots then
-            table.insert(self.inventory.items, {
-                proto = block,
-                count = C.MAX_STACK,
-                data = {}
-            })
-        end
-    end
+    -- Start with only 64 cobblestone
+    table.insert(self.inventory.items, {
+        proto = Blocks.cobblestone,
+        count = 64,
+        data = {}
+    })
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
 
-    -- Initialize Navigation component
+    -- Initialize components
     self.navigation = Navigation(G.world, self)
+    self.gravity = Gravity(self)
 end
 
 function Player:is_grounded()
@@ -78,7 +77,9 @@ function Player:keypressed(key)
     end
 end
 
-function Player:update(dt)
+function Player:update(dt, world, player)
+    -- Ignore world and player parameters for the Player itself
+    
     -- Handle continuous input (movement keys)
     self.intent.left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
     self.intent.right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
@@ -135,7 +136,8 @@ function Player:update(dt)
         self.intent.jump = false
     end
 
-    self.vy = self.vy + C.GRAVITY * dt
+    -- Apply gravity using component
+    self.gravity:update(dt)
     local dx = self.vx * dt
     local dy = self.vy * dt
     Physics.move(self, dx, dy, G.world)
@@ -336,15 +338,31 @@ function Player:removeAtMouse(mx, my, z_override)
     if not t or t == "air" or t == "out" then
         return false, "nothing to remove", z
     end
+    
+    -- Store the block type before removing it
+    local block_proto = t
+    
     local ok, msg = G.world:set_block(z, col, row, nil)
-    if ok then
+    if not ok then
+        ok, msg = G.world:set_block(z, col, row, "__empty")
+        if ok then
+            log.info(string.format("Marked procedural block removed at z=%d, col=%d, row=%d", z, col, row))
+        end
+    else
         log.info(string.format("Removed block at z=%d, col=%d, row=%d", z, col, row))
-        return true, msg, z
     end
-    local ok2, msg2 = G.world:set_block(z, col, row, "__empty")
-    if ok2 then
-        log.info(string.format("Marked procedural block removed at z=%d, col=%d, row=%d", z, col, row))
-        return true, msg2, z
+    
+    -- Spawn dropped item if removal was successful
+    if ok and block_proto and block_proto ~= "air" and block_proto ~= "out" then
+        -- Spawn at center of block: block is at column col (1-indexed), occupies [col, col+1)
+        -- Item is 0.5 wide, so to center it: col + (1 - 0.5) / 2 = col + 0.25
+        local item_x = col + 0.25
+        local item_y = row + 0.25
+        G.world:spawn_dropped_item(block_proto, item_x, item_y, z, 1)
+    end
+    
+    if ok then
+        return true, msg, z
     end
     return false, "failed to remove block", z
 end
