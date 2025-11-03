@@ -55,7 +55,7 @@ function Lighting:get_light_level(x, y, z)
             
             if distance < light.radius then
                 -- Quadratic falloff: light decreases with square of distance
-                local falloff = math.pow(1.0 - (distance / light.radius), 2)
+                local falloff = (1.0 - (distance / light.radius)) ^ 2
                 local light_contribution = light.intensity * falloff
                 
                 -- Take the maximum light level from any source
