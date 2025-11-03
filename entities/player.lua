@@ -3,6 +3,7 @@ local Blocks = require("data.blocks")
 local Items = require("data.items")
 local Physics = require("world.physics")
 local Navigation = require("entities.components.navigation")
+local Gravity = require("entities.components.gravity")
 local log = require("lib.log")
 
 -- Player state enums
@@ -53,8 +54,9 @@ function Player:new()
     })
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
 
-    -- Initialize Navigation component
+    -- Initialize components
     self.navigation = Navigation(G.world, self)
+    self.gravity = Gravity(self)
 end
 
 function Player:is_grounded()
@@ -134,7 +136,8 @@ function Player:update(dt, world, player)
         self.intent.jump = false
     end
 
-    self.vy = self.vy + C.GRAVITY * dt
+    -- Apply gravity using component
+    self.gravity:update(dt)
     local dx = self.vx * dt
     local dy = self.vy * dt
     Physics.move(self, dx, dy, G.world)
@@ -351,8 +354,10 @@ function Player:removeAtMouse(mx, my, z_override)
     
     -- Spawn dropped item if removal was successful
     if ok and block_proto and block_proto ~= "air" and block_proto ~= "out" then
-        local item_x = col - 1 + C.ITEM_DROP_OFFSET  -- Spawn at center of destroyed block
-        local item_y = row - 1 + C.ITEM_DROP_OFFSET
+        -- Spawn at center of block: block is at column col (1-indexed), occupies [col, col+1)
+        -- Item is 0.5 wide, so to center it: col + (1 - 0.5) / 2 = col + 0.25
+        local item_x = col + 0.25
+        local item_y = row + 0.25
         G.world:spawn_dropped_item(block_proto, item_x, item_y, z, 1)
     end
     

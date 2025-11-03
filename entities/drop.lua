@@ -1,4 +1,6 @@
 local Object = require("lib.object")
+local Physics = require("world.physics")
+local Gravity = require("entities.components.gravity")
 
 local Drop = Object {}
 
@@ -14,6 +16,9 @@ function Drop:new(proto, px, py, z, count)
     self.lifetime = 0   -- Tracks how long the item has existed
     self.max_lifetime = 60  -- Despawn after 60 seconds
     self.collection_range = 1.0  -- Distance at which player can collect
+    
+    -- Initialize gravity component
+    self.gravity = Gravity(self)
 end
 
 function Drop:update(dt, world, player)
@@ -24,30 +29,12 @@ function Drop:update(dt, world, player)
         return false  -- Signal to world that this entity should be removed
     end
 
-    -- Simple physics - just apply gravity
-    self.vy = self.vy + C.GRAVITY * dt
+    -- Apply gravity using component
+    self.gravity:update(dt)
+    
+    -- Apply physics movement (handles collision detection properly)
     local dy = self.vy * dt
-
-    -- Simple ground check - stop falling when hitting solid ground
-    local below_row = math.floor(self.py + self.height + dy)
-    local left_col = math.floor(self.px)
-    local right_col = math.floor(self.px + self.width)
-
-    local hit_ground = false
-    for col = left_col, right_col do
-        if world:is_solid(self.z, col, below_row) then
-            hit_ground = true
-            break
-        end
-    end
-
-    if hit_ground then
-        self.vy = 0
-        -- Snap to ground
-        self.py = math.floor(self.py + self.height) - self.height
-    else
-        self.py = self.py + dy
-    end
+    Physics.move(self, 0, dy, world)
 
     -- Check if player is nearby and can collect
     if player and player.z == self.z and player.inventory then
@@ -105,6 +92,8 @@ function Drop:update(dt, world, player)
 end
 
 function Drop:draw()
+    -- Position is already in 1-indexed world coordinates
+    -- Drawing needs to convert to screen pixels
     local sx = (self.px - 1) * C.BLOCK_SIZE - G.cx
     local sy = (self.py - 1) * C.BLOCK_SIZE
 
