@@ -37,6 +37,13 @@ function World:load()
     end
     -- player
     self.entities = { Player() }
+    
+    -- Initialize lighting system
+    if self.lighting then
+        self.lighting:load_shader()
+        self.lighting:create_canvases(G.width, G.height)
+    end
+    
     log.info(string.format("World[%d] loaded", self.seed))
 end
 
@@ -220,6 +227,7 @@ function World:draw()
     -- Calculate visible columns
     local left_col = math.floor(G.cx / C.BLOCK_SIZE)
     local right_col = math.ceil((G.cx + G.width) / C.BLOCK_SIZE) + 1
+    
     -- Draw each layer
     for z = C.LAYER_MIN, C.LAYER_MAX do
         local layer = self.layers[z]
@@ -243,7 +251,14 @@ function World:draw()
             end
         end
 
-        if z == self:player().z then return end
+        if z == self:player().z then
+            -- Generate occlusion map for shader-based lighting
+            if self.lighting and self.lighting.shader then
+                self.lighting:generate_occlusion_map(self, G.cx, G.width, G.height, self:player().z)
+                self.lighting:render_lighting_overlay(G.width, G.height, G.cx)
+            end
+            return
+        end
     end
 end
 

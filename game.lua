@@ -53,6 +53,10 @@ end
 
 function Game:resize(width, height)
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
+    -- Recreate lighting canvases for new size
+    if self.world and self.world.lighting then
+        self.world.lighting:create_canvases(self.width, self.height)
+    end
     log.info(string.format("Resized: %dx%d", self.width, self.height))
 end
 
@@ -116,6 +120,10 @@ function Game:draw()
     self.world:draw()
     -- player
     self:player():draw()
+    -- Apply lighting overlay (shader-based darkness with light cutouts)
+    if self.world and self.world.lighting then
+        self.world.lighting:draw()
+    end
     -- hud
     self:player():drawInventory() -- bottom-center
     self:drawTimeHUD() -- top-right
@@ -142,6 +150,7 @@ function Game:draw()
         debug_lines[#debug_lines+1] = string.format("Mouse: %.0f,%.0f %d,%d", self.mx, self.my, col, by)
         debug_lines[#debug_lines+1] = string.format("Block: %s", block_name)
         debug_lines[#debug_lines+1] = string.format("Light: %.2f (ambient: %.2f)", mouse_light, self.world.lighting.ambient_light)
+        debug_lines[#debug_lines+1] = string.format("Shader: %s", self.world.lighting.shader and "enabled" or "disabled")
         local padding = 6
         local line_h = 14
         local box_w = 420
