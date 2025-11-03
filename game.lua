@@ -13,6 +13,9 @@ local Game = Object {
     camera = nil,
     -- mouse
     mx, my = 0, 0,
+    -- shader
+    shader = nil,
+    shader_enabled = false,
     -- ...
     player = function (self)
         return self.world.entities[1]
@@ -33,6 +36,19 @@ function Game:new()
     self.camera = Camera()
     self.mx, self.my = 0, 0
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
+    -- Load shader (but don't enable by default)
+    self.shader_enabled = false
+    local shader_path = "shaders/lighting.glsl"
+    local success, result = pcall(function()
+        return love.graphics.newShader(shader_path)
+    end)
+    if success then
+        self.shader = result
+        log.info("Lighting shader loaded successfully")
+    else
+        log.warn("Failed to load shader: " .. tostring(result))
+        self.shader = nil
+    end
 end
 
 function Game:load(seed)
@@ -65,6 +81,14 @@ function Game:keypressed(key)
             log.level = "debug"
         else
             log.level = "info"
+        end
+    elseif key == "l" then
+        -- Toggle lighting shader
+        if self.shader then
+            self.shader_enabled = not self.shader_enabled
+            log.info("Lighting shader " .. (self.shader_enabled and "enabled" or "disabled"))
+        else
+            log.warn("Shader not loaded, cannot toggle")
         end
     else
         -- Delegate player controls to Player
@@ -120,10 +144,32 @@ function Game:drawTimeHUD()
 end
 
 function Game:draw()
+    -- Apply shader if enabled
+    if self.shader_enabled and self.shader then
+        love.graphics.setShader(self.shader)
+        
+        -- Calculate player screen position
+        local cx = self.camera:get_x()
+        local player_screen_x = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE - cx
+        local player_screen_y = (self:player().py + self:player().height / 2) * C.BLOCK_SIZE
+        
+        -- Set shader uniforms
+        self.shader:send("player_pos", {player_screen_x, player_screen_y})
+        self.shader:send("light_radius", 300.0)
+        self.shader:send("ambient_color", {0.2, 0.2, 0.3})
+        self.shader:send("ambient_strength", 0.15)
+    end
+    
     -- world
     self.world:draw()
     -- player
     self:player():draw()
+    
+    -- Reset shader before drawing HUD
+    if self.shader_enabled and self.shader then
+        love.graphics.setShader()
+    end
+    
     -- hud
     self:player():drawInventory() -- bottom-center
     self:drawTimeHUD() -- top-right
@@ -141,6 +187,7 @@ function Game:draw()
         debug_lines[#debug_lines+1] = string.format("Layer (player): %d", lz)
         debug_lines[#debug_lines+1] = string.format("Mouse: %.0f,%.0f %d,%d", self.mx, self.my, col, by)
         debug_lines[#debug_lines+1] = string.format("Block: %s", block_name)
+        debug_lines[#debug_lines+1] = string.format("Shader: %s", self.shader_enabled and "ON" or "OFF")
         local padding = 6
         local line_h = 14
         local box_w = 420
