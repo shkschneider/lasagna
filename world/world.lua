@@ -171,8 +171,9 @@ function World:draw()
     end
 
     -- Calculate visible columns
-    local left_col = math.floor(G.cx / C.BLOCK_SIZE)
-    local right_col = math.ceil((G.cx + G.width) / C.BLOCK_SIZE) + 1
+    local cx = G.camera:get_x()
+    local left_col = math.floor(cx / C.BLOCK_SIZE)
+    local right_col = math.ceil((cx + G.width) / C.BLOCK_SIZE) + 1
     -- Draw each layer
     for z = C.LAYER_MIN, C.LAYER_MAX do
         local layer = self.layers[z]

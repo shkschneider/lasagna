@@ -94,7 +94,8 @@ end
 function Drop:draw()
     -- Position is already in 1-indexed world coordinates
     -- Drawing needs to convert to screen pixels
-    local sx = (self.px - 1) * C.BLOCK_SIZE - G.cx
+    local cx = G.camera:get_x()
+    local sx = (self.px - 1) * C.BLOCK_SIZE - cx
     local sy = (self.py - 1) * C.BLOCK_SIZE
 
     -- Draw the item as a smaller version of the block

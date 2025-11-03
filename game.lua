@@ -1,4 +1,5 @@
 local Object = require("lib.object")
+local Camera = require("camera")
 local World = require("world.world")
 local Player = require("entities.player")
 local Blocks = require("data.blocks")
@@ -9,7 +10,7 @@ local Game = Object {
     -- window
     width = 0, height = 0,
     -- camera
-    cx, cy = 0, 0,
+    camera = nil,
     -- mouse
     mx, my = 0, 0,
     -- ...
@@ -29,7 +30,8 @@ function Game:new()
     end
     -- UI / runtime state
     self.world = nil
-    self.cx = 0
+    self.camera = Camera()
+    self.mx, self.my = 0, 0
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
 end
 
@@ -52,7 +54,7 @@ function Game:load(seed)
 end
 
 function Game:resize(width, height)
-    self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
+    self.width, self.height = width, height
     log.info(string.format("Resized: %dx%d", self.width, self.height))
 end
 
@@ -74,6 +76,10 @@ function Game:wheelmoved(x, y)
     self:player():wheelmoved(x, y)
 end
 
+function Game:mousemoved(x, y, dx, dy, istouch)
+    self.mx, self.my = x, y
+end
+
 function Game:mousepressed(x, y, button, istouch, presses)
     if self:player().placeAtMouse and (button == 2 or button == "r") then
         local ok, err, z_changed = self:player():placeAtMouse(x, y)
@@ -89,8 +95,10 @@ function Game:mousepressed(x, y, button, istouch, presses)
 end
 
 function Game:update(dt)
-    self.cx = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE - self.width / 2
-    self.mx, self.my = love.mouse.getPosition()
+    -- Update camera to follow player
+    local target_x = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE
+    local target_y = 0
+    self.camera:follow(target_x, target_y, self.width, self.height)
     -- world entities ...
     self.world:update(dt)
 end
@@ -122,7 +130,8 @@ function Game:draw()
     self:player():drawGhost() -- at mouse
     -- debug
     if self.debug then
-        local col = math.floor((self.mx + self.cx) / C.BLOCK_SIZE) + 1
+        local cx = self.camera:get_x()
+        local col = math.floor((self.mx + cx) / C.BLOCK_SIZE) + 1
         local by = math.max(1, math.min(C.WORLD_HEIGHT, math.floor(self.my / C.BLOCK_SIZE) + 1))
         local lz = self:player().z
         local block_type = self.world:get_block_type(lz, col, by)

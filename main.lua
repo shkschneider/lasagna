@@ -31,6 +31,10 @@ function love.wheelmoved(x, y)
     G:wheelmoved(x, y)
 end
 
+function love.mousemoved(x, y, dx, dy, istouch)
+    G:mousemoved(x, y, dx, dy, istouch)
+end
+
 function love.mousepressed(x, y, button, istouch, presses)
     G:mousepressed(x, y, button, istouch, presses)
 end
