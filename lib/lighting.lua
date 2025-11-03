@@ -193,7 +193,7 @@ end
 function Lighting:draw()
     if self.lighting_canvas then
         love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.setBlendMode("multiply")
+        love.graphics.setBlendMode("multiply", "premultiplied")
         love.graphics.draw(self.lighting_canvas, 0, 0)
         love.graphics.setBlendMode("alpha")
     end
