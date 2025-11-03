@@ -182,25 +182,29 @@ function Game:render_surface_map()
     love.graphics.origin()
     love.graphics.translate(-cx, 0)
     
-    -- Only render current player layer
-    local player_z = self:player().z
-    local layer = self.world.layers[player_z]
-    if layer then
-        for col = left_col, right_col do
-            local column = layer.tiles[col]
-            if column then
-                for row = 1, C.WORLD_HEIGHT do
-                    local proto = column[row]
-                    if proto ~= nil then
-                        -- Draw solid blocks as white (occludes light)
-                        love.graphics.setColor(1, 1, 1, 1)
-                        local px = (col - 1) * C.BLOCK_SIZE
-                        local py = (row - 1) * C.BLOCK_SIZE
-                        love.graphics.rectangle("fill", px, py, C.BLOCK_SIZE, C.BLOCK_SIZE)
+    -- Render all layers to surface map (not just player layer)
+    -- This ensures background layers are also properly lit
+    for z = C.LAYER_MIN, C.LAYER_MAX do
+        local layer = self.world.layers[z]
+        if layer then
+            for col = left_col, right_col do
+                local column = layer.tiles[col]
+                if column then
+                    for row = 1, C.WORLD_HEIGHT do
+                        local proto = column[row]
+                        if proto ~= nil then
+                            -- Draw solid blocks as white (occludes light)
+                            love.graphics.setColor(1, 1, 1, 1)
+                            local px = (col - 1) * C.BLOCK_SIZE
+                            local py = (row - 1) * C.BLOCK_SIZE
+                            love.graphics.rectangle("fill", px, py, C.BLOCK_SIZE, C.BLOCK_SIZE)
+                        end
                     end
                 end
             end
         end
+        -- Stop after player's layer to prevent foreground layers from blocking light
+        if z == self:player().z then break end
     end
     
     love.graphics.pop()
