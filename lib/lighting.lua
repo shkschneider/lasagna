@@ -12,6 +12,7 @@ function Lighting:new()
     self.shader = nil
     self.occlusion_canvas = nil
     self.lighting_canvas = nil
+    self.lighting_rendered = false  -- Track if lighting has been rendered this frame
 end
 
 function Lighting:load_shader()
@@ -148,6 +149,7 @@ end
 -- Render the lighting overlay using the shader
 function Lighting:render_lighting_overlay(screen_width, screen_height, camera_x)
     if not self.shader or not self.lighting_canvas then
+        self.lighting_rendered = false
         return
     end
     
@@ -192,17 +194,21 @@ function Lighting:render_lighting_overlay(screen_width, screen_height, camera_x)
     love.graphics.setShader()
     
     love.graphics.setCanvas()
+    
+    self.lighting_rendered = true
 end
 
 -- Draw the lighting overlay on top of the world
 function Lighting:draw()
-    -- Only draw if shader is loaded and canvas exists
-    if self.lighting_canvas and self.shader then
+    -- Only draw if shader is loaded, canvas exists, and lighting has been rendered
+    if self.lighting_canvas and self.shader and self.lighting_rendered then
         love.graphics.setColor(1, 1, 1, 1)
         love.graphics.setBlendMode("multiply", "premultiplied")
         love.graphics.draw(self.lighting_canvas, 0, 0)
         love.graphics.setBlendMode("alpha")
     end
+    -- Reset flag for next frame
+    self.lighting_rendered = false
 end
 
 return Lighting
