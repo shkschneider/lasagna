@@ -221,8 +221,9 @@ function Game:enable_shader_for_layer(z)
 
         -- Calculate player screen position
         local cx = self.camera:get_x()
-        local player_screen_x = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE - cx
-        local player_screen_y = (self:player().py + self:player().height / 2) * C.BLOCK_SIZE
+        -- Player position is 1-indexed, need to subtract 1 for correct screen position
+        local player_screen_x = ((self:player().px - 1) + self:player().width / 2) * C.BLOCK_SIZE - cx
+        local player_screen_y = ((self:player().py - 1) + self:player().height / 2) * C.BLOCK_SIZE
 
         -- Get sun parameters based on time of day
         local sun_intensity, sun_angle = self:get_sun_params()
