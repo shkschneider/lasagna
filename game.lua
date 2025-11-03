@@ -13,10 +13,8 @@ local Game = Object {
     camera = nil,
     -- mouse
     mx, my = 0, 0,
-    -- shaders
+    -- shader
     player_shader = nil,
-    sun_shader = nil,
-    combined_shader = nil,
     -- surface map for occlusion
     surface_canvas = nil,
     -- ...
@@ -39,10 +37,8 @@ function Game:new()
     self.camera = Camera()
     self.mx, self.my = 0, 0
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
-    -- Load shaders
+    -- Load player lighting shader
     self.player_shader = love.graphics.newShader("shaders/player.glsl")
-    self.sun_shader = love.graphics.newShader("shaders/sun.glsl")
-    self.combined_shader = love.graphics.newShader("shaders/combined.glsl")
     -- Create surface canvas for occlusion
     self.surface_canvas = love.graphics.newCanvas(self.width, self.height)
 end
@@ -136,37 +132,8 @@ function Game:drawTimeHUD()
     love.graphics.print(time_str, x + bg_padding, y + bg_padding)
 end
 
-function Game:get_sun_params()
-    if not self.world or not self.world.weather then
-        return 0.5, 0.0  -- Default: mid-day, no angle
-    end
-    
-    local hours, minutes = self.world.weather:get_time_24h()
-    local time_decimal = hours + (minutes / 60.0)
-    
-    local sun_intensity, sun_angle
-    
-    if time_decimal >= 6 and time_decimal < 12 then
-        -- Morning: 06:00 to 12:00 (sunrise to noon)
-        local t = (time_decimal - 6) / 6
-        sun_intensity = 0.1 + (t * 0.9)  -- 0.1 to 1.0
-        sun_angle = -1.57 + (t * 1.57)   -- -90° to 0° (rising from east)
-    elseif time_decimal >= 12 and time_decimal < 18 then
-        -- Afternoon: 12:00 to 18:00 (noon to sunset)
-        local t = (time_decimal - 12) / 6
-        sun_intensity = 1.0 - (t * 0.9)  -- 1.0 to 0.1
-        sun_angle = t * 1.57             -- 0° to 90° (setting to west)
-    else
-        -- Night: 18:00 to 06:00
-        sun_intensity = 0.05  -- Very low ambient light at night
-        sun_angle = 0.0
-    end
-    
-    return sun_intensity, sun_angle
-end
-
 function Game:render_surface_map()
-    -- Render solid blocks to a canvas for occlusion calculations
+    -- Render solid blocks to a canvas for raycasting occlusion
     if not self.surface_canvas then return end
     
     love.graphics.setCanvas(self.surface_canvas)
@@ -182,7 +149,7 @@ function Game:render_surface_map()
     love.graphics.origin()
     love.graphics.translate(-cx, 0)
     
-    -- Only render player's current layer
+    -- Only render player's current layer for raycasting
     local player_z = self:player().z
     local layer = self.world.layers[player_z]
     if layer then
@@ -192,7 +159,7 @@ function Game:render_surface_map()
                 for row = 1, C.WORLD_HEIGHT do
                     local proto = column[row]
                     if proto ~= nil then
-                        -- Draw solid blocks as white (occludes light)
+                        -- Draw solid blocks as white (blocks light rays)
                         love.graphics.setColor(1, 1, 1, 1)
                         local px = (col - 1) * C.BLOCK_SIZE
                         local py = (row - 1) * C.BLOCK_SIZE
@@ -215,9 +182,9 @@ function Game:enable_shader_for_layer(z)
         return false
     end
     
-    -- Apply combined lighting shader for player's layer
-    if self.combined_shader and self.surface_canvas then
-        love.graphics.setShader(self.combined_shader)
+    -- Apply player lighting shader for player's layer
+    if self.player_shader and self.surface_canvas then
+        love.graphics.setShader(self.player_shader)
 
         -- Calculate player screen position
         local cx = self.camera:get_x()
@@ -225,19 +192,12 @@ function Game:enable_shader_for_layer(z)
         local player_screen_x = ((self:player().px - 1) + self:player().width / 2) * C.BLOCK_SIZE - cx
         local player_screen_y = ((self:player().py - 1) + self:player().height / 2) * C.BLOCK_SIZE
 
-        -- Get sun parameters based on time of day
-        local sun_intensity, sun_angle = self:get_sun_params()
-
         -- Set shader uniforms for player light
-        self.combined_shader:send("player_pos", {player_screen_x, player_screen_y})
-        self.combined_shader:send("player_radius", 300.0)
+        self.player_shader:send("player_pos", {player_screen_x, player_screen_y})
+        self.player_shader:send("player_radius", 300.0)
         
-        -- Set shader uniforms for sun light
-        self.combined_shader:send("sun_intensity", sun_intensity)
-        self.combined_shader:send("sun_angle", sun_angle)
-        
-        -- Set surface map for occlusion calculations
-        self.combined_shader:send("surface_map", self.surface_canvas)
+        -- Set surface map for occlusion calculations (raycasting)
+        self.player_shader:send("surface_map", self.surface_canvas)
         return true
     end
     return false
@@ -270,13 +230,11 @@ function Game:draw()
         local lz = self:player().z
         local block_type = self.world:get_block_type(lz, col, by)
         local block_name = (type(block_type) == "table" and block_type.name) or tostring(block_type)
-        local sun_intensity, sun_angle = self:get_sun_params()
         local debug_lines = {}
         debug_lines[#debug_lines+1] = "[DEBUG]"
         debug_lines[#debug_lines+1] = string.format("Layer (player): %d", lz)
         debug_lines[#debug_lines+1] = string.format("Mouse: %.0f,%.0f %d,%d", self.mx, self.my, col, by)
         debug_lines[#debug_lines+1] = string.format("Block: %s", block_name)
-        debug_lines[#debug_lines+1] = string.format("Sun: %.2f @ %.2f rad", sun_intensity, sun_angle)
         local padding = 6
         local line_h = 14
         local box_w = 420
