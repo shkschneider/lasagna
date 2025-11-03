@@ -179,6 +179,22 @@ end
 function Player:draw()
     local sx = (self.px - 1) * C.BLOCK_SIZE - G.cx
     local sy = (self.py - 1) * C.BLOCK_SIZE
+    
+    -- Draw a subtle glow effect around the player (light source indicator)
+    -- Only visible at night when ambient light is low
+    if G.world and G.world.lighting and G.world.lighting.ambient_light < 0.5 then
+        local glow_alpha = (0.5 - G.world.lighting.ambient_light) * 0.4  -- Max 0.2 alpha at full darkness
+        local glow_size = 4  -- pixels of glow radius
+        love.graphics.setColor(1, 1, 0.8, glow_alpha)  -- Warm light color
+        love.graphics.rectangle("fill", 
+            sx - glow_size, 
+            sy - glow_size, 
+            self.width * C.BLOCK_SIZE + glow_size * 2, 
+            self.height * C.BLOCK_SIZE + glow_size * 2,
+            4, 4)
+    end
+    
+    -- Draw the player
     love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1))
     love.graphics.rectangle("fill", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE)
 end

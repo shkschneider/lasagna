@@ -127,11 +127,21 @@ function Game:draw()
         local lz = self:player().z
         local block_type = self.world:get_block_type(lz, col, by)
         local block_name = (type(block_type) == "table" and block_type.name) or tostring(block_type)
+        
+        -- Calculate light level at mouse position
+        local mouse_light = 0
+        if self.world and self.world.lighting then
+            local mouse_x = col + 0.5
+            local mouse_y = by + 0.5
+            mouse_light = self.world.lighting:get_light_level(mouse_x, mouse_y, lz)
+        end
+        
         local debug_lines = {}
         debug_lines[#debug_lines+1] = "[DEBUG]"
         debug_lines[#debug_lines+1] = string.format("Layer (player): %d", lz)
         debug_lines[#debug_lines+1] = string.format("Mouse: %.0f,%.0f %d,%d", self.mx, self.my, col, by)
         debug_lines[#debug_lines+1] = string.format("Block: %s", block_name)
+        debug_lines[#debug_lines+1] = string.format("Light: %.2f (ambient: %.2f)", mouse_light, self.world.lighting.ambient_light)
         local padding = 6
         local line_h = 14
         local box_w = 420
@@ -142,6 +152,15 @@ function Game:draw()
         for i, ln in ipairs(debug_lines) do
             love.graphics.print(ln, 10, 6 + padding + (i-1) * line_h)
         end
+        
+        -- Draw light radius visualization around player
+        local player = self:player()
+        local light_radius = 12  -- blocks (matches the light source radius)
+        local px = (player.px + player.width / 2 - 1) * C.BLOCK_SIZE - self.cx
+        local py = (player.py + player.height / 2 - 1) * C.BLOCK_SIZE
+        love.graphics.setColor(1, 1, 0, 0.3)
+        love.graphics.circle("line", px, py, light_radius * C.BLOCK_SIZE)
+        
         love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1) * 1)
     end
 end
