@@ -182,23 +182,21 @@ function Game:render_surface_map()
     love.graphics.origin()
     love.graphics.translate(-cx, 0)
     
-    -- Render all layers to surface map (not just player layer)
-    -- This ensures all layers are properly lit
-    for z = C.LAYER_MIN, C.LAYER_MAX do
-        local layer = self.world.layers[z]
-        if layer then
-            for col = left_col, right_col do
-                local column = layer.tiles[col]
-                if column then
-                    for row = 1, C.WORLD_HEIGHT do
-                        local proto = column[row]
-                        if proto ~= nil then
-                            -- Draw solid blocks as white (occludes light)
-                            love.graphics.setColor(1, 1, 1, 1)
-                            local px = (col - 1) * C.BLOCK_SIZE
-                            local py = (row - 1) * C.BLOCK_SIZE
-                            love.graphics.rectangle("fill", px, py, C.BLOCK_SIZE, C.BLOCK_SIZE)
-                        end
+    -- Only render player's current layer
+    local player_z = self:player().z
+    local layer = self.world.layers[player_z]
+    if layer then
+        for col = left_col, right_col do
+            local column = layer.tiles[col]
+            if column then
+                for row = 1, C.WORLD_HEIGHT do
+                    local proto = column[row]
+                    if proto ~= nil then
+                        -- Draw solid blocks as white (occludes light)
+                        love.graphics.setColor(1, 1, 1, 1)
+                        local px = (col - 1) * C.BLOCK_SIZE
+                        local py = (row - 1) * C.BLOCK_SIZE
+                        love.graphics.rectangle("fill", px, py, C.BLOCK_SIZE, C.BLOCK_SIZE)
                     end
                 end
             end
@@ -210,12 +208,14 @@ function Game:render_surface_map()
     love.graphics.setColor(1, 1, 1, 1)
 end
 
-
-function Game:draw()
-    -- First, render the surface map for occlusion
-    self:render_surface_map()
+function Game:enable_shader_for_layer(z)
+    -- Only enable shader for player's current layer
+    if z ~= self:player().z then
+        love.graphics.setShader()
+        return false
+    end
     
-    -- Apply combined lighting shader
+    -- Apply combined lighting shader for player's layer
     if self.combined_shader and self.surface_canvas then
         love.graphics.setShader(self.combined_shader)
 
@@ -237,17 +237,25 @@ function Game:draw()
         
         -- Set surface map for occlusion calculations
         self.combined_shader:send("surface_map", self.surface_canvas)
+        return true
     end
+    return false
+end
 
+
+function Game:draw()
+    -- First, render the surface map for occlusion (only player's layer)
+    self:render_surface_map()
+    
+    -- Don't apply shader here - let World control it per-layer
+    
     -- world
     self.world:draw()
     -- player
     self:player():draw()
 
-    -- Reset shader before drawing HUD
-    if self.combined_shader then
-        love.graphics.setShader()
-    end
+    -- Reset shader before drawing HUD (in case it was set)
+    love.graphics.setShader()
 
     -- hud
     self:player():drawInventory() -- bottom-center

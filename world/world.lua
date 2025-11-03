@@ -187,6 +187,8 @@ function World:draw()
                     layer:generate_column(col, freq, base, amp)
                 end
             end
+            -- Enable shader only for player's current layer
+            G:enable_shader_for_layer(z)
             layer:draw()
         end
 
@@ -197,7 +199,11 @@ function World:draw()
             end
         end
 
-        if z == self:player().z then return end
+        if z == self:player().z then
+            -- Disable shader after player's layer
+            love.graphics.setShader()
+            return
+        end
     end
 end
 

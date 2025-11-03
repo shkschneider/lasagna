@@ -53,9 +53,6 @@ function Layer:generate_terrain_range(x_start, x_end, freq, base, amp)
 end
 
 function Layer:draw()
-    -- No parallax alpha effect - all layers draw at full opacity
-    local alpha = 1
-
     -- Calculate visible columns
     local cx = G.camera:get_x()
     local left_col = math.floor(cx / C.BLOCK_SIZE)
@@ -76,11 +73,11 @@ function Layer:draw()
                     local px = (col - 1) * C.BLOCK_SIZE
                     local py = (row - 1) * C.BLOCK_SIZE
                     if type(proto.draw) == "function" then
-                        love.graphics.setColor(1, 1, 1, alpha)
+                        love.graphics.setColor(1, 1, 1, 1)
                         proto:draw(px, py, C.BLOCK_SIZE)
                     elseif proto.color and love and love.graphics then
                         local c = proto.color
-                        love.graphics.setColor(c[1], c[2], c[3], (c[4] or 1) * alpha)
+                        love.graphics.setColor(c[1], c[2], c[3], c[4] or 1)
                         love.graphics.rectangle("fill", px, py, C.BLOCK_SIZE, C.BLOCK_SIZE)
                     end
                 end
