@@ -62,13 +62,14 @@ function Layer:draw()
     end
 
     -- Calculate visible columns
-    local left_col = math.floor(G.cx / C.BLOCK_SIZE)
-    local right_col = math.ceil((G.cx + G.width) / C.BLOCK_SIZE) + 1
+    local cx = G.camera:get_x()
+    local left_col = math.floor(cx / C.BLOCK_SIZE)
+    local right_col = math.ceil((cx + G.width) / C.BLOCK_SIZE) + 1
 
     -- Draw directly without canvas to avoid shaky rendering
     love.graphics.push()
     love.graphics.origin()
-    love.graphics.translate(-G.cx, 0)
+    love.graphics.translate(-cx, 0)
 
     -- Draw visible columns
     for col = left_col, right_col do

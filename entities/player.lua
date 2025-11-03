@@ -177,7 +177,8 @@ function Player:update(dt, world, player)
 end
 
 function Player:draw()
-    local sx = (self.px - 1) * C.BLOCK_SIZE - G.cx
+    local cx = G.camera:get_x()
+    local sx = (self.px - 1) * C.BLOCK_SIZE - cx
     local sy = (self.py - 1) * C.BLOCK_SIZE
     love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1))
     love.graphics.rectangle("fill", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE)
@@ -254,13 +255,14 @@ function Player:drawGhost()
     if G.my >= inv_top then return end
 
     -- Convert mouse screen position to world position
-    local world_px = G.mx + G.cx
+    local cx = G.camera:get_x()
+    local world_px = G.mx + cx
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(G.my / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
 
     -- Convert world grid position back to screen position
-    local px = (col - 1) * C.BLOCK_SIZE - G.cx
+    local px = (col - 1) * C.BLOCK_SIZE - cx
     local py = (row - 1) * C.BLOCK_SIZE
 
     -- Draw ghost outline
@@ -285,7 +287,8 @@ function Player:placeAtMouse(mx, my, z_override)
 
     if count <= 0 then return false, "no items left" end
 
-    local world_px = mouse_x + G.cx
+    local cx = G.camera:get_x()
+    local world_px = mouse_x + cx
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
@@ -328,7 +331,8 @@ end
 function Player:removeAtMouse(mx, my, z_override)
     local mouse_x, mouse_y = mx, my
     if not mouse_x or not mouse_y then mouse_x, mouse_y = love.mouse.getPosition() end
-    local world_px = mouse_x + G.cx
+    local cx = G.camera:get_x()
+    local world_px = mouse_x + cx
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
