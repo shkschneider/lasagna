@@ -146,7 +146,6 @@ function Game:draw()
         -- Set shader uniforms
         self.shader:send("player_pos", {player_screen_x, player_screen_y})
         self.shader:send("light_radius", 300.0)
-        self.shader:send("ambient_color", {0.2, 0.2, 0.3})
         self.shader:send("ambient_strength", 0.15)
     end
     

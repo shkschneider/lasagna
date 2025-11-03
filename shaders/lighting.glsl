@@ -3,7 +3,6 @@
 
 uniform vec2 player_pos;      // Player position in screen coordinates
 uniform float light_radius;   // Radius of the light effect
-uniform vec3 ambient_color;   // Ambient light color
 uniform float ambient_strength; // Ambient light strength
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
