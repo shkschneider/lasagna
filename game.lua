@@ -183,7 +183,7 @@ function Game:render_surface_map()
     love.graphics.translate(-cx, 0)
     
     -- Render all layers to surface map (not just player layer)
-    -- This ensures background layers are also properly lit
+    -- This ensures all layers are properly lit
     for z = C.LAYER_MIN, C.LAYER_MAX do
         local layer = self.world.layers[z]
         if layer then
@@ -203,8 +203,6 @@ function Game:render_surface_map()
                 end
             end
         end
-        -- Stop after player's layer to prevent foreground layers from blocking light
-        if z == self:player().z then break end
     end
     
     love.graphics.pop()

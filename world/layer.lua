@@ -53,13 +53,8 @@ function Layer:generate_terrain_range(x_start, x_end, freq, base, amp)
 end
 
 function Layer:draw()
+    -- No parallax alpha effect - all layers draw at full opacity
     local alpha = 1
-    local player = G:player()
-    if player and type(player.z) == "number" and self.z < player.z then
-        local depth = player.z - self.z
-        alpha = 1 - 0.25 * depth
-        if alpha < 0 then alpha = 0 end
-    end
 
     -- Calculate visible columns
     local cx = G.camera:get_x()
