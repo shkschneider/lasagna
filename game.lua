@@ -17,6 +17,8 @@ local Game = Object {
     player_shader = nil,
     sun_shader = nil,
     combined_shader = nil,
+    -- surface map for occlusion
+    surface_canvas = nil,
     -- ...
     player = function (self)
         return self.world.entities[1]
@@ -41,6 +43,8 @@ function Game:new()
     self.player_shader = love.graphics.newShader("shaders/player.glsl")
     self.sun_shader = love.graphics.newShader("shaders/sun.glsl")
     self.combined_shader = love.graphics.newShader("shaders/combined.glsl")
+    -- Create surface canvas for occlusion
+    self.surface_canvas = love.graphics.newCanvas(self.width, self.height)
 end
 
 function Game:load(seed)
@@ -63,6 +67,11 @@ end
 
 function Game:resize(width, height)
     self.width, self.height = width, height
+    -- Recreate surface canvas on resize
+    if self.surface_canvas then
+        self.surface_canvas:release()
+    end
+    self.surface_canvas = love.graphics.newCanvas(width, height)
     log.info(string.format("Resized: %dx%d", self.width, self.height))
 end
 
@@ -156,10 +165,56 @@ function Game:get_sun_params()
     return sun_intensity, sun_angle
 end
 
+function Game:render_surface_map()
+    -- Render solid blocks to a canvas for occlusion calculations
+    if not self.surface_canvas then return end
+    
+    love.graphics.setCanvas(self.surface_canvas)
+    love.graphics.clear(0, 0, 0, 0)  -- Clear to transparent
+    
+    -- Calculate visible area
+    local cx = self.camera:get_x()
+    local left_col = math.floor(cx / C.BLOCK_SIZE)
+    local right_col = math.ceil((cx + self.width) / C.BLOCK_SIZE) + 1
+    
+    -- Draw solid blocks as white
+    love.graphics.push()
+    love.graphics.origin()
+    love.graphics.translate(-cx, 0)
+    
+    -- Only render current player layer
+    local player_z = self:player().z
+    local layer = self.world.layers[player_z]
+    if layer then
+        for col = left_col, right_col do
+            local column = layer.tiles[col]
+            if column then
+                for row = 1, C.WORLD_HEIGHT do
+                    local proto = column[row]
+                    if proto ~= nil then
+                        -- Draw solid blocks as white (occludes light)
+                        love.graphics.setColor(1, 1, 1, 1)
+                        local px = (col - 1) * C.BLOCK_SIZE
+                        local py = (row - 1) * C.BLOCK_SIZE
+                        love.graphics.rectangle("fill", px, py, C.BLOCK_SIZE, C.BLOCK_SIZE)
+                    end
+                end
+            end
+        end
+    end
+    
+    love.graphics.pop()
+    love.graphics.setCanvas()
+    love.graphics.setColor(1, 1, 1, 1)
+end
+
 
 function Game:draw()
+    -- First, render the surface map for occlusion
+    self:render_surface_map()
+    
     -- Apply combined lighting shader
-    if self.combined_shader then
+    if self.combined_shader and self.surface_canvas then
         love.graphics.setShader(self.combined_shader)
 
         -- Calculate player screen position
@@ -177,6 +232,9 @@ function Game:draw()
         -- Set shader uniforms for sun light
         self.combined_shader:send("sun_intensity", sun_intensity)
         self.combined_shader:send("sun_angle", sun_angle)
+        
+        -- Set surface map for occlusion calculations
+        self.combined_shader:send("surface_map", self.surface_canvas)
     end
 
     -- world
