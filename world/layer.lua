@@ -20,20 +20,20 @@ function Layer:generate_column(x, freq, base, amp)
     -- Skip if already generated
     if self.tiles[x] then return end
 
-    -- With BLOCK_SIZE=4 instead of 16, we have 4x more columns per original column
-    -- Each original block at 16px becomes a 4x4 grid of 4px blocks
-    local scale = 4  -- 16 / 4 = 4
+    -- With BLOCK_SIZE=8 instead of 16, we have 2x more columns per original column
+    -- Each original block at 16px becomes a 2x2 grid of 8px blocks
+    local scale = 2  -- 16 / 8 = 2
     
     -- Determine which original column this belongs to (1-indexed)
-    -- Columns 1-4 -> original 1, columns 5-8 -> original 2, etc.
+    -- Columns 1-2 -> original 1, columns 3-4 -> original 2, etc.
     local original_x = math.floor((x - 1) / scale) + 1
     
     -- Sample noise at the original column position
     local n = noise.perlin1d(original_x * freq + (self.z * 100))
     local original_top = math.max(1, math.min(C.WORLD_HEIGHT - 1, math.floor(base + amp * n)))
     
-    -- Convert original top to new coordinate system (each original block = 4 new blocks vertically)
-    -- Original top=30 means blocks 1-30 are filled, which should be new blocks 1-120
+    -- Convert original top to new coordinate system (each original block = 2 new blocks vertically)
+    -- Original top=30 means blocks 1-30 are filled, which should be new blocks 1-60
     local top = original_top * scale
     local dirt_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS * scale)
     local stone_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS * scale + C.STONE_THICKNESS * scale)

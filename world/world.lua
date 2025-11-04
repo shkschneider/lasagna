@@ -25,13 +25,13 @@ function World:load()
     assert(self.seed)
     math.randomseed(self.seed)
     noise.init(self.seed)
-    local spawn_x = 200  -- 50 * 4 to account for terrain scaling
+    local spawn_x = 100  -- 50 * 2 to account for 2x2 subdivision
     for z = C.LAYER_MIN, C.LAYER_MAX do
         self.layers[z] = Layer(z)
         local freq = (self.frequency and self.frequency[z]) or C.FREQUENCY[z]
         local base = (self.layer_base_heights and self.layer_base_heights[z]) or C.LAYER_BASE_HEIGHTS[z]
         local amp = (self.amplitude and self.amplitude[z]) or C.AMPLITUDE[z]
-        self.layers[z]:generate_terrain_range(spawn_x - 200, spawn_x + 200, freq, base, amp)  -- 50 * 4
+        self.layers[z]:generate_terrain_range(spawn_x - 100, spawn_x + 100, freq, base, amp)  -- 50 * 2
     end
     -- player
     self.entities = { Player() }
