@@ -1,15 +1,17 @@
 // Player lighting shader for Lasagna
-// 2D raycasting with soft shadows (Godot-style)
+// 2D raycasting with shadows
 
-uniform vec2 player_pos;       // Player position in screen coordinates
+uniform vec2 player_pos;       // Player position in world coordinates
 uniform float player_radius;   // Maximum radius for light rays
-uniform Image surface_map;     // Texture containing solid block positions
+uniform Image surface_map;     // Texture containing solid block positions (in screen space)
+uniform float camera_x;        // Camera X position for coordinate conversion
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
 {
     vec4 pixel = Texel(texture, texture_coords);
     
-    // Calculate distance from current pixel to player position
+    // screen_coords are in world space due to translate(-cx, 0)
+    // Calculate distance from current pixel to player position (both in world space)
     float dist = distance(screen_coords, player_pos);
     
     // If outside light radius, return dark
@@ -41,8 +43,11 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
     for (int i = 0; i < samples; i++) {
         // Sample at positions between player and pixel (not including the pixel itself)
         float t = (float(i) / float(samples)) * ray_length * 0.95;  // 95% to avoid self-occlusion
-        vec2 sample_pos = player_pos + ray_dir * t;
-        vec2 sample_uv = sample_pos / love_ScreenSize.xy;
+        vec2 sample_world_pos = player_pos + ray_dir * t;
+        
+        // Convert world position to screen position for surface map lookup
+        vec2 sample_screen_pos = sample_world_pos - vec2(camera_x, 0.0);
+        vec2 sample_uv = sample_screen_pos / love_ScreenSize.xy;
         
         // Check if sample position is within bounds
         if (sample_uv.x >= 0.0 && sample_uv.x <= 1.0 && 

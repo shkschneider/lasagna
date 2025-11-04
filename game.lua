@@ -187,15 +187,19 @@ function Game:enable_shader_for_layer(z)
     if self.player_shader and self.surface_canvas then
         love.graphics.setShader(self.player_shader)
 
-        -- Calculate player screen position
-        local cx = self.camera:get_x()
-        -- Player position is 1-indexed, need to subtract 1 for correct screen position
-        local player_screen_x = ((self:player().px - 1) + self:player().width / 2) * C.BLOCK_SIZE - cx
-        local player_screen_y = ((self:player().py - 1) + self:player().height / 2) * C.BLOCK_SIZE
+        -- Calculate player world position (NOT screen space!)
+        -- The shader receives screen_coords in world space due to translate(-cx, 0)
+        -- Player position is 1-indexed, need to subtract 1 for correct pixel position
+        local player_world_x = ((self:player().px - 1) + self:player().width / 2) * C.BLOCK_SIZE
+        local player_world_y = ((self:player().py - 1) + self:player().height / 2) * C.BLOCK_SIZE
 
-        -- Set shader uniforms for player light
-        self.player_shader:send("player_pos", {player_screen_x, player_screen_y})
+        -- Get camera position for coordinate conversion in shader
+        local cx = self.camera:get_x()
+
+        -- Set shader uniforms for player light (in world coordinates)
+        self.player_shader:send("player_pos", {player_world_x, player_world_y})
         self.player_shader:send("player_radius", 600.0)  -- Larger radius for better visibility
+        self.player_shader:send("camera_x", cx)  -- For converting world coords to screen coords
 
         -- Set surface map for occlusion calculations (raycasting)
         self.player_shader:send("surface_map", self.surface_canvas)
