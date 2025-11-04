@@ -16,24 +16,30 @@ float castLight(vec2 from, vec2 to) {
     float totalDistance = length(direction);
     
     // Very close to light source - always lit
-    if (totalDistance < 2.0) {
+    if (totalDistance < 1.0) {
         return 1.0;
     }
     
     direction = normalize(direction);
     
-    // Ray march from light source toward the target point
+    // Use smaller step size for more accurate shadow edges
     float stepSize = raycastStepSize;
     int numSteps = int(totalDistance / stepSize);
     
     // Limit steps for performance
-    if (numSteps > 200) {
-        numSteps = 200;
+    if (numSteps > 300) {
+        numSteps = 300;
     }
     
     // March along the ray
     for (int i = 1; i < numSteps; i++) {
         float currentDist = float(i) * stepSize;
+        
+        // Stop if we've gone past the target
+        if (currentDist >= totalDistance) {
+            break;
+        }
+        
         vec2 samplePos = from + direction * currentDist;
         vec2 texCoord = samplePos / screenSize;
         
@@ -45,10 +51,8 @@ float castLight(vec2 from, vec2 to) {
         // Check if there's a solid block at this position
         vec4 blockData = texture2D(blockTexture, texCoord);
         if (blockData.a > 0.5) {
-            // Hit a solid block before reaching target
-            if (currentDist < totalDistance - stepSize) {
-                return 0.0; // Shadowed
-            }
+            // Hit a solid block - this point is in shadow
+            return 0.0;
         }
     }
     
