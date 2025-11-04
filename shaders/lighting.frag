@@ -1,21 +1,21 @@
 // Fragment shader for 2D lighting with raycasted shadows
 // Based on: https://icuwanl.wordpress.com/2018/07/05/light-sources-shadows-part-2/
+// This shader generates a light map that will be multiplied over the scene
 // Note: Uses GLSL ES syntax for LÖVE compatibility (texture2D instead of texture)
 
 uniform vec2 lightPos;           // Light source position (player) in screen coordinates
 uniform vec2 screenSize;         // Screen dimensions
 uniform float lightRadius;       // Maximum light radius in pixels
-uniform float ambientLight;      // Ambient light level (0.0 - 1.0)
 uniform float raycastStepSize;   // Step size for raycasting (pixels)
 uniform sampler2D blockTexture;  // Texture containing world block solidity data
 
-// Cast a ray from the light source to a specific point
-// Returns the light intensity at that point (0.0 = fully shadowed, 1.0 = fully lit)
+// Cast a ray from the light source to check if a point is lit
+// Returns 1.0 if lit, 0.0 if in shadow
 float castLight(vec2 from, vec2 to) {
     vec2 direction = to - from;
     float totalDistance = length(direction);
     
-    // Very close to light source - always fully lit
+    // Very close to light source - always lit
     if (totalDistance < 2.0) {
         return 1.0;
     }
@@ -45,24 +45,21 @@ float castLight(vec2 from, vec2 to) {
         // Check if there's a solid block at this position
         vec4 blockData = texture2D(blockTexture, texCoord);
         if (blockData.a > 0.5) {
-            // Hit a solid block - check if we're past the target point
+            // Hit a solid block before reaching target
             if (currentDist < totalDistance - stepSize) {
                 return 0.0; // Shadowed
             }
         }
     }
     
-    return 1.0; // Path is clear
+    return 1.0; // Path is clear, fully lit
 }
 
 vec4 effect(vec4 color, sampler2D tex, vec2 texture_coords, vec2 screen_coords) {
-    // Get the base pixel color
-    vec4 pixel = texture2D(tex, texture_coords);
-    
-    // Calculate distance from current fragment to light source
+    // Calculate distance from this pixel to light source
     float distToLight = length(lightPos - screen_coords);
     
-    // Calculate base light intensity with quadratic falloff
+    // Calculate light intensity with distance falloff
     float attenuation;
     if (distToLight > lightRadius) {
         attenuation = 0.0;
@@ -74,12 +71,10 @@ vec4 effect(vec4 color, sampler2D tex, vec2 texture_coords, vec2 screen_coords) 
     // Cast ray to check for shadows
     float visibility = castLight(lightPos, screen_coords);
     
-    // Combine attenuation and shadow
+    // Combine distance attenuation and shadow visibility
     float lightIntensity = attenuation * visibility;
     
-    // Final light level: ambient + dynamic light
-    float finalLight = ambientLight + (1.0 - ambientLight) * lightIntensity;
-    
-    // Apply lighting to the pixel
-    return pixel * vec4(vec3(finalLight), 1.0);
+    // Return light value for additive blending with ambient
+    // The canvas is cleared to ambient, and we add dynamic light
+    return vec4(vec3(lightIntensity), 1.0);
 }

@@ -85,52 +85,7 @@ function Layer:draw()
     -- Only apply lighting shader to the player's current layer
     local applyLighting = (Layer.lightingShader and self.z == player.z)
     
-    -- If we're applying lighting, we need to render to canvases first
-    local layerCanvas = nil
-    local blockCanvas = nil
-    
-    if applyLighting then
-        -- Create canvases if they don't exist or if size changed
-        local w, h = G.width, G.height
-        if not self.layerCanvas or self.layerCanvas:getWidth() ~= w or self.layerCanvas:getHeight() ~= h then
-            self.layerCanvas = love.graphics.newCanvas(w, h)
-            self.blockCanvas = love.graphics.newCanvas(w, h)
-        end
-        layerCanvas = self.layerCanvas
-        blockCanvas = self.blockCanvas
-        
-        -- Render block solidity data to blockCanvas
-        love.graphics.setCanvas(blockCanvas)
-        love.graphics.clear(0, 0, 0, 0)
-        love.graphics.push()
-        love.graphics.origin()
-        love.graphics.translate(-cx, 0)
-        
-        for col = left_col, right_col do
-            local column = self.tiles[col]
-            if column then
-                for row = 1, C.WORLD_HEIGHT do
-                    local proto = column[row]
-                    if proto ~= nil then
-                        local px = (col - 1) * C.BLOCK_SIZE
-                        local py = (row - 1) * C.BLOCK_SIZE
-                        -- Draw white for solid blocks (alpha = 1 means solid)
-                        love.graphics.setColor(1, 1, 1, 1)
-                        love.graphics.rectangle("fill", px, py, C.BLOCK_SIZE, C.BLOCK_SIZE)
-                    end
-                end
-            end
-        end
-        
-        love.graphics.pop()
-        love.graphics.setCanvas()
-        
-        -- Render the actual layer to layerCanvas
-        love.graphics.setCanvas(layerCanvas)
-        love.graphics.clear(0, 0, 0, 0)
-    end
-    
-    -- Draw the layer (either to canvas or directly to screen)
+    -- Draw the layer directly to screen first
     love.graphics.push()
     love.graphics.origin()
     love.graphics.translate(-cx, 0)
@@ -159,13 +114,45 @@ function Layer:draw()
 
     love.graphics.pop()
     
+    -- Apply lighting as a multiplicative overlay
     if applyLighting then
-        -- Restore default canvas
+        -- Create canvases if needed
+        local w, h = G.width, G.height
+        if not self.lightCanvas or self.lightCanvas:getWidth() ~= w or self.lightCanvas:getHeight() ~= h then
+            self.lightCanvas = love.graphics.newCanvas(w, h)
+            self.blockCanvas = love.graphics.newCanvas(w, h)
+        end
+        
+        -- Render block solidity map
+        love.graphics.setCanvas(self.blockCanvas)
+        love.graphics.clear(0, 0, 0, 0)
+        love.graphics.push()
+        love.graphics.origin()
+        love.graphics.translate(-cx, 0)
+        
+        for col = left_col, right_col do
+            local column = self.tiles[col]
+            if column then
+                for row = 1, C.WORLD_HEIGHT do
+                    local proto = column[row]
+                    if proto ~= nil then
+                        local px = (col - 1) * C.BLOCK_SIZE
+                        local py = (row - 1) * C.BLOCK_SIZE
+                        love.graphics.setColor(1, 1, 1, 1)
+                        love.graphics.rectangle("fill", px, py, C.BLOCK_SIZE, C.BLOCK_SIZE)
+                    end
+                end
+            end
+        end
+        
+        love.graphics.pop()
         love.graphics.setCanvas()
         
+        -- Render light map using shader
+        love.graphics.setCanvas(self.lightCanvas)
+        love.graphics.clear(C.AMBIENT_LIGHT, C.AMBIENT_LIGHT, C.AMBIENT_LIGHT, 1)
+        
         -- Calculate player position in screen coordinates
-        -- Player coordinates are 1-indexed, so we use (px - 1) to convert to 0-indexed
-        -- Add half the player size to get center position
         local playerScreenX = (player.px - 1 + player.width / 2) * C.BLOCK_SIZE - cx
         local playerScreenY = (player.py - 1 + player.height / 2) * C.BLOCK_SIZE
         
@@ -173,15 +160,22 @@ function Layer:draw()
         Layer.lightingShader:send("lightPos", {playerScreenX, playerScreenY})
         Layer.lightingShader:send("screenSize", {G.width, G.height})
         Layer.lightingShader:send("lightRadius", C.LIGHT_RADIUS)
-        Layer.lightingShader:send("ambientLight", C.AMBIENT_LIGHT)
         Layer.lightingShader:send("raycastStepSize", C.RAYCAST_STEP_SIZE)
-        Layer.lightingShader:send("blockTexture", blockCanvas)
+        Layer.lightingShader:send("blockTexture", self.blockCanvas)
         
-        -- Apply shader and draw the layer canvas to screen
+        -- Draw a full-screen quad with the light shader
         love.graphics.setShader(Layer.lightingShader)
         love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.draw(layerCanvas, 0, 0)
+        love.graphics.rectangle("fill", 0, 0, G.width, G.height)
         love.graphics.setShader()
+        
+        love.graphics.setCanvas()
+        
+        -- Multiply light map over the scene
+        love.graphics.setBlendMode("multiply", "premultiplied")
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.draw(self.lightCanvas, 0, 0)
+        love.graphics.setBlendMode("alpha")
     end
     
     love.graphics.setColor(1, 1, 1, 1)
