@@ -12,6 +12,11 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
     // Calculate distance from current pixel to player position
     float dist = distance(screen_coords, player_pos);
     
+    // If outside light radius, return dark
+    if (dist > player_radius) {
+        return vec4(pixel.rgb * 0.05, pixel.a) * color;  // 5% ambient
+    }
+    
     // Distance-based light falloff (quadratic for natural look)
     float attenuation = 1.0 - smoothstep(0.0, player_radius, dist);
     attenuation = attenuation * attenuation;  // Quadratic falloff
@@ -21,7 +26,7 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
     float ray_length = length(direction);
     
     if (ray_length < 1.0) {
-        // Very close to player, always lit
+        // Very close to player, always fully lit
         vec3 lit_color = pixel.rgb * attenuation;
         return vec4(lit_color, pixel.a) * color;
     }
@@ -29,12 +34,13 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
     vec2 ray_dir = normalize(direction);
     
     // Sample along the ray to check for blocking surfaces
-    int samples = 16;
-    float shadow = 1.0;
-    bool hit_wall = false;
+    int samples = 20;
+    bool is_blocked = false;
     
-    for (int i = 1; i < samples; i++) {
-        float t = (float(i) / float(samples)) * ray_length;
+    // Sample from 0 to just before reaching the target pixel
+    for (int i = 0; i < samples; i++) {
+        // Sample at positions between player and pixel (not including the pixel itself)
+        float t = (float(i) / float(samples)) * ray_length * 0.95;  // 95% to avoid self-occlusion
         vec2 sample_pos = player_pos + ray_dir * t;
         vec2 sample_uv = sample_pos / love_ScreenSize.xy;
         
@@ -43,22 +49,23 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
             sample_uv.y >= 0.0 && sample_uv.y <= 1.0) {
             vec4 sample_surface = Texel(surface_map, sample_uv);
             
-            // If we hit a solid block, create deep shadow
+            // If we hit a solid block before reaching the pixel, it's in shadow
             if (sample_surface.r > 0.5) {
-                // Distance from light to the blocking surface
-                float block_distance = t / ray_length;
-                
-                // Create deep shadow behind walls
-                // Closer blocks create harder shadows
-                shadow = block_distance * 0.3;  // 30% light at wall, fades to dark behind
-                hit_wall = true;
-                break;  // Stop at first hit for proper occlusion
+                is_blocked = true;
+                break;
             }
         }
     }
     
-    // Combine attenuation with shadow
-    float final_intensity = attenuation * shadow;
+    // Calculate final light intensity
+    float final_intensity;
+    if (is_blocked) {
+        // In shadow - very dark (5% ambient)
+        final_intensity = 0.05;
+    } else {
+        // Direct light - apply distance attenuation
+        final_intensity = attenuation;
+    }
     
     // Apply lighting to the pixel
     vec3 lit_color = pixel.rgb * final_intensity;
