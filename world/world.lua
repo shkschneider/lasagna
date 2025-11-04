@@ -190,9 +190,11 @@ function World:draw()
             -- Enable shader only for player's current layer
             G:enable_shader_for_layer(z)
             layer:draw()
+            -- Disable shader immediately after layer draw
+            love.graphics.setShader()
         end
 
-        -- Draw dropped items on this layer before drawing player
+        -- Draw dropped items on this layer (without shader)
         for _, e in ipairs(self.entities) do
             if e ~= self:player() and e.z == z and type(e.draw) == "function" then
                 e:draw()
@@ -200,8 +202,6 @@ function World:draw()
         end
 
         if z == self:player().z then
-            -- Disable shader after player's layer
-            love.graphics.setShader()
             return
         end
     end
