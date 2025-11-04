@@ -5,6 +5,7 @@ uniform vec2 lightPos;           // Light source position (player) in screen coo
 uniform vec2 screenSize;         // Screen dimensions
 uniform float lightRadius;       // Maximum light radius in pixels
 uniform float ambientLight;      // Ambient light level (0.0 - 1.0)
+uniform float raycastStepSize;   // Step size for raycasting (pixels)
 uniform sampler2D blockTexture;  // Texture containing world block solidity data
 
 // Cast a ray from the light source to check for obstructions
@@ -14,13 +15,12 @@ bool isLit(vec2 lightPos, vec2 fragPos, vec2 screenSize) {
     float distance = length(direction);
     direction = normalize(direction);
     
-    // Step size in pixels - smaller = more accurate but slower
-    float stepSize = 8.0;
-    int maxSteps = int(distance / stepSize);
+    // Use configurable step size
+    int maxSteps = int(distance / raycastStepSize);
     
     // Ray march from light to fragment
     for (int i = 1; i < maxSteps; i++) {
-        vec2 samplePos = lightPos + direction * (float(i) * stepSize);
+        vec2 samplePos = lightPos + direction * (float(i) * raycastStepSize);
         vec2 texCoord = samplePos / screenSize;
         
         // Check if we're sampling within bounds

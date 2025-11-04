@@ -170,8 +170,9 @@ function Layer:draw()
         -- Set shader uniforms
         Layer.lightingShader:send("lightPos", {playerScreenX, playerScreenY})
         Layer.lightingShader:send("screenSize", {G.width, G.height})
-        Layer.lightingShader:send("lightRadius", 400.0) -- Configurable light radius in pixels
-        Layer.lightingShader:send("ambientLight", 0.3)  -- Configurable ambient light level
+        Layer.lightingShader:send("lightRadius", C.LIGHT_RADIUS)
+        Layer.lightingShader:send("ambientLight", C.AMBIENT_LIGHT)
+        Layer.lightingShader:send("raycastStepSize", C.RAYCAST_STEP_SIZE)
         Layer.lightingShader:send("blockTexture", blockCanvas)
         
         -- Apply shader and draw the layer canvas to screen
