@@ -10,12 +10,12 @@ function Drop:new(proto, px, py, z, count)
     self.py = py
     self.z = z          -- Layer
     self.count = count or 1
-    self.width = 0.5    -- Smaller than a full block
-    self.height = 0.5
+    self.width = 2    -- 0.5 * 4 to match scaled blocks
+    self.height = 2   -- 0.5 * 4 to match scaled blocks
     self.vy = 0
     self.lifetime = 0   -- Tracks how long the item has existed
     self.max_lifetime = 60  -- Despawn after 60 seconds
-    self.collection_range = 1.0  -- Distance at which player can collect
+    self.collection_range = 4.0  -- 1.0 * 4 to match scaled blocks
     
     -- Initialize gravity component
     self.gravity = Gravity(self)

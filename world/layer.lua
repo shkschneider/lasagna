@@ -20,10 +20,17 @@ function Layer:generate_column(x, freq, base, amp)
     -- Skip if already generated
     if self.tiles[x] then return end
 
-    local n = noise.perlin1d(x * freq + (self.z * 100))
+    -- With BLOCK_SIZE=4 instead of 16, we have 4x more columns for the same visual width
+    -- Map to the original coordinate system: columns 1-4 -> original 1, columns 5-8 -> original 2, etc.
+    local scale = 4  -- 16 / 4 = 4
+    local original_x = math.ceil(x / scale)
+    
+    -- Sample noise at the original column position to get the same terrain pattern
+    -- Note: base and amp are already scaled by 4 in constants.lua
+    local n = noise.perlin1d(original_x * freq + (self.z * 100))
     local top = math.max(1, math.min(C.WORLD_HEIGHT - 1, math.floor(base + amp * n)))
-    local dirt_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS)
-    local stone_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS + C.STONE_THICKNESS)
+    local dirt_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS * scale)
+    local stone_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS * scale + C.STONE_THICKNESS * scale)
 
     self.heights[x] = top
     self.dirt_limit[x] = dirt_lim
@@ -32,7 +39,8 @@ function Layer:generate_column(x, freq, base, amp)
     self.tiles[x] = {}
     for y = 1, C.WORLD_HEIGHT do
         local proto = nil
-        if y == top then
+        -- Grass should occupy the top "scale" rows
+        if y > top - scale and y <= top then
             proto = Blocks and Blocks.grass
         elseif y > top and y <= dirt_lim then
             proto = Blocks and Blocks.dirt

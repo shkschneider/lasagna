@@ -20,11 +20,11 @@ local Stance = {
 local Player = Object {}
 
 function Player:new()
-    self.px = 50
+    self.px = 200  -- 50 * 4 to account for terrain scaling
     self.py = 1
     self.z  = 0
-    self.width = 1
-    self.height = 2
+    self.width = 4  -- 1 * 4 to match scaled blocks
+    self.height = 8  -- 2 * 4 to match scaled blocks
     self.stand_height = self.height
     self.crouch_height = self.height / 2
     self.vx = 0
@@ -359,9 +359,9 @@ function Player:removeAtMouse(mx, my, z_override)
     -- Spawn dropped item if removal was successful
     if ok and block_proto and block_proto ~= "air" and block_proto ~= "out" then
         -- Spawn at center of block: block is at column col (1-indexed), occupies [col, col+1)
-        -- Item is 0.5 wide, so to center it: col + (1 - 0.5) / 2 = col + 0.25
-        local item_x = col + 0.25
-        local item_y = row + 0.25
+        -- Item is 2 blocks wide, so to center it: col + (1 - 2) / 2 = col - 0.5
+        local item_x = col - 0.5
+        local item_y = row - 0.5
         G.world:spawn_dropped_item(block_proto, item_x, item_y, z, 1)
     end
     
