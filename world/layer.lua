@@ -24,8 +24,8 @@ function Layer:new(z)
         end
     end
     
-    -- Create canvas for block solidity data (used by shader)
-    -- Will be updated during draw
+    -- Canvas for layer and block rendering (created on first draw or resize)
+    self.layerCanvas = nil
     self.blockCanvas = nil
 end
 

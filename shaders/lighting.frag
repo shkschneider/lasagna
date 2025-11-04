@@ -1,5 +1,6 @@
 // Fragment shader for 2D lighting with raycasted shadows
 // Based on: https://icuwanl.wordpress.com/2018/07/05/light-sources-shadows-part-2/
+// Note: Uses GLSL ES syntax for LÖVE compatibility (texture2D instead of texture)
 
 uniform vec2 lightPos;           // Light source position (player) in screen coordinates
 uniform vec2 screenSize;         // Screen dimensions
