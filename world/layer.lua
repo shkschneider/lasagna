@@ -11,6 +11,22 @@ function Layer:new(z)
     self.heights = {}
     self.dirt_limit = {}
     self.stone_limit = {}
+    
+    -- Load lighting shader if not already loaded
+    if not Layer.lightingShader then
+        local success, shader = pcall(love.graphics.newShader, "shaders/lighting.frag")
+        if success then
+            Layer.lightingShader = shader
+            log.info("Lighting shader loaded successfully")
+        else
+            log.warn("Failed to load lighting shader: " .. tostring(shader))
+            Layer.lightingShader = nil
+        end
+    end
+    
+    -- Create canvas for block solidity data (used by shader)
+    -- Will be updated during draw
+    self.blockCanvas = nil
 end
 
 function Layer:update(dt) end
@@ -66,7 +82,55 @@ function Layer:draw()
     local left_col = math.floor(cx / C.BLOCK_SIZE)
     local right_col = math.ceil((cx + G.width) / C.BLOCK_SIZE) + 1
 
-    -- Draw directly without canvas to avoid shaky rendering
+    -- Only apply lighting shader to the player's current layer
+    local applyLighting = (Layer.lightingShader and self.z == player.z)
+    
+    -- If we're applying lighting, we need to render to canvases first
+    local layerCanvas = nil
+    local blockCanvas = nil
+    
+    if applyLighting then
+        -- Create canvases if they don't exist or if size changed
+        local w, h = G.width, G.height
+        if not self.layerCanvas or self.layerCanvas:getWidth() ~= w or self.layerCanvas:getHeight() ~= h then
+            self.layerCanvas = love.graphics.newCanvas(w, h)
+            self.blockCanvas = love.graphics.newCanvas(w, h)
+        end
+        layerCanvas = self.layerCanvas
+        blockCanvas = self.blockCanvas
+        
+        -- Render block solidity data to blockCanvas
+        love.graphics.setCanvas(blockCanvas)
+        love.graphics.clear(0, 0, 0, 0)
+        love.graphics.push()
+        love.graphics.origin()
+        love.graphics.translate(-cx, 0)
+        
+        for col = left_col, right_col do
+            local column = self.tiles[col]
+            if column then
+                for row = 1, C.WORLD_HEIGHT do
+                    local proto = column[row]
+                    if proto ~= nil then
+                        local px = (col - 1) * C.BLOCK_SIZE
+                        local py = (row - 1) * C.BLOCK_SIZE
+                        -- Draw white for solid blocks (alpha = 1 means solid)
+                        love.graphics.setColor(1, 1, 1, 1)
+                        love.graphics.rectangle("fill", px, py, C.BLOCK_SIZE, C.BLOCK_SIZE)
+                    end
+                end
+            end
+        end
+        
+        love.graphics.pop()
+        love.graphics.setCanvas()
+        
+        -- Render the actual layer to layerCanvas
+        love.graphics.setCanvas(layerCanvas)
+        love.graphics.clear(0, 0, 0, 0)
+    end
+    
+    -- Draw the layer (either to canvas or directly to screen)
     love.graphics.push()
     love.graphics.origin()
     love.graphics.translate(-cx, 0)
@@ -94,6 +158,29 @@ function Layer:draw()
     end
 
     love.graphics.pop()
+    
+    if applyLighting then
+        -- Restore default canvas
+        love.graphics.setCanvas()
+        
+        -- Calculate player position in screen coordinates
+        local playerScreenX = (player.px + player.width / 2) * C.BLOCK_SIZE - cx
+        local playerScreenY = (player.py + player.height / 2) * C.BLOCK_SIZE
+        
+        -- Set shader uniforms
+        Layer.lightingShader:send("lightPos", {playerScreenX, playerScreenY})
+        Layer.lightingShader:send("screenSize", {G.width, G.height})
+        Layer.lightingShader:send("lightRadius", 400.0) -- Configurable light radius in pixels
+        Layer.lightingShader:send("ambientLight", 0.3)  -- Configurable ambient light level
+        Layer.lightingShader:send("blockTexture", blockCanvas)
+        
+        -- Apply shader and draw the layer canvas to screen
+        love.graphics.setShader(Layer.lightingShader)
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.draw(layerCanvas, 0, 0)
+        love.graphics.setShader()
+    end
+    
     love.graphics.setColor(1, 1, 1, 1)
 end
 
