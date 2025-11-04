@@ -62,7 +62,8 @@ function Game:load(seed)
 end
 
 function Game:resize(width, height)
-    self.width, self.height = width, height
+    -- self.width, self.height = width, height
+    self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
     -- Recreate surface canvas on resize
     if self.surface_canvas then
         self.surface_canvas:release()
@@ -135,20 +136,20 @@ end
 function Game:render_surface_map()
     -- Render solid blocks to a canvas for raycasting occlusion
     if not self.surface_canvas then return end
-    
+
     love.graphics.setCanvas(self.surface_canvas)
     love.graphics.clear(0, 0, 0, 0)  -- Clear to transparent
-    
+
     -- Calculate visible area
     local cx = self.camera:get_x()
     local left_col = math.floor(cx / C.BLOCK_SIZE)
     local right_col = math.ceil((cx + self.width) / C.BLOCK_SIZE) + 1
-    
+
     -- Draw solid blocks as white
     love.graphics.push()
     love.graphics.origin()
     love.graphics.translate(-cx, 0)
-    
+
     -- Only render player's current layer for raycasting
     local player_z = self:player().z
     local layer = self.world.layers[player_z]
@@ -169,7 +170,7 @@ function Game:render_surface_map()
             end
         end
     end
-    
+
     love.graphics.pop()
     love.graphics.setCanvas()
     love.graphics.setColor(1, 1, 1, 1)
@@ -181,7 +182,7 @@ function Game:enable_shader_for_layer(z)
         love.graphics.setShader()
         return false
     end
-    
+
     -- Apply player lighting shader for player's layer
     if self.player_shader and self.surface_canvas then
         love.graphics.setShader(self.player_shader)
@@ -195,7 +196,7 @@ function Game:enable_shader_for_layer(z)
         -- Set shader uniforms for player light
         self.player_shader:send("player_pos", {player_screen_x, player_screen_y})
         self.player_shader:send("player_radius", 600.0)  -- Larger radius for better visibility
-        
+
         -- Set surface map for occlusion calculations (raycasting)
         self.player_shader:send("surface_map", self.surface_canvas)
         return true
@@ -207,9 +208,9 @@ end
 function Game:draw()
     -- First, render the surface map for occlusion (only player's layer)
     self:render_surface_map()
-    
+
     -- Don't apply shader here - let World control it per-layer
-    
+
     -- world
     self.world:draw()
     -- player
