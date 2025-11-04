@@ -38,7 +38,7 @@ function Game:new()
     self.mx, self.my = 0, 0
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
     -- Load player lighting shader
-    self.player_shader = love.graphics.newShader("shaders/player.glsl")
+    self.player_shader = love.graphics.newShader("shader.glsl")
     -- Create surface canvas for occlusion
     self.surface_canvas = love.graphics.newCanvas(self.width, self.height)
 end
