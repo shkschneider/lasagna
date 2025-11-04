@@ -135,20 +135,20 @@ end
 
 function Game:render_surface_map()
     -- Render solid blocks to a canvas for raycasting occlusion
+    -- Surface map is in SCREEN SPACE (no translate)
     if not self.surface_canvas then return end
 
     love.graphics.setCanvas(self.surface_canvas)
-    love.graphics.clear(0, 0, 0, 0)  -- Clear to transparent
+    love.graphics.clear(0, 0, 0, 1)  -- Clear to black (no blocks)
 
     -- Calculate visible area
     local cx = self.camera:get_x()
     local left_col = math.floor(cx / C.BLOCK_SIZE)
     local right_col = math.ceil((cx + self.width) / C.BLOCK_SIZE) + 1
 
-    -- Draw solid blocks as white
+    -- Draw solid blocks as white (NO translate, directly in screen space)
     love.graphics.push()
-    love.graphics.origin()
-    love.graphics.translate(-cx, 0)
+    love.graphics.origin()  -- Reset to screen space
 
     -- Only render player's current layer for raycasting
     local player_z = self:player().z
@@ -162,9 +162,13 @@ function Game:render_surface_map()
                     if proto ~= nil then
                         -- Draw solid blocks as white (blocks light rays)
                         love.graphics.setColor(1, 1, 1, 1)
-                        local px = (col - 1) * C.BLOCK_SIZE
-                        local py = (row - 1) * C.BLOCK_SIZE
-                        love.graphics.rectangle("fill", px, py, C.BLOCK_SIZE, C.BLOCK_SIZE)
+                        -- World position
+                        local world_x = (col - 1) * C.BLOCK_SIZE
+                        local world_y = (row - 1) * C.BLOCK_SIZE
+                        -- Convert to screen position
+                        local screen_x = world_x - cx
+                        local screen_y = world_y
+                        love.graphics.rectangle("fill", screen_x, screen_y, C.BLOCK_SIZE, C.BLOCK_SIZE)
                     end
                 end
             end
@@ -187,23 +191,25 @@ function Game:enable_shader_for_layer(z)
     if self.player_shader and self.surface_canvas then
         love.graphics.setShader(self.player_shader)
 
-        -- Calculate player world position (NOT screen space!)
-        -- The shader receives screen_coords in world space due to translate(-cx, 0)
-        -- Player position is 1-indexed, need to subtract 1 for correct pixel position
+        -- Calculate player SCREEN position (not world!)
+        -- World position of player center
         local player_world_x = ((self:player().px - 1) + self:player().width / 2) * C.BLOCK_SIZE
         local player_world_y = ((self:player().py - 1) + self:player().height / 2) * C.BLOCK_SIZE
-
-        -- Get camera position for coordinate conversion in shader
+        
+        -- Convert to screen position
         local cx = self.camera:get_x()
+        local player_screen_x = player_world_x - cx
+        local player_screen_y = player_world_y
 
-        -- Set shader uniforms for player light (in world coordinates)
-        self.player_shader:send("player_pos", {player_world_x, player_world_y})
-        self.player_shader:send("player_radius", 600.0)  -- Larger radius for better visibility
-        self.player_shader:send("camera_x", cx)  -- For converting world coords to screen coords
-
-        -- Set surface map for occlusion calculations (raycasting)
+        -- Set shader uniforms (all in screen space)
+        self.player_shader:send("player_pos_screen", {player_screen_x, player_screen_y})
+        self.player_shader:send("light_radius", 400.0)  -- Light radius in pixels
         self.player_shader:send("surface_map", self.surface_canvas)
+        
         return true
+    end
+    return false
+end
     end
     return false
 end

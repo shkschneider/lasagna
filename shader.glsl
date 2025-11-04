@@ -1,79 +1,63 @@
-// Player lighting shader for Lasagna
-// 2D raycasting with shadows
+// Player lighting shader - Simple 2D raycasting
+// Based on: https://icuwanl.wordpress.com/2018/07/05/light-sources-shadows-part-2/
 
-uniform vec2 player_pos;       // Player position in world coordinates
-uniform float player_radius;   // Maximum radius for light rays
-uniform Image surface_map;     // Texture containing solid block positions (in screen space)
-uniform float camera_x;        // Camera X position for coordinate conversion
+uniform vec2 player_pos_screen;  // Player position in screen space (pixels from top-left)
+uniform float light_radius;      // Maximum light radius in pixels
+uniform Image surface_map;       // Solid blocks (white = solid, black = empty)
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
 {
     vec4 pixel = Texel(texture, texture_coords);
     
-    // screen_coords are in world space due to translate(-cx, 0)
-    // Calculate distance from current pixel to player position (both in world space)
-    float dist = distance(screen_coords, player_pos);
+    // Calculate distance from pixel to player (both in screen space)
+    vec2 to_pixel = screen_coords - player_pos_screen;
+    float dist = length(to_pixel);
     
-    // If outside light radius, return dark
-    if (dist > player_radius) {
-        return vec4(pixel.rgb * 0.05, pixel.a) * color;  // 5% ambient
+    // Outside light radius? Dark.
+    if (dist > light_radius) {
+        return vec4(pixel.rgb * 0.05, pixel.a) * color;
     }
     
-    // Distance-based light falloff (quadratic for natural look)
-    float attenuation = 1.0 - smoothstep(0.0, player_radius, dist);
-    attenuation = attenuation * attenuation;  // Quadratic falloff
+    // Start with light intensity based on distance (quadratic falloff)
+    float norm_dist = dist / light_radius;
+    float attenuation = 1.0 - (norm_dist * norm_dist);
     
-    // Raycast from player to current pixel to check for occlusion
-    vec2 direction = screen_coords - player_pos;
-    float ray_length = length(direction);
+    // Raycast from player to this pixel to check for occlusion
+    bool in_shadow = false;
     
-    if (ray_length < 1.0) {
-        // Very close to player, always fully lit
-        vec3 lit_color = pixel.rgb * attenuation;
-        return vec4(lit_color, pixel.a) * color;
-    }
-    
-    vec2 ray_dir = normalize(direction);
-    
-    // Sample along the ray to check for blocking surfaces
-    int samples = 20;
-    bool is_blocked = false;
-    
-    // Sample from 0 to just before reaching the target pixel
-    for (int i = 0; i < samples; i++) {
-        // Sample at positions between player and pixel (not including the pixel itself)
-        float t = (float(i) / float(samples)) * ray_length * 0.95;  // 95% to avoid self-occlusion
-        vec2 sample_world_pos = player_pos + ray_dir * t;
+    if (dist > 2.0) {  // Skip raycasting for pixels very close to player
+        vec2 ray_dir = to_pixel / dist;  // Normalized direction
+        int num_samples = 16;
         
-        // Convert world position to screen position for surface map lookup
-        vec2 sample_screen_pos = sample_world_pos - vec2(camera_x, 0.0);
-        vec2 sample_uv = sample_screen_pos / love_ScreenSize.xy;
-        
-        // Check if sample position is within bounds
-        if (sample_uv.x >= 0.0 && sample_uv.x <= 1.0 && 
-            sample_uv.y >= 0.0 && sample_uv.y <= 1.0) {
-            vec4 sample_surface = Texel(surface_map, sample_uv);
+        // Sample along the ray from player toward pixel
+        for (int i = 1; i < num_samples; i++) {
+            float t = (float(i) / float(num_samples)) * dist;
+            vec2 sample_pos = player_pos_screen + ray_dir * t;
             
-            // If we hit a solid block before reaching the pixel, it's in shadow
-            if (sample_surface.r > 0.5) {
-                is_blocked = true;
-                break;
+            // Convert to UV coordinates for texture sampling
+            vec2 uv = sample_pos / love_ScreenSize.xy;
+            
+            // Check bounds
+            if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0) {
+                // Sample the surface map
+                vec4 surface_pixel = Texel(surface_map, uv);
+                
+                // If we hit a solid block (white in surface map), this pixel is in shadow
+                if (surface_pixel.r > 0.5) {
+                    in_shadow = true;
+                    break;
+                }
             }
         }
     }
     
-    // Calculate final light intensity
-    float final_intensity;
-    if (is_blocked) {
-        // In shadow - very dark (5% ambient)
-        final_intensity = 0.05;
+    // Calculate final light
+    float light;
+    if (in_shadow) {
+        light = 0.05;  // Ambient only
     } else {
-        // Direct light - apply distance attenuation
-        final_intensity = attenuation;
+        light = attenuation;  // Full light with distance falloff
     }
     
-    // Apply lighting to the pixel
-    vec3 lit_color = pixel.rgb * final_intensity;
-    
-    return vec4(lit_color, pixel.a) * color;
+    return vec4(pixel.rgb * light, pixel.a) * color;
 }
