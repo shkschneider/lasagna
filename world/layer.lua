@@ -164,8 +164,10 @@ function Layer:draw()
         love.graphics.setCanvas()
         
         -- Calculate player position in screen coordinates
-        local playerScreenX = (player.px + player.width / 2) * C.BLOCK_SIZE - cx
-        local playerScreenY = (player.py + player.height / 2) * C.BLOCK_SIZE
+        -- Player coordinates are 1-indexed, so we use (px - 1) to convert to 0-indexed
+        -- Add half the player size to get center position
+        local playerScreenX = (player.px - 1 + player.width / 2) * C.BLOCK_SIZE - cx
+        local playerScreenY = (player.py - 1 + player.height / 2) * C.BLOCK_SIZE
         
         -- Set shader uniforms
         Layer.lightingShader:send("lightPos", {playerScreenX, playerScreenY})

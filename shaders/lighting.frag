@@ -14,14 +14,25 @@ uniform sampler2D blockTexture;  // Texture containing world block solidity data
 bool isLit(vec2 lightPos, vec2 fragPos, vec2 screenSize) {
     vec2 direction = fragPos - lightPos;
     float distance = length(direction);
+    
+    // Very close to light source - always lit
+    if (distance < 2.0) {
+        return true;
+    }
+    
     direction = normalize(direction);
     
-    // Use configurable step size
-    int maxSteps = int(distance / raycastStepSize);
+    // Use smaller step size for more accurate shadows
+    float stepSize = raycastStepSize;
+    int maxSteps = int(distance / stepSize);
+    
+    // Limit max steps to avoid performance issues
+    maxSteps = min(maxSteps, 200);
     
     // Ray march from light to fragment
+    // Start at step 1 to avoid sampling the light source itself
     for (int i = 1; i < maxSteps; i++) {
-        vec2 samplePos = lightPos + direction * (float(i) * raycastStepSize);
+        vec2 samplePos = lightPos + direction * (float(i) * stepSize);
         vec2 texCoord = samplePos / screenSize;
         
         // Check if we're sampling within bounds
@@ -29,10 +40,14 @@ bool isLit(vec2 lightPos, vec2 fragPos, vec2 screenSize) {
             continue;
         }
         
-        // Sample the block texture - if alpha > 0, there's a solid block
+        // Sample the block texture - if alpha > 0.5, there's a solid block
         vec4 blockData = texture2D(blockTexture, texCoord);
-        if (blockData.a > 0.1) {
-            return false; // Path is blocked, fragment is in shadow
+        if (blockData.a > 0.5) {
+            // Check if we've reached the fragment position (within a small threshold)
+            float distToSample = length(samplePos - fragPos);
+            if (distToSample > stepSize) {
+                return false; // Path is blocked before reaching fragment
+            }
         }
     }
     
@@ -64,8 +79,9 @@ vec4 effect(vec4 color, sampler2D tex, vec2 texture_coords, vec2 screen_coords) 
         // Lit: interpolate between ambient and full brightness based on distance
         finalLight = mix(ambientLight, 1.0, attenuation);
     } else {
-        // In shadow: use only ambient light
-        finalLight = ambientLight;
+        // In shadow: use only ambient light with slight gradient for softer shadows
+        float shadowSoftness = 0.1;
+        finalLight = ambientLight * (1.0 - shadowSoftness * attenuation);
     }
     
     // Apply lighting to the pixel

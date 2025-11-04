@@ -39,5 +39,5 @@ return {
     -- lighting (shader parameters)
     LIGHT_RADIUS = 400,    -- pixels - radius of light around player
     AMBIENT_LIGHT = 0.3,   -- 0.0 to 1.0 - base light level in dark areas
-    RAYCAST_STEP_SIZE = 8, -- pixels - raycast step size (lower = more accurate, higher = faster)
+    RAYCAST_STEP_SIZE = 4, -- pixels - raycast step size (lower = more accurate, higher = faster)
 }
