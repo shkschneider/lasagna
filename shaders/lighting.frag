@@ -9,82 +9,76 @@ uniform float ambientLight;      // Ambient light level (0.0 - 1.0)
 uniform float raycastStepSize;   // Step size for raycasting (pixels)
 uniform sampler2D blockTexture;  // Texture containing world block solidity data
 
-// Cast a ray from the light source to check for obstructions
-// Returns true if the path is clear (no shadow)
-bool isLit(vec2 lightPos, vec2 fragPos, vec2 screenSize) {
-    vec2 direction = fragPos - lightPos;
-    float distance = length(direction);
+// Cast a ray from the light source to a specific point
+// Returns the light intensity at that point (0.0 = fully shadowed, 1.0 = fully lit)
+float castLight(vec2 from, vec2 to) {
+    vec2 direction = to - from;
+    float totalDistance = length(direction);
     
-    // Very close to light source - always lit
-    if (distance < 2.0) {
-        return true;
+    // Very close to light source - always fully lit
+    if (totalDistance < 2.0) {
+        return 1.0;
     }
     
     direction = normalize(direction);
     
-    // Use smaller step size for more accurate shadows
+    // Ray march from light source toward the target point
     float stepSize = raycastStepSize;
-    int maxSteps = int(distance / stepSize);
+    int numSteps = int(totalDistance / stepSize);
     
-    // Limit max steps to avoid performance issues
-    if (maxSteps > 200) {
-        maxSteps = 200;
+    // Limit steps for performance
+    if (numSteps > 200) {
+        numSteps = 200;
     }
     
-    // Ray march from light to fragment
-    // Start at step 1 to avoid sampling the light source itself
-    for (int i = 1; i < maxSteps; i++) {
-        vec2 samplePos = lightPos + direction * (float(i) * stepSize);
+    // March along the ray
+    for (int i = 1; i < numSteps; i++) {
+        float currentDist = float(i) * stepSize;
+        vec2 samplePos = from + direction * currentDist;
         vec2 texCoord = samplePos / screenSize;
         
-        // Check if we're sampling within bounds
+        // Skip if out of bounds
         if (texCoord.x < 0.0 || texCoord.x > 1.0 || texCoord.y < 0.0 || texCoord.y > 1.0) {
             continue;
         }
         
-        // Sample the block texture - if alpha > 0.5, there's a solid block
+        // Check if there's a solid block at this position
         vec4 blockData = texture2D(blockTexture, texCoord);
         if (blockData.a > 0.5) {
-            // Check if we've reached the fragment position (within a small threshold)
-            float distToSample = length(samplePos - fragPos);
-            if (distToSample > stepSize) {
-                return false; // Path is blocked before reaching fragment
+            // Hit a solid block - check if we're past the target point
+            if (currentDist < totalDistance - stepSize) {
+                return 0.0; // Shadowed
             }
         }
     }
     
-    return true; // Path is clear, fragment is lit
+    return 1.0; // Path is clear
 }
 
 vec4 effect(vec4 color, sampler2D tex, vec2 texture_coords, vec2 screen_coords) {
-    // Get the base pixel color from the layer texture
+    // Get the base pixel color
     vec4 pixel = texture2D(tex, texture_coords);
     
     // Calculate distance from current fragment to light source
     float distToLight = length(lightPos - screen_coords);
     
-    // If outside light radius, apply only ambient light
+    // Calculate base light intensity with quadratic falloff
+    float attenuation;
     if (distToLight > lightRadius) {
-        return pixel * vec4(vec3(ambientLight), 1.0);
-    }
-    
-    // Check if fragment is in shadow
-    bool lit = isLit(lightPos, screen_coords, screenSize);
-    
-    // Calculate light intensity based on distance (quadratic falloff)
-    float attenuation = 1.0 - (distToLight / lightRadius);
-    attenuation = attenuation * attenuation;
-    
-    // Calculate final light level
-    float finalLight;
-    if (lit) {
-        // Lit: interpolate between ambient and full brightness based on distance
-        finalLight = mix(ambientLight, 1.0, attenuation);
+        attenuation = 0.0;
     } else {
-        // In shadow: use only ambient light with slight gradient for softer shadows
-        float shadowSoftness = 0.1;
-        finalLight = ambientLight * (1.0 - shadowSoftness * attenuation);
+        attenuation = 1.0 - (distToLight / lightRadius);
+        attenuation = attenuation * attenuation; // Quadratic falloff
     }
+    
+    // Cast ray to check for shadows
+    float visibility = castLight(lightPos, screen_coords);
+    
+    // Combine attenuation and shadow
+    float lightIntensity = attenuation * visibility;
+    
+    // Final light level: ambient + dynamic light
+    float finalLight = ambientLight + (1.0 - ambientLight) * lightIntensity;
     
     // Apply lighting to the pixel
     return pixel * vec4(vec3(finalLight), 1.0);
