@@ -8,7 +8,7 @@ return {
     -- math precision
     EPS = 1e-6,
     -- world geometry & rendering
-    BLOCK_SIZE = 16,
+    BLOCK_SIZE = 4,
     WORLD_HEIGHT = 100,
     HEIGHT = 100,
     DIRT_THICKNESS = 10,
