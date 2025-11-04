@@ -29,8 +29,9 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
     vec2 ray_dir = normalize(direction);
     
     // Sample along the ray to check for blocking surfaces
-    int samples = 12;
-    float occlusion = 0.0;
+    int samples = 16;
+    float shadow = 1.0;
+    bool hit_wall = false;
     
     for (int i = 1; i < samples; i++) {
         float t = (float(i) / float(samples)) * ray_length;
@@ -42,23 +43,22 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
             sample_uv.y >= 0.0 && sample_uv.y <= 1.0) {
             vec4 sample_surface = Texel(surface_map, sample_uv);
             
-            // Accumulate occlusion with distance-based weight for soft shadows
+            // If we hit a solid block, create deep shadow
             if (sample_surface.r > 0.5) {
-                float distance_factor = t / ray_length;
-                occlusion += (1.0 - distance_factor) * 0.25;
+                // Distance from light to the blocking surface
+                float block_distance = t / ray_length;
+                
+                // Create deep shadow behind walls
+                // Closer blocks create harder shadows
+                shadow = block_distance * 0.3;  // 30% light at wall, fades to dark behind
+                hit_wall = true;
+                break;  // Stop at first hit for proper occlusion
             }
         }
     }
     
-    // Soft shadow: occlusion reduces light but not completely to 0
-    occlusion = clamp(occlusion, 0.0, 0.95);
-    float shadow = 1.0 - occlusion;
-    
     // Combine attenuation with shadow
     float final_intensity = attenuation * shadow;
-    
-    // Add small ambient to prevent complete blackness
-    final_intensity = max(final_intensity, 0.05);
     
     // Apply lighting to the pixel
     vec3 lit_color = pixel.rgb * final_intensity;
