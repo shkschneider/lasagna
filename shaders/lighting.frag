@@ -27,7 +27,9 @@ bool isLit(vec2 lightPos, vec2 fragPos, vec2 screenSize) {
     int maxSteps = int(distance / stepSize);
     
     // Limit max steps to avoid performance issues
-    maxSteps = min(maxSteps, 200);
+    if (maxSteps > 200) {
+        maxSteps = 200;
+    }
     
     // Ray march from light to fragment
     // Start at step 1 to avoid sampling the light source itself
