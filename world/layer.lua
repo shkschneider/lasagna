@@ -20,15 +20,21 @@ function Layer:generate_column(x, freq, base, amp)
     -- Skip if already generated
     if self.tiles[x] then return end
 
-    -- With BLOCK_SIZE=4 instead of 16, we have 4x more columns for the same visual width
-    -- Map to the original coordinate system: columns 1-4 -> original 1, columns 5-8 -> original 2, etc.
+    -- With BLOCK_SIZE=4 instead of 16, we have 4x more columns per original column
+    -- Each original block at 16px becomes a 4x4 grid of 4px blocks
     local scale = 4  -- 16 / 4 = 4
-    local original_x = math.ceil(x / scale)
     
-    -- Sample noise at the original column position to get the same terrain pattern
-    -- Note: base and amp are already scaled by 4 in constants.lua
+    -- Determine which original column this belongs to (1-indexed)
+    -- Columns 1-4 -> original 1, columns 5-8 -> original 2, etc.
+    local original_x = math.floor((x - 1) / scale) + 1
+    
+    -- Sample noise at the original column position
     local n = noise.perlin1d(original_x * freq + (self.z * 100))
-    local top = math.max(1, math.min(C.WORLD_HEIGHT - 1, math.floor(base + amp * n)))
+    local original_top = math.max(1, math.min(C.WORLD_HEIGHT - 1, math.floor(base + amp * n)))
+    
+    -- Convert original top to new coordinate system (each original block = 4 new blocks vertically)
+    -- Original top=30 means blocks 1-30 are filled, which should be new blocks 1-120
+    local top = original_top * scale
     local dirt_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS * scale)
     local stone_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS * scale + C.STONE_THICKNESS * scale)
 
@@ -39,12 +45,15 @@ function Layer:generate_column(x, freq, base, amp)
     self.tiles[x] = {}
     for y = 1, C.WORLD_HEIGHT do
         local proto = nil
-        -- Grass should occupy the top "scale" rows
-        if y > top - scale and y <= top then
+        -- Determine which original row this belongs to
+        local original_y = math.floor((y - 1) / scale) + 1
+        
+        -- Check what block type the original position had
+        if original_y == original_top then
             proto = Blocks and Blocks.grass
-        elseif y > top and y <= dirt_lim then
+        elseif original_y > original_top and original_y <= original_top + C.DIRT_THICKNESS then
             proto = Blocks and Blocks.dirt
-        elseif y > dirt_lim and y <= stone_lim then
+        elseif original_y > original_top + C.DIRT_THICKNESS and original_y <= original_top + C.DIRT_THICKNESS + C.STONE_THICKNESS then
             proto = Blocks and Blocks.stone
         else
             proto = nil
