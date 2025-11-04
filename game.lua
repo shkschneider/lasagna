@@ -194,7 +194,7 @@ function Game:enable_shader_for_layer(z)
 
         -- Set shader uniforms for player light
         self.player_shader:send("player_pos", {player_screen_x, player_screen_y})
-        self.player_shader:send("player_radius", 300.0)
+        self.player_shader:send("player_radius", 500.0)  -- Larger radius since no distance falloff
         
         -- Set surface map for occlusion calculations (raycasting)
         self.player_shader:send("surface_map", self.surface_canvas)
