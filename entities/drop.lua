@@ -32,9 +32,36 @@ function Drop:update(dt, world, player)
     -- Apply gravity using component
     self.gravity:update(dt)
     
+    -- Store old velocity to detect when we land
+    local old_vy = self.vy
+    
     -- Apply physics movement (handles collision detection properly)
     local dy = self.vy * dt
     Physics.move(self, 0, dy, world)
+    
+    -- Check if we just landed (velocity was positive/falling, now is zero)
+    if old_vy > 0 and self.vy == 0 then
+        -- We just landed, check for other drops to merge with
+        if world.entities then
+            for _, other in ipairs(world.entities) do
+                -- Check if it's another drop of the same type
+                if other ~= self and other.proto and other.proto == self.proto and other.z == self.z then
+                    -- Check if they're close enough (within 1.5 blocks)
+                    local dx = math.abs((self.px + self.width / 2) - (other.px + other.width / 2))
+                    local dy_dist = math.abs((self.py + self.height / 2) - (other.py + other.height / 2))
+                    
+                    if dx < 1.5 and dy_dist < 1.5 then
+                        -- Merge: add our count to the other drop
+                        other.count = other.count + self.count
+                        -- Reset other's lifetime so it doesn't despawn soon
+                        other.lifetime = math.min(other.lifetime, self.lifetime)
+                        -- Remove ourselves
+                        return false
+                    end
+                end
+            end
+        end
+    end
 
     -- Check if player is nearby and can collect
     if player and player.z == self.z and player.inventory then
