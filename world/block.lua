@@ -21,9 +21,11 @@ end
 -- Drop this block at the specified position
 function Block:drop(world, col, row, z, count)
     count = count or 1
-    -- Spawn at center of block: block is at column col (1-indexed), occupies [col, col+1)
-    local item_x = col
-    local item_y = row
+    -- Spawn at center of block with small random offset to prevent exact superposition
+    -- This ensures drops from the same 2×2 block group don't spawn exactly on top of each other
+    local offset = 0.15  -- Small offset range
+    local item_x = col + (math.random() * 2 - 1) * offset
+    local item_y = row + (math.random() * 2 - 1) * offset
     return world:spawn_dropped_item(self, item_x, item_y, z, count)
 end
 
