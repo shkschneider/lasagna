@@ -15,7 +15,7 @@ return {
     STONE_THICKNESS = 10,
     LAYER_MIN = -1,
     LAYER_MAX = 1,
-    -- gameplay constants
+    -- movements constants
     GRAVITY = 40,    -- blocks / second^2 (2x for 2x2 subdivision)
     MOVE_ACCEL = 120, -- blocks / second^2 (2x for 2x2 subdivision)
     MAX_SPEED = 12,   -- blocks / second (2x for 2x2 subdivision)
@@ -28,6 +28,7 @@ return {
     CROUCH_MAX_SPEED = 6,  -- 2x for 2x2 subdivision
     JUMP_SPEED = -20,-- initial jump velocity (2x for 2x2 subdivision)
     STEP_HEIGHT = 2, -- maximum step-up in blocks (2x for 2x2 subdivision)
+    -- gameplay constants
     MAX_STACK = 64,
     DESPAWN_TIME = 60, -- seconds
     -- day/night cycle
