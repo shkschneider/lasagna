@@ -134,12 +134,12 @@ function World:set_block(z, x, y, block)
             return false, "nothing to remove"
         end
         layer.tiles[x][y] = nil
-        log.info(string.format("Removed block '%s' at x=%d y=%d z=%d", tostring(prev and prev.name), x, y, z))
+        log.debug(string.format("Removed block '%s' at x=%d y=%d z=%d", tostring(prev and prev.name), x, y, z))
         return true, "removed"
     else
         local action = (prev == nil) and "added" or "replaced"
         layer.tiles[x][y] = proto
-        log.info(string.format("Set block '%s' at x=%d y=%d x=%d", tostring(proto.name), x, y, z))
+        log.debug(string.format("Set block '%s' at x=%d y=%d x=%d", tostring(proto.name), x, y, z))
         return true, action
     end
 end
@@ -159,7 +159,7 @@ function World:spawn_dropped_item(proto, px, py, z, count)
     count = count or 1
     local item = Drop(proto, px, py, z, count)
     table.insert(self.entities, item)
-    log.info(string.format("Spawned block item '%s' at x=%d y=%d z=%d", proto.name or "?", px, py, z))
+    log.debug(string.format("Spawned block item '%s' at x=%d y=%d z=%d", proto.name or "?", px, py, z))
     return true
 end
 
