@@ -4,6 +4,7 @@ local Items = require("data.items")
 local Physics = require("world.physics")
 local Navigation = require("entities.components.navigation")
 local Gravity = require("entities.components.gravity")
+local Inventory = require("entities.components.inventory")
 local log = require("lib.log")
 
 -- Player state enums
@@ -37,11 +38,11 @@ function Player:new()
     -- Selection size for placing/removing blocks (in world blocks)
     self.selection_size = 1  -- Can be 1, 2, or 4
 
-    local slots = 9
+    -- Inventory system: hand (held item) + belt (hotbar)
+    -- Using Inventory component for both
     self.inventory = {
-        slots = slots,
-        selected = 1,
-        items = {},
+        hand = Inventory(self, { slots = 1 }),  -- Single slot for held item
+        belt = Inventory(self, { slots = 9 }),  -- 9-slot hotbar
         ui = {
             slot_size = 48,
             padding = 6,
@@ -49,12 +50,9 @@ function Player:new()
             background_alpha = 0.6,
         },
     }
-    -- Start with only 64 cobblestone
-    table.insert(self.inventory.items, {
-        proto = Blocks.cobblestone,
-        count = 64,
-        data = {}
-    })
+    
+    -- Start with 64 cobblestone in first belt slot
+    self.inventory.belt:add(Blocks.cobblestone, 64)
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
 
     -- Initialize components
@@ -238,35 +236,37 @@ function Player:wheelmoved(dx, dy)
             -- Already at min (1), stay there
         end
     else
-        -- Normal hotbar selection change
-        local inv = self.inventory
+        -- Normal belt selection change
+        local belt = self.inventory.belt
         if dy > 0 then
-            inv.selected = inv.selected - 1
-            if inv.selected < 1 then inv.selected = inv.slots end
+            belt.selected = belt.selected - 1
+            if belt.selected < 1 then belt.selected = belt.slots end
         else
-            inv.selected = inv.selected + 1
-            if inv.selected > inv.slots then inv.selected = 1 end
+            belt.selected = belt.selected + 1
+            if belt.selected > belt.slots then belt.selected = 1 end
         end
     end
 end
 
 function Player:drawInventory()
-    local total_width = self.inventory.slots * self.inventory.ui.slot_size + (self.inventory.slots - 1) * self.inventory.ui.padding
+    local belt = self.inventory.belt
+    local ui = self.inventory.ui
+    local total_width = belt.slots * ui.slot_size + (belt.slots - 1) * ui.padding
     local x0 = (G.width - total_width) / 2
-    local y0 = G.height - self.inventory.ui.slot_size - 20
+    local y0 = G.height - ui.slot_size - 20
     local bg_margin = 8
-    love.graphics.setColor(0,0,0,self.inventory.ui.background_alpha)
-    love.graphics.rectangle("fill", x0 - bg_margin, y0 - bg_margin, total_width + bg_margin*2, self.inventory.ui.slot_size + bg_margin*2, 6, 6)
-    for i = 1, self.inventory.slots do
-        local sx = x0 + (i-1)*(self.inventory.ui.slot_size + self.inventory.ui.padding)
+    love.graphics.setColor(0,0,0,ui.background_alpha)
+    love.graphics.rectangle("fill", x0 - bg_margin, y0 - bg_margin, total_width + bg_margin*2, ui.slot_size + bg_margin*2, 6, 6)
+    for i = 1, belt.slots do
+        local sx = x0 + (i-1)*(ui.slot_size + ui.padding)
         local sy = y0
         love.graphics.setColor(0.12,0.12,0.12,1)
-        love.graphics.rectangle("fill", sx, sy, self.inventory.ui.slot_size, self.inventory.ui.slot_size, 4, 4)
+        love.graphics.rectangle("fill", sx, sy, ui.slot_size, ui.slot_size, 4, 4)
         local inner_pad = 8
         local cube_x, cube_y = sx + inner_pad, sy + inner_pad
-        local cube_w, cube_h = self.inventory.ui.slot_size - inner_pad*2, self.inventory.ui.slot_size - inner_pad*2
-        local item = self.inventory.items[i]
-        -- Handle new inventory format: { proto, count, data }
+        local cube_w, cube_h = ui.slot_size - inner_pad*2, ui.slot_size - inner_pad*2
+        local item = belt.items[i]
+        -- Handle inventory format: { proto, count, data }
         local proto = item and (item.proto or item)
         local count = item and item.count
         if proto and proto.color then
@@ -282,15 +282,15 @@ function Player:drawInventory()
         -- Draw count if present
         if count and count > 1 then
             love.graphics.setColor(1, 1, 1, 1)
-            love.graphics.print(tostring(count), sx + 4, sy + self.inventory.ui.slot_size - 16)
+            love.graphics.print(tostring(count), sx + 4, sy + ui.slot_size - 16)
         end
         love.graphics.setColor(0,0,0,0.6)
         love.graphics.setLineWidth(1)
-        love.graphics.rectangle("line", sx + 0.5, sy + 0.5, self.inventory.ui.slot_size - 1, self.inventory.ui.slot_size - 1, 4, 4)
-        if i == self.inventory.selected then
+        love.graphics.rectangle("line", sx + 0.5, sy + 0.5, ui.slot_size - 1, ui.slot_size - 1, 4, 4)
+        if i == belt.selected then
             love.graphics.setColor(1, 0.84, 0, 1)
-            love.graphics.setLineWidth(self.inventory.ui.border_thickness)
-            love.graphics.rectangle("line", sx + 1, sy + 1, self.inventory.ui.slot_size - 2, self.inventory.ui.slot_size - 2, 4, 4)
+            love.graphics.setLineWidth(ui.border_thickness)
+            love.graphics.rectangle("line", sx + 1, sy + 1, ui.slot_size - 2, ui.slot_size - 2, 4, 4)
             love.graphics.setLineWidth(1)
         end
     end
@@ -299,9 +299,11 @@ end
 
 function Player:drawGhost()
     -- Always show ghost block, even when no item is selected
-    local total_width = self.inventory.slots * self.inventory.ui.slot_size + (self.inventory.slots - 1) * self.inventory.ui.padding
+    local belt = self.inventory.belt
+    local ui = self.inventory.ui
+    local total_width = belt.slots * ui.slot_size + (belt.slots - 1) * ui.padding
     local x0 = (G.width - total_width) / 2
-    local y0 = G.height - self.inventory.ui.slot_size - 20
+    local y0 = G.height - ui.slot_size - 20
     local bg_margin = 8
     local inv_top = y0 - bg_margin
 
@@ -343,12 +345,12 @@ end
 function Player:placeAtMouse(mx, my, z_override)
     local mouse_x, mouse_y = mx, my
     if not mouse_x or not mouse_y then mouse_x, mouse_y = love.mouse.getPosition() end
-    local inv = self.inventory
-    local selected = inv.selected or 1
-    local item = inv.items and inv.items[selected]
+    local belt = self.inventory.belt
+    local selected = belt.selected or 1
+    local item = belt.items and belt.items[selected]
     if not item then return false, "no item selected" end
 
-    -- Handle new inventory format: { proto, count, data }
+    -- Handle inventory format: { proto, count, data }
     local proto = item.proto or item
     local count = item.count or 1
 
@@ -443,7 +445,7 @@ function Player:placeAtMouse(mx, my, z_override)
     if placed_count > 0 and item.count then
         item.count = item.count - placed_count
         if item.count <= 0 then
-            inv.items[selected] = nil
+            belt.items[selected] = nil
         end
     end
 
