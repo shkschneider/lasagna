@@ -35,6 +35,9 @@ function Drop:update(dt, world, player)
         -- Apply physics movement (handles collision detection properly)
         local dy = self.vy * dt
         Physics.move(self, 0, dy, world)
+
+        -- Apply sand-like spreading physics when grounded
+        Physics.apply_spreading(self, world, dt)
     end
 
     -- Check if player is nearby and can collect
