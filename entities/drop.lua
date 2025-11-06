@@ -16,7 +16,7 @@ function Drop:new(proto, px, py, z, count)
     self.vy = 0
     self.lifetime = 0   -- Tracks how long the item has existed
     self.max_lifetime = C.DESPAWN_TIME
-    self.collection_range = C.BLOCK_SIZE
+    self.collection_range = C.BLOCK_SIZE / 4
     self.gravity = Gravity(self)
 end
 
