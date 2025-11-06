@@ -33,6 +33,8 @@ function Game:new()
     self.camera = Camera()
     self.mx, self.my = 0, 0
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
+    self.held_drops = {}  -- List of drops being held by right mouse button
+    self.right_mouse_down = false
 end
 
 function Game:load(seed)
@@ -81,10 +83,51 @@ function Game:mousemoved(x, y, dx, dy, istouch)
 end
 
 function Game:mousepressed(x, y, button, istouch, presses)
-    if self:player().placeAtMouse and (button == 2 or button == "r") then
-        local ok, err, z_changed = self:player():placeAtMouse(x, y)
-        if not ok then
-            log.warn("Place failed:", tostring(err))
+    if button == 2 or button == "r" then
+        -- Right click: check if placing block or grabbing drops
+        local player = self:player()
+        
+        -- Get selection area
+        local cx = self.camera:get_x()
+        local world_px = x + cx
+        local col = math.floor(world_px / C.BLOCK_SIZE) + 1
+        local row = math.floor(y / C.BLOCK_SIZE) + 1
+        row = math.max(1, math.min(C.WORLD_HEIGHT, row))
+        
+        local size = player.selection_size
+        local start_col = col
+        local start_row = row
+        
+        if size > 1 then
+            start_col = col - math.floor(size / 2)
+            start_row = row - math.floor(size / 2)
+        end
+        
+        -- Check if there are any drops in the selection area
+        local drops_found = false
+        for _, drop in ipairs(self.world.entities) do
+            if drop.proto and drop.z == player.z then
+                -- Check if drop is in selection area
+                local drop_col = math.floor(drop.px)
+                local drop_row = math.floor(drop.py)
+                
+                if drop_col >= start_col and drop_col < start_col + size and
+                   drop_row >= start_row and drop_row < start_row + size then
+                    table.insert(self.held_drops, drop)
+                    drop.being_held = true
+                    drops_found = true
+                end
+            end
+        end
+        
+        -- If no drops found, try to place a block
+        if not drops_found and player.placeAtMouse then
+            local ok, err, z_changed = player:placeAtMouse(x, y)
+            if not ok then
+                log.warn("Place failed:", tostring(err))
+            end
+        else
+            self.right_mouse_down = true
         end
     elseif self:player().removeAtMouse and (button == 1 or button == "l") then
         local ok, err, z_changed = self:player():removeAtMouse(x, y)
@@ -94,11 +137,38 @@ function Game:mousepressed(x, y, button, istouch, presses)
     end
 end
 
+function Game:mousereleased(x, y, button, istouch, presses)
+    if button == 2 or button == "r" then
+        -- Release all held drops
+        for _, drop in ipairs(self.held_drops) do
+            drop.being_held = false
+        end
+        self.held_drops = {}
+        self.right_mouse_down = false
+    end
+end
+
 function Game:update(dt)
     -- Update camera to follow player
     local target_x = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE
     local target_y = 0
     self.camera:follow(target_x, target_y, self.width, self.height)
+    
+    -- Move held drops to mouse position
+    if self.right_mouse_down and #self.held_drops > 0 then
+        local cx = self.camera:get_x()
+        local world_px = self.mx + cx
+        local target_col = world_px / C.BLOCK_SIZE
+        local target_row = self.my / C.BLOCK_SIZE
+        
+        for _, drop in ipairs(self.held_drops) do
+            -- Move drop to mouse position
+            drop.px = target_col
+            drop.py = target_row
+            drop.vy = 0  -- No vertical velocity while held
+        end
+    end
+    
     -- world entities ...
     self.world:update(dt)
 end

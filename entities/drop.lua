@@ -28,12 +28,14 @@ function Drop:update(dt, world, player)
         return false  -- Signal to world that this entity should be removed
     end
 
-    -- Apply gravity using component
-    self.gravity:update(dt)
-
-    -- Apply physics movement (handles collision detection properly)
-    local dy = self.vy * dt
-    Physics.move(self, 0, dy, world)
+    -- Apply gravity using component (unless being held)
+    if not self.being_held then
+        self.gravity:update(dt)
+        
+        -- Apply physics movement (handles collision detection properly)
+        local dy = self.vy * dt
+        Physics.move(self, 0, dy, world)
+    end
 
     -- Check if player is nearby and can collect
     if player and player.z == self.z and player.inventory then
