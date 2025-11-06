@@ -34,6 +34,9 @@ function Player:new()
     self.movement_state = MovementState.AIRBORNE
     self.stance = Stance.STANDING
 
+    -- Selection size for placing/removing blocks (in world blocks)
+    self.selection_size = 1  -- Can be 1, 2, or 4
+
     local slots = 9
     self.inventory = {
         slots = slots,
@@ -186,13 +189,39 @@ end
 
 function Player:wheelmoved(dx, dy)
     if not dy or dy == 0 then return end
-    local inv = self.inventory
-    if dy > 0 then
-        inv.selected = inv.selected - 1
-        if inv.selected < 1 then inv.selected = inv.slots end
+    
+    -- Check if control is held for selection size change
+    local ctrl_held = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
+    
+    if ctrl_held then
+        -- Change selection size with Ctrl+scroll
+        if dy > 0 then
+            -- Scroll up: increase size
+            if self.selection_size == 1 then
+                self.selection_size = 2
+            elseif self.selection_size == 2 then
+                self.selection_size = 4
+            end
+            -- Already at max (4), stay there
+        else
+            -- Scroll down: decrease size
+            if self.selection_size == 4 then
+                self.selection_size = 2
+            elseif self.selection_size == 2 then
+                self.selection_size = 1
+            end
+            -- Already at min (1), stay there
+        end
     else
-        inv.selected = inv.selected + 1
-        if inv.selected > inv.slots then inv.selected = 1 end
+        -- Normal hotbar selection change
+        local inv = self.inventory
+        if dy > 0 then
+            inv.selected = inv.selected - 1
+            if inv.selected < 1 then inv.selected = inv.slots end
+        else
+            inv.selected = inv.selected + 1
+            if inv.selected > inv.slots then inv.selected = 1 end
+        end
     end
 end
 
@@ -261,14 +290,27 @@ function Player:drawGhost()
     local row = math.floor(G.my / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
 
+    -- Calculate the top-left corner of the selection based on size
+    local size = self.selection_size
+    local start_col = col
+    local start_row = row
+    
+    -- Center the selection around the cursor position
+    if size > 1 then
+        start_col = col - math.floor(size / 2)
+        start_row = row - math.floor(size / 2)
+    end
+
     -- Convert world grid position back to screen position
-    local px = (col - 1) * C.BLOCK_SIZE - cx
-    local py = (row - 1) * C.BLOCK_SIZE
+    local px = (start_col - 1) * C.BLOCK_SIZE - cx
+    local py = (start_row - 1) * C.BLOCK_SIZE
+    local width = size * C.BLOCK_SIZE
+    local height = size * C.BLOCK_SIZE
 
     -- Draw ghost outline
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.setLineWidth(2)
-    love.graphics.rectangle("line", px + 0.5, py + 0.5, C.BLOCK_SIZE - 1, C.BLOCK_SIZE - 1)
+    love.graphics.rectangle("line", px + 0.5, py + 0.5, width - 1, height - 1)
     love.graphics.setLineWidth(1)
     love.graphics.setColor(1, 1, 1, 1)
 end
@@ -292,40 +334,95 @@ function Player:placeAtMouse(mx, my, z_override)
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
+    
+    -- Calculate the top-left corner of the selection based on size
+    local size = self.selection_size
+    local start_col = col
+    local start_row = row
+    
+    -- Center the selection around the cursor position
+    if size > 1 then
+        start_col = col - math.floor(size / 2)
+        start_row = row - math.floor(size / 2)
+    end
+    
     -- Only allow editing on current layer
     local z = self.z
-    local target = G.world:get_block_type(z, col, row)
-    if target ~= "air" then return false, "target not empty", z end
-    local touches_existing = false
-    for dx = -1, 1 do
-        for dy = -1, 1 do
-            if not (dx == 0 and dy == 0) then
-                local nx, ny = col + dx, row + dy
-                if ny >= 1 and ny <= C.WORLD_HEIGHT then
-                    local neigh = G.world:get_block_type(z, nx, ny)
-                    if neigh and neigh ~= "air" and neigh ~= "out" then
-                        touches_existing = true
-                        break
-                    end
+    
+    -- Check if all target positions are empty
+    for dx = 0, size - 1 do
+        for dy = 0, size - 1 do
+            local target_col = start_col + dx
+            local target_row = start_row + dy
+            if target_row >= 1 and target_row <= C.WORLD_HEIGHT then
+                local target = G.world:get_block_type(z, target_col, target_row)
+                if target ~= "air" then 
+                    return false, "target not empty", z 
                 end
             end
         end
+    end
+    
+    -- Check if at least one block touches existing terrain
+    local touches_existing = false
+    for dx = 0, size - 1 do
+        for dy = 0, size - 1 do
+            local target_col = start_col + dx
+            local target_row = start_row + dy
+            -- Check neighbors
+            for ndx = -1, 1 do
+                for ndy = -1, 1 do
+                    if not (ndx == 0 and ndy == 0) then
+                        local nx, ny = target_col + ndx, target_row + ndy
+                        if ny >= 1 and ny <= C.WORLD_HEIGHT then
+                            local neigh = G.world:get_block_type(z, nx, ny)
+                            if neigh and neigh ~= "air" and neigh ~= "out" then
+                                -- Make sure the neighbor isn't part of our selection
+                                local is_in_selection = (nx >= start_col and nx < start_col + size and 
+                                                        ny >= start_row and ny < start_row + size)
+                                if not is_in_selection then
+                                    touches_existing = true
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+                if touches_existing then break end
+            end
+            if touches_existing then break end
+        end
         if touches_existing then break end
     end
+    
     if not touches_existing then
         return false, "must touch an existing block on the same layer", z
     end
-    local ok, action = G.world:set_block(z, col, row, proto)
-
-    -- Decrement count on successful placement
-    if ok and item.count then
-        item.count = item.count - 1
+    
+    -- Place all blocks in the selection
+    local placed_count = 0
+    for dx = 0, size - 1 do
+        for dy = 0, size - 1 do
+            local target_col = start_col + dx
+            local target_row = start_row + dy
+            if target_row >= 1 and target_row <= C.WORLD_HEIGHT then
+                local ok, action = G.world:set_block(z, target_col, target_row, proto)
+                if ok then
+                    placed_count = placed_count + 1
+                end
+            end
+        end
+    end
+    
+    -- Decrement count based on blocks placed
+    if placed_count > 0 and item.count then
+        item.count = item.count - placed_count
         if item.count <= 0 then
             inv.items[selected] = nil
         end
     end
 
-    return ok, action, z
+    return placed_count > 0, placed_count > 0 and "placed" or "failed", z
 end
 
 function Player:removeAtMouse(mx, my, z_override)
@@ -336,39 +433,76 @@ function Player:removeAtMouse(mx, my, z_override)
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
+    
+    -- Calculate the top-left corner of the selection based on size
+    local size = self.selection_size
+    local start_col = col
+    local start_row = row
+    
+    -- Center the selection around the cursor position
+    if size > 1 then
+        start_col = col - math.floor(size / 2)
+        start_row = row - math.floor(size / 2)
+    end
+    
     -- Only allow editing on current layer
     local z = self.z
-    local t = G.world:get_block_type(z, col, row)
-    if not t or t == "air" or t == "out" then
-        return false, "nothing to remove", z
-    end
     
-    -- Store the block type before removing it
-    local block_proto = t
+    -- Remove all blocks in the selection and collect dropped items
+    local removed_count = 0
+    local dropped_items = {}  -- Track items to spawn (type -> count)
     
-    local ok, msg = G.world:set_block(z, col, row, nil)
-    if not ok then
-        ok, msg = G.world:set_block(z, col, row, "__empty")
-        if ok then
-            log.info(string.format("Marked procedural block removed at z=%d, col=%d, row=%d", z, col, row))
+    for dx = 0, size - 1 do
+        for dy = 0, size - 1 do
+            local target_col = start_col + dx
+            local target_row = start_row + dy
+            if target_row >= 1 and target_row <= C.WORLD_HEIGHT then
+                local t = G.world:get_block_type(z, target_col, target_row)
+                if t and t ~= "air" and t ~= "out" then
+                    -- Store the block type before removing it
+                    local block_proto = t
+                    
+                    local ok, msg = G.world:set_block(z, target_col, target_row, nil)
+                    if not ok then
+                        ok, msg = G.world:set_block(z, target_col, target_row, "__empty")
+                        if ok then
+                            log.info(string.format("Marked procedural block removed at z=%d, col=%d, row=%d", z, target_col, target_row))
+                        end
+                    else
+                        log.info(string.format("Removed block at z=%d, col=%d, row=%d", z, target_col, target_row))
+                    end
+                    
+                    if ok then
+                        removed_count = removed_count + 1
+                        -- Track dropped items by type
+                        if block_proto and block_proto ~= "air" and block_proto ~= "out" then
+                            if not dropped_items[block_proto] then
+                                dropped_items[block_proto] = 0
+                            end
+                            dropped_items[block_proto] = dropped_items[block_proto] + 1
+                        end
+                    end
+                end
+            end
         end
-    else
-        log.info(string.format("Removed block at z=%d, col=%d, row=%d", z, col, row))
     end
     
-    -- Spawn dropped item if removal was successful
-    if ok and block_proto and block_proto ~= "air" and block_proto ~= "out" then
-        -- Spawn at center of block: block is at column col (1-indexed), occupies [col, col+1)
-        -- Item is 1 block wide, so to center it: col + (1 - 1) / 2 = col
-        local item_x = col
-        local item_y = row
-        G.world:spawn_dropped_item(block_proto, item_x, item_y, z, 1)
+    -- Spawn dropped items at the center of the selection
+    if removed_count > 0 then
+        local center_col = start_col + math.floor(size / 2)
+        local center_row = start_row + math.floor(size / 2)
+        local item_x = center_col
+        local item_y = center_row
+        
+        for block_proto, item_count in pairs(dropped_items) do
+            G.world:spawn_dropped_item(block_proto, item_x, item_y, z, item_count)
+        end
     end
     
-    if ok then
-        return true, msg, z
+    if removed_count > 0 then
+        return true, "removed " .. removed_count, z
     end
-    return false, "failed to remove block", z
+    return false, "nothing to remove", z
 end
 
 return Player
