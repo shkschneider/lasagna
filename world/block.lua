@@ -18,4 +18,13 @@ function Block:draw(x, y, block_size)
     love.graphics.setColor(1, 1, 1, 1)
 end
 
+-- Drop this block at the specified position
+function Block:drop(world, col, row, z, count)
+    count = count or 1
+    -- Spawn at center of block: block is at column col (1-indexed), occupies [col, col+1)
+    local item_x = col
+    local item_y = row
+    return world:spawn_dropped_item(self, item_x, item_y, z, count)
+end
+
 return Block

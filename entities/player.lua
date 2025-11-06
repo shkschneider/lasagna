@@ -448,9 +448,8 @@ function Player:removeAtMouse(mx, my, z_override)
     -- Only allow editing on current layer
     local z = self.z
 
-    -- Remove all blocks in the selection and collect dropped items
+    -- Remove all blocks in the selection and drop each at its center
     local removed_count = 0
-    local dropped_items = {}  -- Track items to spawn (type -> count)
 
     for dx = 0, size - 1 do
         for dy = 0, size - 1 do
@@ -469,28 +468,15 @@ function Player:removeAtMouse(mx, my, z_override)
 
                     if ok then
                         removed_count = removed_count + 1
-                        -- Track dropped items by type
+                        -- Drop the block at its center position using Block:drop()
                         if block_proto and block_proto ~= "air" and block_proto ~= "out" then
-                            if not dropped_items[block_proto] then
-                                dropped_items[block_proto] = 0
+                            if type(block_proto.drop) == "function" then
+                                block_proto:drop(G.world, target_col, target_row, z, 1)
                             end
-                            dropped_items[block_proto] = dropped_items[block_proto] + 1
                         end
                     end
                 end
             end
-        end
-    end
-
-    -- Spawn dropped items at the center of the selection
-    if removed_count > 0 then
-        local center_col = start_col + math.floor(size / 2)
-        local center_row = start_row + math.floor(size / 2)
-        local item_x = center_col
-        local item_y = center_row
-
-        for block_proto, item_count in pairs(dropped_items) do
-            G.world:spawn_dropped_item(block_proto, item_x, item_y, z, item_count)
         end
     end
 
