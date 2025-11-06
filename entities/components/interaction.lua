@@ -4,6 +4,7 @@ local log = require("lib.log")
 local Interaction = Object {}
 
 function Inventory:new(player, opts)
+    assert(player)
     opts = opts or {}
     self.player = player
 end
@@ -74,15 +75,12 @@ function Interaction:remove_block_at_mouse(world, camera_x, block_size, mx, my, 
     end
     local ok, msg = world:set_block(z, col, row, nil)
     if ok then
-        if log and log.info then
-            log.info(string.format("Removed block at z=%d, col=%d, row=%d", z, col, row))
-        end
+        log.debug(string.format("Removed block at z=%d, col=%d, row=%d", z, col, row))
         return true, msg, z
-    end
-    local ok2, msg2 = world:set_block(z, col, row, "__empty")
-    if ok2 then
-        if log and log.info then
-            log.info(string.format("Marked procedural block removed at z=%d, col=%d, row=%d", z, col, row))
+    else
+        local ok2, msg2 = world:set_block(z, col, row, "__empty")
+        if ok2 then
+            log.debug(string.format("Removed block '%s' at x=%d y=%d z=%", "?", col, row, z)
         end
         return true, msg2, z
     end

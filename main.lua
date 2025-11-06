@@ -39,6 +39,10 @@ function love.mousepressed(x, y, button, istouch, presses)
     G:mousepressed(x, y, button, istouch, presses)
 end
 
+function love.mousereleased(x, y, button, istouch, presses)
+    G:mousereleased(x, y, button, istouch, presses)
+end
+
 function love.update(dt)
     G:update(dt)
 end

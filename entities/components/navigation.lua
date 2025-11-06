@@ -32,10 +32,7 @@ function Navigation:switch_layer(direction)
     if self.player.vy then
         self.player.vy = 0
     end
-    if log and log.info then
-        log.info(string.format("Layer: %d", new_z))
-    end
-
+    log.debug(string.format("Layer: %d", new_z))
     return true, string.format("switched to layer %d", new_z)
 end
 
@@ -65,9 +62,7 @@ function Navigation:teleport_to_layer(target_z)
     if self.player.vy then
         self.player.vy = 0
     end
-    if log and log.info then
-        log.info(string.format("Teleported to layer: %d", target_z))
-    end
+    log.debug(string.format("Teleported to layer: %d", target_z))
     return true, string.format("teleported to layer %d", target_z)
 end
 

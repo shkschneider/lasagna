@@ -4,6 +4,7 @@ local Items = require("data.items")
 local Physics = require("world.physics")
 local Navigation = require("entities.components.navigation")
 local Gravity = require("entities.components.gravity")
+local Inventory = require("entities.components.inventory")
 local log = require("lib.log")
 
 -- Player state enums
@@ -20,11 +21,11 @@ local Stance = {
 local Player = Object {}
 
 function Player:new()
-    self.px = 50
+    self.px = 100  -- 50 * 2 to account for terrain scaling
     self.py = 1
     self.z  = 0
-    self.width = 1
-    self.height = 2
+    self.width = 2  -- 1 * 2 to match 2x2 subdivision
+    self.height = 4  -- 2 * 2 to match 2x2 subdivision
     self.stand_height = self.height
     self.crouch_height = self.height / 2
     self.vx = 0
@@ -34,11 +35,14 @@ function Player:new()
     self.movement_state = MovementState.AIRBORNE
     self.stance = Stance.STANDING
 
-    local slots = 9
+    -- Selection size for placing/removing blocks (in world blocks)
+    self.selection_size = 1  -- Can be 1, 2, or 4
+
+    -- Inventory system: hand (held item) + belt (hotbar)
+    -- Using Inventory component for both
     self.inventory = {
-        slots = slots,
-        selected = 1,
-        items = {},
+        hand = Inventory(self, { slots = 1 }),  -- Single slot for held item
+        belt = Inventory(self, { slots = 9 }),  -- 9-slot hotbar
         ui = {
             slot_size = 48,
             padding = 6,
@@ -46,12 +50,9 @@ function Player:new()
             background_alpha = 0.6,
         },
     }
-    -- Start with only 64 cobblestone
-    table.insert(self.inventory.items, {
-        proto = Blocks.cobblestone,
-        count = 64,
-        data = {}
-    })
+
+    -- Start with 64 cobblestone in first belt slot
+    self.inventory.belt:add(Blocks.cobblestone, 64)
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
 
     -- Initialize components
@@ -79,7 +80,7 @@ end
 
 function Player:update(dt, world, player)
     -- Ignore world and player parameters for the Player itself
-    
+
     -- Handle continuous input (movement keys)
     self.intent.left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
     self.intent.right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
@@ -128,15 +129,40 @@ function Player:update(dt, world, player)
         end
     end
 
-    if self.intent.jump then
-        if self:is_grounded() then
-            self.vy = C.JUMP_SPEED
-            self.movement_state = MovementState.AIRBORNE
+    -- In DEBUG mode, enable flying with up/down controls
+    if G.debug then
+        local vertical_dir = 0
+        if love.keyboard.isDown("space") or love.keyboard.isDown("up") or love.keyboard.isDown("w") then
+            vertical_dir = vertical_dir - 1  -- Up (negative y is up)
         end
-        self.intent.jump = false
+        if love.keyboard.isDown("down") or love.keyboard.isDown("s") then
+            vertical_dir = vertical_dir + 1  -- Down
+        end
+
+        local target_vy = vertical_dir * MAX_SPEED
+        if vertical_dir ~= 0 then
+            if self.vy < target_vy then
+                self.vy = math.min(target_vy, self.vy + accel * dt)
+            elseif self.vy > target_vy then
+                self.vy = math.max(target_vy, self.vy - accel * dt)
+            end
+        else
+            -- Apply friction when no vertical input
+            local dec = C.AIR_FRICTION * dt
+            if math.abs(self.vy) <= dec then self.vy = 0 else self.vy = self.vy - (self.vy > 0 and 1 or -1) * dec end
+        end
+    else
+        -- Normal jump behavior when not in debug mode
+        if self.intent.jump then
+            if self:is_grounded() then
+                self.vy = C.JUMP_SPEED
+                self.movement_state = MovementState.AIRBORNE
+            end
+            self.intent.jump = false
+        end
     end
 
-    -- Apply gravity using component
+    -- Apply gravity using component (disabled in debug mode for player)
     self.gravity:update(dt)
     local dx = self.vx * dt
     local dy = self.vy * dt
@@ -186,33 +212,61 @@ end
 
 function Player:wheelmoved(dx, dy)
     if not dy or dy == 0 then return end
-    local inv = self.inventory
-    if dy > 0 then
-        inv.selected = inv.selected - 1
-        if inv.selected < 1 then inv.selected = inv.slots end
+
+    -- Check if control is held for selection size change
+    local ctrl_held = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
+
+    if ctrl_held then
+        -- Change selection size with Ctrl+scroll
+        if dy > 0 then
+            -- Scroll up: increase size
+            if self.selection_size == 1 then
+                self.selection_size = 2
+            elseif self.selection_size == 2 then
+                self.selection_size = 4
+            end
+            -- Already at max (4), stay there
+        else
+            -- Scroll down: decrease size
+            if self.selection_size == 4 then
+                self.selection_size = 2
+            elseif self.selection_size == 2 then
+                self.selection_size = 1
+            end
+            -- Already at min (1), stay there
+        end
     else
-        inv.selected = inv.selected + 1
-        if inv.selected > inv.slots then inv.selected = 1 end
+        -- Normal belt selection change
+        local belt = self.inventory.belt
+        if dy > 0 then
+            belt.selected = belt.selected - 1
+            if belt.selected < 1 then belt.selected = belt.slots end
+        else
+            belt.selected = belt.selected + 1
+            if belt.selected > belt.slots then belt.selected = 1 end
+        end
     end
 end
 
 function Player:drawInventory()
-    local total_width = self.inventory.slots * self.inventory.ui.slot_size + (self.inventory.slots - 1) * self.inventory.ui.padding
+    local belt = self.inventory.belt
+    local ui = self.inventory.ui
+    local total_width = belt.slots * ui.slot_size + (belt.slots - 1) * ui.padding
     local x0 = (G.width - total_width) / 2
-    local y0 = G.height - self.inventory.ui.slot_size - 20
+    local y0 = G.height - ui.slot_size - 20
     local bg_margin = 8
-    love.graphics.setColor(0,0,0,self.inventory.ui.background_alpha)
-    love.graphics.rectangle("fill", x0 - bg_margin, y0 - bg_margin, total_width + bg_margin*2, self.inventory.ui.slot_size + bg_margin*2, 6, 6)
-    for i = 1, self.inventory.slots do
-        local sx = x0 + (i-1)*(self.inventory.ui.slot_size + self.inventory.ui.padding)
+    love.graphics.setColor(0,0,0,ui.background_alpha)
+    love.graphics.rectangle("fill", x0 - bg_margin, y0 - bg_margin, total_width + bg_margin*2, ui.slot_size + bg_margin*2, 6, 6)
+    for i = 1, belt.slots do
+        local sx = x0 + (i-1)*(ui.slot_size + ui.padding)
         local sy = y0
         love.graphics.setColor(0.12,0.12,0.12,1)
-        love.graphics.rectangle("fill", sx, sy, self.inventory.ui.slot_size, self.inventory.ui.slot_size, 4, 4)
+        love.graphics.rectangle("fill", sx, sy, ui.slot_size, ui.slot_size, 4, 4)
         local inner_pad = 8
         local cube_x, cube_y = sx + inner_pad, sy + inner_pad
-        local cube_w, cube_h = self.inventory.ui.slot_size - inner_pad*2, self.inventory.ui.slot_size - inner_pad*2
-        local item = self.inventory.items[i]
-        -- Handle new inventory format: { proto, count, data }
+        local cube_w, cube_h = ui.slot_size - inner_pad*2, ui.slot_size - inner_pad*2
+        local item = belt.items[i]
+        -- Handle inventory format: { proto, count, data }
         local proto = item and (item.proto or item)
         local count = item and item.count
         if proto and proto.color then
@@ -228,15 +282,15 @@ function Player:drawInventory()
         -- Draw count if present
         if count and count > 1 then
             love.graphics.setColor(1, 1, 1, 1)
-            love.graphics.print(tostring(count), sx + 4, sy + self.inventory.ui.slot_size - 16)
+            love.graphics.print(tostring(count), sx + 4, sy + ui.slot_size - 16)
         end
         love.graphics.setColor(0,0,0,0.6)
         love.graphics.setLineWidth(1)
-        love.graphics.rectangle("line", sx + 0.5, sy + 0.5, self.inventory.ui.slot_size - 1, self.inventory.ui.slot_size - 1, 4, 4)
-        if i == self.inventory.selected then
+        love.graphics.rectangle("line", sx + 0.5, sy + 0.5, ui.slot_size - 1, ui.slot_size - 1, 4, 4)
+        if i == belt.selected then
             love.graphics.setColor(1, 0.84, 0, 1)
-            love.graphics.setLineWidth(self.inventory.ui.border_thickness)
-            love.graphics.rectangle("line", sx + 1, sy + 1, self.inventory.ui.slot_size - 2, self.inventory.ui.slot_size - 2, 4, 4)
+            love.graphics.setLineWidth(ui.border_thickness)
+            love.graphics.rectangle("line", sx + 1, sy + 1, ui.slot_size - 2, ui.slot_size - 2, 4, 4)
             love.graphics.setLineWidth(1)
         end
     end
@@ -245,9 +299,11 @@ end
 
 function Player:drawGhost()
     -- Always show ghost block, even when no item is selected
-    local total_width = self.inventory.slots * self.inventory.ui.slot_size + (self.inventory.slots - 1) * self.inventory.ui.padding
+    local belt = self.inventory.belt
+    local ui = self.inventory.ui
+    local total_width = belt.slots * ui.slot_size + (belt.slots - 1) * ui.padding
     local x0 = (G.width - total_width) / 2
-    local y0 = G.height - self.inventory.ui.slot_size - 20
+    local y0 = G.height - ui.slot_size - 20
     local bg_margin = 8
     local inv_top = y0 - bg_margin
 
@@ -261,14 +317,27 @@ function Player:drawGhost()
     local row = math.floor(G.my / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
 
+    -- Calculate the top-left corner of the selection based on size
+    local size = self.selection_size
+    local start_col = col
+    local start_row = row
+
+    -- Center the selection around the cursor position
+    if size > 1 then
+        start_col = col - math.floor(size / 2)
+        start_row = row - math.floor(size / 2)
+    end
+
     -- Convert world grid position back to screen position
-    local px = (col - 1) * C.BLOCK_SIZE - cx
-    local py = (row - 1) * C.BLOCK_SIZE
+    local px = (start_col - 1) * C.BLOCK_SIZE - cx
+    local py = (start_row - 1) * C.BLOCK_SIZE
+    local width = size * C.BLOCK_SIZE
+    local height = size * C.BLOCK_SIZE
 
     -- Draw ghost outline
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.setLineWidth(2)
-    love.graphics.rectangle("line", px + 0.5, py + 0.5, C.BLOCK_SIZE - 1, C.BLOCK_SIZE - 1)
+    love.graphics.rectangle("line", px + 0.5, py + 0.5, width - 1, height - 1)
     love.graphics.setLineWidth(1)
     love.graphics.setColor(1, 1, 1, 1)
 end
@@ -276,12 +345,12 @@ end
 function Player:placeAtMouse(mx, my, z_override)
     local mouse_x, mouse_y = mx, my
     if not mouse_x or not mouse_y then mouse_x, mouse_y = love.mouse.getPosition() end
-    local inv = self.inventory
-    local selected = inv.selected or 1
-    local item = inv.items and inv.items[selected]
+    local belt = self.inventory.belt
+    local selected = belt.selected or 1
+    local item = belt.items and belt.items[selected]
     if not item then return false, "no item selected" end
 
-    -- Handle new inventory format: { proto, count, data }
+    -- Handle inventory format: { proto, count, data }
     local proto = item.proto or item
     local count = item.count or 1
 
@@ -292,40 +361,95 @@ function Player:placeAtMouse(mx, my, z_override)
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
+
+    -- Calculate the top-left corner of the selection based on size
+    local size = self.selection_size
+    local start_col = col
+    local start_row = row
+
+    -- Center the selection around the cursor position
+    if size > 1 then
+        start_col = col - math.floor(size / 2)
+        start_row = row - math.floor(size / 2)
+    end
+
     -- Only allow editing on current layer
     local z = self.z
-    local target = G.world:get_block_type(z, col, row)
-    if target ~= "air" then return false, "target not empty", z end
-    local touches_existing = false
-    for dx = -1, 1 do
-        for dy = -1, 1 do
-            if not (dx == 0 and dy == 0) then
-                local nx, ny = col + dx, row + dy
-                if ny >= 1 and ny <= C.WORLD_HEIGHT then
-                    local neigh = G.world:get_block_type(z, nx, ny)
-                    if neigh and neigh ~= "air" and neigh ~= "out" then
-                        touches_existing = true
-                        break
-                    end
+
+    -- Check if all target positions are empty
+    for dx = 0, size - 1 do
+        for dy = 0, size - 1 do
+            local target_col = start_col + dx
+            local target_row = start_row + dy
+            if target_row >= 1 and target_row <= C.WORLD_HEIGHT then
+                local target = G.world:get_block_type(z, target_col, target_row)
+                if target ~= "air" then
+                    return false, "target not empty", z
                 end
             end
         end
+    end
+
+    -- Check if at least one block touches existing terrain
+    local touches_existing = false
+    for dx = 0, size - 1 do
+        for dy = 0, size - 1 do
+            local target_col = start_col + dx
+            local target_row = start_row + dy
+            -- Check neighbors
+            for ndx = -1, 1 do
+                for ndy = -1, 1 do
+                    if not (ndx == 0 and ndy == 0) then
+                        local nx, ny = target_col + ndx, target_row + ndy
+                        if ny >= 1 and ny <= C.WORLD_HEIGHT then
+                            local neigh = G.world:get_block_type(z, nx, ny)
+                            if neigh and neigh ~= "air" and neigh ~= "out" then
+                                -- Make sure the neighbor isn't part of our selection
+                                local is_in_selection = (nx >= start_col and nx < start_col + size and
+                                                        ny >= start_row and ny < start_row + size)
+                                if not is_in_selection then
+                                    touches_existing = true
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+                if touches_existing then break end
+            end
+            if touches_existing then break end
+        end
         if touches_existing then break end
     end
+
     if not touches_existing then
         return false, "must touch an existing block on the same layer", z
     end
-    local ok, action = G.world:set_block(z, col, row, proto)
 
-    -- Decrement count on successful placement
-    if ok and item.count then
-        item.count = item.count - 1
-        if item.count <= 0 then
-            inv.items[selected] = nil
+    -- Place all blocks in the selection
+    local placed_count = 0
+    for dx = 0, size - 1 do
+        for dy = 0, size - 1 do
+            local target_col = start_col + dx
+            local target_row = start_row + dy
+            if target_row >= 1 and target_row <= C.WORLD_HEIGHT then
+                local ok, action = G.world:set_block(z, target_col, target_row, proto)
+                if ok then
+                    placed_count = placed_count + 1
+                end
+            end
         end
     end
 
-    return ok, action, z
+    -- Decrement count based on blocks placed
+    if placed_count > 0 and item.count then
+        item.count = item.count - placed_count
+        if item.count <= 0 then
+            belt.items[selected] = nil
+        end
+    end
+
+    return placed_count > 0, placed_count > 0 and "placed" or "failed", z
 end
 
 function Player:removeAtMouse(mx, my, z_override)
@@ -336,39 +460,57 @@ function Player:removeAtMouse(mx, my, z_override)
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
+
+    -- Calculate the top-left corner of the selection based on size
+    local size = self.selection_size
+    local start_col = col
+    local start_row = row
+
+    -- Center the selection around the cursor position
+    if size > 1 then
+        start_col = col - math.floor(size / 2)
+        start_row = row - math.floor(size / 2)
+    end
+
     -- Only allow editing on current layer
     local z = self.z
-    local t = G.world:get_block_type(z, col, row)
-    if not t or t == "air" or t == "out" then
-        return false, "nothing to remove", z
-    end
-    
-    -- Store the block type before removing it
-    local block_proto = t
-    
-    local ok, msg = G.world:set_block(z, col, row, nil)
-    if not ok then
-        ok, msg = G.world:set_block(z, col, row, "__empty")
-        if ok then
-            log.info(string.format("Marked procedural block removed at z=%d, col=%d, row=%d", z, col, row))
+
+    -- Remove all blocks in the selection and drop each at its center
+    local removed_count = 0
+
+    for dx = 0, size - 1 do
+        for dy = 0, size - 1 do
+            local target_col = start_col + dx
+            local target_row = start_row + dy
+            if target_row >= 1 and target_row <= C.WORLD_HEIGHT then
+                local t = G.world:get_block_type(z, target_col, target_row)
+                if t and t ~= "air" and t ~= "out" then
+                    -- Store the block type before removing it
+                    local block_proto = t
+
+                    local ok, msg = G.world:set_block(z, target_col, target_row, nil)
+                    if not ok then
+                       G.world:set_block(z, target_col, target_row, "__empty")
+                    end
+
+                    if ok then
+                        removed_count = removed_count + 1
+                        -- Drop the block at its center position using Block:drop()
+                        if block_proto and block_proto ~= "air" and block_proto ~= "out" then
+                            if type(block_proto.drop) == "function" then
+                                block_proto:drop(G.world, target_col, target_row, z, 1)
+                            end
+                        end
+                    end
+                end
+            end
         end
-    else
-        log.info(string.format("Removed block at z=%d, col=%d, row=%d", z, col, row))
     end
-    
-    -- Spawn dropped item if removal was successful
-    if ok and block_proto and block_proto ~= "air" and block_proto ~= "out" then
-        -- Spawn at center of block: block is at column col (1-indexed), occupies [col, col+1)
-        -- Item is 0.5 wide, so to center it: col + (1 - 0.5) / 2 = col + 0.25
-        local item_x = col + 0.25
-        local item_y = row + 0.25
-        G.world:spawn_dropped_item(block_proto, item_x, item_y, z, 1)
+
+    if removed_count > 0 then
+        return true, "removed " .. removed_count, z
     end
-    
-    if ok then
-        return true, msg, z
-    end
-    return false, "failed to remove block", z
+    return false, "nothing to remove", z
 end
 
 return Player

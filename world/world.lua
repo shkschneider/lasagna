@@ -25,13 +25,13 @@ function World:load()
     assert(self.seed)
     math.randomseed(self.seed)
     noise.init(self.seed)
-    local spawn_x = 50
+    local spawn_x = 100  -- 50 * 2 to account for 2x2 subdivision
     for z = C.LAYER_MIN, C.LAYER_MAX do
         self.layers[z] = Layer(z)
-        local freq = (self.frequency and self.frequency[z]) or C.FREQUENCY[z]
-        local base = (self.layer_base_heights and self.layer_base_heights[z]) or C.LAYER_BASE_HEIGHTS[z]
-        local amp = (self.amplitude and self.amplitude[z]) or C.AMPLITUDE[z]
-        self.layers[z]:generate_terrain_range(spawn_x - 50, spawn_x + 50, freq, base, amp)
+        local freq = C.layer_frequency(z)
+        local base = C.ground_level(z)
+        local amp = C.layer_amplitude(z)
+        self.layers[z]:generate_terrain_range(spawn_x - 100, spawn_x + 100, freq, base, amp)  -- 50 * 2
     end
     -- player
     self.entities = { Player() }
@@ -51,8 +51,8 @@ function World:update(dt)
             local keep = e:update(dt, self, self:player())
             -- If update returns false, remove the entity
             if keep == false then
+                log.debug(string.format("Removing drop '%s' at x=%d y=%d z=%d", e.proto.name, e.px, e.py, e.z))
                 table.remove(self.entities, i)
-                log.debug(string.format("Removed entity at index %d", i))
             end
         end
     end
@@ -85,9 +85,9 @@ function World:get_surface(z, x)
 
     -- Generate terrain if it doesn't exist
     if not layer.tiles[col] then
-        local freq = (self.frequency and self.frequency[z]) or C.FREQUENCY[z]
-        local base = (self.layer_base_heights and self.layer_base_heights[z]) or C.LAYER_BASE_HEIGHTS[z]
-        local amp = (self.amplitude and self.amplitude[z]) or C.AMPLITUDE[z]
+        local freq = C.layer_frequency(z)
+        local base = C.ground_level(z)
+        local amp = C.layer_amplitude(z)
         layer:generate_column(col, freq, base, amp)
     end
 
@@ -110,9 +110,9 @@ function World:set_block(z, x, y, block)
     if not layer then return false, "layer not initialized" end
     if not layer.tiles[x] then
         -- Generate this column if it doesn't exist
-        local freq = (self.frequency and self.frequency[z]) or C.FREQUENCY[z]
-        local base = (self.layer_base_heights and self.layer_base_heights[z]) or C.LAYER_BASE_HEIGHTS[z]
-        local amp = (self.amplitude and self.amplitude[z]) or C.AMPLITUDE[z]
+        local freq = C.layer_frequency(z)
+        local base = C.ground_level(z)
+        local amp = C.layer_amplitude(z)
         layer:generate_column(x, freq, base, amp)
     end
     if not layer.tiles[x] then return false, "internal tiles not initialized" end
@@ -134,12 +134,12 @@ function World:set_block(z, x, y, block)
             return false, "nothing to remove"
         end
         layer.tiles[x][y] = nil
-        log.info(string.format("World: removed block at z=%d x=%d y=%d (was=%s)", z, x, y, tostring(prev and prev.name)))
+        log.debug(string.format("Removed block '%s' at x=%d y=%d z=%d", tostring(prev and prev.name), x, y, z))
         return true, "removed"
     else
         local action = (prev == nil) and "added" or "replaced"
         layer.tiles[x][y] = proto
-        log.info(string.format("World: %s block '%s' at z=%d x=%d y=%d (prev=%s)", action, tostring(proto.name), z, x, y, tostring(prev and prev.name)))
+        log.debug(string.format("Set block '%s' at x=%d y=%d x=%d", tostring(proto.name), x, y, z))
         return true, action
     end
 end
@@ -159,8 +159,7 @@ function World:spawn_dropped_item(proto, px, py, z, count)
     count = count or 1
     local item = Drop(proto, px, py, z, count)
     table.insert(self.entities, item)
-    log.info(string.format("Spawned dropped item '%s' x%d at (%.2f, %.2f, %d)",
-        proto.name or "unknown", count, px, py, z))
+    log.debug(string.format("Spawned drop '%s' at x=%d y=%d z=%d", proto.name or "?", px, py, z))
     return true
 end
 
@@ -179,9 +178,9 @@ function World:draw()
         local layer = self.layers[z]
         if layer then
             -- Generate terrain for visible columns if needed
-            local freq = (self.frequency and self.frequency[z]) or C.FREQUENCY[z]
-            local base = (self.layer_base_heights and self.layer_base_heights[z]) or C.LAYER_BASE_HEIGHTS[z]
-            local amp = (self.amplitude and self.amplitude[z]) or C.AMPLITUDE[z]
+            local freq = C.layer_frequency(z)
+            local base = C.ground_level(z)
+            local amp = C.layer_amplitude(z)
             for col = left_col, right_col do
                 if not layer.tiles[col] then
                     layer:generate_column(col, freq, base, amp)
