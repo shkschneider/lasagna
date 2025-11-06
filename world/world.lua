@@ -28,9 +28,9 @@ function World:load()
     local spawn_x = 100  -- 50 * 2 to account for 2x2 subdivision
     for z = C.LAYER_MIN, C.LAYER_MAX do
         self.layers[z] = Layer(z)
-        local freq = (self.frequency and self.frequency[z]) or C.FREQUENCY[z]
-        local base = (self.layer_base_heights and self.layer_base_heights[z]) or C.LAYER_BASE_HEIGHTS[z]
-        local amp = (self.amplitude and self.amplitude[z]) or C.AMPLITUDE[z]
+        local freq = C.layer_frequency(z)
+        local base = C.ground_level(z)
+        local amp = C.layer_amplitude(z)
         self.layers[z]:generate_terrain_range(spawn_x - 100, spawn_x + 100, freq, base, amp)  -- 50 * 2
     end
     -- player
@@ -85,9 +85,9 @@ function World:get_surface(z, x)
 
     -- Generate terrain if it doesn't exist
     if not layer.tiles[col] then
-        local freq = (self.frequency and self.frequency[z]) or C.FREQUENCY[z]
-        local base = (self.layer_base_heights and self.layer_base_heights[z]) or C.LAYER_BASE_HEIGHTS[z]
-        local amp = (self.amplitude and self.amplitude[z]) or C.AMPLITUDE[z]
+        local freq = C.layer_frequency(z)
+        local base = C.ground_level(z)
+        local amp = C.layer_amplitude(z)
         layer:generate_column(col, freq, base, amp)
     end
 
@@ -110,9 +110,9 @@ function World:set_block(z, x, y, block)
     if not layer then return false, "layer not initialized" end
     if not layer.tiles[x] then
         -- Generate this column if it doesn't exist
-        local freq = (self.frequency and self.frequency[z]) or C.FREQUENCY[z]
-        local base = (self.layer_base_heights and self.layer_base_heights[z]) or C.LAYER_BASE_HEIGHTS[z]
-        local amp = (self.amplitude and self.amplitude[z]) or C.AMPLITUDE[z]
+        local freq = C.layer_frequency(z)
+        local base = C.ground_level(z)
+        local amp = C.layer_amplitude(z)
         layer:generate_column(x, freq, base, amp)
     end
     if not layer.tiles[x] then return false, "internal tiles not initialized" end
@@ -179,9 +179,9 @@ function World:draw()
         local layer = self.layers[z]
         if layer then
             -- Generate terrain for visible columns if needed
-            local freq = (self.frequency and self.frequency[z]) or C.FREQUENCY[z]
-            local base = (self.layer_base_heights and self.layer_base_heights[z]) or C.LAYER_BASE_HEIGHTS[z]
-            local amp = (self.amplitude and self.amplitude[z]) or C.AMPLITUDE[z]
+            local freq = C.layer_frequency(z)
+            local base = C.ground_level(z)
+            local amp = C.layer_amplitude(z)
             for col = left_col, right_col do
                 if not layer.tiles[col] then
                     layer:generate_column(col, freq, base, amp)

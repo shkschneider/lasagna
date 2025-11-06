@@ -8,17 +8,13 @@ return {
     -- math precision
     EPS = 1e-6,
     -- world geometry & rendering
-    BLOCK_SIZE = 8,  -- Changed from 16 to 8 for finer blocks (2x2 subdivision)
-    WORLD_HEIGHT = 200,  -- 2x the original to accommodate 2x2 subdivision
+    BLOCK_SIZE = 8, -- pixels
+    WORLD_HEIGHT = 200, -- blocks
     HEIGHT = 100,
     DIRT_THICKNESS = 10,
     STONE_THICKNESS = 10,
     LAYER_MIN = -1,
     LAYER_MAX = 1,
-    -- procedural generation parameters (per-layer tables)
-    LAYER_BASE_HEIGHTS = { [-1] = 20, [0] = 30, [1] = 40 },  -- Original values
-    AMPLITUDE = { [-1] = 15, [0] = 10, [1] = 10 },  -- Original values
-    FREQUENCY = { [-1] = 1/40, [0] = 1/50, [1] = 1/60 },
     -- gameplay constants
     GRAVITY = 40,    -- blocks / second^2 (2x for 2x2 subdivision)
     MOVE_ACCEL = 120, -- blocks / second^2 (2x for 2x2 subdivision)
@@ -36,4 +32,33 @@ return {
     -- day/night cycle
     DAY_DURATION = 60,   -- seconds
     NIGHT_DURATION = 30, -- seconds
+    -- procedural generation parameters (per-layer tables)
+    GROUND_LEVEL = 30,
+    LAYER_AMPLITUDE = 10,
+    LAYER_FREQUENCY = 50,
+    ground_level = function (z)
+        if z < 0 then
+            return C.GROUND_LEVEL + 10 * z
+        elseif z < 0 then
+            return C.GROUND_LEVEL - 10 * z
+        else
+            return C.GROUND_LEVEL
+        end
+    end,
+    layer_amplitude = function (z)
+        if z < 0 then
+            return C.LAYER_AMPLITUDE - 5 * z
+        else
+            return C.LAYER_AMPLITUDE
+        end
+    end,
+    layer_frequency = function (z)
+        if z < 0 then
+            return 1 / (C.LAYER_FREQUENCY - 10 * z)
+        elseif z < 0 then
+            return 1 / (C.LAYER_FREQUENCY + 10 * z)
+        else
+            return 1 / C.LAYER_FREQUENCY
+        end
+    end,
 }

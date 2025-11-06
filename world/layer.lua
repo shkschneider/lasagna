@@ -23,15 +23,15 @@ function Layer:generate_column(x, freq, base, amp)
     -- With BLOCK_SIZE=8 instead of 16, we have 2x more columns per original column
     -- Each original block at 16px becomes a 2x2 grid of 8px blocks
     local scale = 2  -- 16 / 8 = 2
-    
+
     -- Determine which original column this belongs to (1-indexed)
     -- Columns 1-2 -> original 1, columns 3-4 -> original 2, etc.
     local original_x = math.floor((x - 1) / scale) + 1
-    
+
     -- Sample noise at the original column position
     local n = noise.perlin1d(original_x * freq + (self.z * 100))
     local original_top = math.max(1, math.min(C.WORLD_HEIGHT - 1, math.floor(base + amp * n)))
-    
+
     -- Convert original top to new coordinate system (each original block = 2 new blocks vertically)
     -- Original top=30 means blocks 1-30 are filled, which should be new blocks 1-60
     local top = original_top * scale
@@ -47,7 +47,7 @@ function Layer:generate_column(x, freq, base, amp)
         local proto = nil
         -- Determine which original row this belongs to
         local original_y = math.floor((y - 1) / scale) + 1
-        
+
         -- Check what block type the original position had
         if original_y == original_top then
             proto = Blocks and Blocks.grass

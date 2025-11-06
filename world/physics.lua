@@ -200,6 +200,7 @@ local function move_up(entity, desired_py, world)
 end
 
 function Physics.move(entity, dx, dy, world)
+    assert(entity)
     if dx ~= 0 then
         local desired_px = entity.px + dx
         if desired_px > entity.px then
