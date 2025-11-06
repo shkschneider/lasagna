@@ -272,65 +272,70 @@ function Physics.apply_spreading(entity, world, dt)
     if not entity.proto or entity.being_held then return end
     if entity.vy ~= 0 then return end  -- Not grounded
 
-    -- Check if we have support on bottom-left or bottom-right
+    local spread_speed = 0.5 * dt  -- Slow spreading
+
+    -- Check if we have support on bottom-left, center, and bottom-right
     local has_left_support = has_support_below(entity, world, entity.px - 0.5)
     local has_right_support = has_support_below(entity, world, entity.px + 0.5)
     local has_center_support = has_support_below(entity, world, entity.px)
 
-    -- If centered and has support, no spreading needed
-    if has_center_support and has_left_support and has_right_support then
-        return
+    -- Check if positions to left and right at same height are free
+    local left_pos_free = is_position_free(entity, entity.px - 1, entity.py, world)
+    local right_pos_free = is_position_free(entity, entity.px + 1, entity.py, world)
+
+    -- CASE 1: Has center support, but both sides are empty -> spread to random side
+    -- This creates pyramid-like structures proactively
+    if has_center_support and left_pos_free and right_pos_free then
+        local try_left = math.random() < 0.5
+        local new_px = try_left and (entity.px - spread_speed) or (entity.px + spread_speed)
+        if is_position_free(entity, new_px, entity.py, world) then
+            entity.px = new_px
+            return
+        end
     end
 
-    -- Try to roll off if no support on one side
-    local spread_speed = 0.5 * dt  -- Slow spreading
-
-    -- Prefer rolling to the side with no support
+    -- CASE 2: Lack of support on one side -> roll off that side
     if not has_left_support and has_right_support then
         -- Try moving left
         local new_px = entity.px - spread_speed
-        local new_py = entity.py
-        if is_position_free(entity, new_px, new_py, world) then
+        if is_position_free(entity, new_px, entity.py, world) then
             entity.px = new_px
             return
         end
     elseif not has_right_support and has_left_support then
         -- Try moving right
         local new_px = entity.px + spread_speed
-        local new_py = entity.py
-        if is_position_free(entity, new_px, new_py, world) then
+        if is_position_free(entity, new_px, entity.py, world) then
             entity.px = new_px
             return
         end
     elseif not has_center_support then
-        -- No center support, try both directions (random choice)
+        -- CASE 3: No center support -> try both directions (random choice)
         local try_left_first = math.random() < 0.5
 
         if try_left_first then
             -- Try left first
             local new_px = entity.px - spread_speed
-            local new_py = entity.py
-            if is_position_free(entity, new_px, new_py, world) then
+            if is_position_free(entity, new_px, entity.py, world) then
                 entity.px = new_px
                 return
             end
             -- Try right as fallback
             new_px = entity.px + spread_speed
-            if is_position_free(entity, new_px, new_py, world) then
+            if is_position_free(entity, new_px, entity.py, world) then
                 entity.px = new_px
                 return
             end
         else
             -- Try right first
             local new_px = entity.px + spread_speed
-            local new_py = entity.py
-            if is_position_free(entity, new_px, new_py, world) then
+            if is_position_free(entity, new_px, entity.py, world) then
                 entity.px = new_px
                 return
             end
             -- Try left as fallback
             new_px = entity.px - spread_speed
-            if is_position_free(entity, new_px, new_py, world) then
+            if is_position_free(entity, new_px, entity.py, world) then
                 entity.px = new_px
                 return
             end
