@@ -3,6 +3,7 @@ local Object = require("lib.object")
 local Inventory = Object {}
 
 function Inventory:new(player, opts)
+    assert(player)
     opts = opts or {}
     self.player = player
     self.slots = opts.slots or 9

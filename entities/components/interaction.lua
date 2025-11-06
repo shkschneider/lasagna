@@ -4,6 +4,7 @@ local log = require("lib.log")
 local Interaction = Object {}
 
 function Inventory:new(player, opts)
+    assert(player)
     opts = opts or {}
     self.player = player
 end
