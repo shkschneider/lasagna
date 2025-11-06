@@ -131,15 +131,40 @@ function Player:update(dt, world, player)
         end
     end
 
-    if self.intent.jump then
-        if self:is_grounded() then
-            self.vy = C.JUMP_SPEED
-            self.movement_state = MovementState.AIRBORNE
+    -- In DEBUG mode, enable flying with up/down controls
+    if G.debug then
+        local vertical_dir = 0
+        if love.keyboard.isDown("space") or love.keyboard.isDown("up") or love.keyboard.isDown("w") then
+            vertical_dir = vertical_dir - 1  -- Up (negative y is up)
         end
-        self.intent.jump = false
+        if love.keyboard.isDown("down") or love.keyboard.isDown("s") then
+            vertical_dir = vertical_dir + 1  -- Down
+        end
+        
+        local target_vy = vertical_dir * MAX_SPEED
+        if vertical_dir ~= 0 then
+            if self.vy < target_vy then
+                self.vy = math.min(target_vy, self.vy + accel * dt)
+            elseif self.vy > target_vy then
+                self.vy = math.max(target_vy, self.vy - accel * dt)
+            end
+        else
+            -- Apply friction when no vertical input
+            local dec = C.AIR_FRICTION * dt
+            if math.abs(self.vy) <= dec then self.vy = 0 else self.vy = self.vy - (self.vy > 0 and 1 or -1) * dec end
+        end
+    else
+        -- Normal jump behavior when not in debug mode
+        if self.intent.jump then
+            if self:is_grounded() then
+                self.vy = C.JUMP_SPEED
+                self.movement_state = MovementState.AIRBORNE
+            end
+            self.intent.jump = false
+        end
     end
 
-    -- Apply gravity using component
+    -- Apply gravity using component (disabled in debug mode for player)
     self.gravity:update(dt)
     local dx = self.vx * dt
     local dy = self.vy * dt
