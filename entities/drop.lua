@@ -5,6 +5,7 @@ local Gravity = require("entities.components.gravity")
 local Drop = Object {}
 
 function Drop:new(proto, px, py, z, count)
+    assert(proto)
     self.proto = proto  -- The block/item prototype
     self.px = px        -- Position in world coordinates (blocks)
     self.py = py
@@ -14,10 +15,8 @@ function Drop:new(proto, px, py, z, count)
     self.height = 1   -- 0.5 * 2 to match 2x2 subdivision
     self.vy = 0
     self.lifetime = 0   -- Tracks how long the item has existed
-    self.max_lifetime = 60  -- Despawn after 60 seconds
-    self.collection_range = 2.0  -- 1.0 * 2 to match 2x2 subdivision
-    
-    -- Initialize gravity component
+    self.max_lifetime = C.DESPAWN_TIME
+    self.collection_range = C.BLOCK_SIZE
     self.gravity = Gravity(self)
 end
 
@@ -31,14 +30,14 @@ function Drop:update(dt, world, player)
 
     -- Apply gravity using component
     self.gravity:update(dt)
-    
+
     -- Store old velocity to detect when we land
     local old_vy = self.vy
-    
+
     -- Apply physics movement (handles collision detection properly)
     local dy = self.vy * dt
     Physics.move(self, 0, dy, world)
-    
+
     -- Check if we just landed (velocity was positive/falling, now is zero)
     if old_vy > 0 and self.vy == 0 then
         -- We just landed, check for other drops to merge with
@@ -49,7 +48,7 @@ function Drop:update(dt, world, player)
                     -- Check if they're close enough (within 1.5 blocks)
                     local dx = math.abs((self.px + self.width / 2) - (other.px + other.width / 2))
                     local dy_dist = math.abs((self.py + self.height / 2) - (other.py + other.height / 2))
-                    
+
                     if dx < 1.5 and dy_dist < 1.5 then
                         -- Merge: add our count to the other drop
                         other.count = other.count + self.count

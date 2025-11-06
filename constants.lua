@@ -29,8 +29,9 @@ return {
     JUMP_SPEED = -20,-- initial jump velocity (2x for 2x2 subdivision)
     STEP_HEIGHT = 2, -- maximum step-up in blocks (2x for 2x2 subdivision)
     MAX_STACK = 64,
+    DISPAWN_TIME = 60, -- seconds
     -- day/night cycle
-    DAY_DURATION = 60,   -- seconds
+    DAY_DURATION = 60, -- seconds
     NIGHT_DURATION = 30, -- seconds
     -- procedural generation parameters (per-layer tables)
     GROUND_LEVEL = 30,
