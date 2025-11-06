@@ -266,6 +266,31 @@ local function is_position_free(entity, check_px, check_py, world)
     return true
 end
 
+-- Check if there's weight (drops) on top of this entity
+local function has_weight_above(entity, world)
+    if not entity.proto or not world.entities then return false end
+
+    local check_py = entity.py - 0.1  -- Just above current position
+    local weight_count = 0
+
+    for _, other in ipairs(world.entities) do
+        if other ~= entity and other.proto and other.z == entity.z then
+            -- Check if other drop is above this one
+            local overlap_x = not (entity.px + entity.width <= other.px or entity.px >= other.px + other.width)
+            local is_above = other.py + other.height <= entity.py + 0.1
+
+            if overlap_x and is_above then
+                weight_count = weight_count + 1
+                if weight_count >= 2 then
+                    return true
+                end
+            end
+        end
+    end
+
+    return false
+end
+
 -- Apply sand-like spreading physics to drops
 function Physics.apply_spreading(entity, world, dt)
     -- Only apply to drops that are grounded and not being held
@@ -282,6 +307,14 @@ function Physics.apply_spreading(entity, world, dt)
     -- Check if positions to left and right at same height are free
     local left_pos_free = is_position_free(entity, entity.px - 1, entity.py, world)
     local right_pos_free = is_position_free(entity, entity.px + 1, entity.py, world)
+
+    -- PRIORITY: If weight on top and bottom-right is empty, teleport immediately
+    local has_weight = has_weight_above(entity, world)
+    if has_weight and not has_right_support and right_pos_free then
+        -- Teleport to bottom-right position immediately
+        entity.px = entity.px + 1
+        return
+    end
 
     -- CASE 1: Has center support, but both sides are empty -> spread to random side
     -- This creates pyramid-like structures proactively
