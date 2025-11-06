@@ -51,8 +51,8 @@ function World:update(dt)
             local keep = e:update(dt, self, self:player())
             -- If update returns false, remove the entity
             if keep == false then
+                log.debug(string.format("Removing drop '%s' at x=%d y=%d z=%d", e.proto.name, e.px, e.py, e.z))
                 table.remove(self.entities, i)
-                log.debug(string.format("Removed entity at index %d", i))
             end
         end
     end
@@ -159,7 +159,7 @@ function World:spawn_dropped_item(proto, px, py, z, count)
     count = count or 1
     local item = Drop(proto, px, py, z, count)
     table.insert(self.entities, item)
-    log.debug(string.format("Spawned block item '%s' at x=%d y=%d z=%d", proto.name or "?", px, py, z))
+    log.debug(string.format("Spawned drop '%s' at x=%d y=%d z=%d", proto.name or "?", px, py, z))
     return true
 end
 
