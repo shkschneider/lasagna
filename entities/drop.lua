@@ -38,6 +38,12 @@ function Drop:update(dt, world, player)
 
         -- Apply sand-like spreading physics when grounded
         Physics.apply_spreading(self, world, dt)
+
+        -- Snap to block grid when grounded (no animation)
+        if self.vy == 0 then
+            self.px = math.floor(self.px + 0.5)
+            self.py = math.floor(self.py + 0.5)
+        end
     end
 
     -- Check if player is nearby and can collect
