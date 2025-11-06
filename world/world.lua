@@ -159,7 +159,7 @@ function World:spawn_dropped_item(proto, px, py, z, count)
     count = count or 1
     local item = Drop(proto, px, py, z, count)
     table.insert(self.entities, item)
-    log.info(string.format("Spawned dropped item '%s' x%d at (%.2f, %.2f, %d)",
+    log.info(string.format("Spawned block item '%s' x%d at (%.2f, %.2f, %d)",
         proto.name or "unknown", count, px, py, z))
     return true
 end

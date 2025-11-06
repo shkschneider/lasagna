@@ -82,7 +82,7 @@ end
 
 function Player:update(dt, world, player)
     -- Ignore world and player parameters for the Player itself
-    
+
     -- Handle continuous input (movement keys)
     self.intent.left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
     self.intent.right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
@@ -189,10 +189,10 @@ end
 
 function Player:wheelmoved(dx, dy)
     if not dy or dy == 0 then return end
-    
+
     -- Check if control is held for selection size change
     local ctrl_held = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
-    
+
     if ctrl_held then
         -- Change selection size with Ctrl+scroll
         if dy > 0 then
@@ -294,7 +294,7 @@ function Player:drawGhost()
     local size = self.selection_size
     local start_col = col
     local start_row = row
-    
+
     -- Center the selection around the cursor position
     if size > 1 then
         start_col = col - math.floor(size / 2)
@@ -334,21 +334,21 @@ function Player:placeAtMouse(mx, my, z_override)
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
-    
+
     -- Calculate the top-left corner of the selection based on size
     local size = self.selection_size
     local start_col = col
     local start_row = row
-    
+
     -- Center the selection around the cursor position
     if size > 1 then
         start_col = col - math.floor(size / 2)
         start_row = row - math.floor(size / 2)
     end
-    
+
     -- Only allow editing on current layer
     local z = self.z
-    
+
     -- Check if all target positions are empty
     for dx = 0, size - 1 do
         for dy = 0, size - 1 do
@@ -356,13 +356,13 @@ function Player:placeAtMouse(mx, my, z_override)
             local target_row = start_row + dy
             if target_row >= 1 and target_row <= C.WORLD_HEIGHT then
                 local target = G.world:get_block_type(z, target_col, target_row)
-                if target ~= "air" then 
-                    return false, "target not empty", z 
+                if target ~= "air" then
+                    return false, "target not empty", z
                 end
             end
         end
     end
-    
+
     -- Check if at least one block touches existing terrain
     local touches_existing = false
     for dx = 0, size - 1 do
@@ -378,7 +378,7 @@ function Player:placeAtMouse(mx, my, z_override)
                             local neigh = G.world:get_block_type(z, nx, ny)
                             if neigh and neigh ~= "air" and neigh ~= "out" then
                                 -- Make sure the neighbor isn't part of our selection
-                                local is_in_selection = (nx >= start_col and nx < start_col + size and 
+                                local is_in_selection = (nx >= start_col and nx < start_col + size and
                                                         ny >= start_row and ny < start_row + size)
                                 if not is_in_selection then
                                     touches_existing = true
@@ -394,11 +394,11 @@ function Player:placeAtMouse(mx, my, z_override)
         end
         if touches_existing then break end
     end
-    
+
     if not touches_existing then
         return false, "must touch an existing block on the same layer", z
     end
-    
+
     -- Place all blocks in the selection
     local placed_count = 0
     for dx = 0, size - 1 do
@@ -413,7 +413,7 @@ function Player:placeAtMouse(mx, my, z_override)
             end
         end
     end
-    
+
     -- Decrement count based on blocks placed
     if placed_count > 0 and item.count then
         item.count = item.count - placed_count
@@ -433,25 +433,25 @@ function Player:removeAtMouse(mx, my, z_override)
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
     local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
-    
+
     -- Calculate the top-left corner of the selection based on size
     local size = self.selection_size
     local start_col = col
     local start_row = row
-    
+
     -- Center the selection around the cursor position
     if size > 1 then
         start_col = col - math.floor(size / 2)
         start_row = row - math.floor(size / 2)
     end
-    
+
     -- Only allow editing on current layer
     local z = self.z
-    
+
     -- Remove all blocks in the selection and collect dropped items
     local removed_count = 0
     local dropped_items = {}  -- Track items to spawn (type -> count)
-    
+
     for dx = 0, size - 1 do
         for dy = 0, size - 1 do
             local target_col = start_col + dx
@@ -461,17 +461,12 @@ function Player:removeAtMouse(mx, my, z_override)
                 if t and t ~= "air" and t ~= "out" then
                     -- Store the block type before removing it
                     local block_proto = t
-                    
+
                     local ok, msg = G.world:set_block(z, target_col, target_row, nil)
                     if not ok then
-                        ok, msg = G.world:set_block(z, target_col, target_row, "__empty")
-                        if ok then
-                            log.info(string.format("Marked procedural block removed at z=%d, col=%d, row=%d", z, target_col, target_row))
-                        end
-                    else
-                        log.info(string.format("Removed block at z=%d, col=%d, row=%d", z, target_col, target_row))
+                       G.world:set_block(z, target_col, target_row, "__empty")
                     end
-                    
+
                     if ok then
                         removed_count = removed_count + 1
                         -- Track dropped items by type
@@ -486,19 +481,19 @@ function Player:removeAtMouse(mx, my, z_override)
             end
         end
     end
-    
+
     -- Spawn dropped items at the center of the selection
     if removed_count > 0 then
         local center_col = start_col + math.floor(size / 2)
         local center_row = start_row + math.floor(size / 2)
         local item_x = center_col
         local item_y = center_row
-        
+
         for block_proto, item_count in pairs(dropped_items) do
             G.world:spawn_dropped_item(block_proto, item_x, item_y, z, item_count)
         end
     end
-    
+
     if removed_count > 0 then
         return true, "removed " .. removed_count, z
     end
