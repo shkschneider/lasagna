@@ -35,6 +35,8 @@ function Game:new()
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
     self.held_drops = {}  -- List of drops being held by right mouse button
     self.right_mouse_down = false
+    self.grab_offset_x = 0  -- Initial mouse position when grabbing drops
+    self.grab_offset_y = 0
 end
 
 function Game:load(seed)
@@ -105,6 +107,11 @@ function Game:mousepressed(x, y, button, istouch, presses)
 
         -- Check if there are any drops in the selection area
         local drops_found = false
+        local cx = self.camera:get_x()
+        local world_px = x + cx
+        local grab_col = world_px / C.BLOCK_SIZE
+        local grab_row = y / C.BLOCK_SIZE
+
         for _, drop in ipairs(self.world.entities) do
             if drop.proto and drop.z == player.z then
                 -- Check if drop is in selection area
@@ -113,7 +120,13 @@ function Game:mousepressed(x, y, button, istouch, presses)
 
                 if drop_col >= start_col and drop_col < start_col + size and
                    drop_row >= start_row and drop_row < start_row + size then
-                    table.insert(self.held_drops, drop)
+                    -- Store the offset from grab position to drop position
+                    local drop_info = {
+                        drop = drop,
+                        offset_x = drop.px - grab_col,
+                        offset_y = drop.py - grab_row
+                    }
+                    table.insert(self.held_drops, drop_info)
                     drop.being_held = true
                     drops_found = true
                 end
@@ -140,8 +153,8 @@ end
 function Game:mousereleased(x, y, button, istouch, presses)
     if button == 2 or button == "r" then
         -- Release all held drops
-        for _, drop in ipairs(self.held_drops) do
-            drop.being_held = false
+        for _, drop_info in ipairs(self.held_drops) do
+            drop_info.drop.being_held = false
         end
         self.held_drops = {}
         self.right_mouse_down = false
@@ -161,11 +174,11 @@ function Game:update(dt)
         local target_col = world_px / C.BLOCK_SIZE
         local target_row = self.my / C.BLOCK_SIZE
 
-        for _, drop in ipairs(self.held_drops) do
-            -- Move drop to mouse position
-            drop.px = target_col
-            drop.py = target_row
-            drop.vy = 0  -- No vertical velocity while held
+        for _, drop_info in ipairs(self.held_drops) do
+            -- Move drop to mouse position + its stored offset
+            drop_info.drop.px = target_col + drop_info.offset_x
+            drop_info.drop.py = target_row + drop_info.offset_y
+            drop_info.drop.vy = 0  -- No vertical velocity while held
         end
     end
 
