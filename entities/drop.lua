@@ -31,7 +31,7 @@ function Drop:update(dt, world, player)
     -- Apply gravity using component (unless being held)
     if not self.being_held then
         self.gravity:update(dt)
-        
+
         -- Apply physics movement (handles collision detection properly)
         local dy = self.vy * dt
         Physics.move(self, 0, dy, world)

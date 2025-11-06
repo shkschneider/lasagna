@@ -86,23 +86,23 @@ function Game:mousepressed(x, y, button, istouch, presses)
     if button == 2 or button == "r" then
         -- Right click: check if placing block or grabbing drops
         local player = self:player()
-        
+
         -- Get selection area
         local cx = self.camera:get_x()
         local world_px = x + cx
         local col = math.floor(world_px / C.BLOCK_SIZE) + 1
         local row = math.floor(y / C.BLOCK_SIZE) + 1
         row = math.max(1, math.min(C.WORLD_HEIGHT, row))
-        
+
         local size = player.selection_size
         local start_col = col
         local start_row = row
-        
+
         if size > 1 then
             start_col = col - math.floor(size / 2)
             start_row = row - math.floor(size / 2)
         end
-        
+
         -- Check if there are any drops in the selection area
         local drops_found = false
         for _, drop in ipairs(self.world.entities) do
@@ -110,7 +110,7 @@ function Game:mousepressed(x, y, button, istouch, presses)
                 -- Check if drop is in selection area
                 local drop_col = math.floor(drop.px)
                 local drop_row = math.floor(drop.py)
-                
+
                 if drop_col >= start_col and drop_col < start_col + size and
                    drop_row >= start_row and drop_row < start_row + size then
                     table.insert(self.held_drops, drop)
@@ -119,7 +119,7 @@ function Game:mousepressed(x, y, button, istouch, presses)
                 end
             end
         end
-        
+
         -- If no drops found, try to place a block
         if not drops_found and player.placeAtMouse then
             local ok, err, z_changed = player:placeAtMouse(x, y)
@@ -153,14 +153,14 @@ function Game:update(dt)
     local target_x = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE
     local target_y = 0
     self.camera:follow(target_x, target_y, self.width, self.height)
-    
+
     -- Move held drops to mouse position
     if self.right_mouse_down and #self.held_drops > 0 then
         local cx = self.camera:get_x()
         local world_px = self.mx + cx
         local target_col = world_px / C.BLOCK_SIZE
         local target_row = self.my / C.BLOCK_SIZE
-        
+
         for _, drop in ipairs(self.held_drops) do
             -- Move drop to mouse position
             drop.px = target_col
@@ -168,7 +168,7 @@ function Game:update(dt)
             drop.vy = 0  -- No vertical velocity while held
         end
     end
-    
+
     -- world entities ...
     self.world:update(dt)
 end

@@ -50,7 +50,7 @@ function Player:new()
             background_alpha = 0.6,
         },
     }
-    
+
     -- Start with 64 cobblestone in first belt slot
     self.inventory.belt:add(Blocks.cobblestone, 64)
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
@@ -138,7 +138,7 @@ function Player:update(dt, world, player)
         if love.keyboard.isDown("down") or love.keyboard.isDown("s") then
             vertical_dir = vertical_dir + 1  -- Down
         end
-        
+
         local target_vy = vertical_dir * MAX_SPEED
         if vertical_dir ~= 0 then
             if self.vy < target_vy then
