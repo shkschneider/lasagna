@@ -54,7 +54,7 @@ function Game:load(seed)
 end
 
 function Game:resize(width, height)
-    self.width, self.height = width, height
+    self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
     log.info(string.format("Resized: %dx%d", self.width, self.height))
 end
 
