@@ -139,11 +139,13 @@ function World:set_block(z, x, y, block)
             return false, "bedrock is indestructible"
         end
         layer.tiles[x][y] = nil
+        layer:mark_dirty()  -- Mark layer as dirty when block changes
         log.debug(string.format("Removed block '%s' at x=%d y=%d z=%d", tostring(prev and prev.name), x, y, z))
         return true, "removed"
     else
         local action = (prev == nil) and "added" or "replaced"
         layer.tiles[x][y] = proto
+        layer:mark_dirty()  -- Mark layer as dirty when block changes
         log.debug(string.format("Set block '%s' at x=%d y=%d x=%d", tostring(proto.name), x, y, z))
         return true, action
     end
@@ -178,7 +180,7 @@ function World:draw()
     local cx = G.camera:get_x()
     local left_col = math.floor(cx / C.BLOCK_SIZE)
     local right_col = math.ceil((cx + G.width) / C.BLOCK_SIZE) + 1
-    -- Draw each layer
+    -- Draw each layer (just terrain, no entities yet)
     for z = C.LAYER_MIN, C.LAYER_MAX do
         local layer = self.layers[z]
         if layer then
@@ -193,8 +195,13 @@ function World:draw()
             end
             layer:draw()
         end
+    end
+end
 
-        -- Draw dropped items on this layer before drawing player
+function World:draw_entities()
+    -- Draw entities on each layer up to player's layer
+    for z = C.LAYER_MIN, C.LAYER_MAX do
+        -- Draw dropped items and other entities on this layer
         for _, e in ipairs(self.entities) do
             if e ~= self:player() and e.z == z and type(e.draw) == "function" then
                 e:draw()

@@ -38,6 +38,7 @@ function Game:new()
     self.left_mouse_down = false  -- Track left mouse state for continuous shooting
     self.grab_offset_x = 0  -- Initial mouse position when grabbing drops
     self.grab_offset_y = 0
+    self.canvas = nil  -- Global canvas for drawing entities (player, items, bullets, drops, etc.)
 end
 
 function Game:load(seed)
@@ -61,6 +62,17 @@ end
 function Game:resize(width, height)
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
     log.info(string.format("Resized: %dx%d", self.width, self.height))
+    -- Recreate canvas with new dimensions
+    self.canvas = nil
+    -- Also mark all layers as dirty to recreate their canvases
+    if self.world and self.world.layers then
+        for z = C.LAYER_MIN, C.LAYER_MAX do
+            if self.world.layers[z] then
+                self.world.layers[z].canvas = nil
+                self.world.layers[z]:mark_dirty()
+            end
+        end
+    end
 end
 
 function Game:keypressed(key)
@@ -291,11 +303,32 @@ function Game:drawHUD()
 end
 
 function Game:draw()
-    -- world
+    -- Draw world (terrain layers only)
     self.world:draw()
-    -- player
+    
+    -- Create entity canvas if it doesn't exist or has wrong size
+    if not self.canvas or self.canvas:getWidth() ~= self.width or self.canvas:getHeight() ~= self.height then
+        self.canvas = love.graphics.newCanvas(self.width, self.height)
+    end
+    
+    -- Draw all entities to canvas
+    love.graphics.setCanvas(self.canvas)
+    love.graphics.clear()
+    
+    -- Draw entities (drops, bullets, rockets, etc.)
+    self.world:draw_entities()
+    
+    -- Draw player
     self:player():draw()
-    -- hud
+    
+    -- Reset render target
+    love.graphics.setCanvas()
+    
+    -- Draw the entity canvas to screen
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.draw(self.canvas, 0, 0)
+    
+    -- Draw HUD on top (no canvas needed for UI)
     self:player():drawInventory() -- bottom-center
     self:drawHUD() -- top
     self:player():drawGhost() -- at mouse

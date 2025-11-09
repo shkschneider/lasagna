@@ -12,9 +12,17 @@ function Layer:new(z)
     self.dirt_limit = {}
     self.stone_limit = {}
     self.bedrock_heights = {}
+    self.canvas = nil  -- Canvas for rendering this layer (created on first draw)
+    self.dirty = true  -- Flag to indicate if canvas needs redrawing
+    self.canvas_left_col = nil  -- Track which columns are rendered in canvas
+    self.canvas_right_col = nil
 end
 
 function Layer:update(dt) end
+
+function Layer:mark_dirty()
+    self.dirty = true
+end
 
 -- Generate terrain for a specific column
 function Layer:generate_column(x, freq, base, amp)
@@ -94,33 +102,90 @@ function Layer:draw()
     local left_col = math.floor(cx / C.BLOCK_SIZE)
     local right_col = math.ceil((cx + G.width) / C.BLOCK_SIZE) + 1
 
-    -- Draw directly without canvas to avoid shaky rendering
-    love.graphics.push()
-    love.graphics.origin()
-    love.graphics.translate(-cx, -cy)
+    -- Create canvas if it doesn't exist
+    if not self.canvas then
+        -- Make canvas large enough to cover a reasonable area (3x screen width)
+        local canvas_width = G.width * 3
+        local canvas_height = C.WORLD_HEIGHT * C.BLOCK_SIZE
+        self.canvas = love.graphics.newCanvas(canvas_width, canvas_height)
+        self.dirty = true
+        self.canvas_left_col = left_col
+        self.canvas_right_col = right_col
+    end
 
-    -- Draw visible columns
-    for col = left_col, right_col do
-        local column = self.tiles[col]
-        if column then
-            for row = 1, C.WORLD_HEIGHT do
-                local proto = column[row]
-                if proto ~= nil then
-                    local px = (col - 1) * C.BLOCK_SIZE
-                    local py = (row - 1) * C.BLOCK_SIZE
-                    if type(proto.draw) == "function" then
-                        love.graphics.setColor(1, 1, 1, alpha)
-                        proto:draw(px, py, C.BLOCK_SIZE)
-                    elseif proto.color and love and love.graphics then
-                        local c = proto.color
-                        love.graphics.setColor(c[1], c[2], c[3], (c[4] or 1) * alpha)
-                        love.graphics.rectangle("fill", px, py, C.BLOCK_SIZE, C.BLOCK_SIZE)
-                    end
-                end
+    -- Check if we need to redraw the canvas
+    local needs_redraw = self.dirty
+    
+    -- Check if visible area has moved outside canvas bounds
+    if not needs_redraw and self.canvas_left_col and self.canvas_right_col then
+        if left_col < self.canvas_left_col or right_col > self.canvas_right_col then
+            needs_redraw = true
+        end
+    end
+    
+    -- Check if any visible columns are missing (new terrain generated)
+    if not needs_redraw then
+        for col = left_col, right_col do
+            if not self.tiles[col] then
+                needs_redraw = true
+                break
             end
         end
     end
 
+    -- Redraw canvas if dirty or camera moved significantly
+    if needs_redraw then
+        -- Calculate which columns to draw (extend beyond visible for buffer)
+        local buffer_cols = math.floor((right_col - left_col) * 1.5)
+        local draw_left = left_col - buffer_cols
+        local draw_right = right_col + buffer_cols
+        
+        self.canvas_left_col = draw_left
+        self.canvas_right_col = draw_right
+        
+        -- Set render target to canvas
+        love.graphics.setCanvas(self.canvas)
+        love.graphics.clear()
+        
+        -- Draw all columns in range to canvas
+        for col = draw_left, draw_right do
+            local column = self.tiles[col]
+            if column then
+                for row = 1, C.WORLD_HEIGHT do
+                    local proto = column[row]
+                    if proto ~= nil then
+                        local px = (col - 1) * C.BLOCK_SIZE
+                        local py = (row - 1) * C.BLOCK_SIZE
+                        -- Adjust position for canvas coordinate system
+                        local canvas_x = px - (draw_left - 1) * C.BLOCK_SIZE
+                        local canvas_y = py
+                        if type(proto.draw) == "function" then
+                            love.graphics.setColor(1, 1, 1, 1)
+                            proto:draw(canvas_x, canvas_y, C.BLOCK_SIZE)
+                        elseif proto.color and love and love.graphics then
+                            local c = proto.color
+                            love.graphics.setColor(c[1], c[2], c[3], c[4] or 1)
+                            love.graphics.rectangle("fill", canvas_x, canvas_y, C.BLOCK_SIZE, C.BLOCK_SIZE)
+                        end
+                    end
+                end
+            end
+        end
+        
+        -- Reset render target
+        love.graphics.setCanvas()
+        self.dirty = false
+    end
+
+    -- Draw the canvas to screen with proper offset and alpha
+    love.graphics.push()
+    love.graphics.origin()
+    love.graphics.setColor(1, 1, 1, alpha)
+    
+    -- Calculate canvas offset
+    local canvas_offset_x = (self.canvas_left_col - 1) * C.BLOCK_SIZE
+    love.graphics.draw(self.canvas, -cx + canvas_offset_x, -cy)
+    
     love.graphics.pop()
     love.graphics.setColor(1, 1, 1, 1)
 end
