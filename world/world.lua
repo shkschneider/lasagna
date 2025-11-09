@@ -51,7 +51,7 @@ function World:update(dt)
             local keep = e:update(dt, self, self:player())
             -- If update returns false, remove the entity
             if keep == false then
-                log.debug(string.format("Removing drop '%s' at x=%d y=%d z=%d", e.proto.name, e.px, e.py, e.z))
+                log.debug(string.format("Removing drop '%s' at x=%d y=%d z=%d", e.name, e.px, e.py, e.z))
                 table.remove(self.entities, i)
             end
         end
