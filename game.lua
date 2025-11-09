@@ -221,9 +221,10 @@ function Game:draw()
         local block_name = (type(block_type) == "table" and block_type.name) or tostring(block_type)
         local debug_lines = {}
         debug_lines[#debug_lines+1] = "[DEBUG]"
-        debug_lines[#debug_lines+1] = string.format("Layer (player): %d", lz)
-        debug_lines[#debug_lines+1] = string.format("Mouse: %.0f,%.0f %d,%d", self.mx, self.my, col, by)
-        debug_lines[#debug_lines+1] = string.format("Block: %s", block_name)
+        debug_lines[#debug_lines+1] = string.format("FPS/Delta: %d %f", love.timer.getFPS(), love.timer.getAverageDelta())
+        debug_lines[#debug_lines+1] = string.format("Layer: %d", lz)
+        debug_lines[#debug_lines+1] = string.format("Mouse: %.0f,%.0f", self.mx, self.my)
+        debug_lines[#debug_lines+1] = string.format("Block: %d,%d %s", col, by, block_name)
         local padding = 6
         local line_h = 14
         local box_w = 420
