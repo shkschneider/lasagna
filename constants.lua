@@ -5,6 +5,7 @@ return {
         HD = { p = 720,  width = 1280, height = 720 },
         FHD = { p = 1080, width = 1920, height = 1080 },
     },
+    FPS = 60,
     -- math precision
     EPS = 1e-6,
     -- world geometry & rendering
