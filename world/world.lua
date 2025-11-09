@@ -58,7 +58,9 @@ function World:update(dt)
             local keep = e:update(dt, self, self:player())
             -- If update returns false, remove the entity
             if keep == false then
-                log.debug(string.format("Removing drop '%s' at x=%d y=%d z=%d", e.name, e.px, e.py, e.z))
+                if e.name then
+                    log.debug(string.format("Removing drop '%s' at x=%d y=%d z=%d", e.name, e.px, e.py, e.z))
+                end
                 table.remove(self.entities, i)
             end
         end
@@ -152,7 +154,7 @@ function World:set_block(z, x, y, block)
         local action = (prev == nil) and "added" or "replaced"
         layer.tiles[x][y] = proto
         layer:mark_dirty()  -- Mark layer as dirty when block changes
-        log.debug(string.format("Set block '%s' at x=%d y=%d x=%d", tostring(proto.name), x, y, z))
+        log.debug(string.format("Set block '%s' at x=%d y=%d z=%d", tostring(proto.name), x, y, z))
         return true, action
     end
 end
