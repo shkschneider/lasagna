@@ -16,7 +16,6 @@ function Layer:new(z)
     self.dirty = true  -- Flag to indicate if canvas needs redrawing
     self.canvas_left_col = nil  -- Track which columns are rendered in canvas
     self.canvas_right_col = nil
-    self.last_darken_factor = nil  -- Track darkening to detect changes
 end
 
 function Layer:update(dt) end
@@ -123,11 +122,6 @@ function Layer:draw()
     -- Check if we need to redraw the canvas
     local needs_redraw = self.dirty
     
-    -- Check if darken factor changed (player changed layers)
-    if not needs_redraw and self.last_darken_factor and self.last_darken_factor ~= darken_factor then
-        needs_redraw = true
-    end
-    
     -- Check if visible area has moved outside canvas bounds
     if not needs_redraw and self.canvas_left_col and self.canvas_right_col then
         if left_col < self.canvas_left_col or right_col > self.canvas_right_col then
@@ -159,7 +153,7 @@ function Layer:draw()
         love.graphics.setCanvas(self.canvas)
         love.graphics.clear()
         
-        -- Draw all columns in range to canvas
+        -- Draw all columns in range to canvas (without darkening - will be applied when drawing canvas to screen)
         for col = draw_left, draw_right do
             local column = self.tiles[col]
             if column then
@@ -172,12 +166,13 @@ function Layer:draw()
                         local canvas_x = px - (draw_left - 1) * C.BLOCK_SIZE
                         local canvas_y = py
                         
-                        -- Always draw blocks directly with darkened colors
-                        -- Don't use proto:draw() as it overrides our color settings
-                        if proto.color and love and love.graphics then
+                        -- Draw blocks normally - darkening will be applied to entire canvas
+                        if type(proto.draw) == "function" then
+                            love.graphics.setColor(1, 1, 1, 1)
+                            proto:draw(canvas_x, canvas_y, C.BLOCK_SIZE)
+                        elseif proto.color and love and love.graphics then
                             local c = proto.color
-                            -- Apply darkening by multiplying color components
-                            love.graphics.setColor(c[1] * darken_factor, c[2] * darken_factor, c[3] * darken_factor, c[4] or 1)
+                            love.graphics.setColor(c[1], c[2], c[3], c[4] or 1)
                             love.graphics.rectangle("fill", canvas_x, canvas_y, C.BLOCK_SIZE, C.BLOCK_SIZE)
                         end
                     end
@@ -188,13 +183,13 @@ function Layer:draw()
         -- Reset render target
         love.graphics.setCanvas()
         self.dirty = false
-        self.last_darken_factor = darken_factor
     end
 
-    -- Draw the canvas to screen with full opacity (no alpha blending)
+    -- Draw the canvas to screen with darkening applied to entire canvas
     love.graphics.push()
     love.graphics.origin()
-    love.graphics.setColor(1, 1, 1, 1)
+    -- Apply darkening by multiplying canvas colors
+    love.graphics.setColor(darken_factor, darken_factor, darken_factor, 1)
     
     -- Calculate canvas offset
     local canvas_offset_x = (self.canvas_left_col - 1) * C.BLOCK_SIZE
