@@ -28,6 +28,7 @@ end
 function Layer:generate_column(x, freq, base, amp)
     -- Skip if already generated
     if self.tiles[x] then return false end
+    log.debug("generating x=%d", x)
 
     -- With BLOCK_SIZE=8 instead of 16, we have 2x more columns per original column
     -- Each original block at 16px becomes a 2x2 grid of 8px blocks
@@ -128,9 +129,8 @@ function Layer:draw()
 
     -- Check if visible area has moved outside canvas bounds (give some buffer before redrawing)
     if not self.dirty and self.canvas_left_col and self.canvas_right_col then
-        -- Small buffer threshold (10% of visible width) to trigger redraw early but not too aggressively
-        local buffer_threshold = math.max(2, math.floor((right_col - left_col) * 0.1))
-        if left_col < (self.canvas_left_col + buffer_threshold) or 
+        local buffer_threshold = math.floor((right_col - left_col) * 0.5)
+        if left_col < (self.canvas_left_col + buffer_threshold) or
            right_col > (self.canvas_right_col - buffer_threshold) then
             self.dirty = true
         end
