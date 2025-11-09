@@ -58,14 +58,14 @@ function Player:new()
     self.inventory.belt:add(Items.gun, 1)
     self.inventory.belt:add(Items.rocket_launcher, 1)
     self.inventory.belt:add(Blocks.cobblestone, 64)
-    
+
     -- Add some test items to storage
     self.inventory.storage:add(Blocks.dirt, 32)
     self.inventory.storage:add(Blocks.grass, 16)
     self.inventory.storage:add(Blocks.stone, 48)
-    
+
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
-    
+
     -- Shooting state
     self.shooting = false
     self.shoot_cooldown = 0
@@ -216,40 +216,15 @@ function Player:update(dt, world, player)
         end
     end
 
-    -- In DEBUG mode, enable flying with up/down controls
-    if G.debug then
-        local vertical_dir = 0
-        if love.keyboard.isDown("space") or love.keyboard.isDown("up") or love.keyboard.isDown("w") then
-            vertical_dir = vertical_dir - 1  -- Up (negative y is up)
+    if self.intent.jump then
+        if self:is_grounded() then
+            self.vy = C.JUMP_SPEED
+            self.movement_state = MovementState.AIRBORNE
         end
-        if love.keyboard.isDown("down") or love.keyboard.isDown("s") then
-            vertical_dir = vertical_dir + 1  -- Down
-        end
-
-        local target_vy = vertical_dir * MAX_SPEED
-        if vertical_dir ~= 0 then
-            if self.vy < target_vy then
-                self.vy = math.min(target_vy, self.vy + accel * dt)
-            elseif self.vy > target_vy then
-                self.vy = math.max(target_vy, self.vy - accel * dt)
-            end
-        else
-            -- Apply friction when no vertical input
-            local dec = C.AIR_FRICTION * dt
-            if math.abs(self.vy) <= dec then self.vy = 0 else self.vy = self.vy - (self.vy > 0 and 1 or -1) * dec end
-        end
-    else
-        -- Normal jump behavior when not in debug mode
-        if self.intent.jump then
-            if self:is_grounded() then
-                self.vy = C.JUMP_SPEED
-                self.movement_state = MovementState.AIRBORNE
-            end
-            self.intent.jump = false
-        end
+        self.intent.jump = false
     end
 
-    -- Apply gravity using component (disabled in debug mode for player)
+    -- Apply gravity using component
     self.gravity:update(dt)
     local dx = self.vx * dt
     local dy = self.vy * dt
@@ -287,7 +262,7 @@ function Player:update(dt, world, player)
             end
         end
     end
-    
+
     -- Update shooting cooldown
     if self.shoot_cooldown > 0 then
         self.shoot_cooldown = self.shoot_cooldown - dt
@@ -308,7 +283,7 @@ function Player:has_gun_selected()
     local selected = belt.selected or 1
     local item = belt.items and belt.items[selected]
     if not item then return false end
-    
+
     local proto = item.proto or item
     return proto and proto.name == "gun"
 end
@@ -318,7 +293,7 @@ function Player:has_rocket_launcher_selected()
     local selected = belt.selected or 1
     local item = belt.items and belt.items[selected]
     if not item then return false end
-    
+
     local proto = item.proto or item
     return proto and proto.name == "rocket_launcher"
 end
@@ -332,31 +307,31 @@ function Player:shoot_bullet(target_x, target_y)
     if self.shoot_cooldown > 0 then
         return false
     end
-    
+
     -- Calculate spawn position (center of player)
     local spawn_x = self.px + self.width / 2
     local spawn_y = self.py + self.height / 2
-    
+
     -- Calculate direction to target (mouse position in world coordinates)
     local dx = target_x - spawn_x
     local dy = target_y - spawn_y
     local dist = math.sqrt(dx * dx + dy * dy)
-    
+
     if dist < 0.01 then
         return false  -- Too close to calculate direction
     end
-    
+
     -- Normalize direction
     local dir_x = dx / dist
     local dir_y = dy / dist
-    
+
     -- Check which weapon is selected and create appropriate projectile
     if self:has_gun_selected() then
         -- Gun: fast, small bullet
         local speed = 50
         local vx = dir_x * speed
         local vy = dir_y * speed
-        
+
         local Bullet = require("entities.bullet")
         local bullet = Bullet(spawn_x, spawn_y, self.z, vx, vy)
         table.insert(G.world.entities, bullet)
@@ -365,23 +340,23 @@ function Player:shoot_bullet(target_x, target_y)
         local speed = 30
         local vx = dir_x * speed
         local vy = dir_y * speed
-        
+
         local Rocket = require("entities.rocket")
         local rocket = Rocket(spawn_x, spawn_y, self.z, vx, vy)
         table.insert(G.world.entities, rocket)
     else
         return false  -- No weapon selected
     end
-    
+
     -- Reset cooldown
     self.shoot_cooldown = self.shoot_cooldown_time
-    
+
     return true
 end
 
 function Player:wheelmoved(dx, dy)
     if not dy or dy == 0 then return end
-    
+
     -- Don't scroll when inventory is open
     if self.inventory.ui.open then return end
 
@@ -472,7 +447,7 @@ end
 function Player:drawGhost()
     -- Don't show ghost when inventory screen is open
     if self.inventory.ui.open then return end
-    
+
     -- Always show ghost block, even when no item is selected
     local belt = self.inventory.belt
     local ui = self.inventory.ui
@@ -703,17 +678,17 @@ function Player:get_inventory_slot_at(mx, my)
     local ui = self.inventory.ui
     local slot_size = ui.slot_size
     local padding = ui.padding
-    
+
     -- Calculate inventory screen dimensions (storage only, no hotbar inside)
     local cols = 9
     local storage_rows = 3
     local grid_width = cols * slot_size + (cols - 1) * padding
     local storage_height = storage_rows * slot_size + (storage_rows - 1) * padding
-    
+
     -- Center the inventory
     local inv_x = (G.width - grid_width) / 2
     local inv_y = (G.height - storage_height) / 2
-    
+
     -- Check storage grid (3x9)
     for row = 0, storage_rows - 1 do
         for col = 0, cols - 1 do
@@ -725,13 +700,13 @@ function Player:get_inventory_slot_at(mx, my)
             end
         end
     end
-    
+
     -- Check hotbar at bottom of screen (not inside inventory)
     local belt = self.inventory.belt
     local hotbar_width = belt.slots * slot_size + (belt.slots - 1) * padding
     local hotbar_x = (G.width - hotbar_width) / 2
     local hotbar_y = G.height - slot_size - 20
-    
+
     for col = 0, cols - 1 do
         local sx = hotbar_x + col * (slot_size + padding)
         local sy = hotbar_y
@@ -739,7 +714,7 @@ function Player:get_inventory_slot_at(mx, my)
             return self.inventory.belt, col + 1
         end
     end
-    
+
     return nil, nil
 end
 
@@ -764,7 +739,7 @@ function Player:inventory_pressed(mx, my, button)
     end
 
     local ui = self.inventory.ui
-    
+
     if button == 1 then  -- Left mouse pressed
         if ui.held_item then
             -- Placing an item
@@ -867,7 +842,7 @@ function Player:inventory_pressed(mx, my, button)
             end
         end
     end
-    
+
     return true
 end
 
@@ -875,11 +850,11 @@ function Player:inventory_released(mx, my, button)
     if not self.inventory.ui.open then
         return false
     end
-    
+
     -- For left-click drag-and-drop, the release doesn't do anything
     -- The item placement already happened on press
     -- This is just to keep the interface consistent
-    
+
     return true
 end
 
@@ -887,14 +862,14 @@ function Player:release_held_item()
     -- Drop held item back to world or put it back
     local ui = self.inventory.ui
     if not ui.held_item then return end
-    
+
     -- Try to add to storage first
     local leftover = self.inventory.storage:add(ui.held_item.proto, ui.held_item.count)
     if leftover > 0 then
         -- Try to add to belt
         leftover = self.inventory.belt:add(ui.held_item.proto, leftover)
     end
-    
+
     -- If still leftover, drop to world
     if leftover > 0 then
         local drop_x = self.px + self.width / 2
@@ -903,7 +878,7 @@ function Player:release_held_item()
             ui.held_item.proto:drop(G.world, drop_x, drop_y, self.z, leftover)
         end
     end
-    
+
     ui.held_item = nil
 end
 
@@ -911,14 +886,14 @@ function Player:drop_single_item_to_world()
     -- Drop 1 item from held stack to the world
     local ui = self.inventory.ui
     if not ui.held_item then return end
-    
+
     local drop_x = self.px + self.width / 2
     local drop_y = self.py + self.height / 2
-    
+
     if ui.held_item.proto and type(ui.held_item.proto.drop) == "function" then
         ui.held_item.proto:drop(G.world, drop_x, drop_y, self.z, 1)
     end
-    
+
     ui.held_item.count = ui.held_item.count - 1
     if ui.held_item.count <= 0 then
         ui.held_item = nil
@@ -934,27 +909,27 @@ function Player:drawInventoryScreen()
     local slot_size = ui.slot_size
     local padding = ui.padding
     local border = ui.border_thickness
-    
+
     -- Inventory dimensions (storage only, no hotbar inside)
     local cols = 9
     local storage_rows = 3
     local grid_width = cols * slot_size + (cols - 1) * padding
     local storage_height = storage_rows * slot_size + (storage_rows - 1) * padding
-    
+
     -- Center the inventory
     local inv_x = (G.width - grid_width) / 2
     local inv_y = (G.height - storage_height) / 2
-    
+
     -- Semi-transparent background (only for storage grid)
     local bg_margin = 20
     love.graphics.setColor(0, 0, 0, 0.5)
-    love.graphics.rectangle("fill", 
-        inv_x - bg_margin, 
-        inv_y - bg_margin, 
-        grid_width + bg_margin * 2, 
-        storage_height + bg_margin * 2, 
+    love.graphics.rectangle("fill",
+        inv_x - bg_margin,
+        inv_y - bg_margin,
+        grid_width + bg_margin * 2,
+        storage_height + bg_margin * 2,
         8, 8)
-    
+
     -- Draw storage grid (3x9)
     for row = 0, storage_rows - 1 do
         for col = 0, cols - 1 do
@@ -964,17 +939,17 @@ function Player:drawInventoryScreen()
             self:drawInventorySlot(sx, sy, slot_size, self.inventory.storage, slot_idx, false)
         end
     end
-    
+
     -- Note: Hotbar is rendered separately at bottom of screen via drawInventory()
     -- and is interactable when inventory is open
-    
+
     -- Draw held item at mouse cursor
     if ui.held_item then
         local mx, my = love.mouse.getPosition()
         local item_size = 32
         local ix = mx - item_size / 2
         local iy = my - item_size / 2
-        
+
         local proto = ui.held_item.proto
         if proto and proto.color then
             local r, g, b, a = unpack(proto.color)
@@ -984,34 +959,34 @@ function Player:drawInventoryScreen()
             love.graphics.setColor(r or 1, g or 1, b or 1, (a or 1) * 0.8)
             love.graphics.rectangle("fill", ix, iy, item_size, item_size, 3, 3)
         end
-        
+
         -- Draw count
         if ui.held_item.count > 1 then
             love.graphics.setColor(1, 1, 1, 1)
             love.graphics.print(tostring(ui.held_item.count), ix + 4, iy + item_size - 16)
         end
     end
-    
+
     love.graphics.setColor(1, 1, 1, 1)
 end
 
 function Player:drawInventorySlot(x, y, size, inventory, slot_idx, is_selected)
     local ui = self.inventory.ui
-    
+
     -- Slot background
     love.graphics.setColor(0.12, 0.12, 0.12, 1)
     love.graphics.rectangle("fill", x, y, size, size, 4, 4)
-    
+
     -- Item in slot
     local item = inventory.items[slot_idx]
     if item then
         local proto = item.proto or item
         local count = item.count
-        
+
         local inner_pad = 8
         local cube_x, cube_y = x + inner_pad, y + inner_pad
         local cube_w, cube_h = size - inner_pad * 2, size - inner_pad * 2
-        
+
         if proto and proto.color then
             local r, g, b, a = unpack(proto.color)
             if r and r > 1 then
@@ -1022,19 +997,19 @@ function Player:drawInventorySlot(x, y, size, inventory, slot_idx, is_selected)
             love.graphics.setColor(0, 0, 0, 0.6)
             love.graphics.rectangle("line", cube_x + 0.5, cube_y + 0.5, cube_w - 1, cube_h - 1, 2, 2)
         end
-        
+
         -- Draw count
         if count and count > 1 then
             love.graphics.setColor(1, 1, 1, 1)
             love.graphics.print(tostring(count), x + 4, y + size - 16)
         end
     end
-    
+
     -- Slot border
     love.graphics.setColor(0, 0, 0, 0.6)
     love.graphics.setLineWidth(1)
     love.graphics.rectangle("line", x + 0.5, y + 0.5, size - 1, size - 1, 4, 4)
-    
+
     -- Highlight selected slot
     if is_selected then
         love.graphics.setColor(1, 0.84, 0, 1)
@@ -1042,7 +1017,7 @@ function Player:drawInventorySlot(x, y, size, inventory, slot_idx, is_selected)
         love.graphics.rectangle("line", x + 1, y + 1, size - 2, size - 2, 4, 4)
         love.graphics.setLineWidth(1)
     end
-    
+
     love.graphics.setColor(1, 1, 1, 1)
 end
 

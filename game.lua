@@ -318,29 +318,29 @@ end
 function Game:draw()
     -- Draw world (terrain layers only)
     self.world:draw()
-    
+
     -- Create entity canvas if it doesn't exist or has wrong size
     if not self.canvas or self.canvas:getWidth() ~= self.width or self.canvas:getHeight() ~= self.height then
         self.canvas = love.graphics.newCanvas(self.width, self.height)
     end
-    
+
     -- Draw all entities to canvas
     love.graphics.setCanvas(self.canvas)
     love.graphics.clear()
-    
+
     -- Draw entities (drops, bullets, rockets, etc.)
     self.world:draw_entities()
-    
+
     -- Draw player
     self:player():draw()
-    
+
     -- Reset render target
     love.graphics.setCanvas()
-    
+
     -- Draw the entity canvas to screen
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.draw(self.canvas, 0, 0)
-    
+
     -- Draw HUD on top (no canvas needed for UI)
     self:player():drawInventory() -- bottom-center
     self:drawHUD() -- top
@@ -353,26 +353,20 @@ function Game:draw()
         local col = math.floor((self.mx + cx) / C.BLOCK_SIZE) + 1
         local by = math.max(1, math.min(C.WORLD_HEIGHT, math.floor(self.my / C.BLOCK_SIZE) + 1))
         local lz = self:player().z
-        local block_type = self.world:get_block_type(lz, col, by)
-        local block_name = (type(block_type) == "table" and block_type.name) or tostring(block_type)
         local debug_lines = {}
-        debug_lines[#debug_lines+1] = "[DEBUG]"
         debug_lines[#debug_lines+1] = string.format("FPS/Delta: %d %f", love.timer.getFPS(), love.timer.getAverageDelta())
         debug_lines[#debug_lines+1] = string.format("Layer: %d", lz)
         debug_lines[#debug_lines+1] = string.format("Mouse: %.0f,%.0f", self.mx, self.my)
-        debug_lines[#debug_lines+1] = string.format("Block: %d,%d %s", col, by, block_name)
-        -- FIXME block_name always reports 'air'
+        debug_lines[#debug_lines+1] = string.format("Block: %d,%d", col, by)
         local padding = 6
         local line_h = 14
         local box_w = 420
         local box_h = #debug_lines * line_h + padding * 2
-        love.graphics.setColor(T.bg[1], T.bg[2], T.bg[3], (T.bg[4] or 1) * 0.5)
-        love.graphics.rectangle("fill", 6, 6, box_w, box_h)
-        love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1) * 1)
+        love.graphics.setColor(1, 0, 0, 1)
         for i, ln in ipairs(debug_lines) do
-            love.graphics.print(ln, 10, 6 + padding + (i-1) * line_h)
+            love.graphics.print(ln, 10, padding * padding + padding + (i-1) * line_h)
         end
-        love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1) * 1)
+        -- love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1) * 1)
     end
 end
 
