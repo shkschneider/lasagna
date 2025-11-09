@@ -45,7 +45,7 @@ function Layer:generate_column(x, freq, base, amp)
     -- Original top=30 means blocks 1-30 are filled, which should be new blocks 1-60
     local top = original_top * scale
     local dirt_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS * scale)
-    
+
     -- Bedrock is fixed at 64 blocks below ground level (converted to new coordinate system)
     local bedrock_depth = 64 * scale  -- 128 blocks in new system
     local bedrock_level = top + bedrock_depth
@@ -78,7 +78,7 @@ function Layer:generate_column(x, freq, base, amp)
         end
         self.tiles[x][y] = proto
     end
-    
+
     return true  -- Return true to indicate new terrain was generated
 end
 
@@ -100,7 +100,7 @@ end
 function Layer:draw()
     local player = G:player()
     local darken_factor = 1
-    
+
     -- Calculate darkening factor based on depth behind player
     if player and type(player.z) == "number" and self.z < player.z then
         local depth = player.z - self.z
@@ -126,30 +126,27 @@ function Layer:draw()
         self.canvas_right_col = right_col
     end
 
-    -- Check if we need to redraw the canvas
-    local needs_redraw = self.dirty
-    
     -- Check if visible area has moved outside canvas bounds
-    if not needs_redraw and self.canvas_left_col and self.canvas_right_col then
+    if not self.dirty and self.canvas_left_col and self.canvas_right_col then
         if left_col < self.canvas_left_col or right_col > self.canvas_right_col then
-            needs_redraw = true
+            self.dirty = true
         end
     end
 
     -- Redraw canvas if dirty or camera moved significantly
-    if needs_redraw then
+    if self.dirty then
         -- Calculate which columns to draw (extend beyond visible for buffer)
         local buffer_cols = math.floor((right_col - left_col) * 1.5)
         local draw_left = left_col - buffer_cols
         local draw_right = right_col + buffer_cols
-        
+
         self.canvas_left_col = draw_left
         self.canvas_right_col = draw_right
-        
+
         -- Set render target to canvas
         love.graphics.setCanvas(self.canvas)
         love.graphics.clear()
-        
+
         -- Draw all columns in range to canvas (without darkening - will be applied when drawing canvas to screen)
         for col = draw_left, draw_right do
             local column = self.tiles[col]
@@ -162,7 +159,7 @@ function Layer:draw()
                         -- Adjust position for canvas coordinate system
                         local canvas_x = px - (draw_left - 1) * C.BLOCK_SIZE
                         local canvas_y = py
-                        
+
                         -- Draw blocks normally - darkening will be applied to entire canvas
                         if type(proto.draw) == "function" then
                             love.graphics.setColor(1, 1, 1, 1)
@@ -176,7 +173,7 @@ function Layer:draw()
                 end
             end
         end
-        
+
         -- Reset render target
         love.graphics.setCanvas()
         self.dirty = false
@@ -187,11 +184,11 @@ function Layer:draw()
     love.graphics.origin()
     -- Apply darkening by multiplying canvas colors
     love.graphics.setColor(darken_factor, darken_factor, darken_factor, 1)
-    
+
     -- Calculate canvas offset
     local canvas_offset_x = (self.canvas_left_col - 1) * C.BLOCK_SIZE
     love.graphics.draw(self.canvas, -cx + canvas_offset_x, -cy)
-    
+
     love.graphics.pop()
     love.graphics.setColor(1, 1, 1, 1)
 end
