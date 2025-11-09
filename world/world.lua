@@ -91,7 +91,10 @@ function World:get_surface(z, x)
         local freq = C.layer_frequency(z)
         local base = C.ground_level(z)
         local amp = C.layer_amplitude(z)
-        layer:generate_column(col, freq, base, amp)
+        local generated = layer:generate_column(col, freq, base, amp)
+        if generated then
+            layer:mark_dirty()
+        end
     end
 
     -- Find the surface (first non-nil block from top)
@@ -116,7 +119,10 @@ function World:set_block(z, x, y, block)
         local freq = C.layer_frequency(z)
         local base = C.ground_level(z)
         local amp = C.layer_amplitude(z)
-        layer:generate_column(x, freq, base, amp)
+        local generated = layer:generate_column(x, freq, base, amp)
+        if generated then
+            layer:mark_dirty()
+        end
     end
     if not layer.tiles[x] then return false, "internal tiles not initialized" end
     if block == "__empty" then block = nil end
@@ -186,14 +192,22 @@ function World:draw()
     for z = C.LAYER_MIN, C.LAYER_MAX do
         local layer = self.layers[z]
         if layer then
-            -- Generate terrain for visible columns if needed
+            -- Generate terrain for visible columns if needed (batch generation)
             local freq = C.layer_frequency(z)
             local base = C.ground_level(z)
             local amp = C.layer_amplitude(z)
+            local any_generated = false
             for col = left_col, right_col do
                 if not layer.tiles[col] then
-                    layer:generate_column(col, freq, base, amp)
+                    local generated = layer:generate_column(col, freq, base, amp)
+                    if generated then
+                        any_generated = true
+                    end
                 end
+            end
+            -- Mark dirty once after generating all columns
+            if any_generated then
+                layer:mark_dirty()
             end
             layer:draw()
         end
