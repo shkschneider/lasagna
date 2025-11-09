@@ -134,6 +134,10 @@ function World:set_block(z, x, y, block)
         if prev == nil then
             return false, "nothing to remove"
         end
+        -- Check if trying to remove bedrock (indestructible)
+        if prev and prev.name == "bedrock" then
+            return false, "bedrock is indestructible"
+        end
         layer.tiles[x][y] = nil
         log.debug(string.format("Removed block '%s' at x=%d y=%d z=%d", tostring(prev and prev.name), x, y, z))
         return true, "removed"
