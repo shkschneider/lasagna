@@ -76,8 +76,9 @@ function Bullet:draw()
     -- Position is already in 1-indexed world coordinates
     -- Drawing needs to convert to screen pixels
     local cx = G.camera:get_x()
+    local cy = G.camera:get_y()
     local sx = (self.px - 1) * C.BLOCK_SIZE - cx
-    local sy = (self.py - 1) * C.BLOCK_SIZE
+    local sy = (self.py - 1) * C.BLOCK_SIZE - cy
 
     -- Draw the bullet as a small yellow rectangle
     love.graphics.setColor(self.color[1], self.color[2], self.color[3], self.color[4] or 1)

@@ -296,8 +296,9 @@ end
 
 function Player:draw()
     local cx = G.camera:get_x()
+    local cy = G.camera:get_y()
     local sx = (self.px - 1) * C.BLOCK_SIZE - cx
-    local sy = (self.py - 1) * C.BLOCK_SIZE
+    local sy = (self.py - 1) * C.BLOCK_SIZE - cy
     love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1))
     love.graphics.rectangle("fill", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE)
 end
@@ -486,9 +487,11 @@ function Player:drawGhost()
 
     -- Convert mouse screen position to world position
     local cx = G.camera:get_x()
+    local cy = G.camera:get_y()
     local world_px = G.mx + cx
+    local world_py = G.my + cy
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
-    local row = math.floor(G.my / C.BLOCK_SIZE) + 1
+    local row = math.floor(world_py / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
 
     -- Calculate the top-left corner of the selection based on size
@@ -504,7 +507,7 @@ function Player:drawGhost()
 
     -- Convert world grid position back to screen position
     local px = (start_col - 1) * C.BLOCK_SIZE - cx
-    local py = (start_row - 1) * C.BLOCK_SIZE
+    local py = (start_row - 1) * C.BLOCK_SIZE - cy
     local width = size * C.BLOCK_SIZE
     local height = size * C.BLOCK_SIZE
 
@@ -531,9 +534,11 @@ function Player:placeAtMouse(mx, my, z_override)
     if count <= 0 then return false, "no items left" end
 
     local cx = G.camera:get_x()
+    local cy = G.camera:get_y()
     local world_px = mouse_x + cx
+    local world_py = mouse_y + cy
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
-    local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
+    local row = math.floor(world_py / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
 
     -- Calculate the top-left corner of the selection based on size
@@ -630,9 +635,11 @@ function Player:removeAtMouse(mx, my, z_override)
     local mouse_x, mouse_y = mx, my
     if not mouse_x or not mouse_y then mouse_x, mouse_y = love.mouse.getPosition() end
     local cx = G.camera:get_x()
+    local cy = G.camera:get_y()
     local world_px = mouse_x + cx
+    local world_py = mouse_y + cy
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
-    local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
+    local row = math.floor(world_py / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
 
     -- Calculate the top-left corner of the selection based on size

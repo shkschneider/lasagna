@@ -73,8 +73,9 @@ function Drop:draw()
     -- Position is already in 1-indexed world coordinates
     -- Drawing needs to convert to screen pixels
     local cx = G.camera:get_x()
+    local cy = G.camera:get_y()
     local sx = (self.px - 1) * C.BLOCK_SIZE - cx
-    local sy = (self.py - 1) * C.BLOCK_SIZE
+    local sy = (self.py - 1) * C.BLOCK_SIZE - cy
 
     -- Draw the item as a smaller version of the block
     if self.proto and self.proto.color then
