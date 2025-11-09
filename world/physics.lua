@@ -8,6 +8,11 @@ local function check_entity_collision(entity, px, py, world)
     for _, other in ipairs(world.entities) do
         -- Don't check against self, and only check drops against drops
         if other ~= entity and other.proto and entity.proto then
+            -- Skip collision check if both drops are the same type (allow stacking)
+            if entity.proto == other.proto then
+                goto continue
+            end
+            
             -- Check if on same layer
             if other.z == entity.z then
                 -- Check AABB collision
@@ -18,6 +23,8 @@ local function check_entity_collision(entity, px, py, world)
                     return other
                 end
             end
+            
+            ::continue::
         end
     end
 
@@ -215,10 +222,15 @@ local function has_support_below(entity, world, check_px)
         end
     end
 
-    -- Check for other drops below
+    -- Check for other drops below (only different types provide support)
     if world.entities then
         for _, other in ipairs(world.entities) do
             if other ~= entity and other.proto and other.z == entity.z then
+                -- Skip same-type drops (they don't provide support)
+                if entity.proto == other.proto then
+                    goto continue
+                end
+                
                 -- Check if other drop is directly below
                 local overlap_x = not (check_px + entity.width <= other.px or check_px >= other.px + other.width)
                 local touches_y = math.abs(check_py - other.py) < 0.1
@@ -226,6 +238,8 @@ local function has_support_below(entity, world, check_px)
                 if overlap_x and touches_y then
                     return true
                 end
+                
+                ::continue::
             end
         end
     end
@@ -249,16 +263,23 @@ local function is_position_free(entity, check_px, check_py, world)
         end
     end
 
-    -- Check for other drops
+    -- Check for other drops (only different types block movement)
     if world.entities then
         for _, other in ipairs(world.entities) do
             if other ~= entity and other.proto and other.z == entity.z then
+                -- Skip same-type drops (they don't block movement)
+                if entity.proto == other.proto then
+                    goto continue
+                end
+                
                 local overlap_x = not (check_px + entity.width <= other.px or check_px >= other.px + other.width)
                 local overlap_y = not (check_py + entity.height <= other.py or check_py >= other.py + other.height)
 
                 if overlap_x and overlap_y then
                     return false
                 end
+                
+                ::continue::
             end
         end
     end
@@ -275,6 +296,11 @@ local function has_weight_above(entity, world)
 
     for _, other in ipairs(world.entities) do
         if other ~= entity and other.proto and other.z == entity.z then
+            -- Skip same-type drops (they don't create weight)
+            if entity.proto == other.proto then
+                goto continue
+            end
+            
             -- Check if other drop is above this one
             local overlap_x = not (entity.px + entity.width <= other.px or entity.px >= other.px + other.width)
             local is_above = other.py + other.height <= entity.py + 0.1
@@ -285,6 +311,8 @@ local function has_weight_above(entity, world)
                     return true
                 end
             end
+            
+            ::continue::
         end
     end
 
