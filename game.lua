@@ -377,6 +377,7 @@ function Game:draw()
         local col = math.floor((self.mx + cx) / C.BLOCK_SIZE) + 1
         local by = math.max(1, math.min(C.WORLD_HEIGHT, math.floor(self.my / C.BLOCK_SIZE) + 1))
         local debug_lines = {}
+        debug_lines[#debug_lines+1] = string.format("v%d.%d.%d-%s '%s'", C.VERSION.major, C.VERSION.minor, C.VERSION.patch, C.VERSION.type, C.VERSION.codename)
         debug_lines[#debug_lines+1] = string.format("T: %fdt", love.timer.getAverageDelta())
         debug_lines[#debug_lines+1] = string.format("P: %d,%d,%d", self:player().px, self:player().py, self:player().z)
         debug_lines[#debug_lines+1] = string.format("B: %d,%d (M %.0f,%.0f)", col, by, self.mx, self.my)

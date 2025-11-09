@@ -1,5 +1,6 @@
 return {
     NAME = "Lasagna",
+    VERSION = { major = 0, minor = 15, patch = 0, type = "alpha", codename = "ZZ9 Plural Z Alpha" },
     RESOLUTIONS = {
         SD = { p = 480,  width = 854,  height = 480 },
         HD = { p = 720,  width = 1280, height = 720 },
