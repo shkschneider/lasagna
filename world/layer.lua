@@ -171,10 +171,10 @@ function Layer:draw()
                         -- Adjust position for canvas coordinate system
                         local canvas_x = px - (draw_left - 1) * C.BLOCK_SIZE
                         local canvas_y = py
-                        if type(proto.draw) == "function" then
-                            love.graphics.setColor(darken_factor, darken_factor, darken_factor, 1)
-                            proto:draw(canvas_x, canvas_y, C.BLOCK_SIZE)
-                        elseif proto.color and love and love.graphics then
+                        
+                        -- Always draw blocks directly with darkened colors
+                        -- Don't use proto:draw() as it overrides our color settings
+                        if proto.color and love and love.graphics then
                             local c = proto.color
                             -- Apply darkening by multiplying color components
                             love.graphics.setColor(c[1] * darken_factor, c[2] * darken_factor, c[3] * darken_factor, c[4] or 1)
