@@ -165,24 +165,25 @@ function World:spawn_dropped_item(proto, px, py, z, count)
     if not proto then return false end
     count = count or 1
     
-    -- Check if there's a similar drop directly below (1 block) that we can merge with
+    -- Check if there's a similar drop directly above (1 block on top) that we can merge with
     local merge_target = nil
     
     for _, e in ipairs(self.entities) do
         if e.proto and e.z == z and e.proto == proto then
-            -- Check if this drop is exactly 1 block below (same horizontal position)
+            -- Check if this drop is exactly 1 block above (same horizontal position)
             local dx = math.abs(e.px - px)
             local dy = e.py - py
             
-            -- Only merge if drop is at same horizontal position and exactly 1 block below
-            if dx < 0.5 and dy >= 0.5 and dy <= 1.5 then
+            -- Only merge if drop is at same horizontal position and exactly 1 block above
+            -- dy should be negative (above) with magnitude around 1
+            if dx < 0.5 and dy <= -0.5 and dy >= -1.5 then
                 merge_target = e
                 break  -- Found exact match, stop searching
             end
         end
     end
     
-    -- If we found a mergeable drop below, merge with it (don't spawn new drop)
+    -- If we found a mergeable drop above, merge with it (don't spawn new drop)
     if merge_target then
         merge_target.count = merge_target.count + count
         log.debug(string.format("Merged drop '%s' (%d items) into existing drop at x=%d y=%d z=%d", 
