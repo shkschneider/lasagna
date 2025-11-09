@@ -7,6 +7,7 @@ return {
     dirt = {0.60, 0.30, 0.10, 1.0}, -- #994C19
     cobblestone = {0.30, 0.32, 0.34, 1.0}, -- #4C5256)
     stone = {0.50, 0.52, 0.55, 1.0}, -- #80858C
+    bedrock = {0.05, 0.05, 0.05, 1.0}, -- #0D0D0D (very dark grey, almost black)
 
     wood = {0.48, 0.30, 0.12, 1.0}, -- warm brown
     --stone = {0.55, 0.55, 0.56, 1.0}, -- neutral grey
