@@ -218,6 +218,7 @@ function Game:mousereleased(x, y, button, istouch, presses)
 end
 
 function Game:update(dt)
+
     -- Update camera to follow player
     local target_x = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE
     local target_y = (self:player().py + self:player().height / 2) * C.BLOCK_SIZE
@@ -354,7 +355,7 @@ function Game:draw()
         local by = math.max(1, math.min(C.WORLD_HEIGHT, math.floor(self.my / C.BLOCK_SIZE) + 1))
         local lz = self:player().z
         local debug_lines = {}
-        debug_lines[#debug_lines+1] = string.format("FPS/Delta: %d %f", love.timer.getFPS(), love.timer.getAverageDelta())
+        debug_lines[#debug_lines+1] = string.format("%dfps / %dtps", love.timer.getFPS(), 1.0 / love.timer.getAverageDelta())
         debug_lines[#debug_lines+1] = string.format("Layer: %d", lz)
         debug_lines[#debug_lines+1] = string.format("Mouse: %.0f,%.0f", self.mx, self.my)
         debug_lines[#debug_lines+1] = string.format("Block: %d,%d", col, by)
