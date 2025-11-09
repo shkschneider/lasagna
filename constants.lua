@@ -38,6 +38,6 @@ return {
     NIGHT_DURATION = 30, -- seconds
     -- lighting (shader parameters)
     LIGHT_RADIUS = 400,    -- pixels - radius of light around player
-    AMBIENT_LIGHT = 0.2,   -- 0.0 to 1.0 - base light level in dark areas
+    AMBIENT_LIGHT = 0.3,   -- 0.0 to 1.0 - base light level in dark areas
     RAYCAST_STEP_SIZE = 2, -- pixels - raycast step size (lower = more accurate, higher = faster)
 }

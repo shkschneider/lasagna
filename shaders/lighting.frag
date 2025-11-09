@@ -9,8 +9,11 @@ uniform float lightRadius;       // Maximum light radius in pixels
 uniform float raycastStepSize;   // Step size for raycasting (pixels)
 uniform sampler2D blockTexture;  // Texture containing world block solidity data
 
+const float BLOCK_SIZE = 16.0;   // Size of one block in pixels
+const float SURFACE_LIGHT = 0.5; // How much to light up surfaces we hit (0.0-1.0)
+
 // Cast a ray from the light source to check if a point is lit
-// Returns 1.0 if lit, 0.0 if in shadow
+// Returns visibility value: 1.0 if fully lit, 0.0 if in deep shadow, or partial for surfaces
 float castLight(vec2 from, vec2 to) {
     vec2 direction = to - from;
     float totalDistance = length(direction);
@@ -51,7 +54,18 @@ float castLight(vec2 from, vec2 to) {
         // Check if there's a solid block at this position
         vec4 blockData = texture2D(blockTexture, texCoord);
         if (blockData.a > 0.5) {
-            // Hit a solid block - this point is in shadow
+            // Hit a solid block
+            float distToBlock = currentDist;
+            float distBeyondBlock = totalDistance - distToBlock;
+            
+            // If we're within half a block's width from the block surface, add surface lighting
+            if (distBeyondBlock < BLOCK_SIZE * 0.5) {
+                // Gradient: full surface light at block edge, fading out
+                float surfaceFactor = 1.0 - (distBeyondBlock / (BLOCK_SIZE * 0.5));
+                return SURFACE_LIGHT * surfaceFactor;
+            }
+            
+            // Deep shadow beyond surface light range
             return 0.0;
         }
     }
@@ -77,6 +91,9 @@ vec4 effect(vec4 color, sampler2D tex, vec2 texture_coords, vec2 screen_coords) 
     
     // Combine distance attenuation and shadow visibility
     float lightIntensity = attenuation * visibility;
+    
+    // Reduce overall light strength (0.7 = 70% strength)
+    lightIntensity = lightIntensity * 0.7;
     
     // Return light value for additive blending with ambient
     // The canvas is cleared to ambient, and we add dynamic light
