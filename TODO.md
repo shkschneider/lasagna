@@ -1,0 +1,11 @@
+- user should be able to step-up tiny block (1x1) but not a full visual block (2x2)
+- number to select hotbar slot (and move item there in inventory view)
+- implement crafting
+- other layers should not be semi-transparent yet be less visible. maybe dimm with black instead of transparency?
+- over/under worlds?
+- player-centric raycasting shaders
+- make drops behave more like sand or water and try to flatten
+- add features to worldgen: trees...
+- add mobs: passive / neutral / agressive...
+- jetpack: 'J' with hover mode
+- manipulator/omnitool/gravity-gun?
