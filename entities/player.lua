@@ -236,6 +236,9 @@ end
 
 function Player:wheelmoved(dx, dy)
     if not dy or dy == 0 then return end
+    
+    -- Don't scroll when inventory is open
+    if self.inventory.ui.open then return end
 
     -- Check if control is held for selection size change
     local ctrl_held = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
@@ -322,6 +325,9 @@ function Player:drawInventory()
 end
 
 function Player:drawGhost()
+    -- Don't show ghost when inventory screen is open
+    if self.inventory.ui.open then return end
+    
     -- Always show ghost block, even when no item is selected
     local belt = self.inventory.belt
     local ui = self.inventory.ui
