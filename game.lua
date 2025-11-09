@@ -353,12 +353,11 @@ function Game:draw()
         local cx = self.camera:get_x()
         local col = math.floor((self.mx + cx) / C.BLOCK_SIZE) + 1
         local by = math.max(1, math.min(C.WORLD_HEIGHT, math.floor(self.my / C.BLOCK_SIZE) + 1))
-        local lz = self:player().z
         local debug_lines = {}
-        debug_lines[#debug_lines+1] = string.format("%dfps / %dtps", love.timer.getFPS(), 1.0 / love.timer.getAverageDelta())
-        debug_lines[#debug_lines+1] = string.format("Layer: %d", lz)
-        debug_lines[#debug_lines+1] = string.format("Mouse: %.0f,%.0f", self.mx, self.my)
-        debug_lines[#debug_lines+1] = string.format("Block: %d,%d", col, by)
+        debug_lines[#debug_lines+1] = string.format("T: %f", love.timer.getAverageDelta())
+        debug_lines[#debug_lines+1] = string.format("P: %d,%d,%d", self:player().px, self:player().py, self:player().z)
+        debug_lines[#debug_lines+1] = string.format("B: %d,%d (M %.0f,%.0f)", col, by, self.mx, self.my)
+        debug_lines[#debug_lines+1] = string.format("E: %d", #G.world.entities)
         local padding = 6
         local line_h = 14
         local box_w = 420
@@ -367,7 +366,6 @@ function Game:draw()
         for i, ln in ipairs(debug_lines) do
             love.graphics.print(ln, 10, padding * padding + padding + (i-1) * line_h)
         end
-        -- love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1) * 1)
     end
 end
 

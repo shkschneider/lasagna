@@ -44,12 +44,6 @@ function World:update(dt)
         self.weather:update(dt)
     end
 
-    -- If dt is too large (game slowing down below 60 FPS), skip entity updates to maintain responsiveness
-    -- 1/60 ≈ 0.0167 seconds per frame at 60 FPS
-    if dt > 1/(C.FPS/2) then
-        return
-    end
-
     -- Entities handle their own update logic
     -- Use reverse iteration to safely remove entities during update
     for i = #self.entities, 1, -1 do
