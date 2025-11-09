@@ -87,7 +87,7 @@ end
 
 function Game:mousepressed(x, y, button, istouch, presses)
     local player = self:player()
-    
+
     -- Check if inventory is open and handle inventory clicks
     if player.inventory.ui.open then
         player:inventory_pressed(x, y, button)
@@ -172,13 +172,13 @@ end
 
 function Game:mousereleased(x, y, button, istouch, presses)
     local player = self:player()
-    
+
     -- Check if inventory is open and handle inventory releases
     if player.inventory.ui.open then
         player:inventory_released(x, y, button)
         return
     end
-    
+
     if button == 1 or button == "l" then
         -- Left mouse released
         self.left_mouse_down = false
@@ -228,20 +228,66 @@ function Game:update(dt)
     self.world:update(dt)
 end
 
-function Game:drawTimeHUD()
+function Game:drawFPS()
     if not self.world or not self.world.weather then return end
-    local time_str = self.world.weather:get_time_string()
+    local str = string.format("%d fps", love.timer.getFPS())
+    local font = love.graphics.getFont()
+    local text_height = font:getHeight()
     local padding = 10
     local bg_padding = 6
     local font = love.graphics.getFont()
-    local text_width = font:getWidth(time_str)
+    local text_width = font:getWidth(str)
+    local text_height = font:getHeight()
+    local x = padding
+    local y = padding
+    love.graphics.setColor(T.bg[1], T.bg[2], T.bg[3], (T.bg[4] or 1) * 0.5)
+    love.graphics.rectangle("fill", x, y, text_width + bg_padding * 2, text_height + bg_padding * 2, 4, 4)
+    love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1) * 1)
+    love.graphics.print(str, x + bg_padding, y + bg_padding)
+end
+
+function Game:drawInspector()
+    if not self.world or not self.world.weather then return end
+    local cx = self.camera:get_x()
+    local col = math.floor((self.mx + cx) / C.BLOCK_SIZE) + 1
+    local by = math.max(1, math.min(C.WORLD_HEIGHT, math.floor(self.my / C.BLOCK_SIZE) + 1))
+    local lz = self:player().z
+    local block_type = self.world:get_block_type(lz, col, by)
+    local str = (type(block_type) == "table" and block_type.name) or tostring(block_type)
+    -- FIXME str reports 'air' all the time
+    local padding = 10
+    local bg_padding = 6
+    local font = love.graphics.getFont()
+    local text_width = font:getWidth(str)
+    local text_height = font:getHeight()
+    local x = self.width / 2 - text_width / 2 - padding / 2
+    local y = padding
+    love.graphics.setColor(T.bg[1], T.bg[2], T.bg[3], (T.bg[4] or 1) * 0.5)
+    love.graphics.rectangle("fill", x, y, text_width + bg_padding * 2, text_height + bg_padding * 2, 4, 4)
+    love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1) * 1)
+    love.graphics.print(str, x + bg_padding, y + bg_padding)
+end
+
+function Game:drawClock()
+    if not self.world or not self.world.weather then return end
+    local str = self.world.weather:get_time_string()
+    local padding = 10
+    local bg_padding = 6
+    local font = love.graphics.getFont()
+    local text_width = font:getWidth(str)
     local text_height = font:getHeight()
     local x = self.width - text_width - padding - bg_padding * 2
     local y = padding
     love.graphics.setColor(T.bg[1], T.bg[2], T.bg[3], (T.bg[4] or 1) * 0.5)
     love.graphics.rectangle("fill", x, y, text_width + bg_padding * 2, text_height + bg_padding * 2, 4, 4)
     love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1) * 1)
-    love.graphics.print(time_str, x + bg_padding, y + bg_padding)
+    love.graphics.print(str, x + bg_padding, y + bg_padding)
+end
+
+function Game:drawHUD()
+    self:drawFPS()
+    self:drawInspector()
+    self:drawClock()
 end
 
 function Game:draw()
@@ -251,7 +297,7 @@ function Game:draw()
     self:player():draw()
     -- hud
     self:player():drawInventory() -- bottom-center
-    self:drawTimeHUD() -- top-right
+    self:drawHUD() -- top
     self:player():drawGhost() -- at mouse
     -- inventory screen (if open)
     self:player():drawInventoryScreen()
@@ -269,6 +315,7 @@ function Game:draw()
         debug_lines[#debug_lines+1] = string.format("Layer: %d", lz)
         debug_lines[#debug_lines+1] = string.format("Mouse: %.0f,%.0f", self.mx, self.my)
         debug_lines[#debug_lines+1] = string.format("Block: %d,%d %s", col, by, block_name)
+        -- FIXME block_name always reports 'air'
         local padding = 6
         local line_h = 14
         local box_w = 420
