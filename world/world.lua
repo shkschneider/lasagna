@@ -47,6 +47,7 @@ function World:update(dt)
     -- Use reverse iteration to safely remove entities during update
     for i = #self.entities, 1, -1 do
         local e = self.entities[i]
+        -- TODO if dt is getting too big, we might drop FPS, so return early
         if type(e.update) == "function" then
             local keep = e:update(dt, self, self:player())
             -- If update returns false, remove the entity
