@@ -554,17 +554,15 @@ function Player:get_inventory_slot_at(mx, my)
     local slot_size = ui.slot_size
     local padding = ui.padding
     
-    -- Calculate inventory screen dimensions
+    -- Calculate inventory screen dimensions (storage only, no hotbar inside)
     local cols = 9
     local storage_rows = 3
     local grid_width = cols * slot_size + (cols - 1) * padding
     local storage_height = storage_rows * slot_size + (storage_rows - 1) * padding
-    local hotbar_height = slot_size
-    local total_height = storage_height + padding * 4 + hotbar_height
     
     -- Center the inventory
     local inv_x = (G.width - grid_width) / 2
-    local inv_y = (G.height - total_height) / 2
+    local inv_y = (G.height - storage_height) / 2
     
     -- Check storage grid (3x9)
     for row = 0, storage_rows - 1 do
@@ -578,10 +576,14 @@ function Player:get_inventory_slot_at(mx, my)
         end
     end
     
-    -- Check hotbar (below storage with gap)
-    local hotbar_y = inv_y + storage_height + padding * 4
+    -- Check hotbar at bottom of screen (not inside inventory)
+    local belt = self.inventory.belt
+    local hotbar_width = belt.slots * slot_size + (belt.slots - 1) * padding
+    local hotbar_x = (G.width - hotbar_width) / 2
+    local hotbar_y = G.height - slot_size - 20
+    
     for col = 0, cols - 1 do
-        local sx = inv_x + col * (slot_size + padding)
+        local sx = hotbar_x + col * (slot_size + padding)
         local sy = hotbar_y
         if mx >= sx and mx < sx + slot_size and my >= sy and my < sy + slot_size then
             return self.inventory.belt, col + 1
@@ -783,26 +785,24 @@ function Player:drawInventoryScreen()
     local padding = ui.padding
     local border = ui.border_thickness
     
-    -- Inventory dimensions
+    -- Inventory dimensions (storage only, no hotbar inside)
     local cols = 9
     local storage_rows = 3
     local grid_width = cols * slot_size + (cols - 1) * padding
     local storage_height = storage_rows * slot_size + (storage_rows - 1) * padding
-    local hotbar_height = slot_size
-    local total_height = storage_height + padding * 4 + hotbar_height
     
     -- Center the inventory
     local inv_x = (G.width - grid_width) / 2
-    local inv_y = (G.height - total_height) / 2
+    local inv_y = (G.height - storage_height) / 2
     
-    -- Semi-transparent background
+    -- Semi-transparent background (only for storage grid)
     local bg_margin = 20
     love.graphics.setColor(0, 0, 0, 0.5)
     love.graphics.rectangle("fill", 
         inv_x - bg_margin, 
         inv_y - bg_margin, 
         grid_width + bg_margin * 2, 
-        total_height + bg_margin * 2, 
+        storage_height + bg_margin * 2, 
         8, 8)
     
     -- Draw storage grid (3x9)
@@ -815,15 +815,8 @@ function Player:drawInventoryScreen()
         end
     end
     
-    -- Draw hotbar (below storage with gap)
-    local hotbar_y = inv_y + storage_height + padding * 4
-    for col = 0, cols - 1 do
-        local sx = inv_x + col * (slot_size + padding)
-        local sy = hotbar_y
-        local slot_idx = col + 1
-        local is_selected = (slot_idx == self.inventory.belt.selected)
-        self:drawInventorySlot(sx, sy, slot_size, self.inventory.belt, slot_idx, is_selected)
-    end
+    -- Note: Hotbar is rendered separately at bottom of screen via drawInventory()
+    -- and is interactable when inventory is open
     
     -- Draw held item at mouse cursor
     if ui.held_item then
