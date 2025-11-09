@@ -5,6 +5,7 @@ function Block:new(name, color)
     if type(name) ~= "string" then error("Block:new: name must be a string", 2) end
     self.name = name
     self.color = color
+    self.max_stack = 64  -- Default stack size for blocks
 end
 
 function Block:update(dt) end

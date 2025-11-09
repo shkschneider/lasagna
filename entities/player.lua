@@ -38,21 +38,30 @@ function Player:new()
     -- Selection size for placing/removing blocks (in world blocks)
     self.selection_size = 1  -- Can be 1, 2, or 4
 
-    -- Inventory system: hand (held item) + belt (hotbar)
+    -- Inventory system: hand (held item) + belt (hotbar) + storage (3x9 grid)
     -- Using Inventory component for both
     self.inventory = {
         hand = Inventory(self, { slots = 1 }),  -- Single slot for held item
         belt = Inventory(self, { slots = 9 }),  -- 9-slot hotbar
+        storage = Inventory(self, { slots = 27 }),  -- 3x9 storage grid
         ui = {
             slot_size = 48,
             padding = 6,
             border_thickness = 3,
             background_alpha = 0.6,
+            open = false,  -- Whether inventory screen is open
+            held_item = nil,  -- Item being dragged: { proto, count, data, source_inv, source_slot }
         },
     }
 
     -- Start with 64 cobblestone in first belt slot
     self.inventory.belt:add(Blocks.cobblestone, 64)
+    
+    -- Add some test items to storage
+    self.inventory.storage:add(Blocks.dirt, 32)
+    self.inventory.storage:add(Blocks.grass, 16)
+    self.inventory.storage:add(Blocks.stone, 48)
+    
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
 
     -- Initialize components
@@ -69,17 +78,32 @@ function Player:is_crouching()
 end
 
 function Player:keypressed(key)
-    if key == "q" then
+    if key == "tab" then
+        self.inventory.ui.open = not self.inventory.ui.open
+        -- Release held item when closing inventory
+        if not self.inventory.ui.open and self.inventory.ui.held_item then
+            self:release_held_item()
+        end
+    elseif key == "q" then
         self.navigation:switch_layer(-1, G.world)
     elseif key == "e" then
         self.navigation:switch_layer(1, G.world)
     elseif key == "space" or key == "up" then
-        self.intent.jump = true
+        if not self.inventory.ui.open then
+            self.intent.jump = true
+        end
     end
 end
 
 function Player:update(dt, world, player)
     -- Ignore world and player parameters for the Player itself
+
+    -- Don't process movement if inventory is open
+    if self.inventory.ui.open then
+        self.vx = 0
+        self.vy = 0
+        return
+    end
 
     -- Handle continuous input (movement keys)
     self.intent.left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
@@ -511,6 +535,329 @@ function Player:removeAtMouse(mx, my, z_override)
         return true, "removed " .. removed_count, z
     end
     return false, "nothing to remove", z
+end
+
+function Player:get_inventory_slot_at(mx, my)
+    -- Returns: inventory, slot_index or nil
+    if not self.inventory.ui.open then
+        return nil, nil
+    end
+
+    local ui = self.inventory.ui
+    local slot_size = ui.slot_size
+    local padding = ui.padding
+    
+    -- Calculate inventory screen dimensions
+    local cols = 9
+    local storage_rows = 3
+    local grid_width = cols * slot_size + (cols - 1) * padding
+    local storage_height = storage_rows * slot_size + (storage_rows - 1) * padding
+    local hotbar_height = slot_size
+    local total_height = storage_height + padding * 4 + hotbar_height
+    
+    -- Center the inventory
+    local inv_x = (G.width - grid_width) / 2
+    local inv_y = (G.height - total_height) / 2
+    
+    -- Check storage grid (3x9)
+    for row = 0, storage_rows - 1 do
+        for col = 0, cols - 1 do
+            local sx = inv_x + col * (slot_size + padding)
+            local sy = inv_y + row * (slot_size + padding)
+            if mx >= sx and mx < sx + slot_size and my >= sy and my < sy + slot_size then
+                local slot_idx = row * cols + col + 1
+                return self.inventory.storage, slot_idx
+            end
+        end
+    end
+    
+    -- Check hotbar (below storage with gap)
+    local hotbar_y = inv_y + storage_height + padding * 4
+    for col = 0, cols - 1 do
+        local sx = inv_x + col * (slot_size + padding)
+        local sy = hotbar_y
+        if mx >= sx and mx < sx + slot_size and my >= sy and my < sy + slot_size then
+            return self.inventory.belt, col + 1
+        end
+    end
+    
+    return nil, nil
+end
+
+function Player:inventory_click(mx, my, button)
+    if not self.inventory.ui.open then
+        return false
+    end
+
+    local inv, slot = self:get_inventory_slot_at(mx, my)
+    if not inv then
+        -- Clicked outside inventory - drop held item if any
+        if self.inventory.ui.held_item then
+            self:release_held_item()
+        end
+        return true
+    end
+
+    local ui = self.inventory.ui
+    
+    if button == 1 then  -- Left click
+        if ui.held_item then
+            -- Placing an item
+            local target_item = inv.items[slot]
+            if not target_item then
+                -- Empty slot - place all
+                inv.items[slot] = {
+                    proto = ui.held_item.proto,
+                    count = ui.held_item.count,
+                    data = ui.held_item.data or {}
+                }
+                ui.held_item = nil
+            elseif target_item.proto == ui.held_item.proto then
+                -- Same item type - try to stack
+                local max_stack = math.min(ui.held_item.proto.max_stack or C.MAX_STACK, C.MAX_STACK)
+                local space = max_stack - target_item.count
+                if space > 0 then
+                    local to_add = math.min(space, ui.held_item.count)
+                    target_item.count = target_item.count + to_add
+                    ui.held_item.count = ui.held_item.count - to_add
+                    if ui.held_item.count <= 0 then
+                        ui.held_item = nil
+                    end
+                else
+                    -- Swap items
+                    local temp = ui.held_item
+                    ui.held_item = {
+                        proto = target_item.proto,
+                        count = target_item.count,
+                        data = target_item.data or {}
+                    }
+                    inv.items[slot] = temp
+                end
+            else
+                -- Different item type - swap
+                local temp = ui.held_item
+                ui.held_item = {
+                    proto = target_item.proto,
+                    count = target_item.count,
+                    data = target_item.data or {}
+                }
+                inv.items[slot] = temp
+            end
+        else
+            -- Picking up an item
+            local item = inv.items[slot]
+            if item then
+                ui.held_item = {
+                    proto = item.proto,
+                    count = item.count,
+                    data = item.data or {},
+                    source_inv = inv,
+                    source_slot = slot
+                }
+                inv.items[slot] = nil
+            end
+        end
+    elseif button == 2 then  -- Right click
+        if ui.held_item then
+            -- Place single item
+            local target_item = inv.items[slot]
+            if not target_item then
+                -- Empty slot - place one
+                inv.items[slot] = {
+                    proto = ui.held_item.proto,
+                    count = 1,
+                    data = {}
+                }
+                ui.held_item.count = ui.held_item.count - 1
+                if ui.held_item.count <= 0 then
+                    ui.held_item = nil
+                end
+            elseif target_item.proto == ui.held_item.proto then
+                -- Same item type - add one if space
+                local max_stack = math.min(ui.held_item.proto.max_stack or C.MAX_STACK, C.MAX_STACK)
+                if target_item.count < max_stack then
+                    target_item.count = target_item.count + 1
+                    ui.held_item.count = ui.held_item.count - 1
+                    if ui.held_item.count <= 0 then
+                        ui.held_item = nil
+                    end
+                end
+            end
+        else
+            -- Pick up half
+            local item = inv.items[slot]
+            if item then
+                local pick_count = math.ceil(item.count / 2)
+                ui.held_item = {
+                    proto = item.proto,
+                    count = pick_count,
+                    data = {},
+                    source_inv = inv,
+                    source_slot = slot
+                }
+                item.count = item.count - pick_count
+                if item.count <= 0 then
+                    inv.items[slot] = nil
+                end
+            end
+        end
+    end
+    
+    return true
+end
+
+function Player:release_held_item()
+    -- Drop held item back to world or put it back
+    local ui = self.inventory.ui
+    if not ui.held_item then return end
+    
+    -- Try to add to storage first
+    local leftover = self.inventory.storage:add(ui.held_item.proto, ui.held_item.count)
+    if leftover > 0 then
+        -- Try to add to belt
+        leftover = self.inventory.belt:add(ui.held_item.proto, leftover)
+    end
+    
+    -- If still leftover, drop to world
+    if leftover > 0 then
+        local drop_x = self.px + self.width / 2
+        local drop_y = self.py + self.height / 2
+        if ui.held_item.proto and type(ui.held_item.proto.drop) == "function" then
+            ui.held_item.proto:drop(G.world, drop_x, drop_y, self.z, leftover)
+        end
+    end
+    
+    ui.held_item = nil
+end
+
+function Player:drawInventoryScreen()
+    if not self.inventory.ui.open then
+        return
+    end
+
+    local ui = self.inventory.ui
+    local slot_size = ui.slot_size
+    local padding = ui.padding
+    local border = ui.border_thickness
+    
+    -- Inventory dimensions
+    local cols = 9
+    local storage_rows = 3
+    local grid_width = cols * slot_size + (cols - 1) * padding
+    local storage_height = storage_rows * slot_size + (storage_rows - 1) * padding
+    local hotbar_height = slot_size
+    local total_height = storage_height + padding * 4 + hotbar_height
+    
+    -- Center the inventory
+    local inv_x = (G.width - grid_width) / 2
+    local inv_y = (G.height - total_height) / 2
+    
+    -- Semi-transparent background
+    local bg_margin = 20
+    love.graphics.setColor(0, 0, 0, 0.5)
+    love.graphics.rectangle("fill", 
+        inv_x - bg_margin, 
+        inv_y - bg_margin, 
+        grid_width + bg_margin * 2, 
+        total_height + bg_margin * 2, 
+        8, 8)
+    
+    -- Draw storage grid (3x9)
+    for row = 0, storage_rows - 1 do
+        for col = 0, cols - 1 do
+            local sx = inv_x + col * (slot_size + padding)
+            local sy = inv_y + row * (slot_size + padding)
+            local slot_idx = row * cols + col + 1
+            self:drawInventorySlot(sx, sy, slot_size, self.inventory.storage, slot_idx, false)
+        end
+    end
+    
+    -- Draw hotbar (below storage with gap)
+    local hotbar_y = inv_y + storage_height + padding * 4
+    for col = 0, cols - 1 do
+        local sx = inv_x + col * (slot_size + padding)
+        local sy = hotbar_y
+        local slot_idx = col + 1
+        local is_selected = (slot_idx == self.inventory.belt.selected)
+        self:drawInventorySlot(sx, sy, slot_size, self.inventory.belt, slot_idx, is_selected)
+    end
+    
+    -- Draw held item at mouse cursor
+    if ui.held_item then
+        local mx, my = love.mouse.getPosition()
+        local item_size = 32
+        local ix = mx - item_size / 2
+        local iy = my - item_size / 2
+        
+        local proto = ui.held_item.proto
+        if proto and proto.color then
+            local r, g, b, a = unpack(proto.color)
+            if r and r > 1 then
+                r, g, b, a = r/255, (g or 0)/255, (b or 0)/255, (a or 255)/255
+            end
+            love.graphics.setColor(r or 1, g or 1, b or 1, (a or 1) * 0.8)
+            love.graphics.rectangle("fill", ix, iy, item_size, item_size, 3, 3)
+        end
+        
+        -- Draw count
+        if ui.held_item.count > 1 then
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.print(tostring(ui.held_item.count), ix + 4, iy + item_size - 16)
+        end
+    end
+    
+    love.graphics.setColor(1, 1, 1, 1)
+end
+
+function Player:drawInventorySlot(x, y, size, inventory, slot_idx, is_selected)
+    local ui = self.inventory.ui
+    
+    -- Slot background
+    love.graphics.setColor(0.12, 0.12, 0.12, 1)
+    love.graphics.rectangle("fill", x, y, size, size, 4, 4)
+    
+    -- Item in slot
+    local item = inventory.items[slot_idx]
+    if item then
+        local proto = item.proto or item
+        local count = item.count
+        
+        local inner_pad = 8
+        local cube_x, cube_y = x + inner_pad, y + inner_pad
+        local cube_w, cube_h = size - inner_pad * 2, size - inner_pad * 2
+        
+        if proto and proto.color then
+            local r, g, b, a = unpack(proto.color)
+            if r and r > 1 then
+                r, g, b, a = r/255, (g or 0)/255, (b or 0)/255, (a or 255)/255
+            end
+            love.graphics.setColor(r or 1, g or 1, b or 1, a or 1)
+            love.graphics.rectangle("fill", cube_x, cube_y, cube_w, cube_h, 3, 3)
+            love.graphics.setColor(0, 0, 0, 0.6)
+            love.graphics.rectangle("line", cube_x + 0.5, cube_y + 0.5, cube_w - 1, cube_h - 1, 2, 2)
+        end
+        
+        -- Draw count
+        if count and count > 1 then
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.print(tostring(count), x + 4, y + size - 16)
+        end
+    end
+    
+    -- Slot border
+    love.graphics.setColor(0, 0, 0, 0.6)
+    love.graphics.setLineWidth(1)
+    love.graphics.rectangle("line", x + 0.5, y + 0.5, size - 1, size - 1, 4, 4)
+    
+    -- Highlight selected slot
+    if is_selected then
+        love.graphics.setColor(1, 0.84, 0, 1)
+        love.graphics.setLineWidth(ui.border_thickness)
+        love.graphics.rectangle("line", x + 1, y + 1, size - 2, size - 2, 4, 4)
+        love.graphics.setLineWidth(1)
+    end
+    
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 return Player

@@ -85,9 +85,16 @@ function Game:mousemoved(x, y, dx, dy, istouch)
 end
 
 function Game:mousepressed(x, y, button, istouch, presses)
+    local player = self:player()
+    
+    -- Check if inventory is open and handle inventory clicks
+    if player.inventory.ui.open then
+        player:inventory_click(x, y, button)
+        return
+    end
+
     if button == 2 or button == "r" then
         -- Right click: check if placing block or grabbing drops
-        local player = self:player()
 
         -- Get selection area
         local cx = self.camera:get_x()
@@ -211,6 +218,8 @@ function Game:draw()
     self:player():drawInventory() -- bottom-center
     self:drawTimeHUD() -- top-right
     self:player():drawGhost() -- at mouse
+    -- inventory screen (if open)
+    self:player():drawInventoryScreen()
     -- debug
     if self.debug then
         local cx = self.camera:get_x()
