@@ -78,6 +78,9 @@ function Layer:generate_column(x, freq, base, amp)
         end
         self.tiles[x][y] = proto
     end
+    
+    -- Mark layer as dirty when new terrain is generated
+    self:mark_dirty()
 end
 
 -- Generate terrain for a range of x coordinates
