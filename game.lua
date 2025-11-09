@@ -354,10 +354,11 @@ function Game:draw()
         local col = math.floor((self.mx + cx) / C.BLOCK_SIZE) + 1
         local by = math.max(1, math.min(C.WORLD_HEIGHT, math.floor(self.my / C.BLOCK_SIZE) + 1))
         local debug_lines = {}
-        debug_lines[#debug_lines+1] = string.format("T: %f", love.timer.getAverageDelta())
+        debug_lines[#debug_lines+1] = string.format("T: %fdt", love.timer.getAverageDelta())
         debug_lines[#debug_lines+1] = string.format("P: %d,%d,%d", self:player().px, self:player().py, self:player().z)
         debug_lines[#debug_lines+1] = string.format("B: %d,%d (M %.0f,%.0f)", col, by, self.mx, self.my)
-        debug_lines[#debug_lines+1] = string.format("E: %d", #G.world.entities)
+        debug_lines[#debug_lines+1] = string.format("E: %de", #G.world.entities)
+        --debug_lines[#debug_lines+1] = string.format("M: %fkB", collectgarbage('count'))
         local padding = 6
         local line_h = 14
         local box_w = 420
