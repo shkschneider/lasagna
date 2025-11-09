@@ -16,6 +16,7 @@ function Layer:new(z)
     self.dirty = true  -- Flag to indicate if canvas needs redrawing
     self.canvas_left_col = nil  -- Track which columns are rendered in canvas
     self.canvas_right_col = nil
+    self.last_darken_factor = nil  -- Track darkening to detect changes
 end
 
 function Layer:update(dt) end
@@ -122,6 +123,11 @@ function Layer:draw()
     -- Check if we need to redraw the canvas
     local needs_redraw = self.dirty
     
+    -- Check if darken factor changed (player changed layers)
+    if not needs_redraw and self.last_darken_factor and self.last_darken_factor ~= darken_factor then
+        needs_redraw = true
+    end
+    
     -- Check if visible area has moved outside canvas bounds
     if not needs_redraw and self.canvas_left_col and self.canvas_right_col then
         if left_col < self.canvas_left_col or right_col > self.canvas_right_col then
@@ -182,6 +188,7 @@ function Layer:draw()
         -- Reset render target
         love.graphics.setCanvas()
         self.dirty = false
+        self.last_darken_factor = darken_factor
     end
 
     -- Draw the canvas to screen with full opacity (no alpha blending)
