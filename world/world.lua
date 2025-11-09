@@ -164,6 +164,37 @@ end
 function World:spawn_dropped_item(proto, px, py, z, count)
     if not proto then return false end
     count = count or 1
+    
+    -- Check if there's a similar drop below that we can merge with
+    local merge_target = nil
+    local merge_distance = math.huge
+    
+    for _, e in ipairs(self.entities) do
+        if e.proto and e.z == z and e.proto == proto then
+            -- Check if this drop is below the spawn position
+            local dx = e.px - px
+            local dy = e.py - py
+            
+            -- Consider drops that are below (dy > 0) and within 2 blocks horizontally
+            if dy > 0 and dy <= 3 and math.abs(dx) <= 2 then
+                local dist = math.sqrt(dx * dx + dy * dy)
+                if dist < merge_distance then
+                    merge_target = e
+                    merge_distance = dist
+                end
+            end
+        end
+    end
+    
+    -- If we found a mergeable drop below, merge with it
+    if merge_target then
+        merge_target.count = merge_target.count + count
+        log.debug(string.format("Merged drop '%s' (%d items) into existing drop at x=%d y=%d z=%d", 
+            proto.name or "?", count, merge_target.px, merge_target.py, z))
+        return true
+    end
+    
+    -- No merge target found, spawn new drop
     local item = Drop(proto, px, py, z, count)
     table.insert(self.entities, item)
     log.debug(string.format("Spawned drop '%s' at x=%d y=%d z=%d", proto.name or "?", px, py, z))
