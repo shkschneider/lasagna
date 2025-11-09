@@ -43,6 +43,22 @@ function Drop:update(dt, world, player)
         if self.vy == 0 then
             self.px = math.floor(self.px + 0.5)
             self.py = math.floor(self.py + 0.5)
+            
+            -- When grounded, check for similar drops below to merge with
+            for _, other in ipairs(world.entities) do
+                if other ~= self and other.proto and other.proto == self.proto and other.z == self.z then
+                    -- Check if other drop is directly below (1 block)
+                    local dx = math.abs(other.px - self.px)
+                    local dy = other.py - self.py
+                    
+                    -- Merge if drop is at same horizontal position and exactly 1 block below
+                    if dx < 0.5 and dy >= 0.5 and dy <= 1.5 then
+                        -- Merge this drop into the one below
+                        other.count = other.count + self.count
+                        return false  -- Remove this drop after merging
+                    end
+                end
+            end
         end
     end
 
