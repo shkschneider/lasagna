@@ -91,12 +91,15 @@ function Layer:generate_terrain_range(x_start, x_end, freq, base, amp)
 end
 
 function Layer:draw()
-    local alpha = 1
     local player = G:player()
+    local darken_factor = 1
+    
+    -- Calculate darkening factor based on depth behind player
     if player and type(player.z) == "number" and self.z < player.z then
         local depth = player.z - self.z
-        alpha = 1 - 0.25 * depth
-        if alpha < 0 then alpha = 0 end
+        -- Darken by 30% per layer of depth
+        darken_factor = 1 - (0.3 * depth)
+        if darken_factor < 0.3 then darken_factor = 0.3 end  -- Minimum 30% brightness
     end
 
     -- Calculate visible columns
@@ -163,11 +166,12 @@ function Layer:draw()
                         local canvas_x = px - (draw_left - 1) * C.BLOCK_SIZE
                         local canvas_y = py
                         if type(proto.draw) == "function" then
-                            love.graphics.setColor(1, 1, 1, 1)
+                            love.graphics.setColor(darken_factor, darken_factor, darken_factor, 1)
                             proto:draw(canvas_x, canvas_y, C.BLOCK_SIZE)
                         elseif proto.color and love and love.graphics then
                             local c = proto.color
-                            love.graphics.setColor(c[1], c[2], c[3], c[4] or 1)
+                            -- Apply darkening by multiplying color components
+                            love.graphics.setColor(c[1] * darken_factor, c[2] * darken_factor, c[3] * darken_factor, c[4] or 1)
                             love.graphics.rectangle("fill", canvas_x, canvas_y, C.BLOCK_SIZE, C.BLOCK_SIZE)
                         end
                     end
@@ -180,10 +184,10 @@ function Layer:draw()
         self.dirty = false
     end
 
-    -- Draw the canvas to screen with proper offset and alpha
+    -- Draw the canvas to screen with full opacity (no alpha blending)
     love.graphics.push()
     love.graphics.origin()
-    love.graphics.setColor(1, 1, 1, alpha)
+    love.graphics.setColor(1, 1, 1, 1)
     
     -- Calculate canvas offset
     local canvas_offset_x = (self.canvas_left_col - 1) * C.BLOCK_SIZE
