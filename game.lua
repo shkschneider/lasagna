@@ -35,6 +35,7 @@ function Game:new()
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
     self.held_drops = {}  -- List of drops being held by right mouse button
     self.right_mouse_down = false
+    self.left_mouse_down = false  -- Track left mouse state for continuous shooting
     self.grab_offset_x = 0  -- Initial mouse position when grabbing drops
     self.grab_offset_y = 0
 end
@@ -93,7 +94,23 @@ function Game:mousepressed(x, y, button, istouch, presses)
         return
     end
 
-    if button == 2 or button == "r" then
+    if button == 1 or button == "l" then
+        -- Left click: check if shooting or removing blocks
+        if player:has_gun_selected() then
+            -- Gun is selected - shoot immediately on press
+            local cx = self.camera:get_x()
+            local world_x = (x + cx) / C.BLOCK_SIZE
+            local world_y = y / C.BLOCK_SIZE
+            player:shoot_bullet(world_x, world_y)
+            self.left_mouse_down = true
+        elseif player.removeAtMouse then
+            -- No gun - regular block removal
+            local ok, err, z_changed = player:removeAtMouse(x, y)
+            if not ok then
+                log.warn("Remove failed:", tostring(err))
+            end
+        end
+    elseif button == 2 or button == "r" then
         -- Right click: check if placing block or grabbing drops
 
         -- Get selection area
@@ -149,11 +166,6 @@ function Game:mousepressed(x, y, button, istouch, presses)
         else
             self.right_mouse_down = true
         end
-    elseif self:player().removeAtMouse and (button == 1 or button == "l") then
-        local ok, err, z_changed = self:player():removeAtMouse(x, y)
-        if not ok then
-            log.warn("Remove failed:", tostring(err))
-        end
     end
 end
 
@@ -166,7 +178,10 @@ function Game:mousereleased(x, y, button, istouch, presses)
         return
     end
     
-    if button == 2 or button == "r" then
+    if button == 1 or button == "l" then
+        -- Left mouse released
+        self.left_mouse_down = false
+    elseif button == 2 or button == "r" then
         -- Release all held drops
         for _, drop_info in ipairs(self.held_drops) do
             drop_info.drop.being_held = false
@@ -181,6 +196,14 @@ function Game:update(dt)
     local target_x = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE
     local target_y = 0
     self.camera:follow(target_x, target_y, self.width, self.height)
+
+    -- Handle continuous shooting when gun is selected and left mouse is held
+    if self.left_mouse_down and self:player():has_gun_selected() and not self:player().inventory.ui.open then
+        local cx = self.camera:get_x()
+        local world_x = (self.mx + cx) / C.BLOCK_SIZE
+        local world_y = self.my / C.BLOCK_SIZE
+        self:player():shoot_bullet(world_x, world_y)
+    end
 
     -- Move held drops to mouse position
     if self.right_mouse_down and #self.held_drops > 0 then

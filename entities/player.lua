@@ -54,7 +54,8 @@ function Player:new()
         },
     }
 
-    -- Start with 64 cobblestone in first belt slot
+    -- Start with gun in first belt slot, cobblestone in second slot
+    self.inventory.belt:add(Items.gun, 1)
     self.inventory.belt:add(Blocks.cobblestone, 64)
     
     -- Add some test items to storage
@@ -63,6 +64,11 @@ function Player:new()
     self.inventory.storage:add(Blocks.stone, 48)
     
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
+    
+    -- Shooting state
+    self.shooting = false
+    self.shoot_cooldown = 0
+    self.shoot_cooldown_time = 0.1  -- 10 shots per second
 
     -- Initialize components
     self.navigation = Navigation(G.world, self)
@@ -225,6 +231,11 @@ function Player:update(dt, world, player)
             end
         end
     end
+    
+    -- Update shooting cooldown
+    if self.shoot_cooldown > 0 then
+        self.shoot_cooldown = self.shoot_cooldown - dt
+    end
 end
 
 function Player:draw()
@@ -233,6 +244,51 @@ function Player:draw()
     local sy = (self.py - 1) * C.BLOCK_SIZE
     love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1))
     love.graphics.rectangle("fill", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE)
+end
+
+function Player:has_gun_selected()
+    local belt = self.inventory.belt
+    local selected = belt.selected or 1
+    local item = belt.items and belt.items[selected]
+    if not item then return false end
+    
+    local proto = item.proto or item
+    return proto and proto.name == "gun"
+end
+
+function Player:shoot_bullet(target_x, target_y)
+    -- Only shoot if cooldown has elapsed
+    if self.shoot_cooldown > 0 then
+        return false
+    end
+    
+    -- Calculate bullet spawn position (center of player)
+    local spawn_x = self.px + self.width / 2
+    local spawn_y = self.py + self.height / 2
+    
+    -- Calculate direction to target (mouse position in world coordinates)
+    local dx = target_x - spawn_x
+    local dy = target_y - spawn_y
+    local dist = math.sqrt(dx * dx + dy * dy)
+    
+    if dist < 0.01 then
+        return false  -- Too close to calculate direction
+    end
+    
+    -- Normalize and set bullet speed (50 blocks per second)
+    local speed = 50
+    local vx = (dx / dist) * speed
+    local vy = (dy / dist) * speed
+    
+    -- Create bullet entity
+    local Bullet = require("entities.bullet")
+    local bullet = Bullet(spawn_x, spawn_y, self.z, vx, vy)
+    table.insert(G.world.entities, bullet)
+    
+    -- Reset cooldown
+    self.shoot_cooldown = self.shoot_cooldown_time
+    
+    return true
 end
 
 function Player:wheelmoved(dx, dy)
