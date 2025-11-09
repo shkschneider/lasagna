@@ -83,6 +83,19 @@ function Game:keypressed(key)
         else
             log.level = "info"
         end
+    elseif key == "k" and self.debug then
+        -- Clear all drops when in debug mode
+        if self.world and self.world.entities then
+            local removed_count = 0
+            for i = #self.world.entities, 1, -1 do
+                local e = self.world.entities[i]
+                if e.proto then  -- Check if it's a drop (has proto field)
+                    table.remove(self.world.entities, i)
+                    removed_count = removed_count + 1
+                end
+            end
+            log.debug(string.format("Cleared %d drops", removed_count))
+        end
     else
         -- Delegate player controls to Player
         self:player():keypressed(key)
