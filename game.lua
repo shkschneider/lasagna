@@ -38,7 +38,10 @@ function Game:new()
     self.left_mouse_down = false  -- Track left mouse state for continuous shooting
     self.grab_offset_x = 0  -- Initial mouse position when grabbing drops
     self.grab_offset_y = 0
-    self.canvas = nil  -- Global canvas for drawing entities (player, items, bullets, drops, etc.)
+    self.canvas = {}  -- Array of canvases for different entity types
+    -- canvas[1] = player (drawn last, on top)
+    -- canvas[2] = drops
+    -- canvas[3] = everything else (bullets, rockets, etc.)
 end
 
 function Game:load(seed)
@@ -62,12 +65,20 @@ end
 function Game:resize(width, height)
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
     log.info(string.format("Resized: %dx%d", self.width, self.height))
-    -- Recreate canvas with new dimensions
-    self.canvas = nil
+    -- Release and recreate canvases with new dimensions
+    for i = 1, 3 do
+        if self.canvas[i] then
+            self.canvas[i]:release()
+        end
+        self.canvas[i] = nil
+    end
     -- Also mark all layers as dirty to recreate their canvases
     if self.world and self.world.layers then
         for z = C.LAYER_MIN, C.LAYER_MAX do
             if self.world.layers[z] then
+                if self.world.layers[z].canvas then
+                    self.world.layers[z].canvas:release()
+                end
                 self.world.layers[z].canvas = nil
                 self.world.layers[z]:mark_dirty()
             end
@@ -320,27 +331,39 @@ function Game:draw()
     -- Draw world (terrain layers only)
     self.world:draw()
 
-    -- Create entity canvas if it doesn't exist or has wrong size
-    if not self.canvas or self.canvas:getWidth() ~= self.width or self.canvas:getHeight() ~= self.height then
-        self.canvas = love.graphics.newCanvas(self.width, self.height)
+    -- Create entity canvases if they don't exist or have wrong size
+    for i = 1, 3 do
+        if not self.canvas[i] or self.canvas[i]:getWidth() ~= self.width or self.canvas[i]:getHeight() ~= self.height then
+            if self.canvas[i] then
+                self.canvas[i]:release()
+            end
+            self.canvas[i] = love.graphics.newCanvas(self.width, self.height)
+        end
     end
 
-    -- Draw all entities to canvas
-    love.graphics.setCanvas(self.canvas)
+    -- Draw drops to canvas[2]
+    love.graphics.setCanvas(self.canvas[2])
     love.graphics.clear()
-
-    -- Draw entities (drops, bullets, rockets, etc.)
-    self.world:draw_entities()
-
-    -- Draw player
-    self:player():draw()
-
-    -- Reset render target
+    self.world:draw_drops()
     love.graphics.setCanvas()
 
-    -- Draw the entity canvas to screen
+    -- Draw other entities (bullets, rockets, etc.) to canvas[3]
+    love.graphics.setCanvas(self.canvas[3])
+    love.graphics.clear()
+    self.world:draw_other_entities()
+    love.graphics.setCanvas()
+
+    -- Draw player to canvas[1]
+    love.graphics.setCanvas(self.canvas[1])
+    love.graphics.clear()
+    self:player():draw()
+    love.graphics.setCanvas()
+
+    -- Draw canvases in reverse order (3, 2, 1) so player is on top
     love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.draw(self.canvas, 0, 0)
+    for i = 3, 1, -1 do
+        love.graphics.draw(self.canvas[i], 0, 0)
+    end
 
     -- Draw HUD on top (no canvas needed for UI)
     self:player():drawInventory() -- bottom-center

@@ -217,4 +217,30 @@ function World:draw_entities()
     end
 end
 
+function World:draw_drops()
+    -- Draw only drops on each layer up to player's layer
+    for z = C.LAYER_MIN, C.LAYER_MAX do
+        for _, e in ipairs(self.entities) do
+            if e ~= self:player() and e.z == z and e.proto and type(e.draw) == "function" then
+                e:draw()
+            end
+        end
+
+        if z == self:player().z then return end
+    end
+end
+
+function World:draw_other_entities()
+    -- Draw entities that are not drops or player on each layer up to player's layer
+    for z = C.LAYER_MIN, C.LAYER_MAX do
+        for _, e in ipairs(self.entities) do
+            if e ~= self:player() and e.z == z and not e.proto and type(e.draw) == "function" then
+                e:draw()
+            end
+        end
+
+        if z == self:player().z then return end
+    end
+end
+
 return World
