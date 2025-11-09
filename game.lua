@@ -261,12 +261,12 @@ end
 function Game:drawInspector()
     if not self.world or not self.world.weather then return end
     local cx = self.camera:get_x()
+    local cy = self.camera:get_y()
     local col = math.floor((self.mx + cx) / C.BLOCK_SIZE) + 1
-    local by = math.max(1, math.min(C.WORLD_HEIGHT, math.floor(self.my / C.BLOCK_SIZE) + 1))
+    local row = math.max(1, math.min(C.WORLD_HEIGHT, math.floor((self.my + cy) / C.BLOCK_SIZE) + 1))
     local lz = self:player().z
-    local block_type = self.world:get_block_type(lz, col, by)
+    local block_type = self.world:get_block_type(lz, col, row)
     local str = (type(block_type) == "table" and block_type.name) or tostring(block_type)
-    -- FIXME str reports 'air' all the time
     local padding = 10
     local bg_padding = 6
     local font = love.graphics.getFont()
