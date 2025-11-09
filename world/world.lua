@@ -195,6 +195,9 @@ function World:draw()
             end
             layer:draw()
         end
+        
+        -- Stop drawing layers after player's layer
+        if z == self:player().z then return end
     end
 end
 
