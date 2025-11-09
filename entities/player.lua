@@ -54,8 +54,9 @@ function Player:new()
         },
     }
 
-    -- Start with gun in first belt slot, cobblestone in second slot
+    -- Start with gun in slot 1, rocket launcher in slot 2, cobblestone in slot 3
     self.inventory.belt:add(Items.gun, 1)
+    self.inventory.belt:add(Items.rocket_launcher, 1)
     self.inventory.belt:add(Blocks.cobblestone, 64)
     
     -- Add some test items to storage
@@ -256,13 +257,27 @@ function Player:has_gun_selected()
     return proto and proto.name == "gun"
 end
 
+function Player:has_rocket_launcher_selected()
+    local belt = self.inventory.belt
+    local selected = belt.selected or 1
+    local item = belt.items and belt.items[selected]
+    if not item then return false end
+    
+    local proto = item.proto or item
+    return proto and proto.name == "rocket_launcher"
+end
+
+function Player:has_weapon_selected()
+    return self:has_gun_selected() or self:has_rocket_launcher_selected()
+end
+
 function Player:shoot_bullet(target_x, target_y)
     -- Only shoot if cooldown has elapsed
     if self.shoot_cooldown > 0 then
         return false
     end
     
-    -- Calculate bullet spawn position (center of player)
+    -- Calculate spawn position (center of player)
     local spawn_x = self.px + self.width / 2
     local spawn_y = self.py + self.height / 2
     
@@ -275,15 +290,32 @@ function Player:shoot_bullet(target_x, target_y)
         return false  -- Too close to calculate direction
     end
     
-    -- Normalize and set bullet speed (50 blocks per second)
-    local speed = 50
-    local vx = (dx / dist) * speed
-    local vy = (dy / dist) * speed
+    -- Normalize direction
+    local dir_x = dx / dist
+    local dir_y = dy / dist
     
-    -- Create bullet entity
-    local Bullet = require("entities.bullet")
-    local bullet = Bullet(spawn_x, spawn_y, self.z, vx, vy)
-    table.insert(G.world.entities, bullet)
+    -- Check which weapon is selected and create appropriate projectile
+    if self:has_gun_selected() then
+        -- Gun: fast, small bullet
+        local speed = 50
+        local vx = dir_x * speed
+        local vy = dir_y * speed
+        
+        local Bullet = require("entities.bullet")
+        local bullet = Bullet(spawn_x, spawn_y, self.z, vx, vy)
+        table.insert(G.world.entities, bullet)
+    elseif self:has_rocket_launcher_selected() then
+        -- Rocket launcher: slower, heavier rocket with gravity
+        local speed = 30
+        local vx = dir_x * speed
+        local vy = dir_y * speed
+        
+        local Rocket = require("entities.rocket")
+        local rocket = Rocket(spawn_x, spawn_y, self.z, vx, vy)
+        table.insert(G.world.entities, rocket)
+    else
+        return false  -- No weapon selected
+    end
     
     -- Reset cooldown
     self.shoot_cooldown = self.shoot_cooldown_time

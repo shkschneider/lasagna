@@ -11,6 +11,7 @@ end
 
 local Items = {
     gun = Item("gun", {0.2, 0.2, 0.2, 1.0}),  -- Dark grey gun
+    rocket_launcher = Item("rocket_launcher", {0.4, 0.2, 0.1, 1.0}),  -- Dark orange/brown rocket launcher
 }
 
 return Items

@@ -96,15 +96,15 @@ function Game:mousepressed(x, y, button, istouch, presses)
 
     if button == 1 or button == "l" then
         -- Left click: check if shooting or removing blocks
-        if player:has_gun_selected() then
-            -- Gun is selected - shoot immediately on press
+        if player:has_weapon_selected() then
+            -- Weapon is selected - shoot immediately on press
             local cx = self.camera:get_x()
             local world_x = (x + cx) / C.BLOCK_SIZE
             local world_y = y / C.BLOCK_SIZE
             player:shoot_bullet(world_x, world_y)
             self.left_mouse_down = true
         elseif player.removeAtMouse then
-            -- No gun - regular block removal
+            -- No weapon - regular block removal
             local ok, err, z_changed = player:removeAtMouse(x, y)
             if not ok then
                 log.warn("Remove failed:", tostring(err))
@@ -197,8 +197,8 @@ function Game:update(dt)
     local target_y = 0
     self.camera:follow(target_x, target_y, self.width, self.height)
 
-    -- Handle continuous shooting when gun is selected and left mouse is held
-    if self.left_mouse_down and self:player():has_gun_selected() and not self:player().inventory.ui.open then
+    -- Handle continuous shooting when weapon is selected and left mouse is held
+    if self.left_mouse_down and self:player():has_weapon_selected() and not self:player().inventory.ui.open then
         local cx = self.camera:get_x()
         local world_x = (self.mx + cx) / C.BLOCK_SIZE
         local world_y = self.my / C.BLOCK_SIZE
