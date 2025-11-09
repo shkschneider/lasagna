@@ -27,7 +27,7 @@ end
 -- Generate terrain for a specific column
 function Layer:generate_column(x, freq, base, amp)
     -- Skip if already generated
-    if self.tiles[x] then return end
+    if self.tiles[x] then return false end
 
     -- With BLOCK_SIZE=8 instead of 16, we have 2x more columns per original column
     -- Each original block at 16px becomes a 2x2 grid of 8px blocks
@@ -79,14 +79,21 @@ function Layer:generate_column(x, freq, base, amp)
         self.tiles[x][y] = proto
     end
     
-    -- Mark layer as dirty when new terrain is generated
-    self:mark_dirty()
+    return true  -- Return true to indicate new terrain was generated
 end
 
 -- Generate terrain for a range of x coordinates
 function Layer:generate_terrain_range(x_start, x_end, freq, base, amp)
+    local any_generated = false
     for x = x_start, x_end do
-        self:generate_column(x, freq, base, amp)
+        local generated = self:generate_column(x, freq, base, amp)
+        if generated then
+            any_generated = true
+        end
+    end
+    -- Only mark dirty once after generating all columns in range
+    if any_generated then
+        self:mark_dirty()
     end
 end
 
@@ -126,16 +133,6 @@ function Layer:draw()
     if not needs_redraw and self.canvas_left_col and self.canvas_right_col then
         if left_col < self.canvas_left_col or right_col > self.canvas_right_col then
             needs_redraw = true
-        end
-    end
-    
-    -- Check if any visible columns are missing (new terrain generated)
-    if not needs_redraw then
-        for col = left_col, right_col do
-            if not self.tiles[col] then
-                needs_redraw = true
-                break
-            end
         end
     end
 
