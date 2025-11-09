@@ -98,18 +98,19 @@ end
 function Player:update(dt, world, player)
     -- Ignore world and player parameters for the Player itself
 
-    -- Don't process movement if inventory is open
-    if self.inventory.ui.open then
-        self.vx = 0
-        self.vy = 0
-        return
-    end
-
     -- Handle continuous input (movement keys)
-    self.intent.left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
-    self.intent.right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
-    self.intent.crouch = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
-    self.intent.run = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
+    -- Disable controls when inventory is open, but allow physics to continue
+    if self.inventory.ui.open then
+        self.intent.left = false
+        self.intent.right = false
+        self.intent.crouch = false
+        self.intent.run = false
+    else
+        self.intent.left = love.keyboard.isDown("a") or love.keyboard.isDown("left")
+        self.intent.right = love.keyboard.isDown("d") or love.keyboard.isDown("right")
+        self.intent.crouch = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
+        self.intent.run = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
+    end
 
     -- Physics and movement
     local MAX_SPEED = C.MAX_SPEED
@@ -590,23 +591,29 @@ function Player:get_inventory_slot_at(mx, my)
     return nil, nil
 end
 
-function Player:inventory_click(mx, my, button)
+function Player:inventory_pressed(mx, my, button)
     if not self.inventory.ui.open then
         return false
     end
 
     local inv, slot = self:get_inventory_slot_at(mx, my)
     if not inv then
-        -- Clicked outside inventory - drop held item if any
+        -- Clicked outside inventory
         if self.inventory.ui.held_item then
-            self:release_held_item()
+            if button == 1 then
+                -- Left click outside - return all to inventory
+                self:release_held_item()
+            elseif button == 2 then
+                -- Right click outside - drop 1 item to world
+                self:drop_single_item_to_world()
+            end
         end
         return true
     end
 
     local ui = self.inventory.ui
     
-    if button == 1 then  -- Left click
+    if button == 1 then  -- Left mouse pressed
         if ui.held_item then
             -- Placing an item
             local target_item = inv.items[slot]
@@ -650,7 +657,7 @@ function Player:inventory_click(mx, my, button)
                 inv.items[slot] = temp
             end
         else
-            -- Picking up an item
+            -- Picking up an item - will be held while button is down
             local item = inv.items[slot]
             if item then
                 ui.held_item = {
@@ -665,7 +672,7 @@ function Player:inventory_click(mx, my, button)
         end
     elseif button == 2 then  -- Right click
         if ui.held_item then
-            -- Place single item
+            -- Drop single item to slot or world
             local target_item = inv.items[slot]
             if not target_item then
                 -- Empty slot - place one
@@ -690,7 +697,7 @@ function Player:inventory_click(mx, my, button)
                 end
             end
         else
-            -- Pick up half
+            -- Pick up half (split stack)
             local item = inv.items[slot]
             if item then
                 local pick_count = math.ceil(item.count / 2)
@@ -708,6 +715,18 @@ function Player:inventory_click(mx, my, button)
             end
         end
     end
+    
+    return true
+end
+
+function Player:inventory_released(mx, my, button)
+    if not self.inventory.ui.open then
+        return false
+    end
+    
+    -- For left-click drag-and-drop, the release doesn't do anything
+    -- The item placement already happened on press
+    -- This is just to keep the interface consistent
     
     return true
 end
@@ -734,6 +753,24 @@ function Player:release_held_item()
     end
     
     ui.held_item = nil
+end
+
+function Player:drop_single_item_to_world()
+    -- Drop 1 item from held stack to the world
+    local ui = self.inventory.ui
+    if not ui.held_item then return end
+    
+    local drop_x = self.px + self.width / 2
+    local drop_y = self.py + self.height / 2
+    
+    if ui.held_item.proto and type(ui.held_item.proto.drop) == "function" then
+        ui.held_item.proto:drop(G.world, drop_x, drop_y, self.z, 1)
+    end
+    
+    ui.held_item.count = ui.held_item.count - 1
+    if ui.held_item.count <= 0 then
+        ui.held_item = nil
+    end
 end
 
 function Player:drawInventoryScreen()

@@ -89,7 +89,7 @@ function Game:mousepressed(x, y, button, istouch, presses)
     
     -- Check if inventory is open and handle inventory clicks
     if player.inventory.ui.open then
-        player:inventory_click(x, y, button)
+        player:inventory_pressed(x, y, button)
         return
     end
 
@@ -158,6 +158,14 @@ function Game:mousepressed(x, y, button, istouch, presses)
 end
 
 function Game:mousereleased(x, y, button, istouch, presses)
+    local player = self:player()
+    
+    -- Check if inventory is open and handle inventory releases
+    if player.inventory.ui.open then
+        player:inventory_released(x, y, button)
+        return
+    end
+    
     if button == 2 or button == "r" then
         -- Release all held drops
         for _, drop_info in ipairs(self.held_drops) do
