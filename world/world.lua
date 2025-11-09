@@ -47,11 +47,12 @@ function World:update(dt)
     -- Use reverse iteration to safely remove entities during update
     for i = #self.entities, 1, -1 do
         local e = self.entities[i]
+        -- TODO if dt is getting too big, we might drop FPS, so return early
         if type(e.update) == "function" then
             local keep = e:update(dt, self, self:player())
             -- If update returns false, remove the entity
             if keep == false then
-                log.debug(string.format("Removing drop '%s' at x=%d y=%d z=%d", e.proto.name, e.px, e.py, e.z))
+                log.debug(string.format("Removing drop '%s' at x=%d y=%d z=%d", e.name, e.px, e.py, e.z))
                 table.remove(self.entities, i)
             end
         end
@@ -132,6 +133,10 @@ function World:set_block(z, x, y, block)
     if proto == nil then
         if prev == nil then
             return false, "nothing to remove"
+        end
+        -- Check if trying to remove bedrock (indestructible)
+        if prev and prev.name == "bedrock" then
+            return false, "bedrock is indestructible"
         end
         layer.tiles[x][y] = nil
         log.debug(string.format("Removed block '%s' at x=%d y=%d z=%d", tostring(prev and prev.name), x, y, z))

@@ -35,6 +35,7 @@ function Game:new()
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
     self.held_drops = {}  -- List of drops being held by right mouse button
     self.right_mouse_down = false
+    self.left_mouse_down = false  -- Track left mouse state for continuous shooting
     self.grab_offset_x = 0  -- Initial mouse position when grabbing drops
     self.grab_offset_y = 0
 end
@@ -93,14 +94,33 @@ function Game:mousepressed(x, y, button, istouch, presses)
         return
     end
 
-    if button == 2 or button == "r" then
+    if button == 1 or button == "l" then
+        -- Left click: check if shooting or removing blocks
+        if player:has_weapon_selected() then
+            -- Weapon is selected - shoot immediately on press
+            local cx = self.camera:get_x()
+            local cy = self.camera:get_y()
+            local world_x = (x + cx) / C.BLOCK_SIZE
+            local world_y = (y + cy) / C.BLOCK_SIZE
+            player:shoot_bullet(world_x, world_y)
+            self.left_mouse_down = true
+        elseif player.removeAtMouse then
+            -- No weapon - regular block removal
+            local ok, err, z_changed = player:removeAtMouse(x, y)
+            if not ok then
+                log.warn("Remove failed:", tostring(err))
+            end
+        end
+    elseif button == 2 or button == "r" then
         -- Right click: check if placing block or grabbing drops
 
         -- Get selection area
         local cx = self.camera:get_x()
+        local cy = self.camera:get_y()
         local world_px = x + cx
+        local world_py = y + cy
         local col = math.floor(world_px / C.BLOCK_SIZE) + 1
-        local row = math.floor(y / C.BLOCK_SIZE) + 1
+        local row = math.floor(world_py / C.BLOCK_SIZE) + 1
         row = math.max(1, math.min(C.WORLD_HEIGHT, row))
 
         local size = player.selection_size
@@ -114,10 +134,8 @@ function Game:mousepressed(x, y, button, istouch, presses)
 
         -- Check if there are any drops in the selection area
         local drops_found = false
-        local cx = self.camera:get_x()
-        local world_px = x + cx
         local grab_col = world_px / C.BLOCK_SIZE
-        local grab_row = y / C.BLOCK_SIZE
+        local grab_row = world_py / C.BLOCK_SIZE
 
         for _, drop in ipairs(self.world.entities) do
             if drop.proto and drop.z == player.z then
@@ -149,11 +167,6 @@ function Game:mousepressed(x, y, button, istouch, presses)
         else
             self.right_mouse_down = true
         end
-    elseif self:player().removeAtMouse and (button == 1 or button == "l") then
-        local ok, err, z_changed = self:player():removeAtMouse(x, y)
-        if not ok then
-            log.warn("Remove failed:", tostring(err))
-        end
     end
 end
 
@@ -166,7 +179,10 @@ function Game:mousereleased(x, y, button, istouch, presses)
         return
     end
     
-    if button == 2 or button == "r" then
+    if button == 1 or button == "l" then
+        -- Left mouse released
+        self.left_mouse_down = false
+    elseif button == 2 or button == "r" then
         -- Release all held drops
         for _, drop_info in ipairs(self.held_drops) do
             drop_info.drop.being_held = false
@@ -179,15 +195,26 @@ end
 function Game:update(dt)
     -- Update camera to follow player
     local target_x = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE
-    local target_y = 0
+    local target_y = (self:player().py + self:player().height / 2) * C.BLOCK_SIZE
     self.camera:follow(target_x, target_y, self.width, self.height)
+
+    -- Handle continuous shooting when weapon is selected and left mouse is held
+    if self.left_mouse_down and self:player():has_weapon_selected() and not self:player().inventory.ui.open then
+        local cx = self.camera:get_x()
+        local cy = self.camera:get_y()
+        local world_x = (self.mx + cx) / C.BLOCK_SIZE
+        local world_y = (self.my + cy) / C.BLOCK_SIZE
+        self:player():shoot_bullet(world_x, world_y)
+    end
 
     -- Move held drops to mouse position
     if self.right_mouse_down and #self.held_drops > 0 then
         local cx = self.camera:get_x()
+        local cy = self.camera:get_y()
         local world_px = self.mx + cx
+        local world_py = self.my + cy
         local target_col = world_px / C.BLOCK_SIZE
-        local target_row = self.my / C.BLOCK_SIZE
+        local target_row = world_py / C.BLOCK_SIZE
 
         for _, drop_info in ipairs(self.held_drops) do
             -- Move drop to mouse position + its stored offset

@@ -11,6 +11,7 @@ function Layer:new(z)
     self.heights = {}
     self.dirt_limit = {}
     self.stone_limit = {}
+    self.bedrock_heights = {}
 end
 
 function Layer:update(dt) end
@@ -28,7 +29,7 @@ function Layer:generate_column(x, freq, base, amp)
     -- Columns 1-2 -> original 1, columns 3-4 -> original 2, etc.
     local original_x = math.floor((x - 1) / scale) + 1
 
-    -- Sample noise at the original column position
+    -- Sample noise at the original column position for terrain
     local n = noise.perlin1d(original_x * freq + (self.z * 100))
     local original_top = math.max(1, math.min(C.WORLD_HEIGHT - 1, math.floor(base + amp * n)))
 
@@ -36,11 +37,14 @@ function Layer:generate_column(x, freq, base, amp)
     -- Original top=30 means blocks 1-30 are filled, which should be new blocks 1-60
     local top = original_top * scale
     local dirt_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS * scale)
-    local stone_lim = math.min(C.WORLD_HEIGHT, top + C.DIRT_THICKNESS * scale + C.STONE_THICKNESS * scale)
+    
+    -- Bedrock is fixed at 64 blocks below ground level (converted to new coordinate system)
+    local bedrock_depth = 64 * scale  -- 128 blocks in new system
+    local bedrock_level = top + bedrock_depth
 
     self.heights[x] = top
     self.dirt_limit[x] = dirt_lim
-    self.stone_limit[x] = stone_lim
+    self.bedrock_heights[x] = bedrock_level
 
     self.tiles[x] = {}
     for y = 1, C.WORLD_HEIGHT do
@@ -50,11 +54,17 @@ function Layer:generate_column(x, freq, base, amp)
 
         -- Check what block type the original position had
         if original_y == original_top then
+            -- Surface: grass
             proto = Blocks and Blocks.grass
         elseif original_y > original_top and original_y <= original_top + C.DIRT_THICKNESS then
+            -- Below grass: dirt layer
             proto = Blocks and Blocks.dirt
-        elseif original_y > original_top + C.DIRT_THICKNESS and original_y <= original_top + C.DIRT_THICKNESS + C.STONE_THICKNESS then
+        elseif y > top + C.DIRT_THICKNESS * scale and y < bedrock_level then
+            -- Below dirt until bedrock: stone
             proto = Blocks and Blocks.stone
+        elseif y >= bedrock_level then
+            -- At and below bedrock level: bedrock
+            proto = Blocks and Blocks.bedrock
         else
             proto = nil
         end
@@ -80,13 +90,14 @@ function Layer:draw()
 
     -- Calculate visible columns
     local cx = G.camera:get_x()
+    local cy = G.camera:get_y()
     local left_col = math.floor(cx / C.BLOCK_SIZE)
     local right_col = math.ceil((cx + G.width) / C.BLOCK_SIZE) + 1
 
     -- Draw directly without canvas to avoid shaky rendering
     love.graphics.push()
     love.graphics.origin()
-    love.graphics.translate(-cx, 0)
+    love.graphics.translate(-cx, -cy)
 
     -- Draw visible columns
     for col = left_col, right_col do

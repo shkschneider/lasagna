@@ -54,7 +54,9 @@ function Player:new()
         },
     }
 
-    -- Start with 64 cobblestone in first belt slot
+    -- Start with gun in slot 1, rocket launcher in slot 2, cobblestone in slot 3
+    self.inventory.belt:add(Items.gun, 1)
+    self.inventory.belt:add(Items.rocket_launcher, 1)
     self.inventory.belt:add(Blocks.cobblestone, 64)
     
     -- Add some test items to storage
@@ -63,6 +65,11 @@ function Player:new()
     self.inventory.storage:add(Blocks.stone, 48)
     
     self.intent = { left = false, right = false, jump = false, crouch = false, run = false }
+    
+    -- Shooting state
+    self.shooting = false
+    self.shoot_cooldown = 0
+    self.shoot_cooldown_time = 0.1  -- 10 shots per second
 
     -- Initialize components
     self.navigation = Navigation(G.world, self)
@@ -91,6 +98,61 @@ function Player:keypressed(key)
     elseif key == "space" or key == "up" then
         if not self.inventory.ui.open then
             self.intent.jump = true
+        end
+    -- Number keys for hotbar selection
+    elseif key >= "1" and key <= "9" then
+        local slot_num = tonumber(key)
+        if self.inventory.ui.open and self.inventory.ui.held_item then
+            -- Inventory is open with held item - move it to hotbar slot
+            local belt = self.inventory.belt
+            if slot_num <= belt.slots then
+                local target_item = belt.items[slot_num]
+                if not target_item then
+                    -- Empty slot - place all held items
+                    belt.items[slot_num] = {
+                        proto = self.inventory.ui.held_item.proto,
+                        count = self.inventory.ui.held_item.count,
+                        data = self.inventory.ui.held_item.data or {}
+                    }
+                    self.inventory.ui.held_item = nil
+                elseif target_item.proto == self.inventory.ui.held_item.proto then
+                    -- Same item type - try to stack
+                    local max_stack = math.min(self.inventory.ui.held_item.proto.max_stack or C.MAX_STACK, C.MAX_STACK)
+                    local space = max_stack - target_item.count
+                    if space > 0 then
+                        local to_add = math.min(space, self.inventory.ui.held_item.count)
+                        target_item.count = target_item.count + to_add
+                        self.inventory.ui.held_item.count = self.inventory.ui.held_item.count - to_add
+                        if self.inventory.ui.held_item.count <= 0 then
+                            self.inventory.ui.held_item = nil
+                        end
+                    else
+                        -- Swap items
+                        local temp = self.inventory.ui.held_item
+                        self.inventory.ui.held_item = {
+                            proto = target_item.proto,
+                            count = target_item.count,
+                            data = target_item.data or {}
+                        }
+                        belt.items[slot_num] = temp
+                    end
+                else
+                    -- Different item type - swap
+                    local temp = self.inventory.ui.held_item
+                    self.inventory.ui.held_item = {
+                        proto = target_item.proto,
+                        count = target_item.count,
+                        data = target_item.data or {}
+                    }
+                    belt.items[slot_num] = temp
+                end
+            end
+        else
+            -- Inventory closed or no held item - quickly select hotbar slot
+            local belt = self.inventory.belt
+            if slot_num <= belt.slots then
+                belt.selected = slot_num
+            end
         end
     end
 end
@@ -225,14 +287,96 @@ function Player:update(dt, world, player)
             end
         end
     end
+    
+    -- Update shooting cooldown
+    if self.shoot_cooldown > 0 then
+        self.shoot_cooldown = self.shoot_cooldown - dt
+    end
 end
 
 function Player:draw()
     local cx = G.camera:get_x()
+    local cy = G.camera:get_y()
     local sx = (self.px - 1) * C.BLOCK_SIZE - cx
-    local sy = (self.py - 1) * C.BLOCK_SIZE
+    local sy = (self.py - 1) * C.BLOCK_SIZE - cy
     love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1))
     love.graphics.rectangle("fill", sx, sy, self.width * C.BLOCK_SIZE, self.height * C.BLOCK_SIZE)
+end
+
+function Player:has_gun_selected()
+    local belt = self.inventory.belt
+    local selected = belt.selected or 1
+    local item = belt.items and belt.items[selected]
+    if not item then return false end
+    
+    local proto = item.proto or item
+    return proto and proto.name == "gun"
+end
+
+function Player:has_rocket_launcher_selected()
+    local belt = self.inventory.belt
+    local selected = belt.selected or 1
+    local item = belt.items and belt.items[selected]
+    if not item then return false end
+    
+    local proto = item.proto or item
+    return proto and proto.name == "rocket_launcher"
+end
+
+function Player:has_weapon_selected()
+    return self:has_gun_selected() or self:has_rocket_launcher_selected()
+end
+
+function Player:shoot_bullet(target_x, target_y)
+    -- Only shoot if cooldown has elapsed
+    if self.shoot_cooldown > 0 then
+        return false
+    end
+    
+    -- Calculate spawn position (center of player)
+    local spawn_x = self.px + self.width / 2
+    local spawn_y = self.py + self.height / 2
+    
+    -- Calculate direction to target (mouse position in world coordinates)
+    local dx = target_x - spawn_x
+    local dy = target_y - spawn_y
+    local dist = math.sqrt(dx * dx + dy * dy)
+    
+    if dist < 0.01 then
+        return false  -- Too close to calculate direction
+    end
+    
+    -- Normalize direction
+    local dir_x = dx / dist
+    local dir_y = dy / dist
+    
+    -- Check which weapon is selected and create appropriate projectile
+    if self:has_gun_selected() then
+        -- Gun: fast, small bullet
+        local speed = 50
+        local vx = dir_x * speed
+        local vy = dir_y * speed
+        
+        local Bullet = require("entities.bullet")
+        local bullet = Bullet(spawn_x, spawn_y, self.z, vx, vy)
+        table.insert(G.world.entities, bullet)
+    elseif self:has_rocket_launcher_selected() then
+        -- Rocket launcher: slower, heavier rocket with gravity
+        local speed = 30
+        local vx = dir_x * speed
+        local vy = dir_y * speed
+        
+        local Rocket = require("entities.rocket")
+        local rocket = Rocket(spawn_x, spawn_y, self.z, vx, vy)
+        table.insert(G.world.entities, rocket)
+    else
+        return false  -- No weapon selected
+    end
+    
+    -- Reset cooldown
+    self.shoot_cooldown = self.shoot_cooldown_time
+    
+    return true
 end
 
 function Player:wheelmoved(dx, dy)
@@ -343,9 +487,11 @@ function Player:drawGhost()
 
     -- Convert mouse screen position to world position
     local cx = G.camera:get_x()
+    local cy = G.camera:get_y()
     local world_px = G.mx + cx
+    local world_py = G.my + cy
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
-    local row = math.floor(G.my / C.BLOCK_SIZE) + 1
+    local row = math.floor(world_py / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
 
     -- Calculate the top-left corner of the selection based on size
@@ -361,7 +507,7 @@ function Player:drawGhost()
 
     -- Convert world grid position back to screen position
     local px = (start_col - 1) * C.BLOCK_SIZE - cx
-    local py = (start_row - 1) * C.BLOCK_SIZE
+    local py = (start_row - 1) * C.BLOCK_SIZE - cy
     local width = size * C.BLOCK_SIZE
     local height = size * C.BLOCK_SIZE
 
@@ -388,9 +534,11 @@ function Player:placeAtMouse(mx, my, z_override)
     if count <= 0 then return false, "no items left" end
 
     local cx = G.camera:get_x()
+    local cy = G.camera:get_y()
     local world_px = mouse_x + cx
+    local world_py = mouse_y + cy
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
-    local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
+    local row = math.floor(world_py / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
 
     -- Calculate the top-left corner of the selection based on size
@@ -487,9 +635,11 @@ function Player:removeAtMouse(mx, my, z_override)
     local mouse_x, mouse_y = mx, my
     if not mouse_x or not mouse_y then mouse_x, mouse_y = love.mouse.getPosition() end
     local cx = G.camera:get_x()
+    local cy = G.camera:get_y()
     local world_px = mouse_x + cx
+    local world_py = mouse_y + cy
     local col = math.floor(world_px / C.BLOCK_SIZE) + 1
-    local row = math.floor(mouse_y / C.BLOCK_SIZE) + 1
+    local row = math.floor(world_py / C.BLOCK_SIZE) + 1
     row = math.max(1, math.min(C.WORLD_HEIGHT, row))
 
     -- Calculate the top-left corner of the selection based on size

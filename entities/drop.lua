@@ -53,11 +53,56 @@ function Drop:update(dt, world, player)
         local distance = math.sqrt(dx * dx + dy_to_player * dy_to_player)
 
         if distance < self.collection_range then
-            -- Try to add to player's belt inventory using the Inventory component's add method
-            local leftover = player.inventory.belt:add(self.proto, self.count)
-
+            -- New pickup priority:
+            -- 1. Try to add to existing non-full stacks in hotbar (belt)
+            -- 2. Try to add to storage (inventory)
+            -- 3. If storage is full, try to fill empty hotbar slots
+            
+            local leftover = self.count
+            
+            -- Step 1: Try to stack with existing items in hotbar
+            local belt = player.inventory.belt
+            local max_stack = math.min(self.proto.max_stack or C.MAX_STACK, C.MAX_STACK)
+            for i = 1, belt.slots do
+                local slot = belt.items[i]
+                if slot and slot.proto == self.proto then
+                    local space = max_stack - slot.count
+                    if space > 0 then
+                        local to_add = math.min(space, leftover)
+                        slot.count = slot.count + to_add
+                        leftover = leftover - to_add
+                        if leftover <= 0 then
+                            return false  -- All items collected
+                        end
+                    end
+                end
+            end
+            
+            -- Step 2: Try to add to storage
+            if leftover > 0 then
+                leftover = player.inventory.storage:add(self.proto, leftover)
+            end
+            
+            -- Step 3: If storage is full, try to add to empty hotbar slots
+            if leftover > 0 then
+                for i = 1, belt.slots do
+                    if not belt.items[i] then
+                        local to_add = math.min(max_stack, leftover)
+                        belt.items[i] = {
+                            proto = self.proto,
+                            count = to_add,
+                            data = {}
+                        }
+                        leftover = leftover - to_add
+                        if leftover <= 0 then
+                            return false  -- All items collected
+                        end
+                    end
+                end
+            end
+            
+            -- Update the drop with whatever is left
             if leftover < self.count then
-                -- Successfully collected at least some items
                 self.count = leftover
                 if self.count <= 0 then
                     return false  -- Remove this entity
@@ -73,8 +118,9 @@ function Drop:draw()
     -- Position is already in 1-indexed world coordinates
     -- Drawing needs to convert to screen pixels
     local cx = G.camera:get_x()
+    local cy = G.camera:get_y()
     local sx = (self.px - 1) * C.BLOCK_SIZE - cx
-    local sy = (self.py - 1) * C.BLOCK_SIZE
+    local sy = (self.py - 1) * C.BLOCK_SIZE - cy
 
     -- Draw the item as a smaller version of the block
     if self.proto and self.proto.color then
