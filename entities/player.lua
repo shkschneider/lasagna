@@ -99,6 +99,61 @@ function Player:keypressed(key)
         if not self.inventory.ui.open then
             self.intent.jump = true
         end
+    -- Number keys for hotbar selection
+    elseif key >= "1" and key <= "9" then
+        local slot_num = tonumber(key)
+        if self.inventory.ui.open and self.inventory.ui.held_item then
+            -- Inventory is open with held item - move it to hotbar slot
+            local belt = self.inventory.belt
+            if slot_num <= belt.slots then
+                local target_item = belt.items[slot_num]
+                if not target_item then
+                    -- Empty slot - place all held items
+                    belt.items[slot_num] = {
+                        proto = self.inventory.ui.held_item.proto,
+                        count = self.inventory.ui.held_item.count,
+                        data = self.inventory.ui.held_item.data or {}
+                    }
+                    self.inventory.ui.held_item = nil
+                elseif target_item.proto == self.inventory.ui.held_item.proto then
+                    -- Same item type - try to stack
+                    local max_stack = math.min(self.inventory.ui.held_item.proto.max_stack or C.MAX_STACK, C.MAX_STACK)
+                    local space = max_stack - target_item.count
+                    if space > 0 then
+                        local to_add = math.min(space, self.inventory.ui.held_item.count)
+                        target_item.count = target_item.count + to_add
+                        self.inventory.ui.held_item.count = self.inventory.ui.held_item.count - to_add
+                        if self.inventory.ui.held_item.count <= 0 then
+                            self.inventory.ui.held_item = nil
+                        end
+                    else
+                        -- Swap items
+                        local temp = self.inventory.ui.held_item
+                        self.inventory.ui.held_item = {
+                            proto = target_item.proto,
+                            count = target_item.count,
+                            data = target_item.data or {}
+                        }
+                        belt.items[slot_num] = temp
+                    end
+                else
+                    -- Different item type - swap
+                    local temp = self.inventory.ui.held_item
+                    self.inventory.ui.held_item = {
+                        proto = target_item.proto,
+                        count = target_item.count,
+                        data = target_item.data or {}
+                    }
+                    belt.items[slot_num] = temp
+                end
+            end
+        else
+            -- Inventory closed or no held item - quickly select hotbar slot
+            local belt = self.inventory.belt
+            if slot_num <= belt.slots then
+                belt.selected = slot_num
+            end
+        end
     end
 end
 
