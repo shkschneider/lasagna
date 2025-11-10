@@ -1,0 +1,7 @@
+- user should be able to step-up tiny block (1x1) but not a full visual block (2x2)
+- implement crafting
+- over/under worlds?
+- player-centric raycasting shaders
+- add features to worldgen: trees...
+- add mobs: passive / neutral / agressive...
+- jetpack: 'J' with hover mode
