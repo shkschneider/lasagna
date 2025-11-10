@@ -127,9 +127,10 @@ function Layer:draw()
         self.canvas_right_col = right_col
     end
 
-    -- Check if visible area has moved outside canvas bounds (give some buffer before redrawing)
+    -- Check if visible area has moved outside canvas bounds (give small buffer before redrawing)
     if not self.dirty and self.canvas_left_col and self.canvas_right_col then
-        local buffer_threshold = math.floor((right_col - left_col) * 0.5)
+        -- Use 20% threshold (minimum 3 blocks) - balance between responsiveness and performance
+        local buffer_threshold = math.max(3, math.floor((right_col - left_col) * 0.2))
         if left_col < (self.canvas_left_col + buffer_threshold) or
            right_col > (self.canvas_right_col - buffer_threshold) then
             self.dirty = true
