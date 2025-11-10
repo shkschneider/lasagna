@@ -116,11 +116,15 @@ function Layer:draw()
     local left_col = math.floor(cx / C.BLOCK_SIZE)
     local right_col = math.ceil((cx + G.width) / C.BLOCK_SIZE) + 1
 
-    -- Create canvas if it doesn't exist
-    if not self.canvas then
-        -- Make canvas large enough to cover a reasonable area (3x screen width)
-        local canvas_width = G.width * 3
-        local canvas_height = C.WORLD_HEIGHT * C.BLOCK_SIZE
+    -- Create canvas if it doesn't exist or size changed
+    local canvas_width = G.width * 3
+    local canvas_height = C.WORLD_HEIGHT * C.BLOCK_SIZE
+    
+    if not self.canvas or self.canvas:getWidth() ~= canvas_width or self.canvas:getHeight() ~= canvas_height then
+        -- Release old canvas before creating new one
+        if self.canvas then
+            self.canvas:release()
+        end
         self.canvas = love.graphics.newCanvas(canvas_width, canvas_height)
         self.dirty = true
         self.canvas_left_col = left_col

@@ -328,6 +328,10 @@ function Game:draw()
     -- Create entity canvases if they don't exist or have wrong size
     for i = 1, 3 do
         if not self.canvas[i] or self.canvas[i]:getWidth() ~= self.width or self.canvas[i]:getHeight() ~= self.height then
+            -- Release old canvas before creating new one
+            if self.canvas[i] then
+                self.canvas[i]:release()
+            end
             self.canvas[i] = love.graphics.newCanvas(self.width, self.height)
         end
     end
