@@ -127,17 +127,14 @@ function Layer:draw()
         self.canvas_right_col = right_col
     end
 
-    -- Check if visible area has moved outside canvas bounds (give small buffer before redrawing)
+    -- Check if visible area has moved outside canvas bounds
     if not self.dirty and self.canvas_left_col and self.canvas_right_col then
-        -- Use 20% threshold (minimum 3 blocks) - balance between responsiveness and performance
-        local buffer_threshold = math.max(3, math.floor((right_col - left_col) * 0.2))
-        if left_col < (self.canvas_left_col + buffer_threshold) or
-           right_col > (self.canvas_right_col - buffer_threshold) then
+        if left_col < self.canvas_left_col or right_col > self.canvas_right_col then
             self.dirty = true
         end
     end
 
-    -- Redraw canvas if dirty or camera moved significantly
+    -- Redraw canvas if dirty
     if self.dirty then
         -- Calculate which columns to draw (extend beyond visible for buffer)
         local buffer_cols = math.floor((right_col - left_col) * 1.5)

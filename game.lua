@@ -65,20 +65,14 @@ end
 function Game:resize(width, height)
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
     log.info(string.format("Resized: %dx%d", self.width, self.height))
-    -- Release and recreate canvases with new dimensions
+    -- Recreate canvases with new dimensions
     for i = 1, 3 do
-        if self.canvas[i] then
-            self.canvas[i]:release()
-        end
         self.canvas[i] = nil
     end
     -- Also mark all layers as dirty to recreate their canvases
     if self.world and self.world.layers then
         for z = C.LAYER_MIN, C.LAYER_MAX do
             if self.world.layers[z] then
-                if self.world.layers[z].canvas then
-                    self.world.layers[z].canvas:release()
-                end
                 self.world.layers[z].canvas = nil
                 self.world.layers[z]:mark_dirty()
             end
@@ -334,9 +328,6 @@ function Game:draw()
     -- Create entity canvases if they don't exist or have wrong size
     for i = 1, 3 do
         if not self.canvas[i] or self.canvas[i]:getWidth() ~= self.width or self.canvas[i]:getHeight() ~= self.height then
-            if self.canvas[i] then
-                self.canvas[i]:release()
-            end
             self.canvas[i] = love.graphics.newCanvas(self.width, self.height)
         end
     end
