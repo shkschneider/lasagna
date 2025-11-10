@@ -196,17 +196,12 @@ function World:draw()
             local freq = C.layer_frequency(z)
             local base = C.ground_level(z)
             local amp = C.layer_amplitude(z)
-            local generated_any = false
             for col = left_col, right_col do
                 if not layer.tiles[col] then
                     layer:generate_column(col, freq, base, amp)
-                    generated_any = true
                 end
             end
-            -- Mark dirty if we generated new terrain so it appears immediately
-            if generated_any then
-                layer:mark_dirty()
-            end
+            -- Don't mark dirty here - let canvas boundary check handle redraws
             layer:draw()
         end
 
