@@ -132,10 +132,10 @@ function Layer:draw()
     end
 
     -- Check if visible area has moved outside canvas bounds
-    -- Trigger redraw earlier: when within 30% of buffer edge instead of at edge
+    -- Trigger redraw earlier: when within 50% of buffer to prevent visible voids
     if not self.dirty and self.canvas_left_col and self.canvas_right_col then
         local visible_width = right_col - left_col
-        local buffer_threshold = math.max(3, math.floor(visible_width * 0.3))
+        local buffer_threshold = math.max(5, math.floor(visible_width * 0.5))
         if left_col < (self.canvas_left_col + buffer_threshold) or right_col > (self.canvas_right_col - buffer_threshold) then
             self.dirty = true
         end
@@ -143,8 +143,8 @@ function Layer:draw()
 
     -- Redraw canvas if dirty
     if self.dirty then
-        -- Calculate which columns to draw (extend beyond visible for buffer)
-        local buffer_cols = math.floor((right_col - left_col) * 1.5)
+        -- Calculate which columns to draw (extend beyond visible for larger buffer)
+        local buffer_cols = math.floor((right_col - left_col) * 2.0)
         local draw_left = left_col - buffer_cols
         local draw_right = right_col + buffer_cols
 
