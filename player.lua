@@ -28,11 +28,11 @@ function player.update(p, dt, w)
     local MOVE_SPEED = 150
     local JUMP_FORCE = 300
     local GRAVITY = 800
+    local MAX_DELTA_TIME = 0.1  -- Clamp dt to prevent huge jumps (10 FPS minimum)
     
     -- Clamp dt to prevent huge jumps (e.g., after world generation)
-    -- Max 0.1 seconds (10 FPS minimum)
-    if dt > 0.1 then
-        dt = 0.1
+    if dt > MAX_DELTA_TIME then
+        dt = MAX_DELTA_TIME
     end
 
     -- Debug first few frames
