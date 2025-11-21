@@ -76,42 +76,38 @@ function player.update(p, dt, w)
     end
 
     -- Apply horizontal movement with collision
-    if p.vx ~= 0 then  -- Only check collision if actually moving
-        local new_x = p.x + p.vx * dt
-        if not check_collision(new_x, p.y, p.width, p.height, p.layer) then
-            p.x = new_x
-        else
-            -- Snap to edge of blocking tile
-            if p.vx > 0 then
-                -- Moving right, snap to left edge of blocking tile
-                local col = math.floor((new_x + p.width / 2) / world.BLOCK_SIZE)
-                p.x = col * world.BLOCK_SIZE - p.width / 2
-            elseif p.vx < 0 then
-                -- Moving left, snap to right edge of blocking tile
-                local col = math.floor((new_x - p.width / 2) / world.BLOCK_SIZE)
-                p.x = (col + 1) * world.BLOCK_SIZE + p.width / 2
-            end
-            p.vx = 0
+    local new_x = p.x + p.vx * dt
+    if not check_collision(new_x, p.y, p.width, p.height, p.layer) then
+        p.x = new_x
+    else
+        -- Snap to edge of blocking tile
+        if p.vx > 0 then
+            -- Moving right, snap to left edge of blocking tile
+            local col = math.floor((p.x + p.width / 2 + p.vx * dt) / world.BLOCK_SIZE)
+            p.x = col * world.BLOCK_SIZE - p.width / 2
+        elseif p.vx < 0 then
+            -- Moving left, snap to right edge of blocking tile
+            local col = math.floor((p.x - p.width / 2 + p.vx * dt) / world.BLOCK_SIZE)
+            p.x = (col + 1) * world.BLOCK_SIZE + p.width / 2
         end
+        p.vx = 0
     end
 
     -- Apply vertical movement with collision
     local new_y = p.y + p.vy * dt
-    
     p.on_ground = false
     
-    local collision, col, row = check_collision(p.x, new_y, p.width, p.height, p.layer)
-    if not collision then
+    if not check_collision(p.x, new_y, p.width, p.height, p.layer) then
         p.y = new_y
     else
         if p.vy > 0 then
             -- Moving down, snap to top of blocking tile
-            local row = math.floor((new_y + p.height / 2) / world.BLOCK_SIZE)
+            local row = math.floor((p.y + p.height / 2 + p.vy * dt) / world.BLOCK_SIZE)
             p.y = row * world.BLOCK_SIZE - p.height / 2
             p.on_ground = true
         elseif p.vy < 0 then
             -- Moving up, snap to bottom of blocking tile
-            local row = math.floor((new_y - p.height / 2) / world.BLOCK_SIZE)
+            local row = math.floor((p.y - p.height / 2 + p.vy * dt) / world.BLOCK_SIZE)
             p.y = (row + 1) * world.BLOCK_SIZE + p.height / 2
         end
         p.vy = 0

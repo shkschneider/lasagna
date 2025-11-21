@@ -391,13 +391,13 @@ function world.find_spawn_position(w, start_col, layer)
     end
     
     if first_solid_row then
-        -- Player is 2 blocks tall (16 pixels, height/2 = 8px from center)
-        -- Player center should be 1.5 blocks above surface so feet are 0.5 blocks above
-        -- This prevents spawning inside terrain
+        -- Player is 2 blocks tall (16 pixels, center is 8px from feet)
+        -- Spawn player center 2 blocks above ground so feet are 1 block above
+        -- This prevents spawning inside terrain while allowing natural fall
         local wx = start_col * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
-        local wy = (first_solid_row - 1.5) * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
+        local wy = (first_solid_row - 2) * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
         
-        return wx, wy, layer, true  -- Return true to indicate player should start on_ground
+        return wx, wy, layer, false  -- Don't set on_ground, let player fall naturally
     end
     
     -- Fallback if no ground found (shouldn't happen)
