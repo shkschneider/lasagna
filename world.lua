@@ -55,9 +55,6 @@ local IRON_VEIN_LENGTH_MIN = 10
 local IRON_VEIN_LENGTH_MAX = 20
 local IRON_VEIN_BRANCH_PROB = 0.25
 
--- Helper constant for percentage conversion (for integer random ranges)
-local PERCENTAGE_SCALE = 100
-
 -- LCG constants for random number generator
 local LCG_MULTIPLIER = 1103515245
 local LCG_INCREMENT = 12345
