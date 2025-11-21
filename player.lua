@@ -105,9 +105,9 @@ end
 function player.check_collision(p, w, x, y, layer)
     layer = layer or p.layer
     local left = x - p.width / 2
-    local right = x + p.width / 2 - 1
+    local right = x + p.width / 2 - 1  -- -1 to prevent collision with next block's edge
     local top = y - p.height / 2
-    local bottom = y + p.height / 2 - 1
+    local bottom = y + p.height / 2 - 1  -- -1 to prevent collision with next block's edge
     
     local left_col = math.floor(left / world.BLOCK_SIZE)
     local right_col = math.floor(right / world.BLOCK_SIZE)

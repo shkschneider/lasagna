@@ -179,7 +179,7 @@ function render.draw_ui(r, p, w, camera_x, camera_y)
         local block_proto = blocks.get_proto(block_id)
         local block_name = block_proto and block_proto.name or "Unknown"
         
-        love.graphics.print("Mouse: " .. mouse_col .. ", " .. mouse_row .. " (" .. block_name .. ")", 10, 70)
+        love.graphics.print(string.format("Mouse: %d, %d (%s)", mouse_col, mouse_row, block_name), 10, 70)
     end
 end
 
