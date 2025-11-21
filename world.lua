@@ -53,11 +53,7 @@ function world.generate_column(w, col)
         local layer_amplitude = amplitude
         local layer_base = base_height
         
-        if layer == 0 then
-            -- Layer 0: default surface, standard parameters
-            layer_frequency = frequency
-            layer_amplitude = amplitude
-        elseif layer == 1 then
+        if layer == 1 then
             -- Layer 1: slightly higher, smoother (front layer)
             layer_frequency = frequency * 0.8  -- Smoother
             layer_amplitude = amplitude * 0.7   -- Less variation
@@ -138,8 +134,10 @@ function world.generate_column(w, col)
         -- Second pass: ensure grass only on top of dirt exposed to air
         for row = 0, world.HEIGHT - 1 do
             if w.layers[layer][col][row] == blocks.GRASS then
-                -- Check if there's air above
-                if row > 0 then
+                -- Check if there's air above (or if at top of world)
+                if row == 0 then
+                    -- At top of world, grass is valid (exposed to sky)
+                elseif row > 0 then
                     local above = w.layers[layer][col][row - 1]
                     if above ~= blocks.AIR then
                         -- No air above, convert grass to dirt
@@ -148,7 +146,10 @@ function world.generate_column(w, col)
                 end
             elseif w.layers[layer][col][row] == blocks.DIRT then
                 -- Check if this dirt should become grass (exposed to air)
-                if row > 0 then
+                if row == 0 then
+                    -- At top of world, convert to grass (exposed to sky)
+                    w.layers[layer][col][row] = blocks.GRASS
+                elseif row > 0 then
                     local above = w.layers[layer][col][row - 1]
                     if above == blocks.AIR then
                         w.layers[layer][col][row] = blocks.GRASS
