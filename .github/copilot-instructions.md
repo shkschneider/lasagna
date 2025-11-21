@@ -1,237 +1,86 @@
+```markdown
 # GitHub Copilot Instructions for Lasagna
 
 ## Project Overview
 
-**Lasagna** is a 2D procedurally-generated, layered sandbox building game built with [LÖVE](https://love2d.org/) (Lua game framework).
+Lasagna is a 2D layered exploration and sandbox game prototype implemented in Lua using the LÖVE 2D engine. The design centers on procedural, multi-layer worlds, resource progression through "Ages", and a single-player exploratory loop. The engine choice (LÖVE) supports rapid iteration and is sufficient for a prototype. Keep engine-agnostic gameplay where feasible to ease future migration.
 
-Key characteristics:
-- Written in Lua for the LÖVE 2D game engine
-- Procedural terrain generation using Perlin noise
-- Multi-layer world system (layers -1, 0, 1)
-- Entity-component style architecture
-- Physics-based player movement with collision detection
+Key gameplay points (from README):
+- Three interactable layers: -1 (back), 0 (main), 1 (front). Player interacts only with the current layer.
+- Layer rendering: front is semi-transparent, back is dimmed; parallax effects optional.
+- Inventory: hotbar of 9 slots; storage grows by 9-slot rows per Age. Stack size fixed at 64.
+- Omnitool: single unbreakable tool that progresses by Age tiers and gates resource access.
+- Death: automatic snapshot restore to a previous world/player snapshot (no manual save).
+- Core loop: exploration, gather, build, craft, progress Ages.
 
 ## Architecture
 
 ### Core Components
+1. main.lua: Entry point. Handles window setup and Love callbacks. Delegates to the Game object for update/draw and input handling.
+2. game.lua: High-level game controller. Manages World, Player, Camera, and Render pipeline.
+3. world/: World simulation, terrain generation, block storage, and entity registry. Uses lazy generation for columns.
+4. entities/: Player, bullets, rockets, drops, and other moving objects. Each entity implements update(dt, world, player) and draw().
+5. data/: Block and Item prototype definitions. Prototypes must follow a minimal interface (name, max_stack, optional drop function).
+6. lib/: Small dependencies (object system, noise, logging).
 
-1. **main.lua**: Entry point interfacing with LÖVE APIs
-   - Delegates to Game object for all game logic
-   - Handles window setup, input events, and main loop
-
-2. **game.lua**: Central game controller
-   - Manages World and Player instances
-   - Defines gameplay constants (gravity, movement speeds, etc.)
-   - Handles camera, rendering, and UI coordination
-
-3. **world/world.lua**: World simulation and terrain management
-   - Procedural terrain generation per layer
-   - Tile/block management
-   - Entity registration and physics updates
-   - Lazy generation of terrain as needed
-
-4. **entities/player.lua**: Player entity and control
-   - Movement, jumping, crouching mechanics
-   - Block placement/breaking
-   - Layer switching (parallax navigation)
-
-5. **entities/movements.lua**: Shared movement physics
-   - Gravity, acceleration, friction
-   - Collision detection and response
-   - Step-up mechanics
-
-### Supporting Libraries
-
-- **lib/object.lua**: Simple OOP system for Lua
-- **lib/noise.lua**: Perlin noise implementation for terrain generation
-- **lib/log.lua**: Logging utilities
-- **lib/serpent.lua**: Data serialization (debugging)
-
-### Block System
-
-- **world/blocks.lua**: Block type definitions and properties
-- **world/block.lua**: Individual block instances
+### Important patterns & invariants
+- World stores blocks and should expose a canonical accessor: world:get_block_proto(z,col,row) which returns either a prototype table or nil.
+- Inventory entries should be normalized to a single shape (recommended: { proto = <proto>, count = n }).
+- Dropping items must never silently discard items: proto:drop(...) should exist or a default Item:drop spawns a Drop entity.
+- Minimize global state (G.*). Prefer wiring modules through a Game object and dependency injection for testability and easier migration.
+- Centralize canvas/rendering in a RenderManager: create and manage layer canvases in one place and composite to screen.
 
 ## Coding Conventions
-
-### Style Guidelines
-
-- **Indentation**: 4 spaces (as per .editorconfig)
-- **Line endings**: LF (Unix-style)
-- **Charset**: UTF-8
-- **Naming**:
-  - `snake_case` for variables and functions
-  - `PascalCase` for classes/objects
-  - `SCREAMING_SNAKE_CASE` for constants
-
-### Code Organization
-
-- Use `local` keyword for all variables/functions unless global is required
-- Require dependencies at the top of files
-- Group related functionality together
-- Constants defined at the top of class definitions
-
-### Object System Usage
-
-```lua
-local Object = require("lib.object")
-
-local MyClass = Object {
-    CONSTANT = 42,
-    default_value = 0,
-}
-
-function MyClass:new(param)
-    self.value = param or self.default_value
-end
-
-function MyClass:method()
-    -- implementation
-end
-```
-
-## Key Patterns
-
-### World Layers
-
-The game uses a 3-layer parallax system:
-- Layer -1: Background layer (slower parallax)
-- Layer 0: Main gameplay layer
-- Layer 1: Foreground layer (faster parallax)
-
-Each layer has independent:
-- Terrain height generation
-- Amplitude and frequency parameters
-- Tile grids
-- Rendering canvases
-
-### Coordinate System
-
-- **World coordinates**: Block-based (integers)
-- **Screen coordinates**: Pixels
-- Conversion: `world_pos * BLOCK_SIZE = pixel_pos`
-- Player position is in world coordinates (blocks)
-
-### Terrain Generation
-
-- Uses Perlin noise for organic terrain
-- Lazy generation: columns generated as needed
-- Each layer has configurable base height, amplitude, and frequency
-- Terrain types: Air, Grass, Dirt, Stone
-
-### Physics and Movement
-
-- Grid-based collision detection
-- Continuous collision response
-- Support for:
-  - Walking/running with acceleration
-  - Jumping with variable height
-  - Crouching with reduced speed
-  - Step-up for 1-block obstacles
-  - Air control (reduced)
+- Indentation: 4 spaces
+- Naming: snake_case for variables/functions, PascalCase for objects/classes, SCREAMING_SNAKE_CASE for constants
+- Use local for variables/functions unless global is required
+- Require dependencies at top of files
+- Use the Object system in lib/object.lua for class-like definitions
 
 ## Development Workflow
 
-### Running the Game
+Running the game:
 
-```bash
+```
 love .
 ```
 
-### Debug Mode
+Debug mode:
 
-```bash
+```
 DEBUG=true love .
 ```
 
-Enables verbose logging for development.
+Use a fixed seed for reproducible terrain:
 
-### Custom Seed
-
-```bash
+```
 SEED=12345 love .
 ```
 
-Use a specific seed for reproducible terrain generation.
+Hot reload world:
+- Press Delete to reload the world with the current seed.
 
-### Hot Reload
+## Testing & Instrumentation
+- Add a small test harness for headless checks: inventory add/remove, block place/remove, drop spawn, entity lifecycle.
+- Add timing instrumentation in the main update loop under DEBUG to profile world, entity updates, and rendering.
 
-Press `Delete` key to reload the world with the current seed.
+## Migration notes (engine-agnostic guidance)
+- Keep gameplay logic engine-agnostic where practical. Define a small Engine Abstraction Layer (EAL) mapping used Love APIs to simple functions (draw_rect, create_canvas, draw_image, get_mouse_pos, play_sound).
+- If migration to Go/raylib is desired later, port deterministic systems first (world gen), verify parity, then physics, then rendering.
 
-## Common Development Tasks
+## Common tasks for contributors
+- Adding block types: add to data/blocks.lua, ensure drop() behavior and test in-game.
+- Adding entities: add to entities/, implement update and draw, register in world entity registry.
+- Modifying player controls: edit entities/player.lua; change movement constants in game.lua.
 
-### Adding a New Block Type
+## Notes for Copilot and automation
+- When generating code, prefer small focused diffs and include tests where possible.
+- Preserve data prototype interfaces and add normalization at module boundaries (Inventory.add, world.set_block).
+- Avoid introducing new global state; if needed, wire through Game or module constructors.
 
-1. Add definition to `world/blocks.lua`
-2. Define properties (solid, color, textures)
-3. Update generation logic in `world/world.lua` if needed
+## CLI commands
 
-### Modifying Player Controls
-
-1. Edit `entities/player.lua` for intent generation
-2. Modify `entities/movements.lua` for physics changes
-3. Update constants in `game.lua` for tuning
-
-### Adjusting Terrain Generation
-
-1. Modify layer parameters in `game.lua`:
-   - `LAYER_BASE_HEIGHTS`: Starting height per layer
-   - `AMPLITUDE`: Height variation range
-   - `FREQUENCY`: Terrain smoothness (higher = smoother)
-
-2. Adjust noise generation in `world/world.lua`
-
-### Adding New Entities
-
-1. Create new file in `entities/` directory
-2. Use `Object` system for class definition
-3. Implement required methods (update, draw)
-4. Register with World entity system
-
-## Performance Considerations
-
-- Terrain is generated lazily (only visible/nearby columns)
-- Each layer rendered to separate canvas for efficiency
-- Entity updates use delta time for frame-rate independence
-- Collision checks optimized for nearby tiles only
-
-## Testing
-
-Currently, this is a toy project without formal test infrastructure. Manual testing via running the game is the primary validation method.
-
-When adding features:
-- Test across multiple seeds
-- Verify physics behavior (jumping, collision)
-- Check layer transitions work correctly
-- Ensure no crashes or Lua errors
-
-## Dependencies
-
-- LÖVE 2D game framework (version 11.x recommended)
-- No external Lua libraries (all dependencies included in lib/)
-
-## Future Development Ideas
-
-- Save/load world state
-- More block types and interactions
-- Lighting system
-- Multi-player support
-- Inventory and crafting
-- Better UI/HUD
-- Sound effects and music
-
-## Notes for Future Self
-
-- This project was created as a test/learning project with GitHub Copilot
-- Focus on keeping the codebase simple and readable
-- The object system is minimal but effective for this scale
-- Terrain generation can be CPU-intensive; optimize column generation if adding more complexity
-- Player movement uses intent-based design: player generates intents, world applies physics
-- Camera follows player with smooth tracking
-
-## Useful Commands
-
-```bash
+```
 # Run game
 love .
 
@@ -242,13 +91,7 @@ DEBUG=true love .
 SEED=42 love .
 
 # Check Lua syntax
-luac -p *.lua
+luac -p **/*.lua
 ```
 
-## When in Doubt
-
-- Check existing patterns in similar files
-- Keep changes minimal and focused
-- Test immediately after changes
-- Use debug mode to understand behavior
-- Reference LÖVE documentation: https://love2d.org/wiki/
+```
