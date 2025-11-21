@@ -420,7 +420,7 @@ function world.find_spawn_position(w, start_col, layer)
         end
         print(string.format("===================\n"))
         
-        return wx, wy, layer
+        return wx, wy, layer, true  -- Return true to indicate player should start on_ground
     end
     
     -- Fallback if no ground found (shouldn't happen)
@@ -428,7 +428,7 @@ function world.find_spawn_position(w, start_col, layer)
     print(string.format("===================\n"))
     local wx = start_col * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
     local wy = (world.HEIGHT / 2) * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
-    return wx, wy, layer
+    return wx, wy, layer, false  -- Return false as we don't know if there's ground
 end
 
 return world
