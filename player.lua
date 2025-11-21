@@ -32,14 +32,27 @@ function player.update(p, dt, w)
     if dt > MAX_DELTA_TIME then
         dt = MAX_DELTA_TIME
     end
+    
+    -- Debug: track frame count
+    p._debug_frame = (p._debug_frame or 0) + 1
+    if p._debug_frame <= 10 then
+        print(string.format("Frame %d: pos=(%.1f, %.1f), vx=%.1f, vy=%.1f, on_ground=%s, dt=%.3f", 
+            p._debug_frame, p.x, p.y, p.vx, p.vy, tostring(p.on_ground), dt))
+    end
 
     -- Horizontal movement
     p.vx = 0
     if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
         p.vx = -MOVE_SPEED
+        if p._debug_frame <= 10 then
+            print("  Input: moving left, vx=" .. p.vx)
+        end
     end
     if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
         p.vx = MOVE_SPEED
+        if p._debug_frame <= 10 then
+            print("  Input: moving right, vx=" .. p.vx)
+        end
     end
 
     -- Vertical movement (gravity)
@@ -49,6 +62,9 @@ function player.update(p, dt, w)
     if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and p.on_ground then
         p.vy = -JUMP_FORCE
         p.on_ground = false
+        if p._debug_frame <= 10 then
+            print("  Input: jump, vy=" .. p.vy)
+        end
     end
 
     -- AABB collision detection helper
