@@ -28,11 +28,17 @@ function player.update(p, dt, w)
     local MOVE_SPEED = 150
     local JUMP_FORCE = 300
     local GRAVITY = 800
+    
+    -- Clamp dt to prevent huge jumps (e.g., after world generation)
+    -- Max 0.1 seconds (10 FPS minimum)
+    if dt > 0.1 then
+        dt = 0.1
+    end
 
     -- Debug first few frames
     if p._debug_frame < 5 then
-        print(string.format("Frame %d: player pos=(%.1f, %.1f), vy=%.1f, on_ground=%s", 
-            p._debug_frame, p.x, p.y, p.vy, tostring(p.on_ground)))
+        print(string.format("Frame %d: player pos=(%.1f, %.1f), vy=%.1f, on_ground=%s, dt=%.4f", 
+            p._debug_frame, p.x, p.y, p.vy, tostring(p.on_ground), dt))
         p._debug_frame = p._debug_frame + 1
     end
 
