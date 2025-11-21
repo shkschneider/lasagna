@@ -38,6 +38,10 @@ function Game:new()
     self.left_mouse_down = false  -- Track left mouse state for continuous shooting
     self.grab_offset_x = 0  -- Initial mouse position when grabbing drops
     self.grab_offset_y = 0
+    self.canvas = {}  -- Array of canvases for different entity types
+    -- canvas[1] = player (drawn last, on top)
+    -- canvas[2] = drops
+    -- canvas[3] = everything else (bullets, rockets, etc.)
 end
 
 function Game:load(seed)
@@ -61,6 +65,19 @@ end
 function Game:resize(width, height)
     self.width, self.height = love.graphics.getWidth(), love.graphics.getHeight()
     log.info(string.format("Resized: %dx%d", self.width, self.height))
+    -- Recreate canvases with new dimensions
+    for i = 1, 3 do
+        self.canvas[i] = nil
+    end
+    -- Also mark all layers as dirty to recreate their canvases
+    if self.world and self.world.layers then
+        for z = C.LAYER_MIN, C.LAYER_MAX do
+            if self.world.layers[z] then
+                self.world.layers[z].canvas = nil
+                self.world.layers[z]:mark_dirty()
+            end
+        end
+    end
 end
 
 function Game:keypressed(key)
@@ -70,6 +87,19 @@ function Game:keypressed(key)
             log.level = "debug"
         else
             log.level = "info"
+        end
+    elseif key == "k" and self.debug then
+        -- Clear all drops when in debug mode
+        if self.world and self.world.entities then
+            local removed_count = 0
+            for i = #self.world.entities, 1, -1 do
+                local e = self.world.entities[i]
+                if e.proto then  -- Check if it's a drop (has proto field)
+                    table.remove(self.world.entities, i)
+                    removed_count = removed_count + 1
+                end
+            end
+            log.debug(string.format("Cleared %d drops", removed_count))
         end
     else
         -- Delegate player controls to Player
@@ -193,6 +223,7 @@ function Game:mousereleased(x, y, button, istouch, presses)
 end
 
 function Game:update(dt)
+
     -- Update camera to follow player
     local target_x = (self:player().px + self:player().width / 2) * C.BLOCK_SIZE
     local target_y = (self:player().py + self:player().height / 2) * C.BLOCK_SIZE
@@ -249,12 +280,12 @@ end
 function Game:drawInspector()
     if not self.world or not self.world.weather then return end
     local cx = self.camera:get_x()
+    local cy = self.camera:get_y()
     local col = math.floor((self.mx + cx) / C.BLOCK_SIZE) + 1
-    local by = math.max(1, math.min(C.WORLD_HEIGHT, math.floor(self.my / C.BLOCK_SIZE) + 1))
+    local row = math.max(1, math.min(C.WORLD_HEIGHT, math.floor((self.my + cy) / C.BLOCK_SIZE) + 1))
     local lz = self:player().z
-    local block_type = self.world:get_block_type(lz, col, by)
+    local block_type = self.world:get_block_type(lz, col, row)
     local str = (type(block_type) == "table" and block_type.name) or tostring(block_type)
-    -- FIXME str reports 'air' all the time
     local padding = 10
     local bg_padding = 6
     local font = love.graphics.getFont()
@@ -291,11 +322,45 @@ function Game:drawHUD()
 end
 
 function Game:draw()
-    -- world
+    -- Draw world (terrain layers only)
     self.world:draw()
-    -- player
+
+    -- Create entity canvases if they don't exist or have wrong size
+    for i = 1, 3 do
+        if not self.canvas[i] or self.canvas[i]:getWidth() ~= self.width or self.canvas[i]:getHeight() ~= self.height then
+            -- Release old canvas before creating new one
+            if self.canvas[i] then
+                self.canvas[i]:release()
+            end
+            self.canvas[i] = love.graphics.newCanvas(self.width, self.height)
+        end
+    end
+
+    -- Draw drops to canvas[2]
+    love.graphics.setCanvas(self.canvas[2])
+    love.graphics.clear()
+    self.world:draw_drops()
+    love.graphics.setCanvas()
+
+    -- Draw other entities (bullets, rockets, etc.) to canvas[3]
+    love.graphics.setCanvas(self.canvas[3])
+    love.graphics.clear()
+    self.world:draw_other_entities()
+    love.graphics.setCanvas()
+
+    -- Draw player to canvas[1]
+    love.graphics.setCanvas(self.canvas[1])
+    love.graphics.clear()
     self:player():draw()
-    -- hud
+    love.graphics.setCanvas()
+
+    -- Draw canvases in reverse order (3, 2, 1) so player is on top
+    love.graphics.setColor(1, 1, 1, 1)
+    for i = 3, 1, -1 do
+        love.graphics.draw(self.canvas[i], 0, 0)
+    end
+
+    -- Draw HUD on top (no canvas needed for UI)
     self:player():drawInventory() -- bottom-center
     self:drawHUD() -- top
     self:player():drawGhost() -- at mouse
@@ -306,27 +371,21 @@ function Game:draw()
         local cx = self.camera:get_x()
         local col = math.floor((self.mx + cx) / C.BLOCK_SIZE) + 1
         local by = math.max(1, math.min(C.WORLD_HEIGHT, math.floor(self.my / C.BLOCK_SIZE) + 1))
-        local lz = self:player().z
-        local block_type = self.world:get_block_type(lz, col, by)
-        local block_name = (type(block_type) == "table" and block_type.name) or tostring(block_type)
         local debug_lines = {}
-        debug_lines[#debug_lines+1] = "[DEBUG]"
-        debug_lines[#debug_lines+1] = string.format("FPS/Delta: %d %f", love.timer.getFPS(), love.timer.getAverageDelta())
-        debug_lines[#debug_lines+1] = string.format("Layer: %d", lz)
-        debug_lines[#debug_lines+1] = string.format("Mouse: %.0f,%.0f", self.mx, self.my)
-        debug_lines[#debug_lines+1] = string.format("Block: %d,%d %s", col, by, block_name)
-        -- FIXME block_name always reports 'air'
+        debug_lines[#debug_lines+1] = string.format("v%d.%d.%d-%s '%s'", C.VERSION.major, C.VERSION.minor, C.VERSION.patch, C.VERSION.type, C.VERSION.codename)
+        debug_lines[#debug_lines+1] = string.format("T: %fdt", love.timer.getAverageDelta())
+        debug_lines[#debug_lines+1] = string.format("P: %d,%d,%d", self:player().px, self:player().py, self:player().z)
+        debug_lines[#debug_lines+1] = string.format("B: %d,%d (M %.0f,%.0f)", col, by, self.mx, self.my)
+        debug_lines[#debug_lines+1] = string.format("E: %de", #G.world.entities)
+        --debug_lines[#debug_lines+1] = string.format("M: %fkB", collectgarbage('count'))
         local padding = 6
         local line_h = 14
         local box_w = 420
         local box_h = #debug_lines * line_h + padding * 2
-        love.graphics.setColor(T.bg[1], T.bg[2], T.bg[3], (T.bg[4] or 1) * 0.5)
-        love.graphics.rectangle("fill", 6, 6, box_w, box_h)
-        love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1) * 1)
+        love.graphics.setColor(1, 0, 0, 1)
         for i, ln in ipairs(debug_lines) do
-            love.graphics.print(ln, 10, 6 + padding + (i-1) * line_h)
+            love.graphics.print(ln, 10, padding * padding + padding + (i-1) * line_h)
         end
-        love.graphics.setColor(T.fg[1], T.fg[2], T.fg[3], (T.fg[4] or 1) * 1)
     end
 end
 

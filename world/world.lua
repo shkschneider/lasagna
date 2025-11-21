@@ -43,16 +43,18 @@ function World:update(dt)
     if self.weather then
         self.weather:update(dt)
     end
+
     -- Entities handle their own update logic
     -- Use reverse iteration to safely remove entities during update
     for i = #self.entities, 1, -1 do
         local e = self.entities[i]
-        -- TODO if dt is getting too big, we might drop FPS, so return early
         if type(e.update) == "function" then
             local keep = e:update(dt, self, self:player())
             -- If update returns false, remove the entity
             if keep == false then
-                log.debug(string.format("Removing drop '%s' at x=%d y=%d z=%d", e.name, e.px, e.py, e.z))
+                if e.name then
+                    log.debug(string.format("Removing drop '%s' at x=%d y=%d z=%d", e.name, e.px, e.py, e.z))
+                end
                 table.remove(self.entities, i)
             end
         end
@@ -89,7 +91,10 @@ function World:get_surface(z, x)
         local freq = C.layer_frequency(z)
         local base = C.ground_level(z)
         local amp = C.layer_amplitude(z)
-        layer:generate_column(col, freq, base, amp)
+        local generated = layer:generate_column(col, freq, base, amp)
+        if generated then
+            layer:mark_dirty()
+        end
     end
 
     -- Find the surface (first non-nil block from top)
@@ -114,7 +119,10 @@ function World:set_block(z, x, y, block)
         local freq = C.layer_frequency(z)
         local base = C.ground_level(z)
         local amp = C.layer_amplitude(z)
-        layer:generate_column(x, freq, base, amp)
+        local generated = layer:generate_column(x, freq, base, amp)
+        if generated then
+            layer:mark_dirty()
+        end
     end
     if not layer.tiles[x] then return false, "internal tiles not initialized" end
     if block == "__empty" then block = nil end
@@ -139,12 +147,14 @@ function World:set_block(z, x, y, block)
             return false, "bedrock is indestructible"
         end
         layer.tiles[x][y] = nil
+        layer:mark_dirty()  -- Mark layer as dirty when block changes
         log.debug(string.format("Removed block '%s' at x=%d y=%d z=%d", tostring(prev and prev.name), x, y, z))
         return true, "removed"
     else
         local action = (prev == nil) and "added" or "replaced"
         layer.tiles[x][y] = proto
-        log.debug(string.format("Set block '%s' at x=%d y=%d x=%d", tostring(proto.name), x, y, z))
+        layer:mark_dirty()  -- Mark layer as dirty when block changes
+        log.debug(string.format("Set block '%s' at x=%d y=%d z=%d", tostring(proto.name), x, y, z))
         return true, action
     end
 end
@@ -178,7 +188,7 @@ function World:draw()
     local cx = G.camera:get_x()
     local left_col = math.floor(cx / C.BLOCK_SIZE)
     local right_col = math.ceil((cx + G.width) / C.BLOCK_SIZE) + 1
-    -- Draw each layer
+    -- Draw each layer (just terrain, no entities yet)
     for z = C.LAYER_MIN, C.LAYER_MAX do
         local layer = self.layers[z]
         if layer then
@@ -191,12 +201,47 @@ function World:draw()
                     layer:generate_column(col, freq, base, amp)
                 end
             end
+            -- Don't mark dirty here - let canvas boundary check handle redraws
             layer:draw()
         end
 
-        -- Draw dropped items on this layer before drawing player
+        -- Stop drawing layers after player's layer
+        if z == self:player().z then return end
+    end
+end
+
+function World:draw_entities()
+    -- Draw entities on each layer up to player's layer
+    for z = C.LAYER_MIN, C.LAYER_MAX do
+        -- Draw dropped items and other entities on this layer
         for _, e in ipairs(self.entities) do
             if e ~= self:player() and e.z == z and type(e.draw) == "function" then
+                e:draw()
+            end
+        end
+
+        if z == self:player().z then return end
+    end
+end
+
+function World:draw_drops()
+    -- Draw only drops on each layer up to player's layer
+    for z = C.LAYER_MIN, C.LAYER_MAX do
+        for _, e in ipairs(self.entities) do
+            if e ~= self:player() and e.z == z and e.proto and type(e.draw) == "function" then
+                e:draw()
+            end
+        end
+
+        if z == self:player().z then return end
+    end
+end
+
+function World:draw_other_entities()
+    -- Draw entities that are not drops or player on each layer up to player's layer
+    for z = C.LAYER_MIN, C.LAYER_MAX do
+        for _, e in ipairs(self.entities) do
+            if e ~= self:player() and e.z == z and not e.proto and type(e.draw) == "function" then
                 e:draw()
             end
         end
