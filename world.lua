@@ -378,12 +378,6 @@ function world.find_spawn_position(w, start_col, layer)
         TERRAIN_NOISE_OCTAVES, TERRAIN_NOISE_PERSISTENCE, TERRAIN_NOISE_LACUNARITY)
     local expected_surface_y = math.floor(layer_base + height_noise * layer_amplitude)
     
-    print(string.format("\n=== SPAWN DEBUG ==="))
-    print(string.format("World dimensions: %d x %d blocks", world.WIDTH, world.HEIGHT))
-    print(string.format("BASE_HEIGHT: %.2f, base_height: %.1f blocks from top", BASE_HEIGHT, base_height))
-    print(string.format("Searching for spawn at column %d, layer %d", start_col, layer))
-    print(string.format("Expected surface at row %d (based on terrain gen)", expected_surface_y))
-    
     -- Search from top to bottom for first solid block
     local first_solid_row = nil
     for row = 0, world.HEIGHT - 1 do
@@ -397,35 +391,15 @@ function world.find_spawn_position(w, start_col, layer)
     end
     
     if first_solid_row then
-        print(string.format("First solid block found at row %d", first_solid_row))
-        
         -- Player is 2 blocks tall (16 pixels), center should be 1 block above surface
         -- Align horizontally to block center
         local wx = start_col * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
         local wy = (first_solid_row - 1) * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
         
-        print(string.format("Spawn pixel position: (%.1f, %.1f)", wx, wy))
-        print(string.format("Spawn block position: (%d, %d)", 
-            math.floor(wx / world.BLOCK_SIZE), 
-            math.floor(wy / world.BLOCK_SIZE)))
-        
-        -- Verify blocks around spawn
-        local spawn_row = math.floor(wy / world.BLOCK_SIZE)
-        print(string.format("Blocks at spawn column %d:", start_col))
-        for r = math.max(0, spawn_row - 2), math.min(world.HEIGHT - 1, spawn_row + 3) do
-            local bid = world.get_block(w, layer, start_col, r)
-            local p = blocks.get_proto(bid)
-            local marker = (r == spawn_row) and " <- SPAWN" or (r == first_solid_row) and " <- GROUND" or ""
-            print(string.format("  Row %d: %s%s", r, p and p.name or "nil", marker))
-        end
-        print(string.format("===================\n"))
-        
         return wx, wy, layer, true  -- Return true to indicate player should start on_ground
     end
     
     -- Fallback if no ground found (shouldn't happen)
-    print("WARNING: No ground found, using fallback spawn")
-    print(string.format("===================\n"))
     local wx = start_col * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
     local wy = (world.HEIGHT / 2) * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
     return wx, wy, layer, false  -- Return false as we don't know if there's ground

@@ -6,7 +6,6 @@ local inventory = require("inventory")
 local player = {}
 
 function player.new(x, y, layer)
-    print(string.format("Creating player at (%.1f, %.1f, %d)", x, y, layer))
     return {
         x = x or 0,
         y = y or 0,
@@ -20,7 +19,6 @@ function player.new(x, y, layer)
         omnitool_tier = 0, -- Starting tier
         mining_progress = 0,
         mining_target = nil, -- {layer, col, row}
-        _debug_frame = 0,  -- Debug frame counter
     }
 end
 
@@ -33,13 +31,6 @@ function player.update(p, dt, w)
     -- Clamp dt to prevent huge jumps (e.g., after world generation)
     if dt > MAX_DELTA_TIME then
         dt = MAX_DELTA_TIME
-    end
-
-    -- Debug first few frames
-    if p._debug_frame < 5 then
-        print(string.format("Frame %d: player pos=(%.1f, %.1f), vy=%.1f, on_ground=%s, dt=%.4f", 
-            p._debug_frame, p.x, p.y, p.vy, tostring(p.on_ground), dt))
-        p._debug_frame = p._debug_frame + 1
     end
 
     -- Horizontal movement
@@ -105,27 +96,17 @@ function player.update(p, dt, w)
     -- Apply vertical movement with collision
     local new_y = p.y + p.vy * dt
     
-    if p._debug_frame < 5 then
-        print(string.format("  Before collision: new_y=%.1f, vy=%.1f", new_y, p.vy))
-    end
-    
     p.on_ground = false
     
     local collision, col, row = check_collision(p.x, new_y, p.width, p.height, p.layer)
     if not collision then
         p.y = new_y
-        if p._debug_frame < 5 then
-            print(string.format("  No collision, moved to y=%.1f", p.y))
-        end
     else
         if p.vy > 0 then
             -- Moving down, snap to top of blocking tile
             local row = math.floor((new_y + p.height / 2) / world.BLOCK_SIZE)
             p.y = row * world.BLOCK_SIZE - p.height / 2
             p.on_ground = true
-            if p._debug_frame < 5 then
-                print(string.format("  Collision detected: new_y=%.1f snapped to y=%.1f (row %d)", new_y, p.y, row))
-            end
         elseif p.vy < 0 then
             -- Moving up, snap to bottom of blocking tile
             local row = math.floor((new_y - p.height / 2) / world.BLOCK_SIZE)
