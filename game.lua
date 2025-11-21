@@ -27,7 +27,12 @@ function game.new(seed, debug)
     g.player = player.new(spawn_x, spawn_y, spawn_layer)
     if on_ground then
         g.player.on_ground = true  -- Start on ground to prevent falling through
+        print(string.format("Set player.on_ground = true at spawn"))
+    else
+        print(string.format("WARNING: on_ground was false at spawn!"))
     end
+    print(string.format("Player initialized: pos=(%.1f, %.1f, %d), on_ground=%s", 
+        g.player.x, g.player.y, g.player.layer, tostring(g.player.on_ground)))
     
     -- Give player some starting items for testing
     inventory.add(g.player.inventory, blocks.DIRT, 64)

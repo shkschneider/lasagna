@@ -6,6 +6,7 @@ local inventory = require("inventory")
 local player = {}
 
 function player.new(x, y, layer)
+    print(string.format("Creating player at (%.1f, %.1f, %d)", x, y, layer))
     return {
         x = x or 0,
         y = y or 0,
@@ -19,6 +20,7 @@ function player.new(x, y, layer)
         omnitool_tier = 0, -- Starting tier
         mining_progress = 0,
         mining_target = nil, -- {layer, col, row}
+        _debug_frame = 0,  -- Debug frame counter
     }
 end
 
@@ -26,6 +28,13 @@ function player.update(p, dt, w)
     local MOVE_SPEED = 150
     local JUMP_FORCE = 300
     local GRAVITY = 800
+
+    -- Debug first few frames
+    if p._debug_frame < 5 then
+        print(string.format("Frame %d: player pos=(%.1f, %.1f), vy=%.1f, on_ground=%s", 
+            p._debug_frame, p.x, p.y, p.vy, tostring(p.on_ground)))
+        p._debug_frame = p._debug_frame + 1
+    end
 
     -- Horizontal movement
     p.vx = 0
@@ -91,7 +100,8 @@ function player.update(p, dt, w)
     local new_y = p.y + p.vy * dt
     p.on_ground = false
     
-    if not check_collision(p.x, new_y, p.width, p.height, p.layer) then
+    local collision, col, row = check_collision(p.x, new_y, p.width, p.height, p.layer)
+    if not collision then
         p.y = new_y
     else
         if p.vy > 0 then
@@ -99,6 +109,7 @@ function player.update(p, dt, w)
             local row = math.floor((new_y + p.height / 2) / world.BLOCK_SIZE)
             p.y = row * world.BLOCK_SIZE - p.height / 2
             p.on_ground = true
+            print(string.format("Collision detected: player y=%.1f snapped to %.1f (row %d)", new_y, p.y, row))
         elseif p.vy < 0 then
             -- Moving up, snap to bottom of blocking tile
             local row = math.floor((new_y - p.height / 2) / world.BLOCK_SIZE)
