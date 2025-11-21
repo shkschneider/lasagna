@@ -116,10 +116,28 @@ function game.keypressed(g, key)
         g.player.omnitool_tier = math.max(0, g.player.omnitool_tier - 1)
     end
     
-    -- Reload world
+    -- Reload world (complete reset)
     if key == "delete" then
-        g.world = world.new(g.world.seed)
+        -- Save the seed before resetting
+        local seed = g.world.seed
+        
+        -- Reset world and entities
+        g.world = world.new(seed)
         g.entities = entities.new()
+        
+        -- Reset player at spawn position
+        local spawn_x, spawn_y, spawn_layer = world.find_spawn_position(g.world, 
+            math.floor(world.WIDTH / 2), 0)
+        g.player = player.new(spawn_x, spawn_y, spawn_layer)
+        
+        -- Give player starting items again
+        inventory.add(g.player.inventory, blocks.DIRT, 64)
+        inventory.add(g.player.inventory, blocks.STONE, 32)
+        inventory.add(g.player.inventory, blocks.WOOD, 16)
+        
+        -- Reset camera to player position
+        g.camera.x = spawn_x
+        g.camera.y = spawn_y
     end
 end
 

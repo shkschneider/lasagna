@@ -58,7 +58,7 @@ function player.update(p, dt, w)
     p.on_ground = false
     local bottom_y = new_y + p.height / 2
     local left_col = math.floor((p.x - p.width / 2) / world.BLOCK_SIZE)
-    local right_col = math.floor((p.x + p.width / 2 - 1) / world.BLOCK_SIZE)
+    local right_col = math.floor((p.x + p.width / 2 - 0.01) / world.BLOCK_SIZE)
     local bottom_row = math.floor(bottom_y / world.BLOCK_SIZE)
     
     -- Check all blocks at the bottom of the player
@@ -104,18 +104,22 @@ end
 -- Check if player collides with solid blocks at the given position
 function player.check_collision(p, w, x, y, layer)
     layer = layer or p.layer
+    
+    -- Player bounding box
+    -- Player is 32 pixels wide (exactly 1 block) and 64 pixels tall (exactly 2 blocks)
     local left = x - p.width / 2
-    -- Subtract 1 to handle edge case where player position is exactly on block boundary
-    -- This prevents inconsistent collision detection due to floating-point precision
-    local right = x + p.width / 2 - 1
+    local right = x + p.width / 2
     local top = y - p.height / 2
-    local bottom = y + p.height / 2 - 1
+    local bottom = y + p.height / 2
     
+    -- Convert to block coordinates
+    -- We need to check all blocks that the player's bounding box overlaps
     local left_col = math.floor(left / world.BLOCK_SIZE)
-    local right_col = math.floor(right / world.BLOCK_SIZE)
+    local right_col = math.floor((right - 0.01) / world.BLOCK_SIZE)  -- Small epsilon to handle exact boundaries
     local top_row = math.floor(top / world.BLOCK_SIZE)
-    local bottom_row = math.floor(bottom / world.BLOCK_SIZE)
+    local bottom_row = math.floor((bottom - 0.01) / world.BLOCK_SIZE)  -- Small epsilon to handle exact boundaries
     
+    -- Check all blocks within the player's bounding box
     for col = left_col, right_col do
         for row = top_row, bottom_row do
             local block_proto = world.get_block_proto(w, layer, col, row)

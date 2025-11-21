@@ -477,14 +477,18 @@ function world.find_spawn_position(w, start_col, layer)
         local proto = blocks.get_proto(block_id)
         
         if proto and proto.solid then
-            -- Found ground, spawn just above it
-            local wx, wy = world.block_to_world(start_col, row)
-            return wx, wy - world.BLOCK_SIZE / 2, layer
+            -- Found ground, spawn player standing on it
+            -- Player position is center-based, and player is 2 blocks tall
+            -- Place player so feet are on top of the ground block
+            local wx = start_col * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
+            local wy = row * world.BLOCK_SIZE - world.BLOCK_SIZE  -- 2 blocks above ground (player is 64px tall)
+            return wx, wy, layer
         end
     end
     
     -- Fallback if no ground found (shouldn't happen)
-    local wx, wy = world.block_to_world(start_col, world.HEIGHT / 2)
+    local wx = start_col * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
+    local wy = world.HEIGHT / 2 * world.BLOCK_SIZE
     return wx, wy, layer
 end
 
