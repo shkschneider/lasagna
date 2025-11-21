@@ -13,6 +13,10 @@ blocks.COPPER_ORE = 5
 blocks.TIN_ORE = 6
 blocks.IRON_ORE = 7
 blocks.COAL = 8
+blocks.LEAD_ORE = 9
+blocks.ZINC_ORE = 10
+blocks.COBALT_ORE = 11
+blocks.SAND = 12
 
 -- Block prototypes indexed by ID
 blocks.prototypes = {
@@ -86,6 +90,38 @@ blocks.prototypes = {
         color = {0.2, 0.2, 0.2, 1},
         tier = 0,
         drops = function() return blocks.COAL, 1 end,
+    },
+    [blocks.LEAD_ORE] = {
+        id = blocks.LEAD_ORE,
+        name = "Lead Ore",
+        solid = true,
+        color = {0.4, 0.4, 0.5, 1},
+        tier = 2,
+        drops = function() return blocks.LEAD_ORE, 1 end,
+    },
+    [blocks.ZINC_ORE] = {
+        id = blocks.ZINC_ORE,
+        name = "Zinc Ore",
+        solid = true,
+        color = {0.6, 0.6, 0.7, 1},
+        tier = 2,
+        drops = function() return blocks.ZINC_ORE, 1 end,
+    },
+    [blocks.COBALT_ORE] = {
+        id = blocks.COBALT_ORE,
+        name = "Cobalt Ore",
+        solid = true,
+        color = {0.2, 0.4, 0.8, 1},
+        tier = 4,
+        drops = function() return blocks.COBALT_ORE, 1 end,
+    },
+    [blocks.SAND] = {
+        id = blocks.SAND,
+        name = "Sand",
+        solid = true,
+        color = {0.9, 0.85, 0.6, 1},
+        tier = 0,
+        drops = function() return blocks.SAND, 1 end,
     },
 }
 

@@ -44,16 +44,40 @@ local COAL_BLOB_CHANCE = 0.02  -- Chance per valid position
 local COAL_BLOB_RADIUS_MIN = 2
 local COAL_BLOB_RADIUS_MAX = 4
 
+local SAND_BLOB_CHANCE = 0.03  -- Chance per valid position on surface
+local SAND_BLOB_RADIUS_MIN = 3
+local SAND_BLOB_RADIUS_MAX = 6
+
 -- Vein generation (for metals, ores)
 local COPPER_VEIN_CHANCE = 0.015
 local COPPER_VEIN_LENGTH_MIN = 8
 local COPPER_VEIN_LENGTH_MAX = 15
 local COPPER_VEIN_BRANCH_PROB = 0.2
 
+local TIN_VEIN_CHANCE = 0.015
+local TIN_VEIN_LENGTH_MIN = 8
+local TIN_VEIN_LENGTH_MAX = 15
+local TIN_VEIN_BRANCH_PROB = 0.2
+
 local IRON_VEIN_CHANCE = 0.01
 local IRON_VEIN_LENGTH_MIN = 10
 local IRON_VEIN_LENGTH_MAX = 20
 local IRON_VEIN_BRANCH_PROB = 0.25
+
+local LEAD_VEIN_CHANCE = 0.01
+local LEAD_VEIN_LENGTH_MIN = 10
+local LEAD_VEIN_LENGTH_MAX = 18
+local LEAD_VEIN_BRANCH_PROB = 0.2
+
+local ZINC_VEIN_CHANCE = 0.01
+local ZINC_VEIN_LENGTH_MIN = 10
+local ZINC_VEIN_LENGTH_MAX = 18
+local ZINC_VEIN_BRANCH_PROB = 0.2
+
+local COBALT_VEIN_CHANCE = 0.005
+local COBALT_VEIN_LENGTH_MIN = 12
+local COBALT_VEIN_LENGTH_MAX = 25
+local COBALT_VEIN_BRANCH_PROB = 0.3
 
 -- LCG constants for random number generator
 local LCG_MULTIPLIER = 1103515245
@@ -63,7 +87,11 @@ local LCG_MODULUS = 2147483648
 -- Ore spawn noise thresholds (higher = rarer)
 local COAL_NOISE_THRESHOLD = 0.85
 local COPPER_NOISE_THRESHOLD = 0.88
+local TIN_NOISE_THRESHOLD = 0.88
 local IRON_NOISE_THRESHOLD = 0.90
+local LEAD_NOISE_THRESHOLD = 0.90
+local ZINC_NOISE_THRESHOLD = 0.90
+local COBALT_NOISE_THRESHOLD = 0.93
 
 function world.new(seed)
     local w = {
@@ -98,7 +126,7 @@ local function make_random(seed)
 end
 
 -- Blobby/Roundish cluster placement (for coal, surface materials)
-local function place_blob(w, layer, x0, y0, radius, block_type)
+local function place_blob(w, layer, x0, y0, radius, block_type, can_replace_surface)
     for dx = -radius, radius do
         for dy = -radius, radius do
             -- Circular shape with slight noise variation
@@ -109,11 +137,16 @@ local function place_blob(w, layer, x0, y0, radius, block_type)
                 local col = x0 + dx
                 local row = y0 + dy
                 
-                -- Check bounds and only replace stone
+                -- Check bounds
                 if col >= 0 and col < world.WIDTH and row >= 0 and row < world.HEIGHT then
-                    if w.layers[layer] and w.layers[layer][col] and 
-                       w.layers[layer][col][row] == blocks.STONE then
-                        w.layers[layer][col][row] = block_type
+                    if w.layers[layer] and w.layers[layer][col] then
+                        local current_block = w.layers[layer][col][row]
+                        -- Replace stone for underground resources
+                        -- Or replace dirt/grass for surface resources if allowed
+                        if current_block == blocks.STONE or
+                           (can_replace_surface and (current_block == blocks.DIRT or current_block == blocks.GRASS)) then
+                            w.layers[layer][col][row] = block_type
+                        end
                     end
                 end
             end
@@ -245,7 +278,7 @@ function world.generate_column(w, col)
                         if not w.ore_veins_placed[vein_key] then
                             w.ore_veins_placed[vein_key] = true
                             local radius = random(COAL_BLOB_RADIUS_MIN, COAL_BLOB_RADIUS_MAX)
-                            place_blob(w, layer, col, row, radius, blocks.COAL)
+                            place_blob(w, layer, col, row, radius, blocks.COAL, false)
                         end
                     end
                 end
@@ -264,9 +297,23 @@ function world.generate_column(w, col)
                     end
                 end
                 
+                -- Tin veins: similar to copper, layers -1 and 0
+                if depth > 15 and depth < 80 and (layer == -1 or layer == 0) then
+                    local tin_check = noise.perlin2d(col * 0.08 + 200, row * 0.08 + 50)
+                    if tin_check > TIN_NOISE_THRESHOLD and random() < TIN_VEIN_CHANCE then
+                        local vein_key = string.format("tin_%d_%d_%d", layer, col, row)
+                        if not w.ore_veins_placed[vein_key] then
+                            w.ore_veins_placed[vein_key] = true
+                            local length = random(TIN_VEIN_LENGTH_MIN, TIN_VEIN_LENGTH_MAX)
+                            place_vein(w, layer, col, row, length, blocks.TIN_ORE, 
+                                TIN_VEIN_BRANCH_PROB, random, true)
+                        end
+                    end
+                end
+                
                 -- Iron veins: very deep, primarily layer -1
                 if depth > 25 and layer == -1 then
-                    local iron_check = noise.perlin2d(col * 0.06 + 200, row * 0.06)
+                    local iron_check = noise.perlin2d(col * 0.06 + 300, row * 0.06)
                     if iron_check > IRON_NOISE_THRESHOLD and random() < IRON_VEIN_CHANCE then
                         local vein_key = string.format("iron_%d_%d_%d", layer, col, row)
                         if not w.ore_veins_placed[vein_key] then
@@ -274,6 +321,70 @@ function world.generate_column(w, col)
                             local length = random(IRON_VEIN_LENGTH_MIN, IRON_VEIN_LENGTH_MAX)
                             place_vein(w, layer, col, row, length, blocks.IRON_ORE, 
                                 IRON_VEIN_BRANCH_PROB, random, true)
+                        end
+                    end
+                end
+                
+                -- Lead veins: deep, layers -1 and 0
+                if depth > 20 and layer == -1 then
+                    local lead_check = noise.perlin2d(col * 0.06 + 400, row * 0.06 + 100)
+                    if lead_check > LEAD_NOISE_THRESHOLD and random() < LEAD_VEIN_CHANCE then
+                        local vein_key = string.format("lead_%d_%d_%d", layer, col, row)
+                        if not w.ore_veins_placed[vein_key] then
+                            w.ore_veins_placed[vein_key] = true
+                            local length = random(LEAD_VEIN_LENGTH_MIN, LEAD_VEIN_LENGTH_MAX)
+                            place_vein(w, layer, col, row, length, blocks.LEAD_ORE, 
+                                LEAD_VEIN_BRANCH_PROB, random, true)
+                        end
+                    end
+                end
+                
+                -- Zinc veins: deep, layers -1 and 0
+                if depth > 20 and layer == -1 then
+                    local zinc_check = noise.perlin2d(col * 0.06 + 500, row * 0.06 + 150)
+                    if zinc_check > ZINC_NOISE_THRESHOLD and random() < ZINC_VEIN_CHANCE then
+                        local vein_key = string.format("zinc_%d_%d_%d", layer, col, row)
+                        if not w.ore_veins_placed[vein_key] then
+                            w.ore_veins_placed[vein_key] = true
+                            local length = random(ZINC_VEIN_LENGTH_MIN, ZINC_VEIN_LENGTH_MAX)
+                            place_vein(w, layer, col, row, length, blocks.ZINC_ORE, 
+                                ZINC_VEIN_BRANCH_PROB, random, true)
+                        end
+                    end
+                end
+                
+                -- Cobalt veins: very rare, very deep, only layer -1
+                if depth > 40 and layer == -1 then
+                    local cobalt_check = noise.perlin2d(col * 0.05 + 600, row * 0.05 + 200)
+                    if cobalt_check > COBALT_NOISE_THRESHOLD and random() < COBALT_VEIN_CHANCE then
+                        local vein_key = string.format("cobalt_%d_%d_%d", layer, col, row)
+                        if not w.ore_veins_placed[vein_key] then
+                            w.ore_veins_placed[vein_key] = true
+                            local length = random(COBALT_VEIN_LENGTH_MIN, COBALT_VEIN_LENGTH_MAX)
+                            place_vein(w, layer, col, row, length, blocks.COBALT_ORE, 
+                                COBALT_VEIN_BRANCH_PROB, random, true)
+                        end
+                    end
+                end
+            end
+        end
+        
+        -- Surface resource generation (layer 1 only)
+        if layer == 1 then
+            for row = 0, world.HEIGHT - 1 do
+                if w.layers[layer][col][row] == blocks.DIRT or w.layers[layer][col][row] == blocks.GRASS then
+                    local depth = row - surface_y
+                    
+                    -- Sand blobs on surface (shallow depth)
+                    if depth >= 0 and depth < 5 then
+                        local sand_check = noise.perlin2d(col * 0.12 + 700, row * 0.12)
+                        if sand_check > 0.8 and random() < SAND_BLOB_CHANCE then
+                            local blob_key = string.format("sand_%d_%d_%d", layer, col, row)
+                            if not w.ore_veins_placed[blob_key] then
+                                w.ore_veins_placed[blob_key] = true
+                                local radius = random(SAND_BLOB_RADIUS_MIN, SAND_BLOB_RADIUS_MAX)
+                                place_blob(w, layer, col, row, radius, blocks.SAND, true)
+                            end
                         end
                     end
                 end
