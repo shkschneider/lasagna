@@ -110,6 +110,3 @@ M5 — Port rendering & UI (MED→HIGH)
 - T1–T3 (high priority): 1–3 days total (across small PRs).
 - T4–T6: 1–2 weeks.
 - Migration skeleton (if chosen): 2–4 weeks for a minimal playable port.
-
----
-# End of TODO
