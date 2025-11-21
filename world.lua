@@ -22,11 +22,7 @@ function world.new(seed)
             [1] = {},  -- front layer
         },
         generated_columns = {},
-        rng = love.math.newRandomGenerator(),
     }
-    
-    -- Initialize random generator with seed
-    w.rng:setSeed(w.seed)
     
     return w
 end

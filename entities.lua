@@ -3,8 +3,13 @@
 
 local blocks = require("blocks")
 local world = require("world")
+local inventory = require("inventory")
 
 local entities = {}
+
+-- Constants
+local DROP_LIFETIME = 300 -- Seconds before despawn
+local DROP_PICKUP_DELAY = 0.5 -- Delay before can be picked up
 
 -- Entity list
 function entities.new()
@@ -26,8 +31,8 @@ function entities.create_drop(ent_system, x, y, layer, block_id, count)
         layer = layer,
         block_id = block_id,
         count = count,
-        lifetime = 300, -- Seconds before despawn
-        pickup_delay = 0.5, -- Delay before can be picked up
+        lifetime = DROP_LIFETIME,
+        pickup_delay = DROP_PICKUP_DELAY,
     }
     
     ent_system.next_id = ent_system.next_id + 1
@@ -77,8 +82,7 @@ function entities.update(ent_system, dt, w, player)
                 if dist < PICKUP_RANGE then
                     -- Try to add to player inventory
                     if player.inventory then
-                        local inv = require("inventory")
-                        if inv.add(player.inventory, ent.block_id, ent.count) then
+                        if inventory.add(player.inventory, ent.block_id, ent.count) then
                             -- Successfully picked up
                             table.remove(ent_system.list, i)
                         end

@@ -6,6 +6,7 @@ local camera = require("camera")
 local render = require("render")
 local entities = require("entities")
 local blocks = require("blocks")
+local inventory = require("inventory")
 
 local game = {}
 
@@ -26,10 +27,9 @@ function game.new(seed, debug)
     g.player = player.new(spawn_x, spawn_y, 0)
     
     -- Give player some starting items for testing
-    local inv = require("inventory")
-    inv.add(g.player.inventory, blocks.DIRT, 64)
-    inv.add(g.player.inventory, blocks.STONE, 32)
-    inv.add(g.player.inventory, blocks.WOOD, 16)
+    inventory.add(g.player.inventory, blocks.DIRT, 64)
+    inventory.add(g.player.inventory, blocks.STONE, 32)
+    inventory.add(g.player.inventory, blocks.WOOD, 16)
     
     -- Initialize camera
     g.camera = camera.new(spawn_x, spawn_y)
@@ -96,14 +96,12 @@ function game.keypressed(g, key)
     -- Hotbar selection (1-9 keys)
     local num = tonumber(key)
     if num and num >= 1 and num <= 9 then
-        local inv = require("inventory")
-        inv.select_slot(g.player.inventory, num)
+        inventory.select_slot(g.player.inventory, num)
     end
     
     -- Debug: add test item
     if key == "t" and g.debug then
-        local inv = require("inventory")
-        inv.add(g.player.inventory, blocks.COPPER_ORE, 5)
+        inventory.add(g.player.inventory, blocks.COPPER_ORE, 5)
     end
     
     -- Reload world
@@ -159,8 +157,7 @@ function game.mine_block(g, col, row)
 end
 
 function game.place_block(g, col, row)
-    local inv = require("inventory")
-    local block_id = inv.get_selected_block_id(g.player.inventory)
+    local block_id = inventory.get_selected_block_id(g.player.inventory)
     
     if not block_id then
         return
@@ -175,7 +172,7 @@ function game.place_block(g, col, row)
     -- Place block
     if world.set_block(g.world, g.player.layer, col, row, block_id) then
         -- Remove from inventory
-        inv.remove_from_selected(g.player.inventory, 1)
+        inventory.remove_from_selected(g.player.inventory, 1)
     end
 end
 
