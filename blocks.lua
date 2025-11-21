@@ -6,12 +6,13 @@ local blocks = {}
 -- Block ID constants
 blocks.AIR = 0
 blocks.DIRT = 1
-blocks.STONE = 2
-blocks.WOOD = 3
-blocks.COPPER_ORE = 4
-blocks.TIN_ORE = 5
-blocks.IRON_ORE = 6
-blocks.COAL = 7
+blocks.GRASS = 2
+blocks.STONE = 3
+blocks.WOOD = 4
+blocks.COPPER_ORE = 5
+blocks.TIN_ORE = 6
+blocks.IRON_ORE = 7
+blocks.COAL = 8
 
 -- Block prototypes indexed by ID
 blocks.prototypes = {
@@ -29,6 +30,14 @@ blocks.prototypes = {
         color = {0.55, 0.35, 0.2, 1},
         tier = 0,
         drops = function() return blocks.DIRT, 1 end,
+    },
+    [blocks.GRASS] = {
+        id = blocks.GRASS,
+        name = "Grass",
+        solid = true,
+        color = {0.3, 0.7, 0.2, 1},
+        tier = 0,
+        drops = function() return blocks.DIRT, 1 end, -- Grass drops dirt
     },
     [blocks.STONE] = {
         id = blocks.STONE,

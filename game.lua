@@ -21,10 +21,10 @@ function game.new(seed, debug)
         paused = false,
     }
     
-    -- Initialize player at spawn point
-    local spawn_x = world.WIDTH * world.BLOCK_SIZE / 2
-    local spawn_y = 50 * world.BLOCK_SIZE
-    g.player = player.new(spawn_x, spawn_y, 0)
+    -- Initialize player at spawn point (finds ground automatically)
+    local spawn_x, spawn_y, spawn_layer = world.find_spawn_position(g.world, 
+        math.floor(world.WIDTH / 2), 0)
+    g.player = player.new(spawn_x, spawn_y, spawn_layer)
     
     -- Give player some starting items for testing
     inventory.add(g.player.inventory, blocks.DIRT, 64)
