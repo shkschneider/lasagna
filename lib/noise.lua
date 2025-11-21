@@ -140,11 +140,14 @@ function noise.seed(seed_or_rng)
                 if b then
                     -- Two parameters: return random in range [a, b] inclusive
                     return math.random(a + 1, b + 1) - 1
+                elseif a and a == 0 then
+                    -- Special case: a is 0, only valid value is 0
+                    return 0
                 elseif a and a > 0 then
                     -- Single parameter: return random in range [0, a] inclusive
                     return math.random(a + 1) - 1
                 else
-                    -- a is 0 or nil: return 0
+                    -- a is nil or negative: return 0
                     return 0
                 end
             end

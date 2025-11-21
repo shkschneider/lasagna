@@ -14,6 +14,30 @@ world.BLOCK_SIZE = 32
 world.WIDTH = 256
 world.HEIGHT = 128
 
+-- Terrain generation constants
+local BASE_HEIGHT = 0.6  -- Base height as fraction of world height
+local BASE_FREQUENCY = 0.02  -- Controls horizontal terrain stretching
+local BASE_AMPLITUDE = 15    -- Controls vertical height variation
+
+-- Dirt layer constants
+local DIRT_MIN_DEPTH = 5
+local DIRT_MAX_DEPTH = 15
+local DIRT_NOISE_FREQUENCY = 0.05
+
+-- Cave generation constants
+local CAVE_MIN_DEPTH = 10
+local CAVE_THRESHOLD_LAYER_BACK = 0.6  -- More caves in back layer
+local CAVE_THRESHOLD_LAYER_MAIN = 0.7  -- Fewer caves in main layer
+local CAVE_NOISE_FREQUENCY = 0.05
+local CAVE_NOISE_OCTAVES = 3
+local CAVE_NOISE_PERSISTENCE = 0.5
+local CAVE_NOISE_LACUNARITY = 2.0
+
+-- Terrain noise constants
+local TERRAIN_NOISE_OCTAVES = 4
+local TERRAIN_NOISE_PERSISTENCE = 0.5
+local TERRAIN_NOISE_LACUNARITY = 2.0
+
 function world.new(seed)
     local w = {
         seed = seed or os.time(),
@@ -38,19 +62,7 @@ function world.generate_column(w, col)
     end
     
     -- Base terrain parameters
-    local base_height = world.HEIGHT * 0.6
-    local frequency = 0.02 -- Controls how "stretched" the terrain is
-    local amplitude = 15    -- Controls height variation
-    
-    -- Dirt layer parameters
-    local DIRT_MIN_DEPTH = 5
-    local DIRT_MAX_DEPTH = 15
-    local DIRT_NOISE_FREQUENCY = 0.05
-    
-    -- Cave generation parameters
-    local CAVE_MIN_DEPTH = 10
-    local CAVE_THRESHOLD_LAYER_BACK = 0.6  -- More caves in back layer
-    local CAVE_THRESHOLD_LAYER_MAIN = 0.7  -- Fewer caves in main layer
+    local base_height = world.HEIGHT * BASE_HEIGHT
     
     -- Generate height for each layer using Perlin noise with different characteristics
     for layer = -1, 1 do
@@ -59,24 +71,25 @@ function world.generate_column(w, col)
         end
         
         -- Layer-specific adjustments
-        local layer_frequency = frequency
-        local layer_amplitude = amplitude
+        local layer_frequency = BASE_FREQUENCY
+        local layer_amplitude = BASE_AMPLITUDE
         local layer_base = base_height
         
         if layer == 1 then
             -- Layer 1: slightly higher, smoother (front layer)
-            layer_frequency = frequency * 0.8  -- Smoother
-            layer_amplitude = amplitude * 0.7   -- Less variation
-            layer_base = base_height + 3        -- Slightly higher (lower on screen)
+            layer_frequency = BASE_FREQUENCY * 0.8  -- Smoother
+            layer_amplitude = BASE_AMPLITUDE * 0.7   -- Less variation
+            layer_base = base_height + 3              -- Slightly higher (lower on screen)
         elseif layer == -1 then
             -- Layer -1: slightly lower, rougher (back layer for caves/mining)
-            layer_frequency = frequency * 1.3   -- Rougher
-            layer_amplitude = amplitude * 1.2   -- More variation
-            layer_base = base_height - 5        -- Slightly lower (higher on screen)
+            layer_frequency = BASE_FREQUENCY * 1.3   -- Rougher
+            layer_amplitude = BASE_AMPLITUDE * 1.2   -- More variation
+            layer_base = base_height - 5              -- Slightly lower (higher on screen)
         end
         
         -- Calculate surface height using Perlin noise
-        local height_noise = noise.octave_perlin2d(col * layer_frequency, layer * 10, 4, 0.5, 2.0)
+        local height_noise = noise.octave_perlin2d(col * layer_frequency, layer * 10, 
+            TERRAIN_NOISE_OCTAVES, TERRAIN_NOISE_PERSISTENCE, TERRAIN_NOISE_LACUNARITY)
         local surface_y = math.floor(layer_base + height_noise * layer_amplitude)
         
         -- Determine dirt layer depth (5-15 blocks)
@@ -102,7 +115,8 @@ function world.generate_column(w, col)
                 
                 -- Add caves in layer -1 and 0 (more in -1)
                 local cave_threshold = (layer == -1) and CAVE_THRESHOLD_LAYER_BACK or CAVE_THRESHOLD_LAYER_MAIN
-                local cave_noise = noise.octave_perlin2d(col * 0.05, row * 0.05, 3, 0.5, 2.0)
+                local cave_noise = noise.octave_perlin2d(col * CAVE_NOISE_FREQUENCY, row * CAVE_NOISE_FREQUENCY,
+                    CAVE_NOISE_OCTAVES, CAVE_NOISE_PERSISTENCE, CAVE_NOISE_LACUNARITY)
                 if depth > CAVE_MIN_DEPTH and cave_noise > cave_threshold then
                     w.layers[layer][col][row] = blocks.AIR
                 end
