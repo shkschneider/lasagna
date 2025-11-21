@@ -38,6 +38,23 @@ local TERRAIN_NOISE_OCTAVES = 4
 local TERRAIN_NOISE_PERSISTENCE = 0.5
 local TERRAIN_NOISE_LACUNARITY = 2.0
 
+-- Ore generation constants
+-- Blob generation (for coal, surface resources)
+local COAL_BLOB_CHANCE = 0.02  -- Chance per valid position
+local COAL_BLOB_RADIUS_MIN = 2
+local COAL_BLOB_RADIUS_MAX = 4
+
+-- Vein generation (for metals, ores)
+local COPPER_VEIN_CHANCE = 0.015
+local COPPER_VEIN_LENGTH_MIN = 8
+local COPPER_VEIN_LENGTH_MAX = 15
+local COPPER_VEIN_BRANCH_PROB = 0.2
+
+local IRON_VEIN_CHANCE = 0.01
+local IRON_VEIN_LENGTH_MIN = 10
+local IRON_VEIN_LENGTH_MAX = 20
+local IRON_VEIN_BRANCH_PROB = 0.25
+
 function world.new(seed)
     local w = {
         seed = seed or os.time(),
@@ -47,12 +64,90 @@ function world.new(seed)
             [1] = {},  -- front layer
         },
         generated_columns = {},
+        ore_veins_placed = {}, -- Track which ore veins have been generated
     }
     
     -- Initialize noise with seed
     noise.seed(w.seed)
     
     return w
+end
+
+-- Helper: Create a seeded random number generator for consistent vein/blob placement
+local function make_random(seed)
+    local state = seed
+    return function(min_val, max_val)
+        -- Simple LCG random
+        state = (state * 1103515245 + 12345) % 2147483648
+        if min_val and max_val then
+            return min_val + (state % (max_val - min_val + 1))
+        else
+            return state / 2147483648
+        end
+    end
+end
+
+-- Blobby/Roundish cluster placement (for coal, surface materials)
+local function place_blob(w, layer, x0, y0, radius, block_type)
+    for dx = -radius, radius do
+        for dy = -radius, radius do
+            -- Circular shape with slight noise variation
+            local dist_sq = dx * dx + dy * dy
+            local actual_radius = radius + noise.perlin2d(x0 + dx * 0.3, y0 + dy * 0.3) * 0.5
+            
+            if dist_sq <= actual_radius * actual_radius then
+                local col = x0 + dx
+                local row = y0 + dy
+                
+                -- Check bounds and only replace stone
+                if col >= 0 and col < world.WIDTH and row >= 0 and row < world.HEIGHT then
+                    if w.layers[layer] and w.layers[layer][col] and 
+                       w.layers[layer][col][row] == blocks.STONE then
+                        w.layers[layer][col][row] = block_type
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Vein/Tentacle spread (for ores, metals using random walk)
+local function place_vein(w, layer, x0, y0, length, block_type, branch_prob, random, bias_down)
+    bias_down = bias_down or true
+    local x, y = x0, y0
+    
+    for i = 0, length do
+        -- Place ore at current position (only replace stone)
+        if x >= 0 and x < world.WIDTH and y >= 0 and y < world.HEIGHT then
+            if w.layers[layer] and w.layers[layer][x] and 
+               w.layers[layer][x][y] == blocks.STONE then
+                w.layers[layer][x][y] = block_type
+            end
+        end
+        
+        -- Random walk step
+        local dx = random(-1, 1)
+        local dy
+        if bias_down then
+            -- Bias towards going down or horizontal
+            local dir = random(0, 2)
+            if dir == 0 then dy = 0      -- Horizontal
+            elseif dir == 1 then dy = 1  -- Down
+            else dy = -1                 -- Up (less common)
+            end
+        else
+            dy = random(-1, 1)
+        end
+        
+        x = x + dx
+        y = y + dy
+        
+        -- Occasional branching
+        if random(0, 100) < (branch_prob * 100) and length > 4 then
+            local branch_length = math.floor(length / 2)
+            place_vein(w, layer, x, y, branch_length, block_type, branch_prob * 0.7, random, bias_down)
+        end
+    end
 end
 
 -- Generate a single column across all layers
@@ -120,37 +215,61 @@ function world.generate_column(w, col)
                 if depth > CAVE_MIN_DEPTH and cave_noise > cave_threshold then
                     w.layers[layer][col][row] = blocks.AIR
                 end
+            end
+        end
+        
+        -- Ore vein/blob generation pass
+        -- Use noise to determine spawn points for veins/blobs
+        local random = make_random(w.seed + col + layer * 10000)
+        
+        for row = 0, world.HEIGHT - 1 do
+            if w.layers[layer][col][row] == blocks.STONE then
+                local depth = row - surface_y
                 
-                -- Add ores based on depth and layer (only in stone, not caves)
-                if w.layers[layer][col][row] == blocks.STONE then
-                    -- Coal: appears at moderate depth
-                    if depth > 10 and underground_noise > 0.65 then
-                        local coal_noise = noise.perlin2d(col * 0.2, row * 0.2)
-                        if coal_noise > 0.5 then
-                            w.layers[layer][col][row] = blocks.COAL
+                -- Coal blobs: moderate depth, all layers
+                if depth > 10 and depth < 60 then
+                    local coal_check = noise.perlin2d(col * 0.1, row * 0.1)
+                    if coal_check > 0.85 and random(0, 100) < (COAL_BLOB_CHANCE * 100) then
+                        local vein_key = string.format("coal_%d_%d_%d", layer, col, row)
+                        if not w.ore_veins_placed[vein_key] then
+                            w.ore_veins_placed[vein_key] = true
+                            local radius = random(COAL_BLOB_RADIUS_MIN, COAL_BLOB_RADIUS_MAX)
+                            place_blob(w, layer, col, row, radius, blocks.COAL)
                         end
                     end
-                    
-                    -- Copper: deeper, more common in layer -1
-                    if depth > 15 and (layer == -1 or layer == 0) then
-                        local copper_noise = noise.perlin2d(col * 0.15 + 100, row * 0.15)
-                        if copper_noise > 0.7 then
-                            w.layers[layer][col][row] = blocks.COPPER_ORE
+                end
+                
+                -- Copper veins: deeper, layers -1 and 0
+                if depth > 15 and depth < 80 and (layer == -1 or layer == 0) then
+                    local copper_check = noise.perlin2d(col * 0.08 + 100, row * 0.08)
+                    if copper_check > 0.88 and random(0, 100) < (COPPER_VEIN_CHANCE * 100) then
+                        local vein_key = string.format("copper_%d_%d_%d", layer, col, row)
+                        if not w.ore_veins_placed[vein_key] then
+                            w.ore_veins_placed[vein_key] = true
+                            local length = random(COPPER_VEIN_LENGTH_MIN, COPPER_VEIN_LENGTH_MAX)
+                            place_vein(w, layer, col, row, length, blocks.COPPER_ORE, 
+                                COPPER_VEIN_BRANCH_PROB, random, true)
                         end
                     end
-                    
-                    -- Iron: even deeper, primarily in layer -1
-                    if depth > 25 and layer == -1 then
-                        local iron_noise = noise.perlin2d(col * 0.12 + 200, row * 0.12)
-                        if iron_noise > 0.75 then
-                            w.layers[layer][col][row] = blocks.IRON_ORE
+                end
+                
+                -- Iron veins: very deep, primarily layer -1
+                if depth > 25 and layer == -1 then
+                    local iron_check = noise.perlin2d(col * 0.06 + 200, row * 0.06)
+                    if iron_check > 0.90 and random(0, 100) < (IRON_VEIN_CHANCE * 100) then
+                        local vein_key = string.format("iron_%d_%d_%d", layer, col, row)
+                        if not w.ore_veins_placed[vein_key] then
+                            w.ore_veins_placed[vein_key] = true
+                            local length = random(IRON_VEIN_LENGTH_MIN, IRON_VEIN_LENGTH_MAX)
+                            place_vein(w, layer, col, row, length, blocks.IRON_ORE, 
+                                IRON_VEIN_BRANCH_PROB, random, true)
                         end
                     end
                 end
             end
         end
         
-        -- Second pass: convert dirt exposed to air into grass
+        -- Grass conversion pass: convert dirt exposed to air into grass
         for row = 0, world.HEIGHT - 1 do
             if w.layers[layer][col][row] == blocks.DIRT then
                 -- Check if this dirt should become grass (exposed to air or at world top)
