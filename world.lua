@@ -358,19 +358,37 @@ function world.find_spawn_position(w, start_col, layer)
     -- Generate the column if not already generated
     world.generate_column(w, start_col)
     
+    -- Debug: Print what we're searching
+    print(string.format("Searching for spawn at column %d, layer %d", start_col, layer))
+    
     -- Search from top to bottom for first solid block
     for row = 0, world.HEIGHT - 1 do
         local block_id = world.get_block(w, layer, start_col, row)
         local proto = blocks.get_proto(block_id)
         
         if proto and proto.solid then
-            -- Found ground, spawn just above it
-            local wx, wy = world.block_to_world(start_col, row)
-            return wx, wy - world.BLOCK_SIZE / 2, layer
+            -- Found ground, spawn player standing on top of this block
+            -- Player is 2 blocks tall (16 pixels), so center should be 1 block above surface
+            local wx = start_col * world.BLOCK_SIZE
+            local wy = (row - 1) * world.BLOCK_SIZE  -- Center player 1 block above surface
+            
+            print(string.format("Found ground at row %d, spawning at pixel pos (%.1f, %.1f) = block pos (%d, %d)", 
+                row, wx, wy, math.floor(wx / world.BLOCK_SIZE), math.floor(wy / world.BLOCK_SIZE)))
+            
+            -- Verify spawn position
+            local spawn_row = math.floor(wy / world.BLOCK_SIZE)
+            local block_at_spawn = world.get_block(w, layer, start_col, spawn_row)
+            local proto_at_spawn = blocks.get_proto(block_at_spawn)
+            print(string.format("Block at spawn row %d: %s (solid: %s)", 
+                spawn_row, proto_at_spawn and proto_at_spawn.name or "nil", 
+                proto_at_spawn and tostring(proto_at_spawn.solid) or "nil"))
+            
+            return wx, wy, layer
         end
     end
     
     -- Fallback if no ground found (shouldn't happen)
+    print("WARNING: No ground found, using fallback spawn")
     local wx, wy = world.block_to_world(start_col, world.HEIGHT / 2)
     return wx, wy, layer
 end
