@@ -32,6 +32,7 @@ function love.load()
     log.info("  1-9 - Select hotbar slot")
     log.info("  Left Click - Mine block")
     log.info("  Right Click - Place block")
+    log.info("  +/- - Adjust omnitool tier (dev)")
     log.info("  Delete - Reload world")
     log.info("  Escape - Quit")
 end

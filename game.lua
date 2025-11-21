@@ -74,23 +74,28 @@ function game.draw(g)
     player.draw(g.player, camera_x, camera_y)
     
     -- Draw UI
-    render.draw_ui(g.renderer, g.player)
+    render.draw_ui(g.renderer, g.player, g.world, camera_x, camera_y)
     
     -- Debug info
     if g.debug then
         love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.print("FPS: " .. love.timer.getFPS(), 10, 50)
-        love.graphics.print("Player: " .. math.floor(g.player.x) .. ", " .. math.floor(g.player.y), 10, 70)
-        love.graphics.print("Seed: " .. g.world.seed, 10, 90)
+        love.graphics.print("FPS: " .. love.timer.getFPS(), 10, 100)
+        love.graphics.print("Seed: " .. g.world.seed, 10, 120)
     end
 end
 
 function game.keypressed(g, key)
-    -- Layer switching
+    -- Layer switching (only if player can fit in target layer)
     if key == "q" then
-        g.player.layer = math.max(-1, g.player.layer - 1)
+        local target_layer = math.max(-1, g.player.layer - 1)
+        if game.can_switch_layer(g, target_layer) then
+            g.player.layer = target_layer
+        end
     elseif key == "e" then
-        g.player.layer = math.min(1, g.player.layer + 1)
+        local target_layer = math.min(1, g.player.layer + 1)
+        if game.can_switch_layer(g, target_layer) then
+            g.player.layer = target_layer
+        end
     end
     
     -- Hotbar selection (1-9 keys)
@@ -104,11 +109,28 @@ function game.keypressed(g, key)
         inventory.add(g.player.inventory, blocks.COPPER_ORE, 5)
     end
     
+    -- Development: adjust omnitool tier
+    if key == "=" or key == "+" then
+        g.player.omnitool_tier = math.min(10, g.player.omnitool_tier + 1)
+    elseif key == "-" or key == "_" then
+        g.player.omnitool_tier = math.max(0, g.player.omnitool_tier - 1)
+    end
+    
     -- Reload world
     if key == "delete" then
         g.world = world.new(g.world.seed)
         g.entities = entities.new()
     end
+end
+
+-- Check if player can switch to target layer (no collision)
+function game.can_switch_layer(g, target_layer)
+    if target_layer < -1 or target_layer > 1 then
+        return false
+    end
+    
+    -- Check if player would collide with blocks in target layer
+    return not player.check_collision(g.player, g.world, g.player.x, g.player.y, target_layer)
 end
 
 function game.mousepressed(g, x, y, button)

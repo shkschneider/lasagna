@@ -12,8 +12,8 @@ function player.new(x, y, layer)
         vx = 0,
         vy = 0,
         layer = layer or 0,
-        width = 16,
-        height = 32,
+        width = 32,  -- 1 block wide
+        height = 64, -- 2 blocks tall
         on_ground = false,
         inventory = inventory.new(),
         omnitool_tier = 0, -- Starting tier
@@ -45,30 +45,52 @@ function player.update(p, dt, w)
         p.on_ground = false
     end
 
-    -- Apply velocity
-    p.x = p.x + p.vx * dt
-    p.y = p.y + p.vy * dt
-
-    -- Collision detection
-    local col, row = world.world_to_block(p.x, p.y + p.height / 2)
-    local block_proto = world.get_block_proto(w, p.layer, col, row)
-
-    -- Ground collision
-    p.on_ground = false
-    if block_proto and block_proto.solid then
-        if p.vy > 0 then
-            p.y = row * world.BLOCK_SIZE - p.height / 2
-            p.vy = 0
-            p.on_ground = true
-        end
+    -- Apply horizontal velocity with collision
+    local new_x = p.x + p.vx * dt
+    if not player.check_collision(p, w, new_x, p.y) then
+        p.x = new_x
     end
 
-    -- Check ceiling collision
-    local top_col, top_row = world.world_to_block(p.x, p.y - p.height / 2)
-    local top_block = world.get_block_proto(w, p.layer, top_col, top_row)
-    if top_block and top_block.solid and p.vy < 0 then
-        p.y = (top_row + 1) * world.BLOCK_SIZE + p.height / 2
-        p.vy = 0
+    -- Apply vertical velocity with collision
+    local new_y = p.y + p.vy * dt
+    
+    -- Check ground collision (bottom of player)
+    p.on_ground = false
+    local bottom_y = new_y + p.height / 2
+    local left_col = math.floor((p.x - p.width / 2) / world.BLOCK_SIZE)
+    local right_col = math.floor((p.x + p.width / 2 - 1) / world.BLOCK_SIZE)
+    local bottom_row = math.floor(bottom_y / world.BLOCK_SIZE)
+    
+    -- Check all blocks at the bottom of the player
+    for col = left_col, right_col do
+        local block_proto = world.get_block_proto(w, p.layer, col, bottom_row)
+        if block_proto and block_proto.solid and p.vy >= 0 then
+            -- Collision with ground
+            p.y = bottom_row * world.BLOCK_SIZE - p.height / 2
+            p.vy = 0
+            p.on_ground = true
+            new_y = p.y
+            break
+        end
+    end
+    
+    -- Check ceiling collision (top of player)
+    local top_y = new_y - p.height / 2
+    local top_row = math.floor(top_y / world.BLOCK_SIZE)
+    
+    for col = left_col, right_col do
+        local block_proto = world.get_block_proto(w, p.layer, col, top_row)
+        if block_proto and block_proto.solid and p.vy < 0 then
+            -- Collision with ceiling
+            p.y = (top_row + 1) * world.BLOCK_SIZE + p.height / 2
+            p.vy = 0
+            new_y = p.y
+            break
+        end
+    end
+    
+    if not p.on_ground then
+        p.y = new_y
     end
 
     -- Prevent falling through bottom
@@ -77,6 +99,31 @@ function player.update(p, dt, w)
         p.vy = 0
         p.on_ground = true
     end
+end
+
+-- Check if player collides with solid blocks at the given position
+function player.check_collision(p, w, x, y, layer)
+    layer = layer or p.layer
+    local left = x - p.width / 2
+    local right = x + p.width / 2 - 1
+    local top = y - p.height / 2
+    local bottom = y + p.height / 2 - 1
+    
+    local left_col = math.floor(left / world.BLOCK_SIZE)
+    local right_col = math.floor(right / world.BLOCK_SIZE)
+    local top_row = math.floor(top / world.BLOCK_SIZE)
+    local bottom_row = math.floor(bottom / world.BLOCK_SIZE)
+    
+    for col = left_col, right_col do
+        for row = top_row, bottom_row do
+            local block_proto = world.get_block_proto(w, layer, col, row)
+            if block_proto and block_proto.solid then
+                return true
+            end
+        end
+    end
+    
+    return false
 end
 
 function player.draw(p, camera_x, camera_y)

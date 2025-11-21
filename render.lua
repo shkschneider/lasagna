@@ -101,7 +101,7 @@ function render.composite_layers(r, player_layer)
     love.graphics.setColor(1, 1, 1, 1)
 end
 
-function render.draw_ui(r, p)
+function render.draw_ui(r, p, w, camera_x, camera_y)
     local inv = p.inventory
     if not inv then return end
     
@@ -142,10 +142,45 @@ function render.draw_ui(r, p)
         love.graphics.print(tostring(i), x + 2, hotbar_y + 2)
     end
     
-    -- Draw layer indicator
+    -- Draw selected block name above hotbar (centered)
+    local selected_slot = inv.slots[inv.selected_slot]
+    if selected_slot then
+        local proto = blocks.get_proto(selected_slot.block_id)
+        if proto then
+            local text = proto.name
+            local font = love.graphics.getFont()
+            local text_width = font:getWidth(text)
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.print(text, (r.screen_width - text_width) / 2, hotbar_y - 25)
+        end
+    end
+    
+    -- Draw top-left overlay with player position and mouse info
+    love.graphics.setColor(0, 0, 0, 0.5)
+    love.graphics.rectangle("fill", 5, 5, 250, 80)
+    
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print("Layer: " .. p.layer, 10, 10)
     love.graphics.print("Omnitool Tier: " .. p.omnitool_tier, 10, 30)
+    
+    -- Player position in blocks
+    local player_col = math.floor(p.x / world.BLOCK_SIZE)
+    local player_row = math.floor(p.y / world.BLOCK_SIZE)
+    love.graphics.print("Player: " .. player_col .. ", " .. player_row, 10, 50)
+    
+    -- Mouse position and block name under cursor
+    if camera_x and camera_y then
+        local mouse_x, mouse_y = love.mouse.getPosition()
+        local world_x = mouse_x + camera_x
+        local world_y = mouse_y + camera_y
+        local mouse_col, mouse_row = world.world_to_block(world_x, world_y)
+        
+        local block_id = world.get_block(w, p.layer, mouse_col, mouse_row)
+        local block_proto = blocks.get_proto(block_id)
+        local block_name = block_proto and block_proto.name or "Unknown"
+        
+        love.graphics.print("Mouse: " .. mouse_col .. ", " .. mouse_row .. " (" .. block_name .. ")", 10, 70)
+    end
 end
 
 return render
