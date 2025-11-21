@@ -28,11 +28,20 @@ function world.new(seed)
 end
 
 -- Simple noise function (placeholder)
+-- Uses large prime multipliers for pseudo-random hash
+local NOISE_PRIME_X = 374761393  -- Prime multiplier for X coordinate
+local NOISE_PRIME_Y = 668265263  -- Prime multiplier for Y coordinate
+local NOISE_PRIME_SEED = 1013904223  -- Prime multiplier for seed
+local NOISE_HASH_FACTOR = 60493  -- Hash mixing factor
+local NOISE_HASH_OFFSET = 19990303  -- Hash mixing offset
+local NOISE_MODULO = 2147483647  -- 2^31 - 1 (max signed 32-bit int)
+local NOISE_SCALE = 10000  -- Scale factor for output normalization
+
 local function noise(x, y, seed)
     -- Simple pseudo-random function based on position and seed
-    local n = x * 374761393 + y * 668265263 + seed * 1013904223
-    n = (n * n * n * 60493 + n * 19990303) % 2147483647
-    return (n % 10000) / 10000.0 - 0.5
+    local n = x * NOISE_PRIME_X + y * NOISE_PRIME_Y + seed * NOISE_PRIME_SEED
+    n = (n * n * n * NOISE_HASH_FACTOR + n * NOISE_HASH_OFFSET) % NOISE_MODULO
+    return (n % NOISE_SCALE) / NOISE_SCALE - 0.5
 end
 
 -- Generate a single column across all layers

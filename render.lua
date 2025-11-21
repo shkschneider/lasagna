@@ -2,6 +2,7 @@
 
 local world = require("world")
 local blocks = require("blocks")
+local inventory = require("inventory")
 
 local render = {}
 
@@ -104,15 +105,13 @@ function render.draw_ui(r, p)
     local inv = p.inventory
     if not inv then return end
     
-    local inventory_module = require("inventory")
-    
     -- Draw hotbar
     local hotbar_y = r.screen_height - 60
     local slot_size = 50
-    local hotbar_width = inventory_module.HOTBAR_SIZE * slot_size
+    local hotbar_width = inventory.HOTBAR_SIZE * slot_size
     local hotbar_x = (r.screen_width - hotbar_width) / 2
     
-    for i = 1, inventory_module.HOTBAR_SIZE do
+    for i = 1, inventory.HOTBAR_SIZE do
         local x = hotbar_x + (i - 1) * slot_size
         
         -- Draw slot background
