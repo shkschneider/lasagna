@@ -101,7 +101,7 @@ function render.composite_layers(r, player_layer)
     love.graphics.setColor(1, 1, 1, 1)
 end
 
-function render.draw_ui(r, p)
+function render.draw_ui(r, p, w, mouse_col, mouse_row, mouse_block_name)
     local inv = p.inventory
     if not inv then return end
     
@@ -110,6 +110,19 @@ function render.draw_ui(r, p)
     local slot_size = 50
     local hotbar_width = inventory.HOTBAR_SIZE * slot_size
     local hotbar_x = (r.screen_width - hotbar_width) / 2
+    
+    -- Draw selected block name above hotbar (centered)
+    local selected_slot = inv.slots[inv.selected_slot]
+    if selected_slot then
+        local proto = blocks.get_proto(selected_slot.block_id)
+        if proto then
+            love.graphics.setColor(1, 1, 1, 1)
+            local text = proto.name
+            local font = love.graphics.getFont()
+            local text_width = font:getWidth(text)
+            love.graphics.print(text, (r.screen_width - text_width) / 2, hotbar_y - 25)
+        end
+    end
     
     for i = 1, inventory.HOTBAR_SIZE do
         local x = hotbar_x + (i - 1) * slot_size
@@ -142,10 +155,20 @@ function render.draw_ui(r, p)
         love.graphics.print(tostring(i), x + 2, hotbar_y + 2)
     end
     
-    -- Draw layer indicator
+    -- Development UI overlay (top-left)
     love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.print("Layer: " .. p.layer, 10, 10)
-    love.graphics.print("Omnitool Tier: " .. p.omnitool_tier, 10, 30)
+    
+    -- Player position in block coordinates
+    local player_col = math.floor(p.x / world.BLOCK_SIZE)
+    local player_row = math.floor(p.y / world.BLOCK_SIZE)
+    love.graphics.print("Player: (" .. player_col .. ", " .. player_row .. ", " .. p.layer .. ")", 10, 10)
+    
+    -- Mouse position and block name
+    love.graphics.print("Mouse: (" .. mouse_col .. ", " .. mouse_row .. ") - " .. mouse_block_name, 10, 30)
+    
+    -- Layer and omnitool tier
+    love.graphics.print("Layer: " .. p.layer, 10, 50)
+    love.graphics.print("Omnitool Tier: " .. p.omnitool_tier, 10, 70)
 end
 
 return render

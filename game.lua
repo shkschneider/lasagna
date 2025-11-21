@@ -73,24 +73,43 @@ function game.draw(g)
     -- Draw player
     player.draw(g.player, camera_x, camera_y)
     
-    -- Draw UI
-    render.draw_ui(g.renderer, g.player)
+    -- Get mouse position info for UI
+    local mouse_x, mouse_y = love.mouse.getPosition()
+    local mouse_world_x = mouse_x + camera_x
+    local mouse_world_y = mouse_y + camera_y
+    local mouse_col, mouse_row = world.world_to_block(mouse_world_x, mouse_world_y)
+    local mouse_block_id = world.get_block(g.world, g.player.layer, mouse_col, mouse_row)
+    local mouse_block_name = "Air"
+    if mouse_block_id then
+        local proto = blocks.get_proto(mouse_block_id)
+        if proto then
+            mouse_block_name = proto.name
+        end
+    end
+    
+    -- Draw UI with dev info
+    render.draw_ui(g.renderer, g.player, g.world, mouse_col, mouse_row, mouse_block_name)
     
     -- Debug info
     if g.debug then
         love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.print("FPS: " .. love.timer.getFPS(), 10, 50)
-        love.graphics.print("Player: " .. math.floor(g.player.x) .. ", " .. math.floor(g.player.y), 10, 70)
-        love.graphics.print("Seed: " .. g.world.seed, 10, 90)
+        love.graphics.print("FPS: " .. love.timer.getFPS(), 10, 90)
+        love.graphics.print("Seed: " .. g.world.seed, 10, 110)
     end
 end
 
 function game.keypressed(g, key)
-    -- Layer switching
+    -- Layer switching - only if there's room for the player
     if key == "q" then
-        g.player.layer = math.max(-1, g.player.layer - 1)
+        local target_layer = math.max(-1, g.player.layer - 1)
+        if target_layer ~= g.player.layer and game.can_switch_layer(g, target_layer) then
+            g.player.layer = target_layer
+        end
     elseif key == "e" then
-        g.player.layer = math.min(1, g.player.layer + 1)
+        local target_layer = math.min(1, g.player.layer + 1)
+        if target_layer ~= g.player.layer and game.can_switch_layer(g, target_layer) then
+            g.player.layer = target_layer
+        end
     end
     
     -- Hotbar selection (1-9 keys)
@@ -104,11 +123,46 @@ function game.keypressed(g, key)
         inventory.add(g.player.inventory, blocks.COPPER_ORE, 5)
     end
     
+    -- Debug: omnitool tier adjustment
+    if key == "=" or key == "+" then
+        g.player.omnitool_tier = math.min(g.player.omnitool_tier + 1, 10)
+    elseif key == "-" or key == "_" then
+        g.player.omnitool_tier = math.max(g.player.omnitool_tier - 1, 0)
+    end
+    
     -- Reload world
     if key == "delete" then
         g.world = world.new(g.world.seed)
         g.entities = entities.new()
     end
+end
+
+-- Check if player can switch to target layer (must have room)
+function game.can_switch_layer(g, target_layer)
+    local p = g.player
+    local w = g.world
+    
+    -- Check all blocks that the player AABB would overlap in the target layer
+    local left = p.x - p.width / 2
+    local right = p.x + p.width / 2
+    local top = p.y - p.height / 2
+    local bottom = p.y + p.height / 2
+    
+    local start_col = math.floor(left / world.BLOCK_SIZE)
+    local end_col = math.floor(right / world.BLOCK_SIZE)
+    local start_row = math.floor(top / world.BLOCK_SIZE)
+    local end_row = math.floor(bottom / world.BLOCK_SIZE)
+    
+    for col = start_col, end_col do
+        for row = start_row, end_row do
+            local proto = world.get_block_proto(w, target_layer, col, row)
+            if proto and proto.solid then
+                return false  -- Blocked by solid block
+            end
+        end
+    end
+    
+    return true  -- Room available
 end
 
 function game.mousepressed(g, x, y, button)

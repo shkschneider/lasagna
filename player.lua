@@ -12,8 +12,8 @@ function player.new(x, y, layer)
         vx = 0,
         vy = 0,
         layer = layer or 0,
-        width = 16,
-        height = 32,
+        width = 8,  -- 1 block wide (8 pixels)
+        height = 16, -- 2 blocks tall (16 pixels)
         on_ground = false,
         inventory = inventory.new(),
         omnitool_tier = 0, -- Starting tier
@@ -45,29 +45,65 @@ function player.update(p, dt, w)
         p.on_ground = false
     end
 
-    -- Apply velocity
-    p.x = p.x + p.vx * dt
-    p.y = p.y + p.vy * dt
-
-    -- Collision detection
-    local col, row = world.world_to_block(p.x, p.y + p.height / 2)
-    local block_proto = world.get_block_proto(w, p.layer, col, row)
-
-    -- Ground collision
-    p.on_ground = false
-    if block_proto and block_proto.solid then
-        if p.vy > 0 then
-            p.y = row * world.BLOCK_SIZE - p.height / 2
-            p.vy = 0
-            p.on_ground = true
+    -- AABB collision detection helper
+    local function check_collision(x, y, width, height, layer)
+        -- Check all blocks that the player AABB overlaps
+        local left = x - width / 2
+        local right = x + width / 2
+        local top = y - height / 2
+        local bottom = y + height / 2
+        
+        local start_col = math.floor(left / world.BLOCK_SIZE)
+        local end_col = math.floor(right / world.BLOCK_SIZE)
+        local start_row = math.floor(top / world.BLOCK_SIZE)
+        local end_row = math.floor(bottom / world.BLOCK_SIZE)
+        
+        for col = start_col, end_col do
+            for row = start_row, end_row do
+                local proto = world.get_block_proto(w, layer, col, row)
+                if proto and proto.solid then
+                    return true, col, row
+                end
+            end
         end
+        return false
     end
 
-    -- Check ceiling collision
-    local top_col, top_row = world.world_to_block(p.x, p.y - p.height / 2)
-    local top_block = world.get_block_proto(w, p.layer, top_col, top_row)
-    if top_block and top_block.solid and p.vy < 0 then
-        p.y = (top_row + 1) * world.BLOCK_SIZE + p.height / 2
+    -- Apply horizontal movement with collision
+    local new_x = p.x + p.vx * dt
+    if not check_collision(new_x, p.y, p.width, p.height, p.layer) then
+        p.x = new_x
+    else
+        -- Snap to edge of blocking tile
+        if p.vx > 0 then
+            -- Moving right, snap to left edge of blocking tile
+            local col = math.floor((p.x + p.width / 2 + p.vx * dt) / world.BLOCK_SIZE)
+            p.x = col * world.BLOCK_SIZE - p.width / 2
+        elseif p.vx < 0 then
+            -- Moving left, snap to right edge of blocking tile
+            local col = math.floor((p.x - p.width / 2 + p.vx * dt) / world.BLOCK_SIZE)
+            p.x = (col + 1) * world.BLOCK_SIZE + p.width / 2
+        end
+        p.vx = 0
+    end
+
+    -- Apply vertical movement with collision
+    local new_y = p.y + p.vy * dt
+    p.on_ground = false
+    
+    if not check_collision(p.x, new_y, p.width, p.height, p.layer) then
+        p.y = new_y
+    else
+        if p.vy > 0 then
+            -- Moving down, snap to top of blocking tile
+            local row = math.floor((p.y + p.height / 2 + p.vy * dt) / world.BLOCK_SIZE)
+            p.y = row * world.BLOCK_SIZE - p.height / 2
+            p.on_ground = true
+        elseif p.vy < 0 then
+            -- Moving up, snap to bottom of blocking tile
+            local row = math.floor((p.y - p.height / 2 + p.vy * dt) / world.BLOCK_SIZE)
+            p.y = (row + 1) * world.BLOCK_SIZE + p.height / 2
+        end
         p.vy = 0
     end
 

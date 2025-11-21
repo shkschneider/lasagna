@@ -45,7 +45,7 @@ end
 function entities.update(ent_system, dt, w, player)
     local GRAVITY = 400
     local FRICTION = 0.95
-    local PICKUP_RANGE = 32
+    local PICKUP_RANGE = 16  -- Adjusted for smaller blocks (was 32)
     
     for i = #ent_system.list, 1, -1 do
         local ent = ent_system.list[i]
@@ -105,11 +105,12 @@ function entities.draw(ent_system, camera_x, camera_y)
         if ent.type == "drop" then
             local proto = blocks.get_proto(ent.block_id)
             if proto then
+                -- Drops are half the size of a block (4x4 pixels, taking 1/4 surface space)
                 love.graphics.setColor(proto.color)
                 love.graphics.rectangle("fill", 
-                    ent.x - camera_x - 4, 
-                    ent.y - camera_y - 4, 
-                    8, 8)
+                    ent.x - camera_x - 2, 
+                    ent.y - camera_y - 2, 
+                    4, 4)
             end
         end
     end

@@ -7,12 +7,12 @@ local noise = require("lib.noise")
 
 local world = {}
 
--- Block size in pixels
-world.BLOCK_SIZE = 32
+-- Block size in pixels (made smaller - each old block is now 4x4 new blocks)
+world.BLOCK_SIZE = 8
 
--- World dimensions (in blocks)
-world.WIDTH = 256
-world.HEIGHT = 128
+-- World dimensions (in blocks) - 4x larger to maintain same world size
+world.WIDTH = 1024
+world.HEIGHT = 512
 
 -- Terrain generation constants
 local BASE_HEIGHT = 0.6  -- Base height as fraction of world height
