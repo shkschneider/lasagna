@@ -115,10 +115,37 @@ function noise.octave_perlin2d(x, y, octaves, persistence, lacunarity)
 end
 
 -- Seed the noise by modifying the permutation table
-function noise.seed(seed)
-    local random = love.math.newRandomGenerator(seed)
+-- Accepts either a seed number or a custom random generator function
+function noise.seed(seed_or_rng)
+    local random
     
-    -- Create a new permutation based on seed
+    if type(seed_or_rng) == "function" then
+        -- Use provided random function
+        random = seed_or_rng
+    elseif type(seed_or_rng) == "table" and seed_or_rng.random then
+        -- Use provided random object
+        random = function(a, b) return seed_or_rng:random(a, b) end
+    else
+        -- Create random generator from seed
+        local seed = seed_or_rng or os.time()
+        if love and love.math and love.math.newRandomGenerator then
+            -- Use Love2D's random generator if available
+            local rng = love.math.newRandomGenerator(seed)
+            random = function(a, b) return rng:random(a, b) end
+        else
+            -- Fallback to Lua's built-in random
+            math.randomseed(seed)
+            random = function(a, b)
+                if a and b then
+                    return math.random(a, b)
+                else
+                    return math.random(a)
+                end
+            end
+        end
+    end
+    
+    -- Create a new permutation based on seed/random
     local temp = {}
     for i = 0, 255 do
         temp[i] = i
@@ -126,7 +153,7 @@ function noise.seed(seed)
     
     -- Fisher-Yates shuffle
     for i = 255, 1, -1 do
-        local j = random:random(0, i)
+        local j = random(0, i)
         temp[i], temp[j] = temp[j], temp[i]
     end
     

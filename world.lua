@@ -58,15 +58,15 @@ function world.generate_column(w, col)
             layer_frequency = frequency
             layer_amplitude = amplitude
         elseif layer == 1 then
-            -- Layer 1: slightly lower, smoother (front layer)
+            -- Layer 1: slightly higher, smoother (front layer)
             layer_frequency = frequency * 0.8  -- Smoother
             layer_amplitude = amplitude * 0.7   -- Less variation
-            layer_base = base_height + 3        -- Slightly lower surface
+            layer_base = base_height + 3        -- Slightly higher (lower on screen)
         elseif layer == -1 then
-            -- Layer -1: slightly higher, rougher (back layer for caves/mining)
+            -- Layer -1: slightly lower, rougher (back layer for caves/mining)
             layer_frequency = frequency * 1.3   -- Rougher
             layer_amplitude = amplitude * 1.2   -- More variation
-            layer_base = base_height - 5        -- Slightly higher surface
+            layer_base = base_height - 5        -- Slightly lower (higher on screen)
         end
         
         -- Calculate surface height using Perlin noise
