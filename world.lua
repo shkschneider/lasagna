@@ -60,6 +60,11 @@ local LCG_MULTIPLIER = 1103515245
 local LCG_INCREMENT = 12345
 local LCG_MODULUS = 2147483648
 
+-- Ore spawn noise thresholds (higher = rarer)
+local COAL_NOISE_THRESHOLD = 0.85
+local COPPER_NOISE_THRESHOLD = 0.88
+local IRON_NOISE_THRESHOLD = 0.90
+
 function world.new(seed)
     local w = {
         seed = seed or os.time(),
@@ -235,7 +240,7 @@ function world.generate_column(w, col)
                 -- Coal blobs: moderate depth, all layers
                 if depth > 10 and depth < 60 then
                     local coal_check = noise.perlin2d(col * 0.1, row * 0.1)
-                    if coal_check > 0.85 and random() < COAL_BLOB_CHANCE then
+                    if coal_check > COAL_NOISE_THRESHOLD and random() < COAL_BLOB_CHANCE then
                         local vein_key = string.format("coal_%d_%d_%d", layer, col, row)
                         if not w.ore_veins_placed[vein_key] then
                             w.ore_veins_placed[vein_key] = true
@@ -248,7 +253,7 @@ function world.generate_column(w, col)
                 -- Copper veins: deeper, layers -1 and 0
                 if depth > 15 and depth < 80 and (layer == -1 or layer == 0) then
                     local copper_check = noise.perlin2d(col * 0.08 + 100, row * 0.08)
-                    if copper_check > 0.88 and random() < COPPER_VEIN_CHANCE then
+                    if copper_check > COPPER_NOISE_THRESHOLD and random() < COPPER_VEIN_CHANCE then
                         local vein_key = string.format("copper_%d_%d_%d", layer, col, row)
                         if not w.ore_veins_placed[vein_key] then
                             w.ore_veins_placed[vein_key] = true
@@ -262,7 +267,7 @@ function world.generate_column(w, col)
                 -- Iron veins: very deep, primarily layer -1
                 if depth > 25 and layer == -1 then
                     local iron_check = noise.perlin2d(col * 0.06 + 200, row * 0.06)
-                    if iron_check > 0.90 and random() < IRON_VEIN_CHANCE then
+                    if iron_check > IRON_NOISE_THRESHOLD and random() < IRON_VEIN_CHANCE then
                         local vein_key = string.format("iron_%d_%d_%d", layer, col, row)
                         if not w.ore_veins_placed[vein_key] then
                             w.ore_veins_placed[vein_key] = true
