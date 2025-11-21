@@ -5,6 +5,9 @@ local inventory = require("inventory")
 
 local player = {}
 
+-- Small epsilon for floating-point boundary precision
+local EPSILON = 0.0001
+
 function player.new(x, y, layer)
     return {
         x = x or 0,
@@ -58,7 +61,7 @@ function player.update(p, dt, w)
     p.on_ground = false
     local bottom_y = new_y + p.height / 2
     local left_col = math.floor((p.x - p.width / 2) / world.BLOCK_SIZE)
-    local right_col = math.floor((p.x + p.width / 2 - 0.01) / world.BLOCK_SIZE)
+    local right_col = math.floor((p.x + p.width / 2 - EPSILON) / world.BLOCK_SIZE)
     local bottom_row = math.floor(bottom_y / world.BLOCK_SIZE)
     
     -- Check all blocks at the bottom of the player
@@ -114,10 +117,11 @@ function player.check_collision(p, w, x, y, layer)
     
     -- Convert to block coordinates
     -- We need to check all blocks that the player's bounding box overlaps
+    -- Use epsilon to avoid floating-point boundary issues
     local left_col = math.floor(left / world.BLOCK_SIZE)
-    local right_col = math.floor((right - 0.01) / world.BLOCK_SIZE)  -- Small epsilon to handle exact boundaries
+    local right_col = math.floor((right - EPSILON) / world.BLOCK_SIZE)
     local top_row = math.floor(top / world.BLOCK_SIZE)
-    local bottom_row = math.floor((bottom - 0.01) / world.BLOCK_SIZE)  -- Small epsilon to handle exact boundaries
+    local bottom_row = math.floor((bottom - EPSILON) / world.BLOCK_SIZE)
     
     -- Check all blocks within the player's bounding box
     for col = left_col, right_col do

@@ -471,23 +471,43 @@ function world.find_spawn_position(w, start_col, layer)
     -- Generate the column if not already generated
     world.generate_column(w, start_col)
     
-    -- Search from top to bottom for first solid block
+    -- Search from top to bottom for first valid spawn position
+    -- Need ground block and 2 blocks of clearance above (player is 2 blocks tall)
     for row = 0, world.HEIGHT - 1 do
         local block_id = world.get_block(w, layer, start_col, row)
         local proto = blocks.get_proto(block_id)
         
         if proto and proto.solid then
-            -- Found ground, spawn player standing on it
-            -- Player position is center-based, and player is 2 blocks tall
-            -- Place player so feet are on top of the ground block
-            local wx = start_col * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
-            local wy = row * world.BLOCK_SIZE - world.BLOCK_SIZE  -- 2 blocks above ground (player is 64px tall)
-            return wx, wy, layer
+            -- Found ground, check if there are 2 blocks of clearance above
+            local clear_above = true
+            if row >= 2 then
+                -- Check the 2 blocks above the ground
+                for check_row = row - 2, row - 1 do
+                    local check_id = world.get_block(w, layer, start_col, check_row)
+                    local check_proto = blocks.get_proto(check_id)
+                    if check_proto and check_proto.solid then
+                        clear_above = false
+                        break
+                    end
+                end
+            else
+                -- Not enough room above (too close to top of world)
+                clear_above = false
+            end
+            
+            if clear_above then
+                -- Valid spawn position found
+                -- Snap player to grid (no fractional offsets)
+                -- Player position is center-based, and player is 2 blocks tall (64px)
+                local wx = start_col * world.BLOCK_SIZE
+                local wy = (row - 1) * world.BLOCK_SIZE  -- Player center is 1 block above ground
+                return wx, wy, layer
+            end
         end
     end
     
-    -- Fallback if no ground found (shouldn't happen)
-    local wx = start_col * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
+    -- Fallback if no valid spawn found (shouldn't happen in normal terrain)
+    local wx = start_col * world.BLOCK_SIZE
     local wy = world.HEIGHT / 2 * world.BLOCK_SIZE
     return wx, wy, layer
 end
