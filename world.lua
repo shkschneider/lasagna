@@ -55,8 +55,13 @@ local IRON_VEIN_LENGTH_MIN = 10
 local IRON_VEIN_LENGTH_MAX = 20
 local IRON_VEIN_BRANCH_PROB = 0.25
 
--- Helper constant for percentage conversion
+-- Helper constant for percentage conversion (for integer random ranges)
 local PERCENTAGE_SCALE = 100
+
+-- LCG constants for random number generator
+local LCG_MULTIPLIER = 1103515245
+local LCG_INCREMENT = 12345
+local LCG_MODULUS = 2147483648
 
 function world.new(seed)
     local w = {
@@ -80,12 +85,12 @@ end
 local function make_random(seed)
     local state = seed
     return function(min_val, max_val)
-        -- Simple LCG random
-        state = (state * 1103515245 + 12345) % 2147483648
+        -- Simple LCG (Linear Congruential Generator)
+        state = (state * LCG_MULTIPLIER + LCG_INCREMENT) % LCG_MODULUS
         if min_val and max_val then
             return min_val + (state % (max_val - min_val + 1))
         else
-            return state / 2147483648
+            return state / LCG_MODULUS
         end
     end
 end
@@ -146,7 +151,7 @@ local function place_vein(w, layer, x0, y0, length, block_type, branch_prob, ran
         y = y + dy
         
         -- Occasional branching
-        if random(0, PERCENTAGE_SCALE) < (branch_prob * PERCENTAGE_SCALE) and length > 4 then
+        if random() < branch_prob and length > 4 then
             local branch_length = math.floor(length / 2)
             place_vein(w, layer, x, y, branch_length, block_type, branch_prob * 0.7, random, bias_down)
         end
@@ -233,7 +238,7 @@ function world.generate_column(w, col)
                 -- Coal blobs: moderate depth, all layers
                 if depth > 10 and depth < 60 then
                     local coal_check = noise.perlin2d(col * 0.1, row * 0.1)
-                    if coal_check > 0.85 and random(0, PERCENTAGE_SCALE) < (COAL_BLOB_CHANCE * PERCENTAGE_SCALE) then
+                    if coal_check > 0.85 and random() < COAL_BLOB_CHANCE then
                         local vein_key = string.format("coal_%d_%d_%d", layer, col, row)
                         if not w.ore_veins_placed[vein_key] then
                             w.ore_veins_placed[vein_key] = true
@@ -246,7 +251,7 @@ function world.generate_column(w, col)
                 -- Copper veins: deeper, layers -1 and 0
                 if depth > 15 and depth < 80 and (layer == -1 or layer == 0) then
                     local copper_check = noise.perlin2d(col * 0.08 + 100, row * 0.08)
-                    if copper_check > 0.88 and random(0, PERCENTAGE_SCALE) < (COPPER_VEIN_CHANCE * PERCENTAGE_SCALE) then
+                    if copper_check > 0.88 and random() < COPPER_VEIN_CHANCE then
                         local vein_key = string.format("copper_%d_%d_%d", layer, col, row)
                         if not w.ore_veins_placed[vein_key] then
                             w.ore_veins_placed[vein_key] = true
@@ -260,7 +265,7 @@ function world.generate_column(w, col)
                 -- Iron veins: very deep, primarily layer -1
                 if depth > 25 and layer == -1 then
                     local iron_check = noise.perlin2d(col * 0.06 + 200, row * 0.06)
-                    if iron_check > 0.90 and random(0, PERCENTAGE_SCALE) < (IRON_VEIN_CHANCE * PERCENTAGE_SCALE) then
+                    if iron_check > 0.90 and random() < IRON_VEIN_CHANCE then
                         local vein_key = string.format("iron_%d_%d_%d", layer, col, row)
                         if not w.ore_veins_placed[vein_key] then
                             w.ore_veins_placed[vein_key] = true
