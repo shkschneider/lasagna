@@ -42,6 +42,16 @@ function world.generate_column(w, col)
     local frequency = 0.02 -- Controls how "stretched" the terrain is
     local amplitude = 15    -- Controls height variation
     
+    -- Dirt layer parameters
+    local DIRT_MIN_DEPTH = 5
+    local DIRT_MAX_DEPTH = 15
+    local DIRT_NOISE_FREQUENCY = 0.05
+    
+    -- Cave generation parameters
+    local CAVE_MIN_DEPTH = 10
+    local CAVE_THRESHOLD_LAYER_BACK = 0.6  -- More caves in back layer
+    local CAVE_THRESHOLD_LAYER_MAIN = 0.7  -- Fewer caves in main layer
+    
     -- Generate height for each layer using Perlin noise with different characteristics
     for layer = -1, 1 do
         if not w.layers[layer][col] then
@@ -70,8 +80,8 @@ function world.generate_column(w, col)
         local surface_y = math.floor(layer_base + height_noise * layer_amplitude)
         
         -- Determine dirt layer depth (5-15 blocks)
-        local dirt_depth_noise = noise.perlin1d(col * 0.05 + layer * 100)
-        local dirt_depth = math.floor(5 + (dirt_depth_noise * 0.5 + 0.5) * 10)
+        local dirt_depth_noise = noise.perlin1d(col * DIRT_NOISE_FREQUENCY + layer * 100)
+        local dirt_depth = math.floor(DIRT_MIN_DEPTH + (dirt_depth_noise * 0.5 + 0.5) * (DIRT_MAX_DEPTH - DIRT_MIN_DEPTH))
         
         -- Generate column from top to bottom
         for row = 0, world.HEIGHT - 1 do
@@ -82,12 +92,7 @@ function world.generate_column(w, col)
                 w.layers[layer][col][row] = blocks.AIR
             elseif depth < dirt_depth then
                 -- Dirt layer (5-15 blocks deep)
-                if depth == 0 then
-                    -- Top layer: will become grass if exposed to air
-                    w.layers[layer][col][row] = blocks.GRASS
-                else
-                    w.layers[layer][col][row] = blocks.DIRT
-                end
+                w.layers[layer][col][row] = blocks.DIRT
             else
                 -- Underground: stone with ores
                 local underground_noise = noise.perlin3d(col * 0.1, row * 0.1, layer * 50)
@@ -96,9 +101,9 @@ function world.generate_column(w, col)
                 w.layers[layer][col][row] = blocks.STONE
                 
                 -- Add caves in layer -1 and 0 (more in -1)
-                local cave_threshold = (layer == -1) and 0.6 or 0.7
+                local cave_threshold = (layer == -1) and CAVE_THRESHOLD_LAYER_BACK or CAVE_THRESHOLD_LAYER_MAIN
                 local cave_noise = noise.octave_perlin2d(col * 0.05, row * 0.05, 3, 0.5, 2.0)
-                if depth > 10 and cave_noise > cave_threshold then
+                if depth > CAVE_MIN_DEPTH and cave_noise > cave_threshold then
                     w.layers[layer][col][row] = blocks.AIR
                 end
                 
@@ -131,25 +136,14 @@ function world.generate_column(w, col)
             end
         end
         
-        -- Second pass: ensure grass only on top of dirt exposed to air
+        -- Second pass: convert dirt exposed to air into grass
         for row = 0, world.HEIGHT - 1 do
-            if w.layers[layer][col][row] == blocks.GRASS then
-                -- Check if there's air above (or if at top of world)
-                if row == 0 then
-                    -- At top of world, grass is valid (exposed to sky)
-                elseif row > 0 then
-                    local above = w.layers[layer][col][row - 1]
-                    if above ~= blocks.AIR then
-                        -- No air above, convert grass to dirt
-                        w.layers[layer][col][row] = blocks.DIRT
-                    end
-                end
-            elseif w.layers[layer][col][row] == blocks.DIRT then
-                -- Check if this dirt should become grass (exposed to air)
+            if w.layers[layer][col][row] == blocks.DIRT then
+                -- Check if this dirt should become grass (exposed to air or at world top)
                 if row == 0 then
                     -- At top of world, convert to grass (exposed to sky)
                     w.layers[layer][col][row] = blocks.GRASS
-                elseif row > 0 then
+                else
                     local above = w.layers[layer][col][row - 1]
                     if above == blocks.AIR then
                         w.layers[layer][col][row] = blocks.GRASS

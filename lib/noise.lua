@@ -136,10 +136,11 @@ function noise.seed(seed_or_rng)
             -- Fallback to Lua's built-in random
             math.randomseed(seed)
             random = function(a, b)
+                -- Lua's math.random is 1-based, so adjust for 0-based indexing
                 if a and b then
-                    return math.random(a, b)
+                    return math.random(a + 1, b + 1) - 1
                 else
-                    return math.random(a)
+                    return math.random(a + 1) - 1
                 end
             end
         end
@@ -151,7 +152,7 @@ function noise.seed(seed_or_rng)
         temp[i] = i
     end
     
-    -- Fisher-Yates shuffle
+    -- Fisher-Yates shuffle (using 0-based indexing)
     for i = 255, 1, -1 do
         local j = random(0, i)
         temp[i], temp[j] = temp[j], temp[i]
