@@ -358,38 +358,76 @@ function world.find_spawn_position(w, start_col, layer)
     -- Generate the column if not already generated
     world.generate_column(w, start_col)
     
-    -- Debug: Print what we're searching
+    -- Debug: Calculate what the surface should be
+    local base_height = world.HEIGHT * BASE_HEIGHT
+    local layer_frequency = BASE_FREQUENCY
+    local layer_amplitude = BASE_AMPLITUDE
+    local layer_base = base_height
+    
+    if layer == 1 then
+        layer_frequency = BASE_FREQUENCY * 0.8
+        layer_amplitude = BASE_AMPLITUDE * 0.7
+        layer_base = base_height + 12
+    elseif layer == -1 then
+        layer_frequency = BASE_FREQUENCY * 1.3
+        layer_amplitude = BASE_AMPLITUDE * 1.2
+        layer_base = base_height - 20
+    end
+    
+    local height_noise = noise.octave_perlin2d(start_col * layer_frequency, layer * 10, 
+        TERRAIN_NOISE_OCTAVES, TERRAIN_NOISE_PERSISTENCE, TERRAIN_NOISE_LACUNARITY)
+    local expected_surface_y = math.floor(layer_base + height_noise * layer_amplitude)
+    
+    print(string.format("\n=== SPAWN DEBUG ==="))
+    print(string.format("World dimensions: %d x %d blocks", world.WIDTH, world.HEIGHT))
+    print(string.format("BASE_HEIGHT: %.2f, base_height: %.1f blocks from top", BASE_HEIGHT, base_height))
     print(string.format("Searching for spawn at column %d, layer %d", start_col, layer))
+    print(string.format("Expected surface at row %d (based on terrain gen)", expected_surface_y))
     
     -- Search from top to bottom for first solid block
+    local first_solid_row = nil
     for row = 0, world.HEIGHT - 1 do
         local block_id = world.get_block(w, layer, start_col, row)
         local proto = blocks.get_proto(block_id)
         
         if proto and proto.solid then
-            -- Found ground, spawn player standing on top of this block
-            -- Player is 2 blocks tall (16 pixels), so center should be 1 block above surface
-            local wx = start_col * world.BLOCK_SIZE
-            local wy = (row - 1) * world.BLOCK_SIZE  -- Center player 1 block above surface
-            
-            print(string.format("Found ground at row %d, spawning at pixel pos (%.1f, %.1f) = block pos (%d, %d)", 
-                row, wx, wy, math.floor(wx / world.BLOCK_SIZE), math.floor(wy / world.BLOCK_SIZE)))
-            
-            -- Verify spawn position
-            local spawn_row = math.floor(wy / world.BLOCK_SIZE)
-            local block_at_spawn = world.get_block(w, layer, start_col, spawn_row)
-            local proto_at_spawn = blocks.get_proto(block_at_spawn)
-            print(string.format("Block at spawn row %d: %s (solid: %s)", 
-                spawn_row, proto_at_spawn and proto_at_spawn.name or "nil", 
-                proto_at_spawn and tostring(proto_at_spawn.solid) or "nil"))
-            
-            return wx, wy, layer
+            first_solid_row = row
+            break
         end
+    end
+    
+    if first_solid_row then
+        print(string.format("First solid block found at row %d", first_solid_row))
+        
+        -- Player is 2 blocks tall (16 pixels), center should be 1 block above surface
+        -- Align horizontally to block center
+        local wx = start_col * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
+        local wy = (first_solid_row - 1) * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
+        
+        print(string.format("Spawn pixel position: (%.1f, %.1f)", wx, wy))
+        print(string.format("Spawn block position: (%d, %d)", 
+            math.floor(wx / world.BLOCK_SIZE), 
+            math.floor(wy / world.BLOCK_SIZE)))
+        
+        -- Verify blocks around spawn
+        local spawn_row = math.floor(wy / world.BLOCK_SIZE)
+        print(string.format("Blocks at spawn column %d:", start_col))
+        for r = math.max(0, spawn_row - 2), math.min(world.HEIGHT - 1, spawn_row + 3) do
+            local bid = world.get_block(w, layer, start_col, r)
+            local p = blocks.get_proto(bid)
+            local marker = (r == spawn_row) and " <- SPAWN" or (r == first_solid_row) and " <- GROUND" or ""
+            print(string.format("  Row %d: %s%s", r, p and p.name or "nil", marker))
+        end
+        print(string.format("===================\n"))
+        
+        return wx, wy, layer
     end
     
     -- Fallback if no ground found (shouldn't happen)
     print("WARNING: No ground found, using fallback spawn")
-    local wx, wy = world.block_to_world(start_col, world.HEIGHT / 2)
+    print(string.format("===================\n"))
+    local wx = start_col * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
+    local wy = (world.HEIGHT / 2) * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
     return wx, wy, layer
 end
 
