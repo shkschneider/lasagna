@@ -137,10 +137,15 @@ function noise.seed(seed_or_rng)
             math.randomseed(seed)
             random = function(a, b)
                 -- Lua's math.random is 1-based, so adjust for 0-based indexing
-                if a and b then
+                if b then
+                    -- Two parameters: return random in range [a, b] inclusive
                     return math.random(a + 1, b + 1) - 1
-                else
+                elseif a and a > 0 then
+                    -- Single parameter: return random in range [0, a] inclusive
                     return math.random(a + 1) - 1
+                else
+                    -- a is 0 or nil: return 0
+                    return 0
                 end
             end
         end
