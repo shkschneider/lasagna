@@ -50,7 +50,33 @@ function player.update(p, dt, w)
 
     -- Apply horizontal velocity with collision
     local new_x = p.x + p.vx * dt
-    if not player.check_collision(p, w, new_x, p.y) then
+    local hit_wall = false
+    
+    -- Check horizontal collision only if moving
+    if p.vx ~= 0 then
+        local check_col
+        if p.vx > 0 then
+            -- Moving right, check right edge
+            check_col = math.floor((new_x + p.width / 2 - EPSILON) / world.BLOCK_SIZE)
+        else
+            -- Moving left, check left edge
+            check_col = math.floor((new_x - p.width / 2) / world.BLOCK_SIZE)
+        end
+        
+        -- Check all rows the player occupies
+        local top_row = math.floor((p.y - p.height / 2) / world.BLOCK_SIZE)
+        local bottom_row = math.floor((p.y + p.height / 2 - EPSILON) / world.BLOCK_SIZE)
+        
+        for row = top_row, bottom_row do
+            local block_proto = world.get_block_proto(w, p.layer, check_col, row)
+            if block_proto and block_proto.solid then
+                hit_wall = true
+                break
+            end
+        end
+    end
+    
+    if not hit_wall then
         p.x = new_x
     end
 

@@ -497,17 +497,19 @@ function world.find_spawn_position(w, start_col, layer)
             
             if clear_above then
                 -- Valid spawn position found
-                -- Snap player to grid (no fractional offsets)
-                -- Player position is center-based, and player is 2 blocks tall (64px)
-                local wx = start_col * world.BLOCK_SIZE
-                local wy = (row - 1) * world.BLOCK_SIZE  -- Player center is 1 block above ground
+                -- Player is 32x64 (1 block wide, 2 blocks tall)
+                -- Position player center aligned with block grid
+                local wx, wy = world.block_to_world(start_col, row)
+                -- Player center at block center horizontally, 2 blocks above ground vertically
+                wx = wx + world.BLOCK_SIZE / 2
+                wy = wy - world.BLOCK_SIZE
                 return wx, wy, layer
             end
         end
     end
     
     -- Fallback if no valid spawn found (shouldn't happen in normal terrain)
-    local wx = start_col * world.BLOCK_SIZE
+    local wx = start_col * world.BLOCK_SIZE + world.BLOCK_SIZE / 2
     local wy = world.HEIGHT / 2 * world.BLOCK_SIZE
     return wx, wy, layer
 end
