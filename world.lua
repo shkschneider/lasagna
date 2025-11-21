@@ -16,19 +16,19 @@ world.HEIGHT = 512
 
 -- Terrain generation constants
 local BASE_HEIGHT = 0.6  -- Base height as fraction of world height
-local BASE_FREQUENCY = 0.02  -- Controls horizontal terrain stretching
-local BASE_AMPLITUDE = 15    -- Controls vertical height variation
+local BASE_FREQUENCY = 0.005  -- Controls horizontal terrain stretching (scaled for 4x larger world)
+local BASE_AMPLITUDE = 60    -- Controls height variation (scaled for 4x larger world)
 
--- Dirt layer constants
-local DIRT_MIN_DEPTH = 5
-local DIRT_MAX_DEPTH = 15
-local DIRT_NOISE_FREQUENCY = 0.05
+-- Dirt layer constants (scaled for 4x larger world)
+local DIRT_MIN_DEPTH = 20
+local DIRT_MAX_DEPTH = 60
+local DIRT_NOISE_FREQUENCY = 0.0125  -- Scaled down
 
 -- Cave generation constants
-local CAVE_MIN_DEPTH = 10
+local CAVE_MIN_DEPTH = 40  -- Scaled for 4x larger world
 local CAVE_THRESHOLD_LAYER_BACK = 0.6  -- More caves in back layer
 local CAVE_THRESHOLD_LAYER_MAIN = 0.7  -- Fewer caves in main layer
-local CAVE_NOISE_FREQUENCY = 0.05
+local CAVE_NOISE_FREQUENCY = 0.0125  -- Scaled down
 local CAVE_NOISE_OCTAVES = 3
 local CAVE_NOISE_PERSISTENCE = 0.5
 local CAVE_NOISE_LACUNARITY = 2.0
@@ -38,21 +38,21 @@ local TERRAIN_NOISE_OCTAVES = 4
 local TERRAIN_NOISE_PERSISTENCE = 0.5
 local TERRAIN_NOISE_LACUNARITY = 2.0
 
--- Ore generation constants
+-- Ore generation constants (scaled for 4x larger world)
 -- Blob generation (for coal, surface resources)
-local COAL_BLOB_CHANCE = 0.02  -- Chance per valid position
-local COAL_BLOB_RADIUS_MIN = 2
-local COAL_BLOB_RADIUS_MAX = 4
+local COAL_BLOB_CHANCE = 0.005  -- Reduced chance to compensate for 4x more blocks
+local COAL_BLOB_RADIUS_MIN = 8
+local COAL_BLOB_RADIUS_MAX = 16
 
 -- Vein generation (for metals, ores)
-local COPPER_VEIN_CHANCE = 0.015
-local COPPER_VEIN_LENGTH_MIN = 8
-local COPPER_VEIN_LENGTH_MAX = 15
+local COPPER_VEIN_CHANCE = 0.004
+local COPPER_VEIN_LENGTH_MIN = 32
+local COPPER_VEIN_LENGTH_MAX = 60
 local COPPER_VEIN_BRANCH_PROB = 0.2
 
-local IRON_VEIN_CHANCE = 0.01
-local IRON_VEIN_LENGTH_MIN = 10
-local IRON_VEIN_LENGTH_MAX = 20
+local IRON_VEIN_CHANCE = 0.0025
+local IRON_VEIN_LENGTH_MIN = 40
+local IRON_VEIN_LENGTH_MAX = 80
 local IRON_VEIN_BRANCH_PROB = 0.25
 
 -- LCG constants for random number generator
@@ -184,12 +184,12 @@ function world.generate_column(w, col)
             -- Layer 1: slightly higher, smoother (front layer)
             layer_frequency = BASE_FREQUENCY * 0.8  -- Smoother
             layer_amplitude = BASE_AMPLITUDE * 0.7   -- Less variation
-            layer_base = base_height + 3              -- Slightly higher (lower on screen)
+            layer_base = base_height + 12             -- Slightly higher (lower on screen, scaled)
         elseif layer == -1 then
             -- Layer -1: slightly lower, rougher (back layer for caves/mining)
             layer_frequency = BASE_FREQUENCY * 1.3   -- Rougher
             layer_amplitude = BASE_AMPLITUDE * 1.2   -- More variation
-            layer_base = base_height - 5              -- Slightly lower (higher on screen)
+            layer_base = base_height - 20             -- Slightly lower (higher on screen, scaled)
         end
         
         -- Calculate surface height using Perlin noise
@@ -237,9 +237,9 @@ function world.generate_column(w, col)
             if w.layers[layer][col][row] == blocks.STONE then
                 local depth = row - surface_y
                 
-                -- Coal blobs: moderate depth, all layers
-                if depth > 10 and depth < 60 then
-                    local coal_check = noise.perlin2d(col * 0.1, row * 0.1)
+                -- Coal blobs: moderate depth, all layers (scaled for 4x world)
+                if depth > 40 and depth < 240 then
+                    local coal_check = noise.perlin2d(col * 0.025, row * 0.025)
                     if coal_check > COAL_NOISE_THRESHOLD and random() < COAL_BLOB_CHANCE then
                         local vein_key = string.format("coal_%d_%d_%d", layer, col, row)
                         if not w.ore_veins_placed[vein_key] then
@@ -250,9 +250,9 @@ function world.generate_column(w, col)
                     end
                 end
                 
-                -- Copper veins: deeper, layers -1 and 0
-                if depth > 15 and depth < 80 and (layer == -1 or layer == 0) then
-                    local copper_check = noise.perlin2d(col * 0.08 + 100, row * 0.08)
+                -- Copper veins: deeper, layers -1 and 0 (scaled for 4x world)
+                if depth > 60 and depth < 320 and (layer == -1 or layer == 0) then
+                    local copper_check = noise.perlin2d(col * 0.02 + 100, row * 0.02)
                     if copper_check > COPPER_NOISE_THRESHOLD and random() < COPPER_VEIN_CHANCE then
                         local vein_key = string.format("copper_%d_%d_%d", layer, col, row)
                         if not w.ore_veins_placed[vein_key] then
@@ -264,9 +264,9 @@ function world.generate_column(w, col)
                     end
                 end
                 
-                -- Iron veins: very deep, primarily layer -1
-                if depth > 25 and layer == -1 then
-                    local iron_check = noise.perlin2d(col * 0.06 + 200, row * 0.06)
+                -- Iron veins: very deep, primarily layer -1 (scaled for 4x world)
+                if depth > 100 and layer == -1 then
+                    local iron_check = noise.perlin2d(col * 0.015 + 200, row * 0.015)
                     if iron_check > IRON_NOISE_THRESHOLD and random() < IRON_VEIN_CHANCE then
                         local vein_key = string.format("iron_%d_%d_%d", layer, col, row)
                         if not w.ore_veins_placed[vein_key] then
