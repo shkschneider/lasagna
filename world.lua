@@ -38,19 +38,19 @@ local TERRAIN_NOISE_OCTAVES = 4
 local TERRAIN_NOISE_PERSISTENCE = 0.5
 local TERRAIN_NOISE_LACUNARITY = 2.0
 
--- Ore generation constants (scaled for 4x larger world)
+-- Ore generation constants (scaled for 4x larger world = 16x more blocks)
 -- Blob generation (for coal, surface resources)
-local COAL_BLOB_CHANCE = 0.005  -- Reduced chance to compensate for 4x more blocks
+local COAL_BLOB_CHANCE = 0.00125  -- Reduced by 16x to maintain density
 local COAL_BLOB_RADIUS_MIN = 8
 local COAL_BLOB_RADIUS_MAX = 16
 
 -- Vein generation (for metals, ores)
-local COPPER_VEIN_CHANCE = 0.004
+local COPPER_VEIN_CHANCE = 0.001  -- Reduced by 15x to maintain density
 local COPPER_VEIN_LENGTH_MIN = 32
 local COPPER_VEIN_LENGTH_MAX = 60
 local COPPER_VEIN_BRANCH_PROB = 0.2
 
-local IRON_VEIN_CHANCE = 0.0025
+local IRON_VEIN_CHANCE = 0.0006  -- Reduced by 16x to maintain density
 local IRON_VEIN_LENGTH_MIN = 40
 local IRON_VEIN_LENGTH_MAX = 80
 local IRON_VEIN_BRANCH_PROB = 0.25
@@ -238,7 +238,7 @@ function world.generate_column(w, col)
                 local depth = row - surface_y
                 
                 -- Coal blobs: moderate depth, all layers (scaled for 4x world)
-                if depth > 40 and depth < 240 then
+                if depth > 40 and depth < 160 then
                     local coal_check = noise.perlin2d(col * 0.025, row * 0.025)
                     if coal_check > COAL_NOISE_THRESHOLD and random() < COAL_BLOB_CHANCE then
                         local vein_key = string.format("coal_%d_%d_%d", layer, col, row)
