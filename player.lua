@@ -26,7 +26,7 @@ function player.update(p, dt, w)
     local MOVE_SPEED = 150
     local JUMP_FORCE = 300
     local GRAVITY = 800
-    
+
     -- Horizontal movement
     p.vx = 0
     if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
@@ -35,24 +35,24 @@ function player.update(p, dt, w)
     if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
         p.vx = MOVE_SPEED
     end
-    
+
     -- Vertical movement (gravity)
     p.vy = p.vy + GRAVITY * dt
-    
+
     -- Jump
     if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and p.on_ground then
         p.vy = -JUMP_FORCE
         p.on_ground = false
     end
-    
+
     -- Apply velocity
     p.x = p.x + p.vx * dt
     p.y = p.y + p.vy * dt
-    
+
     -- Collision detection
     local col, row = world.world_to_block(p.x, p.y + p.height / 2)
     local block_proto = world.get_block_proto(w, p.layer, col, row)
-    
+
     -- Ground collision
     p.on_ground = false
     if block_proto and block_proto.solid then
@@ -62,7 +62,7 @@ function player.update(p, dt, w)
             p.on_ground = true
         end
     end
-    
+
     -- Check ceiling collision
     local top_col, top_row = world.world_to_block(p.x, p.y - p.height / 2)
     local top_block = world.get_block_proto(w, p.layer, top_col, top_row)
@@ -70,7 +70,7 @@ function player.update(p, dt, w)
         p.y = (top_row + 1) * world.BLOCK_SIZE + p.height / 2
         p.vy = 0
     end
-    
+
     -- Prevent falling through bottom
     if p.y > world.HEIGHT * world.BLOCK_SIZE then
         p.y = world.HEIGHT * world.BLOCK_SIZE
@@ -80,7 +80,7 @@ function player.update(p, dt, w)
 end
 
 function player.draw(p, camera_x, camera_y)
-    love.graphics.setColor(0.2, 0.6, 1, 1) -- Blue player
+    love.graphics.setColor(1, 1, 1, 1) -- Blue player
     love.graphics.rectangle("fill",
         p.x - camera_x - p.width / 2,
         p.y - camera_y - p.height / 2,
