@@ -126,6 +126,8 @@ local function make_random(seed)
 end
 
 -- Blobby/Roundish cluster placement (for coal, surface materials)
+-- can_replace_surface: If true, can replace dirt/grass (for surface resources like sand)
+--                       If false, only replaces stone (for underground resources like coal)
 local function place_blob(w, layer, x0, y0, radius, block_type, can_replace_surface)
     for dx = -radius, radius do
         for dy = -radius, radius do
