@@ -15,7 +15,7 @@ world.WIDTH = 1024
 world.HEIGHT = 512
 
 -- Terrain generation constants
-local BASE_HEIGHT = 0.6  -- Base height as fraction of world height
+local BASE_HEIGHT = 0.15  -- Base height as fraction of world height (surface near top, scaled for 4x world)
 local BASE_FREQUENCY = 0.005  -- Controls horizontal terrain stretching (scaled for 4x larger world)
 local BASE_AMPLITUDE = 60    -- Controls height variation (scaled for 4x larger world)
 
