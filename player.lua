@@ -98,18 +98,28 @@ function player.update(p, dt, w)
 
     -- Apply vertical movement with collision
     local new_y = p.y + p.vy * dt
+    
+    if p._debug_frame < 5 then
+        print(string.format("  Before collision: new_y=%.1f, vy=%.1f", new_y, p.vy))
+    end
+    
     p.on_ground = false
     
     local collision, col, row = check_collision(p.x, new_y, p.width, p.height, p.layer)
     if not collision then
         p.y = new_y
+        if p._debug_frame < 5 then
+            print(string.format("  No collision, moved to y=%.1f", p.y))
+        end
     else
         if p.vy > 0 then
             -- Moving down, snap to top of blocking tile
             local row = math.floor((new_y + p.height / 2) / world.BLOCK_SIZE)
             p.y = row * world.BLOCK_SIZE - p.height / 2
             p.on_ground = true
-            print(string.format("Collision detected: player y=%.1f snapped to %.1f (row %d)", new_y, p.y, row))
+            if p._debug_frame < 5 then
+                print(string.format("  Collision detected: new_y=%.1f snapped to y=%.1f (row %d)", new_y, p.y, row))
+            end
         elseif p.vy < 0 then
             -- Moving up, snap to bottom of blocking tile
             local row = math.floor((new_y - p.height / 2) / world.BLOCK_SIZE)
