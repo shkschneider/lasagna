@@ -4,7 +4,7 @@
 local Controllable = {}
 
 function Controllable.new(move_speed, jump_force)
-    local instance = {
+    return {
         id = "controllable",
         move_speed = move_speed or 150,
         jump_force = jump_force or 300,
