@@ -179,20 +179,18 @@ function PlayerSystem.update(self, dt)
         end
 
         -- Edge detection: prevent falling off edges while crouching
-        -- Allow player to move halfway off the edge
         if not hit_wall and stance.current == Stance.CROUCHING and phys.on_ground and vel.vx ~= 0 then
             local ground_check_row = math.floor((pos.y + col.height / 2) / world.BLOCK_SIZE) + 1
             local ground_exists = false
 
-            -- Check if there's ground under the edge we're moving toward
-            -- Allow movement until half the player's width would be over the edge
+            -- Check if there's ground at the edge in the direction we're moving
             local edge_check_col
             if vel.vx > 0 then
-                -- Moving right: check if right half would be over empty space
-                edge_check_col = math.floor((new_x + col.width / 4) / world.BLOCK_SIZE)
+                -- Moving right: check the column at the right edge of where we'd move to
+                edge_check_col = math.floor((new_x + col.width / 2) / world.BLOCK_SIZE)
             else
-                -- Moving left: check if left half would be over empty space
-                edge_check_col = math.floor((new_x - col.width / 4) / world.BLOCK_SIZE)
+                -- Moving left: check the column at the left edge of where we'd move to
+                edge_check_col = math.floor((new_x - col.width / 2) / world.BLOCK_SIZE)
             end
 
             local block_def = world:get_block_def(pos.z, edge_check_col, ground_check_row)
@@ -200,7 +198,7 @@ function PlayerSystem.update(self, dt)
                 ground_exists = true
             end
 
-            -- If no ground under the half-block position, stop movement
+            -- If no ground ahead, stop movement to prevent falling
             if not ground_exists then
                 hit_wall = true
             end
