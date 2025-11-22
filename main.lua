@@ -1,7 +1,7 @@
 -- Global
 G = require "game"
-G.VERSION = { major = 0, minor = 1, patch = 3, tostring = function(self)
-    return string.format("%d.%d.%d", self.major, self.minor, self.patch)
+G.VERSION = { major = 0, minor = 1, patch = nil, tostring = function(self)
+    return string.format("%d.%d.%s", self.major, self.minor, tostring(self.patch or "x"))
 end }
 
 local log = require "lib.log"
