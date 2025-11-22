@@ -13,6 +13,7 @@ local Visual = require "components.visual"
 local Layer = require "components.layer"
 local Inventory = require "components.inventory"
 local Omnitool = require "components.omnitool"
+local Stance = require "components.stance"
 local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()
@@ -24,20 +25,28 @@ local PlayerSystem = {
     -- Movement constants
     MOVE_SPEED = 150,
     JUMP_FORCE = 300,
+    -- Height constants
+    STANDING_HEIGHT = nil,  -- Will be set in load
+    CROUCHING_HEIGHT = nil, -- Will be set in load
 }
 
 function PlayerSystem.load(self, x, y, layer)
     local world = Systems.get("world")
 
+    -- Set height constants
+    self.STANDING_HEIGHT = world.BLOCK_SIZE * 2
+    self.CROUCHING_HEIGHT = world.BLOCK_SIZE
+
     -- Initialize player components
     self.components.position = Position.new(x, y, layer)
     self.components.velocity = Velocity.new(0, 0)
     self.components.physics = Physics.new(true, 800, 0.95)
-    self.components.collider = Collider.new(world.BLOCK_SIZE, world.BLOCK_SIZE * 2)
-    self.components.visual = Visual.new({1, 1, 1, 1}, world.BLOCK_SIZE, world.BLOCK_SIZE * 2)
+    self.components.collider = Collider.new(world.BLOCK_SIZE, self.STANDING_HEIGHT)
+    self.components.visual = Visual.new({1, 1, 1, 1}, world.BLOCK_SIZE, self.STANDING_HEIGHT)
     self.components.layer = Layer.new(layer)
     self.components.inventory = Inventory.new(9, 64)
     self.components.omnitool = Omnitool.new(0)
+    self.components.stance = Stance.new(Stance.STANDING)
 
     -- Initialize inventory slots
     for i = 1, self.components.inventory.hotbar_size do
@@ -59,14 +68,35 @@ function PlayerSystem.update(self, dt)
     local vel = self.components.velocity
     local phys = self.components.physics
     local col = self.components.collider
+    local stance = self.components.stance
+    local vis = self.components.visual
+
+    -- Handle crouching state
+    local is_crouching = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
+    
+    if is_crouching then
+        stance.current = Stance.CROUCHING
+        col.height = self.CROUCHING_HEIGHT
+        vis.height = self.CROUCHING_HEIGHT
+    else
+        stance.current = Stance.STANDING
+        col.height = self.STANDING_HEIGHT
+        vis.height = self.STANDING_HEIGHT
+    end
+
+    -- Calculate movement speed based on stance
+    local move_speed = self.MOVE_SPEED
+    if stance.current == Stance.CROUCHING then
+        move_speed = move_speed * 0.5
+    end
 
     -- Horizontal movement
     vel.vx = 0
     if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
-        vel.vx = -self.MOVE_SPEED
+        vel.vx = -move_speed
     end
     if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-        vel.vx = self.MOVE_SPEED
+        vel.vx = move_speed
     end
 
     -- Vertical movement (gravity)
@@ -104,6 +134,30 @@ function PlayerSystem.update(self, dt)
                     pos.x = (check_col + 1) * world.BLOCK_SIZE + col.width / 2
                 end
                 break
+            end
+        end
+
+        -- Edge detection: prevent falling off edges while crouching
+        if not hit_wall and stance.current == Stance.CROUCHING and phys.on_ground then
+            local ground_check_col
+            if vel.vx > 0 then
+                ground_check_col = math.floor((new_x + col.width / 2) / world.BLOCK_SIZE)
+            else
+                ground_check_col = math.floor((new_x - col.width / 2) / world.BLOCK_SIZE)
+            end
+
+            local ground_check_row = math.floor((pos.y + col.height / 2) / world.BLOCK_SIZE)
+            local ground_exists = false
+
+            -- Check if there's ground at the edge
+            local block_def = world:get_block_def(pos.z, ground_check_col, ground_check_row)
+            if block_def and block_def.solid then
+                ground_exists = true
+            end
+
+            -- If no ground ahead, stop movement
+            if not ground_exists then
+                hit_wall = true
             end
         end
     end
