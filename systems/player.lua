@@ -160,16 +160,24 @@ function PlayerSystem.update(self, dt)
     end
 end
 
-function PlayerSystem.draw(self)
+function PlayerSystem.draw(self, camera_x, camera_y)
     local pos = self.components.position
     local vis = self.components.visual
 
-    local camera = G:get_system("camera")
+    -- If camera offset not provided, get it from camera system
+    if not camera_x or not camera_y then
+        local camera = G:get_system("camera")
+        if camera then
+            camera_x, camera_y = camera:get_offset()
+        else
+            camera_x, camera_y = 0, 0
+        end
+    end
 
     love.graphics.setColor(vis.color)
     love.graphics.rectangle("fill",
-        pos.x - camera:x() - vis.width / 2,
-        pos.y - camera:y() - vis.height / 2,
+        pos.x - camera_x - vis.width / 2,
+        pos.y - camera_y - vis.height / 2,
         vis.width,
         vis.height)
 end
