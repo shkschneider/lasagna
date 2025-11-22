@@ -70,6 +70,7 @@ function PlayerSystem.update(self, dt)
     local col = self.components.collider
     local stance = self.components.stance
     local vis = self.components.visual
+    local EPSILON = 0.0001
 
     -- Handle crouching state
     local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
@@ -78,7 +79,32 @@ function PlayerSystem.update(self, dt)
     if is_crouching then
         stance.current = Stance.CROUCHING
     else
-        stance.current = Stance.STANDING
+        -- Check if player can stand up (need clearance above)
+        if prev_stance == Stance.CROUCHING then
+            local can_stand = true
+            local standing_top = pos.y - self.STANDING_HEIGHT / 2
+            local top_row = math.floor(standing_top / world.BLOCK_SIZE)
+            local left_col = math.floor((pos.x - col.width / 2) / world.BLOCK_SIZE)
+            local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / world.BLOCK_SIZE)
+            
+            -- Check if there's space to stand up
+            for c = left_col, right_col do
+                local block_def = world:get_block_def(pos.z, c, top_row)
+                if block_def and block_def.solid then
+                    can_stand = false
+                    break
+                end
+            end
+            
+            if can_stand then
+                stance.current = Stance.STANDING
+            else
+                -- Stay crouched, not enough space
+                stance.current = Stance.CROUCHING
+            end
+        else
+            stance.current = Stance.STANDING
+        end
     end
 
     -- Adjust player position when changing stance to keep bottom at same level
@@ -128,7 +154,6 @@ function PlayerSystem.update(self, dt)
     -- Apply horizontal velocity with collision
     local new_x = pos.x + vel.vx * dt
     local hit_wall = false
-    local EPSILON = 0.0001
 
     if vel.vx ~= 0 then
         local check_col
@@ -155,24 +180,19 @@ function PlayerSystem.update(self, dt)
         end
 
         -- Edge detection: prevent falling off edges while crouching
+        -- Allow player to move halfway off the edge
         if not hit_wall and stance.current == Stance.CROUCHING and phys.on_ground then
-            local ground_check_col
-            if vel.vx > 0 then
-                ground_check_col = math.floor((new_x + col.width / 2) / world.BLOCK_SIZE) + 1
-            else
-                ground_check_col = math.floor((new_x - col.width / 2) / world.BLOCK_SIZE) - 1
-            end
-
             local ground_check_row = math.floor((pos.y + col.height / 2) / world.BLOCK_SIZE) + 1
             local ground_exists = false
-
-            -- Check if there's ground at the edge
-            local block_def = world:get_block_def(pos.z, ground_check_col, ground_check_row)
+            
+            -- Check if the center of the player would be over empty space
+            local center_col = math.floor(new_x / world.BLOCK_SIZE)
+            local block_def = world:get_block_def(pos.z, center_col, ground_check_row)
             if block_def and block_def.solid then
                 ground_exists = true
             end
 
-            -- If no ground ahead, stop movement
+            -- If center would be over empty space, stop movement
             if not ground_exists then
                 hit_wall = true
             end
