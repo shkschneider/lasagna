@@ -15,9 +15,10 @@ end
 function Debug.draw(self)
     if self.enabled then
         love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.print(string.format("State: %s", G.components.gamestate:tostring()), 10, 120)
         love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
-        love.graphics.print(string.format("TimeScale: %s", G.components.timescale:tostring()), 10, 140)
+        love.graphics.print(string.format("State: %s", G.components.gamestate:tostring()), 10, 120)
+        love.graphics.print(string.format("Stance: %s", G.systems.player.components.stance.current), 10, 140)
+        love.graphics.print(string.format("TimeScale: %s", G.components.timescale:tostring()), 10, 160)
     end
 end
 

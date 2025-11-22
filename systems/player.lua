@@ -188,7 +188,7 @@ function PlayerSystem.update(self, dt)
             -- Check ground one row below player's feet
             local ground_check_row = math.floor((pos.y + col.height / 2) / world.BLOCK_SIZE) + 1
             local block_def = world:get_block_def(pos.z, next_col, ground_check_row)
-            
+
             -- If no ground in the next column, stop movement to prevent falling
             if not (block_def and block_def.solid) then
                 hit_wall = true
