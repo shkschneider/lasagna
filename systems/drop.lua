@@ -59,7 +59,7 @@ function DropSystem.update(self, dt)
             ent.position.x,
             ent.position.y + world.BLOCK_SIZE / 2
         )
-        local block_proto = world:get_block_proto(ent.position.z, col, row)
+        local block_proto = world:get_block_def(ent.position.z, col, row)
 
         if block_proto and block_proto.solid then
             ent.velocity.vy = 0

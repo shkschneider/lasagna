@@ -27,14 +27,14 @@ function WorldSystem.load(self, seed)
 
     -- Seed the noise library
     noise.seed(self.components.worlddata.seed)
-    
+
     -- Create canvases for layer rendering
     self:create_canvases()
 end
 
 function WorldSystem.create_canvases(self)
     self.screen_width, self.screen_height = love.graphics.getDimensions()
-    
+
     -- Create canvases for each layer
     self.canvases[-1] = love.graphics.newCanvas(self.screen_width, self.screen_height)
     self.canvases[0] = love.graphics.newCanvas(self.screen_width, self.screen_height)
@@ -48,42 +48,42 @@ end
 function WorldSystem.draw(self)
     local player_system = Systems.get("player")
     local camera_system = Systems.get("camera")
-    
+
     if not player_system or not camera_system then
         return
     end
-    
+
     local camera_x, camera_y = camera_system:get_offset()
     local player_x, player_y, player_z = player_system:get_position()
-    
+
     -- Clear screen with sky blue background
     love.graphics.clear(0.4, 0.6, 0.9, 1)
-    
+
     -- Calculate visible area
     local start_col = math.floor(camera_x / self.BLOCK_SIZE) - 1
     local end_col = math.ceil((camera_x + self.screen_width) / self.BLOCK_SIZE) + 1
     local start_row = math.floor(camera_y / self.BLOCK_SIZE) - 1
     local end_row = math.ceil((camera_y + self.screen_height) / self.BLOCK_SIZE) + 1
-    
+
     -- Clamp to world bounds
     start_col = math.max(0, start_col)
     end_col = math.min(self.WIDTH - 1, end_col)
     start_row = math.max(0, start_row)
     end_row = math.min(self.HEIGHT - 1, end_row)
-    
+
     -- Draw each layer to its canvas
     for layer = -1, 1 do
         local canvas = self.canvases[layer]
         if canvas then
             love.graphics.setCanvas(canvas)
             love.graphics.clear(0, 0, 0, 0)
-            
+
             -- Draw blocks
             for col = start_col, end_col do
                 for row = start_row, end_row do
-                    local block_id = self:get_block(layer, col, row)
+                    local block_id = self:get_block_id(layer, col, row)
                     local proto = Registry.Blocks:get(block_id)
-                    
+
                     if proto and proto.solid then
                         love.graphics.setColor(proto.color)
                         local x = col * self.BLOCK_SIZE - camera_x
@@ -92,11 +92,11 @@ function WorldSystem.draw(self)
                     end
                 end
             end
-            
+
             love.graphics.setCanvas()
         end
     end
-    
+
     -- Composite layers to screen
     -- Draw back layer (dimmed)
     if self.canvases[-1] then
@@ -107,7 +107,7 @@ function WorldSystem.draw(self)
         end
         love.graphics.draw(self.canvases[-1], 0, 0)
     end
-    
+
     -- Draw main layer
     if self.canvases[0] then
         if player_z == 0 then
@@ -117,7 +117,7 @@ function WorldSystem.draw(self)
         end
         love.graphics.draw(self.canvases[0], 0, 0)
     end
-    
+
     -- Draw front layer (semi-transparent)
     if self.canvases[1] then
         if player_z == 1 then
@@ -203,7 +203,7 @@ function WorldSystem.generate_terrain(self, z, col)
 end
 
 -- Get block at position
-function WorldSystem.get_block(self, z, col, row)
+function WorldSystem.get_block_id(self, z, col, row)
     if col < 0 or col >= self.components.worlddata.width or
        row < 0 or row >= self.components.worlddata.height then
         return BLOCKS.AIR
@@ -221,8 +221,8 @@ function WorldSystem.get_block(self, z, col, row)
 end
 
 -- Get block prototype at position
-function WorldSystem.get_block_proto(self, z, col, row)
-    local block_id = self.get_block(self, z, col, row)
+function WorldSystem.get_block_def(self, z, col, row)
+    local block_id = self.get_block_id(self, z, col, row)
     return Registry.Blocks:get(block_id)
 end
 
@@ -260,8 +260,8 @@ function WorldSystem.find_spawn_position(self, start_col, start_z)
 
     -- Find ground
     for row = 0, self.components.worlddata.height - 1 do
-        local block_proto = self.get_block_proto(self, z, col, row)
-        if block_proto and block_proto.solid then
+        local block_def = self.get_block_def(self, z, col, row)
+        if block_def and block_def.solid then
             -- Found ground, spawn 2 blocks above
             local spawn_x = col * self.BLOCK_SIZE + self.BLOCK_SIZE / 2
             local spawn_y = (row - 2) * self.BLOCK_SIZE + self.BLOCK_SIZE

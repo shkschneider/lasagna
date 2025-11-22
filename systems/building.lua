@@ -52,7 +52,7 @@ function BuildingSystem.has_adjacent_block(self, col, row, layer)
     for _, offset in ipairs(offsets) do
         local check_col = col + offset[1]
         local check_row = row + offset[2]
-        local proto = world:get_block_proto(layer, check_col, check_row)
+        local proto = world:get_block_def(layer, check_col, check_row)
         if proto and proto.solid then
             return true
         end
@@ -73,7 +73,7 @@ function BuildingSystem.place_block(self, col, row)
     end
 
     -- Check if spot is empty
-    local current_block = world:get_block(player_z, col, row)
+    local current_block = world:get_block_id(player_z, col, row)
     if current_block ~= BLOCKS.AIR then
         return
     end
