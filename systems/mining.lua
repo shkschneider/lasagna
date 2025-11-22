@@ -1,5 +1,5 @@
 -- Mining System
--- Handles block mining and placing
+-- Handles block mining
 
 local Systems = require "systems"
 local Registry = require "registries"
@@ -20,6 +20,10 @@ function MiningSystem.update(self, dt)
 end
 
 function MiningSystem.mousepressed(self, x, y, button)
+    if button ~= 1 then
+        return
+    end
+
     -- Get systems from G
     local world_system = Systems.get("world")
     local player_system = Systems.get("player")
@@ -35,13 +39,8 @@ function MiningSystem.mousepressed(self, x, y, button)
 
     local col, row = world_system:world_to_block(world_x, world_y)
 
-    if button == 1 then
-        -- Left click: mine block
-        self:mine_block(col, row, world_system, player_system)
-    elseif button == 2 then
-        -- Right click: place block
-        self:place_block(col, row, world_system, player_system)
-    end
+    -- Left click: mine block
+    self:mine_block(col, row, world_system, player_system)
 end
 
 function MiningSystem.mine_block(self, col, row, world_system, player_system)
@@ -78,52 +77,6 @@ function MiningSystem.mine_block(self, col, row, world_system, player_system)
                 )
             end
         end
-    end
-end
-
-function MiningSystem.has_adjacent_block(self, col, row, layer, world_system)
-    -- Check all 8 surrounding positions for solid blocks
-    local offsets = {
-        {-1, -1}, {0, -1}, {1, -1},  -- top row
-        {-1,  0},          {1,  0},  -- middle row (left and right)
-        {-1,  1}, {0,  1}, {1,  1},  -- bottom row
-    }
-    
-    for _, offset in ipairs(offsets) do
-        local check_col = col + offset[1]
-        local check_row = row + offset[2]
-        local proto = world_system:get_block_proto(layer, check_col, check_row)
-        if proto and proto.solid then
-            return true
-        end
-    end
-    
-    return false
-end
-
-function MiningSystem.place_block(self, col, row, world_system, player_system)
-    local player_x, player_y, player_layer = player_system:get_position()
-    local block_id = player_system:get_selected_block_id()
-
-    if not block_id then
-        return
-    end
-
-    -- Check if spot is empty
-    local current_block = world_system:get_block(player_layer, col, row)
-    if current_block ~= BLOCKS.AIR then
-        return
-    end
-
-    -- Check if there's at least one adjacent solid block
-    if not self:has_adjacent_block(col, row, player_layer, world_system) then
-        return
-    end
-
-    -- Place block
-    if world_system:set_block(player_layer, col, row, block_id) then
-        -- Remove from inventory
-        player_system:remove_from_selected(1)
     end
 end
 

@@ -15,6 +15,7 @@ local Game = {
         world = require("systems.world"),
         player = require("systems.player"),
         mining = require("systems.mining"),
+        building = require("systems.building"),
         drop = require("systems.drop"),
         camera = require("systems.camera"),
         render = require("systems.render"),
