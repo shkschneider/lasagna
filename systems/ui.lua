@@ -22,6 +22,9 @@ function UISystem.draw(self)
         return
     end
 
+    -- Get current screen dimensions dynamically
+    local screen_width, screen_height = love.graphics.getDimensions()
+
     local camera_x, camera_y = camera_system:get_offset()
     local pos = player_system.components.position
     local inv = player_system.components.inventory
@@ -43,14 +46,14 @@ function UISystem.draw(self)
     local world_x = mouse_x + camera_x
     local world_y = mouse_y + camera_y
     local mouse_col, mouse_row = world_system:world_to_block(world_x, world_y)
-    local block_proto = world_system:get_block_def(pos.z, mouse_col, mouse_row)
+    local block_proto = world_system:get_block_proto(pos.z, mouse_col, mouse_row)
     local block_name = block_proto and block_proto.name or "Air"
     love.graphics.print(string.format("Mouse: %d, %d (%s)", mouse_col, mouse_row, block_name), 10, 70)
 
     -- Draw hotbar
-    local hotbar_y = self.screen_height - 80
+    local hotbar_y = screen_height - 80
     local slot_size = 60
-    local hotbar_x = (self.screen_width - (inv.hotbar_size * slot_size)) / 2
+    local hotbar_x = (screen_width - (inv.hotbar_size * slot_size)) / 2
 
     for i = 1, inv.hotbar_size do
         local x = hotbar_x + (i - 1) * slot_size
@@ -91,7 +94,7 @@ function UISystem.draw(self)
             love.graphics.setColor(1, 1, 1, 1)
             local text = proto.name
             local text_width = love.graphics.getFont():getWidth(text)
-            love.graphics.print(text, (self.screen_width - text_width) / 2, hotbar_y - 25)
+            love.graphics.print(text, (screen_width - text_width) / 2, hotbar_y - 25)
         end
     end
 end

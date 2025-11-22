@@ -53,6 +53,17 @@ function WorldSystem.draw(self)
         return
     end
 
+    -- Get current screen dimensions dynamically
+    local screen_width, screen_height = love.graphics.getDimensions()
+    
+    -- Recreate canvases if screen size changed
+    if not self.screen_width or not self.screen_height or 
+       self.screen_width ~= screen_width or self.screen_height ~= screen_height then
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self:create_canvases()
+    end
+
     local camera_x, camera_y = camera_system:get_offset()
     local player_x, player_y, player_z = player_system:get_position()
 
@@ -61,9 +72,9 @@ function WorldSystem.draw(self)
 
     -- Calculate visible area
     local start_col = math.floor(camera_x / self.BLOCK_SIZE) - 1
-    local end_col = math.ceil((camera_x + self.screen_width) / self.BLOCK_SIZE) + 1
+    local end_col = math.ceil((camera_x + screen_width) / self.BLOCK_SIZE) + 1
     local start_row = math.floor(camera_y / self.BLOCK_SIZE) - 1
-    local end_row = math.ceil((camera_y + self.screen_height) / self.BLOCK_SIZE) + 1
+    local end_row = math.ceil((camera_y + screen_height) / self.BLOCK_SIZE) + 1
 
     -- Clamp to world bounds
     start_col = math.max(0, start_col)
