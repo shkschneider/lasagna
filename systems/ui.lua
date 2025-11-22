@@ -46,8 +46,8 @@ function UISystem.draw(self)
     local world_x = mouse_x + camera_x
     local world_y = mouse_y + camera_y
     local mouse_col, mouse_row = world_system:world_to_block(world_x, world_y)
-    local block_proto = world_system:get_block_proto(pos.z, mouse_col, mouse_row)
-    local block_name = block_proto and block_proto.name or "Air"
+    local block_def = world_system:get_block_def(pos.z, mouse_col, mouse_row)
+    local block_name = block_def and block_def.name or "Air"
     love.graphics.print(string.format("Mouse: %d, %d (%s)", mouse_col, mouse_row, block_name), 10, 70)
 
     -- Draw hotbar
