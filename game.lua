@@ -7,17 +7,20 @@ local render = require("render")
 local entities = require("entities")
 local blocks = require("blocks")
 local inventory = require("inventory")
+local States = require("states")
 
 local game = {}
 
 function game.new(seed, debug)
     local self = {
+        state = States.BOOT,
         world = world.new(seed),
         player = nil,
         camera = nil,
         renderer = render.new(),
         entities = entities.new(),
         debug = debug or false,
+        timeScale = 1,
         paused = false,
     }
 
@@ -34,18 +37,22 @@ function game.new(seed, debug)
     -- Initialize camera
     self.camera = camera.new(spawn_x, spawn_y)
 
+    self.state = States.LOADING
     return self
 end
 
 function game.load(self)
     -- Create render canvases
     render.create_canvases(self.renderer)
+    self.state = States.PLAYING
 end
 
 function game.update(self, dt)
     if self.paused then
         return
     end
+
+    dt = dt * self.timeScale
 
     -- Update player
     player.update(self.player, dt, self.world)
@@ -79,8 +86,9 @@ function game.draw(self)
     -- Debug info
     if self.debug then
         love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.print("FPS: " .. love.timer.getFPS(), 10, 100)
-        love.graphics.print("Seed: " .. self.world.seed, 10, 120)
+        love.graphics.print(string.format("Seed: %s", self.world.seed), 10, 120)
+        love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
+        love.graphics.print(string.format("TimeScale: %f", self.timeScale), 10, 140)
     end
 end
 
@@ -104,16 +112,24 @@ function game.keypressed(self, key)
         inventory.select_slot(self.player.inventory, num)
     end
 
-    -- Debug: add test item
-    if key == "t" and self.debug then
-        inventory.add(self.player.inventory, blocks.COPPER_ORE, 5)
+    if self.debug then
+        -- Development: adjust omnitool tier
+        if key == "=" or key == "+" then
+            self.player.omnitool_tier = math.min(10, self.player.omnitool_tier + 1)
+        elseif key == "-" or key == "_" then
+            self.player.omnitool_tier = math.max(0, self.player.omnitool_tier - 1)
+        end
+        -- Development: adjust time
+        if key == "[" then
+            self.timeScale = self.timeScale / 2
+        elseif key == "]" then
+            self.timeScale = self.timeScale * 2
+        end
     end
 
-    -- Development: adjust omnitool tier
-    if key == "=" or key == "+" then
-        self.player.omnitool_tier = math.min(10, self.player.omnitool_tier + 1)
-    elseif key == "-" or key == "_" then
-        self.player.omnitool_tier = math.max(0, self.player.omnitool_tier - 1)
+    -- Development
+    if key == "backspace" then
+        self.debug = not self.debug
     end
 
     -- Reload world (complete reset)
