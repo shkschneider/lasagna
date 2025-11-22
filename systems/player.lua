@@ -70,7 +70,6 @@ function PlayerSystem.update(self, dt)
     local col = self.components.collider
     local stance = self.components.stance
     local vis = self.components.visual
-    local EPSILON = 0.0001
 
     -- Handle crouching state
     local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
@@ -86,7 +85,7 @@ function PlayerSystem.update(self, dt)
             local top_row = math.floor(standing_top / world.BLOCK_SIZE)
             local left_col = math.floor((pos.x - col.width / 2) / world.BLOCK_SIZE)
             local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / world.BLOCK_SIZE)
-            
+
             -- Check if there's space to stand up
             for c = left_col, right_col do
                 local block_def = world:get_block_def(pos.z, c, top_row)
@@ -95,7 +94,7 @@ function PlayerSystem.update(self, dt)
                     break
                 end
             end
-            
+
             if can_stand then
                 stance.current = Stance.STANDING
             else
@@ -111,7 +110,7 @@ function PlayerSystem.update(self, dt)
     if prev_stance ~= stance.current then
         local prev_height = prev_stance == Stance.STANDING and self.STANDING_HEIGHT or self.CROUCHING_HEIGHT
         local new_height = stance.current == Stance.STANDING and self.STANDING_HEIGHT or self.CROUCHING_HEIGHT
-        
+
         -- Keep the bottom of the player at the same position
         -- pos.y is center, so bottom is at pos.y + height/2
         local bottom_y = pos.y + prev_height / 2
@@ -184,7 +183,7 @@ function PlayerSystem.update(self, dt)
         if not hit_wall and stance.current == Stance.CROUCHING and phys.on_ground then
             local ground_check_row = math.floor((pos.y + col.height / 2) / world.BLOCK_SIZE) + 1
             local ground_exists = false
-            
+
             -- Check if there's ground under the edge we're moving toward
             -- Allow movement until half the player's width would be over the edge
             local edge_check_col
@@ -195,7 +194,7 @@ function PlayerSystem.update(self, dt)
                 -- Moving left: check if left half would be over empty space
                 edge_check_col = math.floor((new_x - col.width / 4) / world.BLOCK_SIZE)
             end
-            
+
             local block_def = world:get_block_def(pos.z, edge_check_col, ground_check_row)
             if block_def and block_def.solid then
                 ground_exists = true
@@ -318,7 +317,6 @@ end
 function PlayerSystem.check_collision(self, x, y, layer)
     local world = Systems.get("world")
     local collider = self.components.collider
-    local EPSILON = 0.0001
 
     local left = x - collider.width / 2
     local right = x + collider.width / 2
