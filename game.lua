@@ -13,12 +13,12 @@ local Game = {
     },
     systems = {
         world = require("systems.world"),
+        camera = require("systems.camera"),
         player = require("systems.player"),
         mining = require("systems.mining"),
         building = require("systems.building"),
         drop = require("systems.drop"),
-        camera = require("systems.camera"),
-        render = require("systems.render"),
+        ui = require("systems.ui"),
         debug = require("systems.debug"),
     },
 }
