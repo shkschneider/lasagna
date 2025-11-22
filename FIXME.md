@@ -1,4 +1,3 @@
 # FIXME
 
-- player spawns inside ground (okay upon reset)
-
+- camera system not centered on player

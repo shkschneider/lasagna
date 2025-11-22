@@ -221,6 +221,7 @@ function PlayerSystem.can_switch_layer(self, target_layer)
 end
 
 function PlayerSystem.check_collision(self, x, y, layer)
+    local world_system = G:get_system("world")
     local col = self.components.collider
     local EPSILON = 0.0001
 
