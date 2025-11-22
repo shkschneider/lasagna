@@ -135,7 +135,7 @@ function player.check_collision(self, w, x, y, layer)
     layer = layer or self.layer
 
     -- Player bounding box
-    -- Player is 32 pixels wide (exactly 1 block) and 64 pixels tall (exactly 2 blocks)
+    -- Player is world.BLOCK_SIZE wide (exactly 1 block) and world.BLOCK_SIZE*2 tall (exactly 2 blocks)
     local left = x - self.width / 2
     local right = x + self.width / 2
     local top = y - self.height / 2

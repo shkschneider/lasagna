@@ -25,7 +25,8 @@ This implementation covers ROADMAP items v0.0 (Project Setup) and v0.1 (Core Pla
 #### Player
 - WASD or Arrow keys for horizontal movement
 - Space, W, or Up arrow to jump
-- Player size: 32x64 pixels (1 block wide, 2 blocks tall)
+- Player size: BLOCK_SIZE×(BLOCK_SIZE*2) pixels (1 block wide, 2 blocks tall)
+- With BLOCK_SIZE=16: player is 16×32 pixels
 - AABB collision detection with proper physics
 - Player renders as white rectangle
 
@@ -54,7 +55,8 @@ This implementation covers ROADMAP items v0.0 (Project Setup) and v0.1 (Core Pla
 
 #### Drops & Pickup
 - Destroyed blocks spawn drop entities
-- Drops size: 16x16 pixels (half of block size)
+- Drops size: (BLOCK_SIZE/2)×(BLOCK_SIZE/2) pixels (half of block size)
+- With BLOCK_SIZE=16: drops are 8×8 pixels
 - Drops have physics (gravity, collision, friction)
 - Drops automatically picked up when player is near (same layer only)
 - Pickup has 0.5 second delay after spawn
@@ -137,7 +139,7 @@ DEBUG=true SEED=42 love .
 - [ ] Player collides with ground (AABB collision)
 - [ ] Player collides with ceiling (AABB collision)
 - [ ] Player collides with walls (AABB collision)
-- [ ] Player is 32x64 pixels (1 block wide, 2 blocks tall)
+- [ ] Player is BLOCK_SIZE wide and BLOCK_SIZE*2 tall (1 block wide, 2 blocks tall)
 - [ ] Camera follows player smoothly
 
 ### Layer System
@@ -170,7 +172,7 @@ DEBUG=true SEED=42 love .
 
 ### Drops & Pickup
 - [ ] Drops spawn at block center
-- [ ] Drops are 16x16 pixels (half block size)
+- [ ] Drops are (BLOCK_SIZE/2)×(BLOCK_SIZE/2) pixels (half block size)
 - [ ] Drops fall and collide with ground
 - [ ] Walking near drop picks it up
 - [ ] Drops only picked up on same layer

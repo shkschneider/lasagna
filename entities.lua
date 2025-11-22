@@ -106,7 +106,7 @@ function entities.draw(ent_system, camera_x, camera_y)
             local proto = blocks.get_proto(ent.block_id)
             if proto then
                 love.graphics.setColor(proto.color)
-                -- Drops are half the width and height of blocks (16x16)
+                -- Drops are half the width and height of blocks (BLOCK_SIZE/2 × BLOCK_SIZE/2)
                 love.graphics.rectangle("fill",
                     ent.x - camera_x - world.BLOCK_SIZE / 4,
                     ent.y - camera_y - world.BLOCK_SIZE / 4,
