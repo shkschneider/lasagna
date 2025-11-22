@@ -18,6 +18,14 @@ local Game = {
     },
 }
 
+function Game.world(self)
+    return self.systems["world"]
+end
+
+function Game.player(self)
+    return self.systems["player"]
+end
+
 function Game.load(self, seed, debug)
     -- Initialize components
     self.components.gamestate = GameState.new(States.BOOT, debug, seed)
