@@ -46,26 +46,26 @@ function WorldSystem.update(self, dt)
 end
 
 function WorldSystem.draw(self)
-    local player_system = Systems.get("player")
-    local camera_system = Systems.get("camera")
+    local player = Systems.get("player")
+    local camera = Systems.get("camera")
 
-    if not player_system or not camera_system then
+    if not player or not camera then
         return
     end
 
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
-    
+
     -- Recreate canvases if screen size changed
-    if not self.screen_width or not self.screen_height or 
+    if not self.screen_width or not self.screen_height or
        self.screen_width ~= screen_width or self.screen_height ~= screen_height then
         self.screen_width = screen_width
         self.screen_height = screen_height
         self:create_canvases()
     end
 
-    local camera_x, camera_y = camera_system:get_offset()
-    local player_x, player_y, player_z = player_system:get_position()
+    local camera_x, camera_y = camera:get_offset()
+    local player_x, player_y, player_z = player:get_position()
 
     -- Clear screen with sky blue background
     love.graphics.clear(0.4, 0.6, 0.9, 1)

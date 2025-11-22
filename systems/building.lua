@@ -11,13 +11,9 @@ local BuildingSystem = {
     priority = 61,
 }
 
-function BuildingSystem.load(self)
-    -- No need to store references, will use Systems.get
-end
+function BuildingSystem.load(self) end
 
-function BuildingSystem.update(self, dt)
-    -- Building happens on mouse press, handled in mousepressed
-end
+function BuildingSystem.update(self, dt) end
 
 function BuildingSystem.mousepressed(self, x, y, button)
     if button ~= 2 then

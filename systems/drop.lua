@@ -14,7 +14,6 @@ local DropSystem = {
     id = "drop",
     priority = 70,
     entities = {},
-    next_id = 1,
 }
 
 function DropSystem.load(self)
@@ -59,9 +58,9 @@ function DropSystem.update(self, dt)
             ent.position.x,
             ent.position.y + world.BLOCK_SIZE / 2
         )
-        local block_proto = world:get_block_def(ent.position.z, col, row)
+        local block_def = world:get_block_def(ent.position.z, col, row)
 
-        if block_proto and block_proto.solid then
+        if block_def and block_def.solid then
             ent.velocity.vy = 0
             ent.position.y = row * world.BLOCK_SIZE - world.BLOCK_SIZE / 2
         end

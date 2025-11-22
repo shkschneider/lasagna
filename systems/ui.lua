@@ -14,21 +14,17 @@ function UISystem.load(self)
 end
 
 function UISystem.draw(self)
-    local player_system = Systems.get("player")
-    local world_system = Systems.get("world")
-    local camera_system = Systems.get("camera")
-
-    if not player_system or not world_system or not camera_system then
-        return
-    end
+    local player = Systems.get("player")
+    local world = Systems.get("world")
+    local camera = Systems.get("camera")
 
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
 
-    local camera_x, camera_y = camera_system:get_offset()
-    local pos = player_system.components.position
-    local inv = player_system.components.inventory
-    local omnitool = player_system.components.omnitool
+    local camera_x, camera_y = camera:get_offset()
+    local pos = player.components.position
+    local inv = player.components.inventory
+    local omnitool = player.components.omnitool
 
     -- Layer indicator
     love.graphics.setColor(1, 1, 1, 1)
@@ -38,15 +34,15 @@ function UISystem.draw(self)
     love.graphics.print(string.format("Omnitool Tier: %d", omnitool.tier), 10, 30)
 
     -- Player position
-    local block_x, block_y = world_system:world_to_block(pos.x, pos.y)
+    local block_x, block_y = world:world_to_block(pos.x, pos.y)
     love.graphics.print(string.format("Position: %d, %d", block_x, block_y), 10, 50)
 
     -- Mouse position and block under cursor
     local mouse_x, mouse_y = love.mouse.getPosition()
     local world_x = mouse_x + camera_x
     local world_y = mouse_y + camera_y
-    local mouse_col, mouse_row = world_system:world_to_block(world_x, world_y)
-    local block_def = world_system:get_block_def(pos.z, mouse_col, mouse_row)
+    local mouse_col, mouse_row = world:world_to_block(world_x, world_y)
+    local block_def = world:get_block_def(pos.z, mouse_col, mouse_row)
     local block_name = block_def and block_def.name or "Air"
     love.graphics.print(string.format("Mouse: %d, %d (%s)", mouse_col, mouse_row, block_name), 10, 70)
 

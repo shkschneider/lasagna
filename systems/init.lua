@@ -20,8 +20,10 @@ function Systems.load(systems, seed)
         elseif id == "camera" then
             assert(x and y)
             system:load(x, y)
-        else
+        elseif type(system.load) == "function" then
             system:load()
+        else
+            log.warn("System", id, "without load()")
         end
     end
 end

@@ -12,11 +12,9 @@ local MiningSystem = {
 }
 
 function MiningSystem.load(self)
-    -- No need to store references, will use Systems.get
 end
 
 function MiningSystem.update(self, dt)
-    -- Mining happens on mouse press, handled in mousepressed
 end
 
 function MiningSystem.mousepressed(self, x, y, button)
@@ -28,10 +26,6 @@ function MiningSystem.mousepressed(self, x, y, button)
     local world_system = Systems.get("world")
     local player_system = Systems.get("player")
     local camera_system = Systems.get("camera")
-
-    if not world_system or not player_system or not camera_system then
-        return
-    end
 
     local camera_x, camera_y = camera_system:get_offset()
     local world_x = x + camera_x
