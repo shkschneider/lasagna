@@ -237,13 +237,10 @@ function PlayerSystem.update(self, dt)
 
     if not hit_ground then
         pos.y = new_y
-        -- Set stance to JUMPING if in air and not already jumping
-        if stance.current ~= Stance.JUMPING then
-            stance.current = Stance.JUMPING
-        end
     end
 
-    -- Update stance based on ground contact
+    -- Update stance based on ground contact  
+    -- When landing while jumping, return to standing or crouching
     if hit_ground and stance.current == Stance.JUMPING then
         -- Land on ground - return to standing or crouching based on input
         local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
@@ -254,9 +251,9 @@ function PlayerSystem.update(self, dt)
         end
     end
 
-    -- Jump (after stance update so we know if we're on ground)
-    local on_ground = Stance.is_on_ground(stance)
-    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground then
+    -- Jump (after ground detection so we know if we're on ground)
+    -- Can only jump if not already in JUMPING stance
+    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and stance.current ~= Stance.JUMPING and hit_ground then
         -- Jump height is half when crouching
         local jump_force = self.JUMP_FORCE
         if stance.current == Stance.CROUCHING then
