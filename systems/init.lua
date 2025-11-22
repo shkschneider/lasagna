@@ -8,7 +8,7 @@ end
 
 function Systems.load(systems, seed)
     local ordered = {}
-    for id, system in Systems.each(systems) do
+    for id, system in Systems.iterate(systems) do
         assert(id)
         log.debug("system:", id)
         if id == "world" then
@@ -26,7 +26,7 @@ function Systems.load(systems, seed)
     end
 end
 
-function Systems.each(systems)
+function Systems.iterate(systems)
     local list = {}
     for id, system in pairs(systems) do
         list[#list + 1] = system

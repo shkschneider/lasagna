@@ -47,7 +47,7 @@ function Game.update(self, dt)
     dt = dt * self.components.timescale.scale
 
     -- Update all systems
-    for _, system in Systems.each(self.systems) do
+    for _, system in Systems.iterate(self.systems) do
         if type(system.update) == "function" then
             system:update(dt)
         end
@@ -56,7 +56,7 @@ end
 
 function Game.draw(self)
     -- Draw all systems
-    for _, system in Systems.each(self.systems) do
+    for _, system in Systems.iterate(self.systems) do
         if type(system.draw) == "function" then
             system:draw()
         end
@@ -80,7 +80,7 @@ function Game.keypressed(self, key)
     end
 
     -- Pass to all systems
-    for _, system in Systems.each(self.systems) do
+    for _, system in Systems.iterate(self.systems) do
         if type(system.keypressed) == "function" then
             system:keypressed(key)
         end
@@ -89,7 +89,7 @@ end
 
 function Game.keyreleased(self, key)
     -- Pass to all systems
-    for _, system in Systems.each(self.systems) do
+    for _, system in Systems.iterate(self.systems) do
         if type(system.keyreleased) == "function" then
             system:keyreleased(key)
         end
@@ -98,7 +98,7 @@ end
 
 function Game.mousepressed(self, x, y, button)
     -- Pass to all systems
-    for _, system in Systems.each(self.systems) do
+    for _, system in Systems.iterate(self.systems) do
         if type(system.mousepressed) == "function" then
             system:mousepressed(x, y, button)
         end
@@ -107,7 +107,7 @@ end
 
 function Game.mousereleased(self, x, y, button)
     -- Pass to all systems
-    for _, system in Systems.each(self.systems) do
+    for _, system in Systems.iterate(self.systems) do
         if type(system.mousereleased) == "function" then
             system:mousereleased(x, y, button)
         end
@@ -116,7 +116,7 @@ end
 
 function Game.mousemoved(self, x, y, dx, dy)
     -- Pass to all systems
-    for _, system in Systems.each(self.systems) do
+    for _, system in Systems.iterate(self.systems) do
         if type(system.mousemoved) == "function" then
             system:mousemoved(x, y, dx, dy)
         end
@@ -125,7 +125,7 @@ end
 
 function Game.wheelmoved(self, x, y)
     -- Pass to all systems
-    for _, system in Systems.each(self.systems) do
+    for _, system in Systems.iterate(self.systems) do
         if type(system.wheelmoved) == "function" then
             system:wheelmoved(x, y)
         end
@@ -134,7 +134,7 @@ end
 
 function Game.resize(self, width, height)
     -- Pass to all systems
-    for _, system in Systems.each(self.systems) do
+    for _, system in Systems.iterate(self.systems) do
         if type(system.resize) == "function" then
             system:resize(width, height)
         end
@@ -143,7 +143,7 @@ end
 
 function Game.focus(self, focused)
     -- Pass to all systems
-    for _, system in Systems.each(self.systems) do
+    for _, system in Systems.iterate(self.systems) do
         if type(system.focus) == "function" then
             system:focus(focused)
         end
@@ -152,7 +152,7 @@ end
 
 function Game.quit(self)
     -- Pass to all systems
-    for _, system in Systems.each(self.systems) do
+    for _, system in Systems.iterate(self.systems) do
         if type(system.quit) == "function" then
             system:quit()
         end

@@ -1,3 +1,5 @@
+random = random or love.math.random
+
 function uuid()
     local template ='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
     return string.gsub(template, '[xy]', function (c)
