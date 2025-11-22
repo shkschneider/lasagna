@@ -1,7 +1,11 @@
 -- Camera System
 -- Manages camera positioning and smooth following
 
+local log = require "lib.log"
+
+local Systems = require "systems"
 local Camera = require("components.camera")
+local Position = require("components.position")
 
 local CameraSystem = {
     id = "camera",
@@ -10,6 +14,8 @@ local CameraSystem = {
 }
 
 function CameraSystem.load(self, x, y)
+    self.components.position = Position.new(x, y, nil)
+    log.debug("Camera:", self.components.position:tostring())
     self.components.camera = Camera.new(x, y, x, y, 5)
     self.screen_width = 1280
     self.screen_height = 720
@@ -27,12 +33,9 @@ function CameraSystem.update(self, dt)
     local cam = self.components.camera
 
     -- Get player position from PlayerSystem
-    local player_system = G:get_system("player")
-    if player_system then
-        local target_x, target_y = player_system:get_position()
-        cam.target_x = target_x
-        cam.target_y = target_y
-    end
+    local target_x, target_y = Systems.get("player"):get_position()
+    cam.target_x = target_x
+    cam.target_y = target_y
 
     -- Smooth interpolation
     local dx = cam.target_x - cam.x

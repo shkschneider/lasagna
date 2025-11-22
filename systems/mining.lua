@@ -1,6 +1,7 @@
 -- Mining System
 -- Handles block mining and placing
 
+local Systems = require "systems"
 local Registry = require("registries.init")
 local BLOCK_IDS = Registry.block_ids()
 local BlocksRegistry = Registry.blocks()
@@ -11,7 +12,7 @@ local MiningSystem = {
 }
 
 function MiningSystem.load(self)
-    -- No need to store references, will use G.get_system
+    -- No need to store references, will use Systems.get
 end
 
 function MiningSystem.update(self, dt)
@@ -20,9 +21,9 @@ end
 
 function MiningSystem.mousepressed(self, x, y, button)
     -- Get systems from G
-    local world_system = G:get_system("world")
-    local player_system = G:get_system("player")
-    local camera_system = G:get_system("camera")
+    local world_system = Systems.get("world")
+    local player_system = Systems.get("player")
+    local camera_system = Systems.get("camera")
 
     if not world_system or not player_system or not camera_system then
         return
@@ -63,7 +64,7 @@ function MiningSystem.mine_block(self, col, row, world_system, player_system)
 
     -- Spawn drop
     if proto.drops then
-        local drop_system = G:get_system("drop")
+        local drop_system = Systems.get("drop")
         if drop_system then
             local drop_id, drop_count = proto.drops()
             if drop_id then

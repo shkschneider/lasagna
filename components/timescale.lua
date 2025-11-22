@@ -3,13 +3,13 @@
 
 local TimeScale = {}
 
-function TimeScale.new(scale, paused)
+function TimeScale.new(scale)
     return {
         id = "timescale",
         scale = scale or 1,
-        paused = paused or false,
-        tostring = function()
-            return string.format("%.f", scale)
+        paused = false,
+        tostring = function(self)
+            return string.format("%s:%f", tostring(not self.paused), self.scale)
         end
     }
 end

@@ -1,6 +1,7 @@
 -- Render System
 -- Handles all rendering operations
 
+local Systems = require "systems"
 local Registry = require("registries.init")
 local BlocksRegistry = Registry.blocks()
 
@@ -27,9 +28,9 @@ end
 
 function RenderSystem.draw(self)
     -- Get systems from G
-    local world_system = G:get_system("world")
-    local player_system = G:get_system("player")
-    local camera_system = G:get_system("camera")
+    local world_system = Systems.get("world")
+    local player_system = Systems.get("player")
+    local camera_system = Systems.get("camera")
 
     if not world_system or not player_system or not camera_system then
         return
@@ -132,7 +133,7 @@ function RenderSystem.draw_ui(self, player_system, world_system, camera_x, camer
 
     -- Layer indicator
     love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.print(string.format("Layer: %d", pos.layer), 10, 10)
+    love.graphics.print(string.format("Layer: %d", pos.z), 10, 10)
 
     -- Omnitool tier
     love.graphics.print(string.format("Omnitool Tier: %d", omnitool.tier), 10, 30)
@@ -146,7 +147,7 @@ function RenderSystem.draw_ui(self, player_system, world_system, camera_x, camer
     local world_x = mouse_x + camera_x
     local world_y = mouse_y + camera_y
     local mouse_col, mouse_row = world_system:world_to_block(world_x, world_y)
-    local block_proto = world_system:get_block_proto(pos.layer, mouse_col, mouse_row)
+    local block_proto = world_system:get_block_proto(pos.z, mouse_col, mouse_row)
     local block_name = block_proto and block_proto.name or "Air"
     love.graphics.print(string.format("Mouse: %d, %d (%s)", mouse_col, mouse_row, block_name), 10, 70)
 

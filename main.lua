@@ -3,25 +3,23 @@
 
 -- Global
 G = require("game")
+G.VERSION = { major = 0, minor = 1, patch = 3, tostring = function(self)
+    return string.format("%d.%d.%d", self.major, self.minor, self.patch)
+end }
 
 local log = require("lib.log")
 
 function love.load()
-    log.debug("...")
-
     -- Parse environment variables
-    local debug = os.getenv("DEBUG") == "true"
-    local seed = tonumber(os.getenv("SEED") or math.floor(love.math.random() * 1e10))
+    local debug = true -- os.getenv("DEBUG") == "true"
+    local seed = tonumber(os.getenv("SEED"))
 
-    if debug then
-        log.level = "debug"
-        log.debug("Debug mode enabled")
-    end
+    log.level = debug and "debug" or "warn"
 
     -- Initialize Game and all systems
+    log.debug("...")
     G:load(seed, debug)
-
-    log.info("Lasagna v0.1")
+    log.info("Lasagna", G.VERSION:tostring())
 end
 
 function love.update(dt)

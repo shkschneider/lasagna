@@ -3,14 +3,14 @@
 
 local Position = {}
 
-function Position.new(x, y, layer)
+function Position.new(x, y, z)
     return {
         id = "position",
         x = x or 0,
         y = y or 0,
-        layer = layer or 0,
-        tostring = function()
-            return string.format("%d,%d,%d", x, y, layer)
+        z = z or 0,
+        tostring = function(self)
+            return string.format("%d,%d,%d", self.x, self.y, self.z)
         end
     }
 end

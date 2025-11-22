@@ -1,19 +1,47 @@
--- Systems Module
--- Shared definitions and constants for systems
+local log = require "lib.log"
 
-local Systems = {
-    -- System priority constants
-    PRIORITY_GAME = 0,
-    PRIORITY_WORLD = 10,
-    PRIORITY_PLAYER = 20,
-    PRIORITY_INPUT = 30,
-    PRIORITY_PHYSICS = 40,
-    PRIORITY_COLLISION = 50,
-    PRIORITY_MINING = 60,
-    PRIORITY_DROP = 70,
-    PRIORITY_LAYER = 80,
-    PRIORITY_CAMERA = 90,
-    PRIORITY_RENDER = 100,
-}
+local Systems = {}
+
+function Systems.get(name)
+    return G.systems[name]
+end
+
+function Systems.load(systems, seed)
+    local ordered = {}
+    for id, system in Systems.each(systems) do
+        assert(id)
+        log.debug("system:", id)
+        if id == "world" then
+            system:load(seed)
+            x, y, z = system:find_spawn_position(math.floor(system.WIDTH / 2), 0)
+        elseif id == "player" then
+            assert(x and y and z)
+            system:load(x, y, z)
+        elseif id == "camera" then
+            assert(x and y)
+            system:load(x, y)
+        else
+            system:load()
+        end
+    end
+end
+
+function Systems.each(systems)
+    local list = {}
+    for id, system in pairs(systems) do
+        list[#list + 1] = system
+    end
+    table.sort(list, function(a, b)
+        return (a.priority or 1e9) < (b.priority or 1e9)
+    end)
+    local i = 0
+    return function()
+        i = i + 1
+        local system = list[i]
+        if system then
+            return system.id, system
+        end
+    end
+end
 
 return Systems

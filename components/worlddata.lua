@@ -6,7 +6,7 @@ local WorldData = {}
 function WorldData.new(seed, width, height)
     return {
         id = "worlddata",
-        seed = seed or math.floor(love.math.random() * 1e10),
+        seed = seed or math.floor(love.math.random() * 1e9),
         width = width or 512,
         height = height or 128,
         layers = {

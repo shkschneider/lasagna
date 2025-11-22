@@ -1,7 +1,7 @@
 require "lib"
 
 local Events = {
-    WORLD_GENERATION = "world_generation",
+    PLAYER_SWITCHED_LAYER = "player_switched_layer",
     PLAYER_MINED_BLOCK = "player_mined_block",
     PLAYER_PLACED_BLOCK = "player_placed_block",
 }

@@ -1,6 +1,7 @@
 -- Drop System
 -- Manages drop entities (items on ground)
 
+local Systems = require "systems"
 local Position = require("components.position")
 local Velocity = require("components.velocity")
 local Physics = require("components.physics")
@@ -37,8 +38,8 @@ end
 
 function DropSystem.update(self, dt)
     -- Get systems from G
-    local world_system = G:get_system("world")
-    local player_system = G:get_system("player")
+    local world_system = Systems.get("world")
+    local player_system = Systems.get("player")
 
     if not world_system or not player_system then
         return
@@ -100,8 +101,8 @@ end
 
 function DropSystem.draw(self)
     -- Get systems from G
-    local world_system = G:get_system("world")
-    local camera_system = G:get_system("camera")
+    local world_system = Systems.get("world")
+    local camera_system = Systems.get("camera")
 
     if not world_system or not camera_system then
         return
