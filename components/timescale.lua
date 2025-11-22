@@ -5,6 +5,7 @@ local TimeScale = {}
 
 function TimeScale.new(scale, paused)
     return {
+        id = "timescale",
         scale = scale or 1,
         paused = paused or false,
     }

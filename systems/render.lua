@@ -4,6 +4,7 @@
 local blocks = require("core.blocks")
 
 local RenderSystem = {
+    id = "render",
     priority = 100,
     canvases = {},
     screen_width = 1280,

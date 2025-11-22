@@ -5,6 +5,7 @@ local MouseState = {}
 
 function MouseState.new()
     return {
+        id = "mouse",
         x = 0,
         y = 0,
         buttons = {},

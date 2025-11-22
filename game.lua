@@ -43,10 +43,23 @@ function Game.load(self, seed, debug)
 
     -- Transition to playing state
     self.components.gamestate.state = States.PLAYING
+
+    -- Assertions
+    for _, system in pairs(self.systems) do
+        assert(type(system.id) == "string")
+    end
 end
 
 function Game.get_system(self, name)
     return self.systems[name]
+end
+
+function Game.world(self)
+    return self:get_system("world")
+end
+
+function Game.player(self)
+    return self:get_system("player")
 end
 
 function Game.update(self, dt)
@@ -62,7 +75,7 @@ function Game.update(self, dt)
     -- Update all systems
     for _, system in pairs(self.systems) do
         if type(system.update) == "function" then
-            system.update(system, dt)
+            system:update(dt)
         end
     end
 end
@@ -71,7 +84,7 @@ function Game.draw(self)
     -- Draw all systems
     for _, system in pairs(self.systems) do
         if type(system.draw) == "function" then
-            system.draw(system)
+            system:draw()
         end
     end
 

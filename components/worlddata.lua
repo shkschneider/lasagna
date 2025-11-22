@@ -5,6 +5,7 @@ local WorldData = {}
 
 function WorldData.new(seed, width, height)
     return {
+        id = "worlddata",
         seed = seed or os.time(),
         width = width or 512,
         height = height or 128,

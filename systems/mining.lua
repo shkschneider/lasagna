@@ -4,6 +4,7 @@
 local blocks = require("core.blocks")
 
 local MiningSystem = {
+    id = "mining",
     priority = 60,
 }
 

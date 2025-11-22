@@ -4,6 +4,7 @@
 local Camera = require("components.camera")
 
 local CameraSystem = {
+    id = "camera",
     priority = 90,
     components = {},
 }
@@ -39,4 +40,3 @@ function CameraSystem.resize(self, width, height)
 end
 
 return CameraSystem
-

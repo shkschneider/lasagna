@@ -5,6 +5,7 @@ local GameState = {}
 
 function GameState.new(state, debug, seed)
     return {
+        id = "gamestate",
         state = state or "BOOT",
         debug = debug or false,
         seed = seed or os.time(),

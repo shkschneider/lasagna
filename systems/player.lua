@@ -12,6 +12,7 @@ local Omnitool = require("components.omnitool")
 local blocks = require("core.blocks")
 
 local PlayerSystem = {
+    id = "player",
     priority = 20,
     components = {},
     -- Movement constants

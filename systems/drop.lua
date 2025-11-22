@@ -8,6 +8,7 @@ local Drop = require("components.drop")
 local Blocks = require("core.blocks")
 
 local DropSystem = {
+    id = "drop",
     priority = 70,
     entities = {},
     next_id = 1,

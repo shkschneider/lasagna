@@ -5,6 +5,7 @@ local Velocity = {}
 
 function Velocity.new(vx, vy)
     return {
+        id = "velocity",
         vx = vx or 0,
         vy = vy or 0,
     }

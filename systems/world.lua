@@ -6,6 +6,7 @@ local blocks = require("core.blocks")
 local noise = require("lib.noise")
 
 local WorldSystem = {
+    id = "world",
     priority = 10,
     components = {},
     BLOCK_SIZE = 16,
