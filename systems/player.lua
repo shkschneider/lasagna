@@ -35,7 +35,7 @@ function PlayerSystem.load(self, x, y, layer)
 
     -- Set height constants
     self.STANDING_HEIGHT = world.BLOCK_SIZE * 2
-    self.CROUCHING_HEIGHT = world.BLOCK_SIZE
+    self.CROUCHING_HEIGHT = self.STANDING_HEIGHT / 2
 
     -- Initialize player components
     self.components.position = Position.new(x, y, layer)
@@ -72,8 +72,8 @@ function PlayerSystem.update(self, dt)
     local vis = self.components.visual
 
     -- Handle crouching state
-    local is_crouching = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
-    
+    local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
+
     if is_crouching then
         stance.current = Stance.CROUCHING
         col.height = self.CROUCHING_HEIGHT
