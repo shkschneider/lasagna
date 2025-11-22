@@ -1,0 +1,14 @@
+-- Physics component
+-- Physics properties for entities
+
+local Physics = {}
+
+function Physics.new(on_ground, gravity, friction)
+    return {
+        on_ground = on_ground or false,
+        gravity = gravity or 800,
+        friction = friction or 0.95,
+    }
+end
+
+return Physics
