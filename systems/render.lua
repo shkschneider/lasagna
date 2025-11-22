@@ -47,6 +47,12 @@ function RenderSystem.draw(self)
     -- Draw player
     player_system:draw(camera_x, camera_y)
 
+    -- Draw drops
+    local drop_system = Systems.get("drop")
+    if drop_system and type(drop_system.draw) == "function" then
+        drop_system:draw()
+    end
+
     -- Draw UI
     self:draw_ui(player_system, world_system, camera_x, camera_y)
 end
