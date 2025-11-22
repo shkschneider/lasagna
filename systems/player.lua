@@ -68,13 +68,81 @@ function PlayerSystem.update(self, dt)
     local phys = self.components.physics
     local col = self.components.collider
     local stance = self.components.stance
+    local vis = self.components.visual
     local ctrl = self.components.controllable
 
-    -- Process input and control through controllable component
-    ctrl:update(dt, self.components, self.STANDING_HEIGHT, self.CROUCHING_HEIGHT, world)
+    -- Handle crouching state
+    local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
+    local prev_stance = stance.current
+
+    if is_crouching then
+        stance.current = Stance.CROUCHING
+    else
+        -- Check if player can stand up (need clearance above)
+        if prev_stance == Stance.CROUCHING then
+            local can_stand = true
+            local standing_top = pos.y - self.STANDING_HEIGHT / 2
+            local top_row = math.floor(standing_top / world.BLOCK_SIZE)
+            local left_col = math.floor((pos.x - col.width / 2) / world.BLOCK_SIZE)
+            local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / world.BLOCK_SIZE)
+
+            -- Check if there's space to stand up
+            for c = left_col, right_col do
+                local block_def = world:get_block_def(pos.z, c, top_row)
+                if block_def and block_def.solid then
+                    can_stand = false
+                    break
+                end
+            end
+
+            if can_stand then
+                stance.current = Stance.STANDING
+            else
+                -- Stay crouched, not enough space
+                stance.current = Stance.CROUCHING
+            end
+        else
+            stance.current = Stance.STANDING
+        end
+    end
+
+    -- Adjust player position when changing stance to keep bottom at same level
+    if prev_stance ~= stance.current then
+        local prev_height = prev_stance == Stance.STANDING and self.STANDING_HEIGHT or self.CROUCHING_HEIGHT
+        local new_height = stance.current == Stance.STANDING and self.STANDING_HEIGHT or self.CROUCHING_HEIGHT
+
+        -- Keep the bottom of the player at the same position
+        -- pos.y is center, so bottom is at pos.y + height/2
+        local bottom_y = pos.y + prev_height / 2
+        pos.y = bottom_y - new_height / 2
+    end
+
+    -- Update collider and visual heights
+    if stance.current == Stance.CROUCHING then
+        col.height = self.CROUCHING_HEIGHT
+        vis.height = self.CROUCHING_HEIGHT
+    else
+        col.height = self.STANDING_HEIGHT
+        vis.height = self.STANDING_HEIGHT
+    end
+
+    -- Process input through controllable component
+    local stance_modifier = 1.0
+    if stance.current == Stance.CROUCHING then
+        stance_modifier = 0.5
+    end
+
+    local input_vx, jump_impulse = ctrl:process_input(vel.vy, phys.on_ground, stance_modifier)
+    vel.vx = input_vx
 
     -- Vertical movement (gravity)
     vel.vy = vel.vy + phys.gravity * dt
+
+    -- Apply jump impulse
+    if jump_impulse then
+        vel.vy = jump_impulse
+        phys.on_ground = false
+    end
 
     -- Apply horizontal velocity with collision
     local new_x = pos.x + vel.vx * dt

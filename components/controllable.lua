@@ -1,6 +1,5 @@
 -- Controllable component
 -- Handles movement and control logic for entities
--- Makes any entity with position, velocity, physics, collider, and stance controllable by user
 
 local Controllable = {}
 
@@ -84,19 +83,19 @@ function Controllable.new(move_speed, jump_force)
         local move_speed = self.move_speed * stance_modifier
 
         -- Horizontal movement
-        vel.vx = 0
         if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
-            vel.vx = -move_speed
+            vx = -move_speed
         end
         if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-            vel.vx = move_speed
+            vx = move_speed
         end
 
         -- Jump
-        if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and phys.on_ground then
-            vel.vy = -self.jump_force
-            phys.on_ground = false
+        if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground then
+            vy_impulse = -self.jump_force
         end
+
+        return vx, vy_impulse
     end
 
     return instance
