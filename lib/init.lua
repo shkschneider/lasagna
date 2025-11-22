@@ -1,4 +1,5 @@
 require "lib.id"
 require "lib.tostring"
 
-EPSILON = 0.0001
+EPSILON = 1 / 1000 -- 0.001
+INFINITY = 9 ^ 9 -- 387_420_489
