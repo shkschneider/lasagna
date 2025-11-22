@@ -9,7 +9,7 @@ local TimeScale = require "components.timescale"
 local Game = {
     priority = 0,
     components = {
-        state = GameState.new(GameState.BOOT),
+        gamestate = GameState.new(GameState.BOOT),
     },
     systems = {
         world = require("systems.world"),
@@ -25,8 +25,8 @@ local Game = {
 
 function Game.load(self, seed, debug)
     -- Initialize components
-    self.components.state.current = GameState.LOAD
-    log.info("Game", self.components.state:tostring())
+    self.components.gamestate.current = GameState.LOAD
+    log.info("Game", self.components.gamestate:tostring())
     self.components.timescale = TimeScale.new(1, false)
 
     -- Load systems in specific order with correct parameters
@@ -42,8 +42,8 @@ function Game.load(self, seed, debug)
     end
 
     -- Transition to playing state
-    self.components.state.current = GameState.PLAY
-    log.info("Game", self.components.state:tostring())
+    self.components.gamestate.current = GameState.PLAY
+    log.info("Game", self.components.gamestate:tostring())
 end
 
 function Game.update(self, dt)
