@@ -180,7 +180,7 @@ function PlayerSystem.update(self, dt)
 
         -- Edge detection: prevent falling off edges while crouching
         -- Allow player to move halfway off the edge
-        if not hit_wall and stance.current == Stance.CROUCHING and phys.on_ground then
+        if not hit_wall and stance.current == Stance.CROUCHING and phys.on_ground and vel.vx ~= 0 then
             local ground_check_row = math.floor((pos.y + col.height / 2) / world.BLOCK_SIZE) + 1
             local ground_exists = false
 
