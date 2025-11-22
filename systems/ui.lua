@@ -7,8 +7,6 @@ local Registry = require "registries"
 local UISystem = {
     id = "ui",
     priority = 110,
-    screen_width = 1280,
-    screen_height = 720,
 }
 
 function UISystem.load(self)

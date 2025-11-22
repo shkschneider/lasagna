@@ -18,8 +18,6 @@ local WorldSystem = {
     WIDTH = 512,
     HEIGHT = 128,
     canvases = {},
-    screen_width = 1280,
-    screen_height = 720,
 }
 
 function WorldSystem.load(self, seed)
