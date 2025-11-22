@@ -3,13 +3,13 @@
 
 local log = require "lib.log"
 local Systems = require "systems"
+local GameState = require "components.gamestate"
 local TimeScale = require "components.timescale"
-local States = require "core.states"
 
 local Game = {
     priority = 0,
     components = {
-        state = States.BOOT,
+        state = GameState.new(GameState.BOOT),
     },
     systems = {
         world = require("systems.world"),
@@ -24,18 +24,26 @@ local Game = {
 }
 
 function Game.load(self, seed, debug)
-    log.info("Game", "LOADING")
-
     -- Initialize components
-    self.components.state = States.LOADING
+    self.components.state.current = GameState.LOAD
+    log.info("Game", self.components.state:tostring())
     self.components.timescale = TimeScale.new(1, false)
 
     -- Load systems in specific order with correct parameters
     Systems.load(self.systems, seed)
 
+    if self:debug() then
+        for id, system in pairs(self.systems) do
+            assert(id == system.id, string.format("System %s != %s", id, system.id))
+        end
+        for id, component in pairs(self.components) do
+            assert(id == component.id, string.format("Component %s != %s", id, component.id))
+        end
+    end
+
     -- Transition to playing state
-    self.components.state = States.PLAYING
-    log.info("Game", "PLAYING")
+    self.components.state.current = GameState.PLAY
+    log.info("Game", self.components.state:tostring())
 end
 
 function Game.update(self, dt)

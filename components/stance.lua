@@ -1,7 +1,9 @@
 -- Stance component
 -- Manages player stance (standing, crouching)
 
-local Stance = {}
+local Stance = {
+    id = "stance",
+}
 
 Stance.STANDING = "standing"
 Stance.CROUCHING = "crouching"
