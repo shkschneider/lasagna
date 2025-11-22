@@ -7,67 +7,65 @@ G = require("game")
 local log = require("lib.log")
 
 function love.load()
+    log.debug("...")
+
     -- Parse environment variables
     local debug = os.getenv("DEBUG") == "true"
-    local seed = tonumber(os.getenv("SEED"))
+    local seed = tonumber(os.getenv("SEED")) or 42
 
     if debug then
         log.level = "debug"
         log.debug("Debug mode enabled")
     end
 
-    if seed then
-        log.info("Using seed:", seed)
-    end
-
     -- Initialize Game and all systems
-    G.load(G, seed, debug)
+    G:load(seed, debug)
 
-    log.info("Lasagna loaded with system architecture")
+    log.info("Lasagna v0.1")
 end
 
 function love.update(dt)
-    G.update(G, dt)
+    G:update(dt)
 end
 
 function love.draw()
-    G.draw(G)
+    G:draw()
 end
 
 function love.keypressed(key)
-    G.keypressed(G, key)
+    G:keypressed(key)
 end
 
 function love.keyreleased(key)
-    G.keyreleased(G, key)
+    G:keyreleased(key)
 end
 
 function love.mousepressed(x, y, button)
-    G.mousepressed(G, x, y, button)
+    G:mousepressed(x, y, button)
 end
 
 function love.mousereleased(x, y, button)
-    G.mousereleased(G, x, y, button)
+    G:mousereleased(x, y, button)
 end
 
 function love.mousemoved(x, y, dx, dy)
-    G.mousemoved(G, x, y, dx, dy)
+    G:mousemoved(x, y, dx, dy)
 end
 
 function love.wheelmoved(x, y)
-    G.wheelmoved(G, x, y)
+    G:wheelmoved(x, y)
 end
 
 function love.resize(width, height)
-    G.resize(G, width, height)
+    G:resize(width, height)
 end
 
 function love.focus(focused)
-    G.focus(G, focused)
+    G:focus(focused)
 end
 
 function love.quit()
-    G.quit(G)
+    G:quit()
 end
 
 

@@ -14,9 +14,7 @@ local DropSystem = {
     next_id = 1,
 }
 
-function DropSystem.load(self, world_system, player_system)
-    self.world_system = world_system
-    self.player_system = player_system
+function DropSystem.load(self)
     self.entities = {}
     self.next_id = 1
 end
@@ -37,8 +35,16 @@ function DropSystem.create_drop(self, x, y, layer, block_id, count)
 end
 
 function DropSystem.update(self, dt)
-    local PICKUP_RANGE = self.world_system.BLOCK_SIZE
-    local player_x, player_y, player_layer = self.player_system:get_position()
+    -- Get systems from G
+    local world_system = G:get_system("world")
+    local player_system = G:get_system("player")
+
+    if not world_system or not player_system then
+        return
+    end
+
+    local PICKUP_RANGE = world_system.BLOCK_SIZE
+    local player_x, player_y, player_layer = player_system:get_position()
 
     for i = #self.entities, 1, -1 do
         local ent = self.entities[i]
@@ -52,15 +58,15 @@ function DropSystem.update(self, dt)
         ent.velocity.vx = ent.velocity.vx * ent.physics.friction
 
         -- Check collision with ground
-        local col, row = self.world_system:world_to_block(
+        local col, row = world_system.world_to_block(world_system,
             ent.position.x,
-            ent.position.y + self.world_system.BLOCK_SIZE / 2
+            ent.position.y + world_system.BLOCK_SIZE / 2
         )
-        local block_proto = self.world_system:get_block_proto(ent.position.layer, col, row)
+        local block_proto = world_system:get_block_proto(ent.position.layer, col, row)
 
         if block_proto and block_proto.solid then
             ent.velocity.vy = 0
-            ent.position.y = row * self.world_system.BLOCK_SIZE - self.world_system.BLOCK_SIZE / 2
+            ent.position.y = row * world_system.BLOCK_SIZE - world_system.BLOCK_SIZE / 2
         end
 
         -- Decrease pickup delay
@@ -76,7 +82,7 @@ function DropSystem.update(self, dt)
 
             if dist < PICKUP_RANGE then
                 -- Try to add to player inventory
-                if self.player_system:add_to_inventory(ent.drop.block_id, ent.drop.count) then
+                if player_system:add_to_inventory(ent.drop.block_id, ent.drop.count) then
                     -- Successfully picked up
                     table.remove(self.entities, i)
                 end
@@ -91,11 +97,21 @@ function DropSystem.update(self, dt)
     end
 end
 
-function DropSystem.draw(self, camera_x, camera_y)
+function DropSystem.draw(self)
+    -- Get systems from G
+    local world_system = G:get_system("world")
+    local camera_system = G:get_system("camera")
+
+    if not world_system or not camera_system then
+        return
+    end
+
+    local camera_x, camera_y = camera_system:get_offset()
+
     for _, ent in ipairs(self.entities) do
         local proto = blocks.get_proto(ent.drop.block_id)
         if proto then
-            local size = self.world_system.BLOCK_SIZE / 2
+            local size = world_system.BLOCK_SIZE / 2
             love.graphics.setColor(proto.color)
             love.graphics.rectangle("fill",
                 ent.position.x - camera_x - size / 2,

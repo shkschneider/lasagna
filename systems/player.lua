@@ -1,6 +1,7 @@
 -- Player System
 -- Manages player entity and player-specific logic
 
+require "lib"
 local Position = require("components.position")
 local Velocity = require("components.velocity")
 local Physics = require("components.physics")
@@ -21,12 +22,18 @@ local PlayerSystem = {
 }
 
 function PlayerSystem.load(self, x, y, layer)
+    -- Get world system for initialization
+    local world_system = G:get_system("world")
+    if not world_system then
+        return
+    end
+
     -- Initialize player components
     self.components.position = Position.new(x, y, layer)
     self.components.velocity = Velocity.new(0, 0)
     self.components.physics = Physics.new(true, 800, 0.95)
-    self.components.collider = Collider.new(G:world().BLOCK_SIZE, G:world().BLOCK_SIZE * 2)
-    self.components.visual = Visual.new({1, 1, 1, 1}, G:world().BLOCK_SIZE, G:world().BLOCK_SIZE * 2)
+    self.components.collider = Collider.new(world_system.BLOCK_SIZE, world_system.BLOCK_SIZE * 2)
+    self.components.visual = Visual.new({1, 1, 1, 1}, world_system.BLOCK_SIZE, world_system.BLOCK_SIZE * 2)
     self.components.layer = Layer.new(layer)
     self.components.inventory = Inventory.new(9, 64)
     self.components.omnitool = Omnitool.new(0)
@@ -37,12 +44,17 @@ function PlayerSystem.load(self, x, y, layer)
     end
 
     -- Add starting items
-    self.add_to_inventory(self, blocks.DIRT, 64)
-    self.add_to_inventory(self, blocks.STONE, 32)
-    self.add_to_inventory(self, blocks.WOOD, 16)
+    self:add_to_inventory(blocks.DIRT, 64)
+    self:add_to_inventory(blocks.STONE, 32)
+    self:add_to_inventory(blocks.WOOD, 16)
 end
 
 function PlayerSystem.update(self, dt)
+    local world_system = G:get_system("world")
+    if not world_system then
+        return
+    end
+
     local pos = self.components.position
     local vel = self.components.velocity
     local phys = self.components.physics
@@ -74,22 +86,22 @@ function PlayerSystem.update(self, dt)
     if vel.vx ~= 0 then
         local check_col
         if vel.vx > 0 then
-            check_col = math.floor((new_x + col.width / 2) / G:world().BLOCK_SIZE)
+            check_col = math.floor((new_x + col.width / 2) / world_system.BLOCK_SIZE)
         else
-            check_col = math.floor((new_x - col.width / 2) / G:world().BLOCK_SIZE)
+            check_col = math.floor((new_x - col.width / 2) / world_system.BLOCK_SIZE)
         end
 
-        local top_row = math.floor((pos.y - col.height / 2) / G:world().BLOCK_SIZE)
-        local bottom_row = math.floor((pos.y + col.height / 2 - EPSILON) / G:world().BLOCK_SIZE)
+        local top_row = math.floor((pos.y - col.height / 2) / world_system.BLOCK_SIZE)
+        local bottom_row = math.floor((pos.y + col.height / 2 - EPSILON) / world_system.BLOCK_SIZE)
 
         for row = top_row, bottom_row do
-            local block_proto = G:world():get_block_proto(pos.layer, check_col, row)
+            local block_proto = world_system:get_block_proto(pos.layer, check_col, row)
             if block_proto and block_proto.solid then
                 hit_wall = true
                 if vel.vx > 0 then
-                    pos.x = check_col * G:world().BLOCK_SIZE - col.width / 2
+                    pos.x = check_col * world_system.BLOCK_SIZE - col.width / 2
                 else
-                    pos.x = (check_col + 1) * G:world().BLOCK_SIZE + col.width / 2
+                    pos.x = (check_col + 1) * world_system.BLOCK_SIZE + col.width / 2
                 end
                 break
             end
@@ -106,14 +118,14 @@ function PlayerSystem.update(self, dt)
     -- Ground collision
     phys.on_ground = false
     local bottom_y = new_y + col.height / 2
-    local left_col = math.floor((pos.x - col.width / 2) / G:world().BLOCK_SIZE)
-    local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / G:world().BLOCK_SIZE)
-    local bottom_row = math.floor(bottom_y / G:world().BLOCK_SIZE)
+    local left_col = math.floor((pos.x - col.width / 2) / world_system.BLOCK_SIZE)
+    local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / world_system.BLOCK_SIZE)
+    local bottom_row = math.floor(bottom_y / world_system.BLOCK_SIZE)
 
     for c = left_col, right_col do
-        local block_proto = G:world():get_block_proto(pos.layer, c, bottom_row)
+        local block_proto = world_system:get_block_proto(pos.layer, c, bottom_row)
         if block_proto and block_proto.solid and vel.vy >= 0 then
-            pos.y = bottom_row * G:world().BLOCK_SIZE - col.height / 2
+            pos.y = bottom_row * world_system.BLOCK_SIZE - col.height / 2
             vel.vy = 0
             phys.on_ground = true
             new_y = pos.y
@@ -123,12 +135,12 @@ function PlayerSystem.update(self, dt)
 
     -- Ceiling collision
     local top_y = new_y - col.height / 2
-    local top_row = math.floor(top_y / G:world().BLOCK_SIZE)
+    local top_row = math.floor(top_y / world_system.BLOCK_SIZE)
 
     for c = left_col, right_col do
-        local block_proto = G:world():get_block_proto(pos.layer, c, top_row)
+        local block_proto = world_system:get_block_proto(pos.layer, c, top_row)
         if block_proto and block_proto.solid and vel.vy < 0 then
-            pos.y = (top_row + 1) * G:world().BLOCK_SIZE + col.height / 2
+            pos.y = (top_row + 1) * world_system.BLOCK_SIZE + col.height / 2
             vel.vy = 0
             new_y = pos.y
             break
@@ -140,7 +152,7 @@ function PlayerSystem.update(self, dt)
     end
 
     -- Prevent falling through bottom
-    local max_y = G:world().HEIGHT * G:world().BLOCK_SIZE
+    local max_y = G:get_system("world").HEIGHT * world_system.BLOCK_SIZE
     if pos.y > max_y then
         pos.y = max_y
         vel.vy = 0
@@ -148,14 +160,16 @@ function PlayerSystem.update(self, dt)
     end
 end
 
-function PlayerSystem.draw(self, camera_x, camera_y)
+function PlayerSystem.draw(self)
     local pos = self.components.position
     local vis = self.components.visual
 
+    local camera = G:get_system("camera")
+
     love.graphics.setColor(vis.color)
     love.graphics.rectangle("fill",
-        pos.x - camera_x - vis.width / 2,
-        pos.y - camera_y - vis.height / 2,
+        pos.x - camera:x() - vis.width / 2,
+        pos.y - camera:y() - vis.height / 2,
         vis.width,
         vis.height)
 end
@@ -207,14 +221,14 @@ function PlayerSystem.check_collision(self, x, y, layer)
     local top = y - col.height / 2
     local bottom = y + col.height / 2
 
-    local left_col = math.floor(left / G:world().BLOCK_SIZE)
-    local right_col = math.floor((right - EPSILON) / G:world().BLOCK_SIZE)
-    local top_row = math.floor(top / G:world().BLOCK_SIZE)
-    local bottom_row = math.floor((bottom - EPSILON) / G:world().BLOCK_SIZE)
+    local left_col = math.floor(left / world_system.BLOCK_SIZE)
+    local right_col = math.floor((right - EPSILON) / world_system.BLOCK_SIZE)
+    local top_row = math.floor(top / world_system.BLOCK_SIZE)
+    local bottom_row = math.floor((bottom - EPSILON) / world_system.BLOCK_SIZE)
 
     for c = left_col, right_col do
         for r = top_row, bottom_row do
-            local block_proto = G:world():get_block_proto(layer, c, r)
+            local block_proto = world_system:get_block_proto(layer, c, r)
             if block_proto and block_proto.solid then
                 return true
             end

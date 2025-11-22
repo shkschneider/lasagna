@@ -1,6 +1,7 @@
 -- Game System
 -- Manages overall game state, time scale, and coordinates other systems
 
+local log = require "lib.log"
 local GameState = require("components.gamestate")
 local TimeScale = require("components.timescale")
 local States = require("core.states")
@@ -27,6 +28,9 @@ function Game.player(self)
 end
 
 function Game.load(self, seed, debug)
+    assert(type(seed) == "number")
+    log.info("New Game:", debug)
+
     -- Initialize components
     self.components.gamestate = GameState.new(States.BOOT, debug, seed)
     self.components.timescale = TimeScale.new(1, false)
@@ -37,17 +41,14 @@ function Game.load(self, seed, debug)
     -- Load all registered systems
     for _, system in pairs(self.systems) do
         if type(system.load) == "function" then
+            assert(type(system.id) == "string")
+            log.debug("*", system.id)
             system.load(system, seed, debug)
         end
     end
 
     -- Transition to playing state
     self.components.gamestate.state = States.PLAYING
-
-    -- Assertions
-    for _, system in pairs(self.systems) do
-        assert(type(system.id) == "string")
-    end
 end
 
 function Game.get_system(self, name)

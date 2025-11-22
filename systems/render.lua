@@ -12,7 +12,7 @@ local RenderSystem = {
 }
 
 function RenderSystem.load(self)
-    self.create_canvases(self)
+    self:create_canvases()
 end
 
 function RenderSystem.create_canvases(self)
@@ -24,21 +24,30 @@ function RenderSystem.create_canvases(self)
     self.canvases[1] = love.graphics.newCanvas(self.screen_width, self.screen_height)
 end
 
-function RenderSystem.draw(self, world_system, player_system, camera_system)
+function RenderSystem.draw(self)
+    -- Get systems from G
+    local world_system = G:get_system("world")
+    local player_system = G:get_system("player")
+    local camera_system = G:get_system("camera")
+
+    if not world_system or not player_system or not camera_system then
+        return
+    end
+
     local camera_x, camera_y = camera_system:get_offset()
     local player_x, player_y, player_layer = player_system:get_position()
 
     -- Draw world to layer canvases
-    self.draw_world(self, world_system, player_layer, camera_x, camera_y)
+    self:draw_world(world_system, player_layer, camera_x, camera_y)
 
     -- Composite layers to screen
-    self.composite_layers(self, player_layer)
+    self:composite_layers(player_layer)
 
     -- Draw player
     player_system:draw(camera_x, camera_y)
 
     -- Draw UI
-    self.draw_ui(self, player_system, world_system, camera_x, camera_y)
+    self:draw_ui(player_system, world_system, camera_x, camera_y)
 end
 
 function RenderSystem.draw_world(self, world_system, player_layer, camera_x, camera_y)
@@ -192,7 +201,7 @@ end
 function RenderSystem.resize(self, width, height)
     self.screen_width = width
     self.screen_height = height
-    self.create_canvases(self)
+    self:create_canvases()
 end
 
 return RenderSystem

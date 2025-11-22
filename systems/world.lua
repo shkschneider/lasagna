@@ -1,6 +1,7 @@
 -- World System
 -- Manages world generation, block storage, and world queries
 
+local log = require "lib.log"
 local WorldData = require("components.worlddata")
 local blocks = require("core.blocks")
 local noise = require("lib.noise")
@@ -15,6 +16,8 @@ local WorldSystem = {
 }
 
 function WorldSystem.load(self, seed)
+    log.info("New World:", seed)
+
     -- Initialize components
     self.components.worlddata = WorldData.new(seed, self.WIDTH, self.HEIGHT)
 

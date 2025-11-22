@@ -15,11 +15,24 @@ function CameraSystem.load(self, x, y)
     self.screen_height = 720
 end
 
-function CameraSystem.update(self, dt, target_x, target_y)
+function CameraSystem.x(self)
+    return self.components.camera.x
+end
+
+function CameraSystem.y(self)
+    return self.components.camera.y
+end
+
+function CameraSystem.update(self, dt)
     local cam = self.components.camera
 
-    cam.target_x = target_x
-    cam.target_y = target_y
+    -- Get player position from PlayerSystem
+    local player_system = G:get_system("player")
+    if player_system then
+        local target_x, target_y = player_system:get_position()
+        cam.target_x = target_x
+        cam.target_y = target_y
+    end
 
     -- Smooth interpolation
     local dx = cam.target_x - cam.x
