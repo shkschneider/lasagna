@@ -235,36 +235,37 @@ function PlayerSystem.update(self, dt)
         end
     end
 
+    -- Jump (BEFORE stance updates, so it takes priority)
+    -- Can only jump if on ground (STANDING or CROUCHING)
+    local wants_to_jump = love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")
+    if wants_to_jump and hit_ground and (stance.current == Stance.STANDING or stance.current == Stance.CROUCHING) then
+        -- Jump height is half when crouching
+        local jump_force = self.JUMP_FORCE
+        if stance.current == Stance.CROUCHING then
+            jump_force = jump_force * 0.5
+        end
+        vel.vy = -jump_force
+        stance.current = Stance.JUMPING
+    end
+
+    -- Update position and stance based on ground contact
     if not hit_ground then
         pos.y = new_y
         -- If not jumping, set to falling (walked off edge)
         if stance.current ~= Stance.JUMPING then
             stance.current = Stance.FALLING
         end
-    end
-
-    -- Update stance based on ground contact
-    -- When landing while jumping or falling, return to standing or crouching
-    if hit_ground and (stance.current == Stance.JUMPING or stance.current == Stance.FALLING) then
-        -- Land on ground - return to standing or crouching based on input
-        local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
-        if is_crouching then
-            stance.current = Stance.CROUCHING
-        else
-            stance.current = Stance.STANDING
+    else
+        -- On ground - if was jumping or falling, return to standing or crouching
+        -- But don't override if we just set JUMPING above
+        if stance.current == Stance.FALLING then
+            local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
+            if is_crouching then
+                stance.current = Stance.CROUCHING
+            else
+                stance.current = Stance.STANDING
+            end
         end
-    end
-
-    -- Jump (after ground detection so we know if we're on ground)
-    -- Can only jump if on ground (not jumping or falling)
-    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and hit_ground and (stance.current == Stance.STANDING or stance.current == Stance.CROUCHING) then
-        -- Jump height is half when crouching
-        local jump_force = self.JUMP_FORCE
-        if stance.current == Stance.CROUCHING then
-            jump_force = jump_force * 0.5
-        end
-        vel.vy = -jump_force * dt
-        stance.current = Stance.JUMPING
     end
 
     -- Prevent falling through bottom
