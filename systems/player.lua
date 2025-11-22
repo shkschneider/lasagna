@@ -144,18 +144,6 @@ function PlayerSystem.update(self, dt)
     -- Vertical movement (gravity)
     vel.vy = vel.vy + phys.gravity * dt
 
-    -- Jump
-    local on_ground = Stance.is_on_ground(stance)
-    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground then
-        -- Jump height is half when crouching
-        local jump_force = self.JUMP_FORCE
-        if stance.current == Stance.CROUCHING then
-            jump_force = jump_force * 0.5
-        end
-        vel.vy = -jump_force
-        stance.current = Stance.JUMPING
-    end
-
     -- Apply horizontal velocity with collision
     local new_x = pos.x + vel.vx * dt
     local hit_wall = false
@@ -264,6 +252,18 @@ function PlayerSystem.update(self, dt)
         else
             stance.current = Stance.STANDING
         end
+    end
+
+    -- Jump (after stance update so we know if we're on ground)
+    local on_ground = Stance.is_on_ground(stance)
+    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground then
+        -- Jump height is half when crouching
+        local jump_force = self.JUMP_FORCE
+        if stance.current == Stance.CROUCHING then
+            jump_force = jump_force * 0.5
+        end
+        vel.vy = -jump_force
+        stance.current = Stance.JUMPING
     end
 
     -- Prevent falling through bottom
