@@ -1,7 +1,7 @@
 -- Mining System
 -- Handles block mining and placing
 
-local blocks = require("blocks")
+local blocks = require("core/blocks")
 
 local MiningSystem = {
     priority = 60,
@@ -20,9 +20,9 @@ end
 function MiningSystem:mousepressed(x, y, button, camera_x, camera_y)
     local world_x = x + camera_x
     local world_y = y + camera_y
-    
+
     local col, row = self.world_system:world_to_block(world_x, world_y)
-    
+
     if button == 1 then
         -- Left click: mine block
         self:mine_block(col, row)
@@ -36,20 +36,20 @@ function MiningSystem:mine_block(col, row)
     local player_x, player_y, player_layer = self.player_system:get_position()
     local block_id = self.world_system:get_block(player_layer, col, row)
     local proto = blocks.get_proto(block_id)
-    
+
     if not proto or not proto.solid then
         return
     end
-    
+
     -- Check tier requirement
     local player_tier = self.player_system:get_omnitool_tier()
     if proto.tier > player_tier then
         return -- Can't mine this yet
     end
-    
+
     -- Remove block
     self.world_system:set_block(player_layer, col, row, blocks.AIR)
-    
+
     -- Spawn drop
     if proto.drops and self.drop_system then
         local drop_id, drop_count = proto.drops()
@@ -69,17 +69,17 @@ end
 function MiningSystem:place_block(col, row)
     local player_x, player_y, player_layer = self.player_system:get_position()
     local block_id = self.player_system:get_selected_block_id()
-    
+
     if not block_id then
         return
     end
-    
+
     -- Check if spot is empty
     local current_block = self.world_system:get_block(player_layer, col, row)
     if current_block ~= blocks.AIR then
         return
     end
-    
+
     -- Place block
     if self.world_system:set_block(player_layer, col, row, block_id) then
         -- Remove from inventory

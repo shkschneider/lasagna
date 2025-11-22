@@ -5,6 +5,7 @@ local Position = require("components/position")
 local Velocity = require("components/velocity")
 local Physics = require("components/physics")
 local Drop = require("components/drop")
+local Blocks = require("core/blocks")
 
 local DropSystem = {
     priority = 70,
@@ -27,51 +28,51 @@ function DropSystem:create_drop(x, y, layer, block_id, count)
         physics = Physics.new(false, 400, 0.95),
         drop = Drop.new(block_id, count, 300, 0.5),
     }
-    
+
     self.next_id = self.next_id + 1
     table.insert(self.entities, entity)
-    
+
     return entity
 end
 
 function DropSystem:update(dt)
     local PICKUP_RANGE = self.world_system.BLOCK_SIZE
     local player_x, player_y, player_layer = self.player_system:get_position()
-    
+
     for i = #self.entities, 1, -1 do
         local ent = self.entities[i]
-        
+
         -- Physics
         ent.velocity.vy = ent.velocity.vy + ent.physics.gravity * dt
         ent.position.x = ent.position.x + ent.velocity.vx * dt
         ent.position.y = ent.position.y + ent.velocity.vy * dt
-        
+
         -- Friction
         ent.velocity.vx = ent.velocity.vx * ent.physics.friction
-        
+
         -- Check collision with ground
         local col, row = self.world_system:world_to_block(
             ent.position.x,
             ent.position.y + self.world_system.BLOCK_SIZE / 2
         )
         local block_proto = self.world_system:get_block_proto(ent.position.layer, col, row)
-        
+
         if block_proto and block_proto.solid then
             ent.velocity.vy = 0
             ent.position.y = row * self.world_system.BLOCK_SIZE - self.world_system.BLOCK_SIZE / 2
         end
-        
+
         -- Decrease pickup delay
         if ent.drop.pickup_delay > 0 then
             ent.drop.pickup_delay = ent.drop.pickup_delay - dt
         end
-        
+
         -- Check pickup by player
         if ent.drop.pickup_delay <= 0 and ent.position.layer == player_layer then
             local dx = ent.position.x - player_x
             local dy = ent.position.y - player_y
             local dist = math.sqrt(dx * dx + dy * dy)
-            
+
             if dist < PICKUP_RANGE then
                 -- Try to add to player inventory
                 if self.player_system:add_to_inventory(ent.drop.block_id, ent.drop.count) then
@@ -80,7 +81,7 @@ function DropSystem:update(dt)
                 end
             end
         end
-        
+
         -- Lifetime
         ent.drop.lifetime = ent.drop.lifetime - dt
         if ent.drop.lifetime <= 0 then
@@ -90,8 +91,6 @@ function DropSystem:update(dt)
 end
 
 function DropSystem:draw(camera_x, camera_y)
-    local blocks = require("blocks")
-    
     for _, ent in ipairs(self.entities) do
         local proto = blocks.get_proto(ent.drop.block_id)
         if proto then

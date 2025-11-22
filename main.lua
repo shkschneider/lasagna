@@ -1,8 +1,9 @@
 -- Main entry point for Lasagna
 -- Wiring layer: connects systems and handles LÖVE callbacks
 
-local SystemManager = require("system_manager")
-local GameSystem = require("systems/game")
+-- Global
+G = require("game")
+
 local WorldSystem = require("systems/world")
 local PlayerSystem = require("systems/player")
 local CameraSystem = require("systems/camera")
@@ -25,32 +26,23 @@ function love.load()
         log.info("Using seed:", seed)
     end
 
-    -- Initialize and register systems with GameSystem
-    GameSystem:load(seed, debug)
-    
-    -- Push systems to manager (sorted by priority)
-    SystemManager:push(GameSystem)
-    SystemManager:push(WorldSystem)
-    SystemManager:push(PlayerSystem)
-    SystemManager:push(CameraSystem)
-    SystemManager:push(MiningSystem)
-    SystemManager:push(DropSystem)
-    SystemManager:push(RenderSystem)
-    
-    -- Register systems with GameSystem for coordination
-    GameSystem:register_system("world", WorldSystem)
-    GameSystem:register_system("player", PlayerSystem)
-    GameSystem:register_system("camera", CameraSystem)
-    GameSystem:register_system("mining", MiningSystem)
-    GameSystem:register_system("drop", DropSystem)
-    GameSystem:register_system("render", RenderSystem)
-    
+    -- Initialize and register systems with G
+    G:load(seed, debug)
+
+    -- Register systems with G for coordination
+    G:register_system("world", WorldSystem)
+    G:register_system("player", PlayerSystem)
+    G:register_system("camera", CameraSystem)
+    G:register_system("mining", MiningSystem)
+    G:register_system("drop", DropSystem)
+    G:register_system("render", RenderSystem)
+
     -- Initialize other systems
     WorldSystem:load(seed)
-    
+
     local spawn_x, spawn_y, spawn_layer = WorldSystem:find_spawn_position(
         math.floor(WorldSystem.WIDTH / 2), 0)
-    
+
     PlayerSystem:load(spawn_x, spawn_y, spawn_layer, WorldSystem)
     CameraSystem:load(spawn_x, spawn_y)
     DropSystem:load(WorldSystem, PlayerSystem)
@@ -61,34 +53,34 @@ function love.load()
 end
 
 function love.update(dt)
-    if GameSystem:is_paused() then
+    if G:is_paused() then
         return
     end
-    
+
     -- Update game system first (handles time scale)
-    GameSystem:update(dt)
-    local scaled_dt = GameSystem:get_scaled_dt()
-    
+    G:update(dt)
+    local scaled_dt = G:get_scaled_dt()
+
     -- Update player system
     PlayerSystem:update(scaled_dt)
-    
+
     -- Update camera to follow player
     local player_x, player_y, player_layer = PlayerSystem:get_position()
     CameraSystem:update(scaled_dt, player_x, player_y)
-    
+
     -- Update drop system
     DropSystem:update(scaled_dt)
 end
 
 function love.draw()
     RenderSystem:draw(WorldSystem, PlayerSystem, CameraSystem)
-    
+
     -- Draw drops
     local camera_x, camera_y = CameraSystem:get_offset()
     DropSystem:draw(camera_x, camera_y)
-    
+
     -- Draw game debug info
-    GameSystem:draw()
+    G:draw()
 end
 
 function love.keypressed(key)
@@ -96,31 +88,31 @@ function love.keypressed(key)
         love.event.quit()
         return
     end
-    
+
     -- Handle world reload
     if key == "delete" then
-        local seed = GameSystem:get_seed()
-        
+        local seed = G:get_seed()
+
         -- Reset world and entities
         WorldSystem:load(seed)
         DropSystem:load(WorldSystem, PlayerSystem)
-        
+
         -- Reset player at spawn position
         local spawn_x, spawn_y, spawn_layer = WorldSystem:find_spawn_position(
             math.floor(WorldSystem.WIDTH / 2), 0)
         PlayerSystem:load(spawn_x, spawn_y, spawn_layer, WorldSystem)
-        
+
         -- Reset camera to player position
         CameraSystem:load(spawn_x, spawn_y)
-        
+
         -- Reset mining system
         MiningSystem:load(WorldSystem, PlayerSystem, DropSystem)
-        
+
         return
     end
-    
+
     -- Pass keypressed to systems
-    GameSystem:keypressed(key)
+    G:keypressed(key)
     PlayerSystem:keypressed(key)
 end
 
@@ -130,5 +122,9 @@ function love.mousepressed(x, y, button)
 end
 
 function love.resize(width, height)
-    SystemManager:resize(width, height)
+    for _, system in ipairs(G.systems) do
+        if type(system.resize) == "function" then
+            system.resize(width, height)
+        end
+    end
 end
