@@ -17,8 +17,8 @@ function WorldSystem:load(seed)
     -- Initialize components
     self.components.worlddata = WorldData.new(seed, self.WIDTH, self.HEIGHT)
     
-    -- Initialize noise generator
-    self.noise_gen = noise.new(self.components.worlddata.seed)
+    -- Seed the noise library
+    noise.seed(self.components.worlddata.seed)
 end
 
 function WorldSystem:update(dt)
@@ -60,7 +60,7 @@ function WorldSystem:generate_terrain(layer, col)
     local BASE_FREQUENCY = 0.02
     local BASE_AMPLITUDE = 15
     
-    local noise_val = self.noise_gen:octave_noise(col * BASE_FREQUENCY, layer * 0.1, 4, 0.5, 2.0)
+    local noise_val = noise.octave_perlin2d(col * BASE_FREQUENCY, layer * 0.1, 4, 0.5, 2.0)
     local base_height = math.floor(data.height * BASE_HEIGHT + noise_val * BASE_AMPLITUDE)
     
     -- Layer-specific height adjustments
@@ -85,7 +85,7 @@ function WorldSystem:generate_terrain(layer, col)
     local DIRT_MIN_DEPTH = 5
     local DIRT_MAX_DEPTH = 15
     local dirt_depth = DIRT_MIN_DEPTH + math.floor((DIRT_MAX_DEPTH - DIRT_MIN_DEPTH) * 
-        (self.noise_gen:noise(col * 0.05, layer * 0.1) + 1) / 2)
+        (noise.perlin2d(col * 0.05, layer * 0.1) + 1) / 2)
     
     for row = base_height, math.min(base_height + dirt_depth - 1, data.height - 1) do
         if data.layers[layer][col][row] == blocks.STONE then
