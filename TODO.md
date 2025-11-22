@@ -1,7 +1,9 @@
 # TODO
 
 - omnitool (WIP)
+- movements (WIP)
 
+- mechanics
 - inventory
 - communications
 - ages
