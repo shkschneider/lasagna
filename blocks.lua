@@ -41,7 +41,7 @@ blocks.prototypes = {
         solid = true,
         color = {0.3, 0.7, 0.2, 1},
         tier = 0,
-        drops = function() return blocks.DIRT, 1 end, -- Grass drops dirt
+        drops = function() return blocks.GRASS, 1 end,
     },
     [blocks.STONE] = {
         id = blocks.STONE,

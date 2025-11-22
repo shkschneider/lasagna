@@ -34,10 +34,10 @@ function entities.create_drop(ent_system, x, y, layer, block_id, count)
         lifetime = DROP_LIFETIME,
         pickup_delay = DROP_PICKUP_DELAY,
     }
-    
+
     ent_system.next_id = ent_system.next_id + 1
     table.insert(ent_system.list, drop)
-    
+
     return drop
 end
 
@@ -45,40 +45,40 @@ end
 function entities.update(ent_system, dt, w, player)
     local GRAVITY = 400
     local FRICTION = 0.95
-    local PICKUP_RANGE = 32
-    
+    local PICKUP_RANGE = world.BLOCK_SIZE
+
     for i = #ent_system.list, 1, -1 do
         local ent = ent_system.list[i]
-        
+
         if ent.type == "drop" then
             -- Physics
             ent.vy = ent.vy + GRAVITY * dt
             ent.x = ent.x + ent.vx * dt
             ent.y = ent.y + ent.vy * dt
-            
+
             -- Friction
             ent.vx = ent.vx * FRICTION
-            
+
             -- Check collision with ground
-            local col, row = world.world_to_block(ent.x, ent.y + 8)
+            local col, row = world.world_to_block(ent.x, ent.y + world.BLOCK_SIZE / 2)
             local block_proto = world.get_block_proto(w, ent.layer, col, row)
-            
+
             if block_proto and block_proto.solid then
                 ent.vy = 0
-                ent.y = row * world.BLOCK_SIZE - 8
+                ent.y = row * world.BLOCK_SIZE - world.BLOCK_SIZE / 2
             end
-            
+
             -- Decrease pickup delay
             if ent.pickup_delay > 0 then
                 ent.pickup_delay = ent.pickup_delay - dt
             end
-            
+
             -- Check pickup by player
             if ent.pickup_delay <= 0 and ent.layer == player.layer then
                 local dx = ent.x - player.x
                 local dy = ent.y - player.y
                 local dist = math.sqrt(dx * dx + dy * dy)
-                
+
                 if dist < PICKUP_RANGE then
                     -- Try to add to player inventory
                     if player.inventory then
@@ -89,7 +89,7 @@ function entities.update(ent_system, dt, w, player)
                     end
                 end
             end
-            
+
             -- Lifetime
             ent.lifetime = ent.lifetime - dt
             if ent.lifetime <= 0 then
@@ -107,10 +107,11 @@ function entities.draw(ent_system, camera_x, camera_y)
             if proto then
                 love.graphics.setColor(proto.color)
                 -- Drops are half the width and height of blocks (16x16)
-                love.graphics.rectangle("fill", 
-                    ent.x - camera_x - 8, 
-                    ent.y - camera_y - 8, 
-                    16, 16)
+                love.graphics.rectangle("fill",
+                    ent.x - camera_x - world.BLOCK_SIZE / 4,
+                    ent.y - camera_y - world.BLOCK_SIZE / 4,
+                    world.BLOCK_SIZE / 2,
+                    world.BLOCK_SIZE / 2)
             end
         end
     end
