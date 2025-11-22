@@ -38,13 +38,39 @@ function Game.load(self, seed, debug)
     -- Transition to loading state
     self.components.gamestate.state = States.LOADING
 
-    -- Load all registered systems
-    for _, system in pairs(self.systems) do
-        if type(system.load) == "function" then
-            assert(type(system.id) == "string")
-            log.debug("*", system.id)
-            system.load(system, seed, debug)
-        end
+    -- Load systems in specific order with correct parameters
+
+    -- 1. Load WorldSystem first (needs seed)
+    log.debug("* world")
+    self.systems.world:load(seed)
+
+    -- 2. Find spawn position
+    local spawn_x, spawn_y, spawn_layer = self.systems.world:find_spawn_position(
+        math.floor(self.systems.world.WIDTH / 2), 0)
+    log.debug("Spawn position:", spawn_x, spawn_y, spawn_layer)
+
+    -- 3. Load PlayerSystem at spawn position
+    log.debug("* player")
+    self.systems.player:load(spawn_x, spawn_y, spawn_layer)
+
+    -- 4. Load CameraSystem at spawn position
+    log.debug("* camera")
+    self.systems.camera:load(spawn_x, spawn_y)
+
+    -- 5. Load remaining systems (no special parameters needed)
+    log.debug("* mining")
+    if self.systems.mining and type(self.systems.mining.load) == "function" then
+        self.systems.mining:load()
+    end
+
+    log.debug("* drop")
+    if self.systems.drop and type(self.systems.drop.load) == "function" then
+        self.systems.drop:load()
+    end
+
+    log.debug("* render")
+    if self.systems.render and type(self.systems.render.load) == "function" then
+        self.systems.render:load()
     end
 
     -- Transition to playing state
