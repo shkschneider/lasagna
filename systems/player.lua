@@ -249,6 +249,10 @@ function PlayerSystem.update(self, dt)
 
     if not hit_ground then
         pos.y = new_y
+        -- Set stance to JUMPING if in air and not already jumping
+        if stance.current ~= Stance.JUMPING then
+            stance.current = Stance.JUMPING
+        end
     end
 
     -- Update stance based on ground contact
