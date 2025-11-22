@@ -72,7 +72,7 @@ function DropSystem.update(self, dt)
         end
 
         -- Check pickup by player
-        if ent.drop.pickup_delay <= 0 and ent.position.layer == player_z then
+        if ent.drop.pickup_delay <= 0 and ent.position.z == player_z then
             local dx = ent.position.x - player_x
             local dy = ent.position.y - player_y
             local dist = math.sqrt(dx * dx + dy * dy)
