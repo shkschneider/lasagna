@@ -7,13 +7,9 @@ local MiningSystem = {
     priority = 60,
 }
 
-function MiningSystem:load(world_system, player_system)
+function MiningSystem:load(world_system, player_system, drop_system)
     self.world_system = world_system
     self.player_system = player_system
-    self.drop_system = nil -- Will be set later
-end
-
-function MiningSystem:set_drop_system(drop_system)
     self.drop_system = drop_system
 end
 

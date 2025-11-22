@@ -46,12 +46,9 @@ function love.load()
     
     PlayerSystem:load(spawn_x, spawn_y, spawn_layer, WorldSystem)
     CameraSystem:load(spawn_x, spawn_y)
-    MiningSystem:load(WorldSystem, PlayerSystem)
     DropSystem:load(WorldSystem, PlayerSystem)
+    MiningSystem:load(WorldSystem, PlayerSystem, DropSystem)
     RenderSystem:load()
-    
-    -- Set drop system reference for mining
-    MiningSystem:set_drop_system(DropSystem)
     
     -- Store systems globally for easy access
     G.game = GameSystem
@@ -74,12 +71,14 @@ function love.update(dt)
     GameSystem:update(dt)
     local scaled_dt = GameSystem:get_scaled_dt()
     
-    -- Update other systems
+    -- Update player system
     PlayerSystem:update(scaled_dt)
     
+    -- Update camera to follow player
     local player_x, player_y, player_layer = PlayerSystem:get_position()
     CameraSystem:update(scaled_dt, player_x, player_y)
     
+    -- Update drop system
     DropSystem:update(scaled_dt)
 end
 
@@ -117,13 +116,14 @@ function love.keypressed(key)
         CameraSystem:load(spawn_x, spawn_y)
         
         -- Reset mining system
-        MiningSystem:load(WorldSystem, PlayerSystem)
-        MiningSystem:set_drop_system(DropSystem)
+        MiningSystem:load(WorldSystem, PlayerSystem, DropSystem)
         
         return
     end
     
-    SystemManager:keypressed(key)
+    -- Pass keypressed to systems
+    GameSystem:keypressed(key)
+    PlayerSystem:keypressed(key)
 end
 
 function love.mousepressed(x, y, button)

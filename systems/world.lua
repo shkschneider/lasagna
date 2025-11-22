@@ -9,22 +9,16 @@ local WorldSystem = {
     priority = 10,
     components = {},
     BLOCK_SIZE = 16,
+    WIDTH = 512,
+    HEIGHT = 128,
 }
-
--- Store these for global access (other systems need them)
-local WIDTH = 512
-local HEIGHT = 128
 
 function WorldSystem:load(seed)
     -- Initialize components
-    self.components.worlddata = WorldData.new(seed, WIDTH, HEIGHT)
+    self.components.worlddata = WorldData.new(seed, self.WIDTH, self.HEIGHT)
     
     -- Initialize noise generator
     self.noise_gen = noise.new(self.components.worlddata.seed)
-    
-    -- Store dimensions as module constants for compatibility
-    WorldSystem.WIDTH = WIDTH
-    WorldSystem.HEIGHT = HEIGHT
 end
 
 function WorldSystem:update(dt)
