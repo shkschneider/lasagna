@@ -9,6 +9,9 @@ function MouseState.new()
         x = 0,
         y = 0,
         buttons = {},
+        tostring = function()
+            return string.format("%d,%d", x, y)
+        end
     }
 end
 

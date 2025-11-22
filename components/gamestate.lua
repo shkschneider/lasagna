@@ -9,6 +9,9 @@ function GameState.new(state, debug, seed)
         state = state or "BOOT",
         debug = debug or false,
         seed = seed or os.time(),
+        tostring = function()
+            return string.format("%s:%d", state, seed)
+        end
     }
 end
 

@@ -11,7 +11,7 @@ function love.load()
 
     -- Parse environment variables
     local debug = os.getenv("DEBUG") == "true"
-    local seed = tonumber(os.getenv("SEED")) or 42
+    local seed = tonumber(os.getenv("SEED") or math.floor(love.math.random() * 1e10))
 
     if debug then
         log.level = "debug"

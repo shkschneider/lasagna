@@ -29,7 +29,7 @@ end
 
 function Game.load(self, seed, debug)
     assert(type(seed) == "number")
-    log.info("New Game:", debug)
+    log.info("Game:", "debug=" .. tostring(debug))
 
     -- Initialize components
     self.components.gamestate = GameState.new(States.BOOT, debug, seed)
@@ -47,7 +47,6 @@ function Game.load(self, seed, debug)
     -- 2. Find spawn position
     local spawn_x, spawn_y, spawn_layer = self.systems.world:find_spawn_position(
         math.floor(self.systems.world.WIDTH / 2), 0)
-    log.debug("Spawn position:", spawn_x, spawn_y, spawn_layer)
 
     -- 3. Load PlayerSystem at spawn position
     log.debug("* player")
@@ -118,9 +117,9 @@ function Game.draw(self)
     -- Draw debug info last
     if self.components.gamestate.debug then
         love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.print(string.format("Seed: %s", self.components.gamestate.seed), 10, 120)
+        love.graphics.print(string.format("Seed: %s", self.components.gamestate:tostring()), 10, 120)
         love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
-        love.graphics.print(string.format("TimeScale: %f", self.components.timescale.scale), 10, 140)
+        love.graphics.print(string.format("TimeScale: %f", self.components.timescale:tostring()), 10, 140)
     end
 end
 

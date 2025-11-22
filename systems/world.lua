@@ -18,7 +18,7 @@ local WorldSystem = {
 }
 
 function WorldSystem.load(self, seed)
-    log.info("New World:", seed)
+    log.info("World:", seed)
 
     -- Initialize components
     self.components.worlddata = WorldData.new(seed, self.WIDTH, self.HEIGHT)

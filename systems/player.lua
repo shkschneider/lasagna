@@ -2,6 +2,7 @@
 -- Manages player entity and player-specific logic
 
 require "lib"
+local log = require "lib.log"
 local Position = require("components.position")
 local Velocity = require("components.velocity")
 local Physics = require("components.physics")
@@ -48,6 +49,8 @@ function PlayerSystem.load(self, x, y, layer)
     self:add_to_inventory(BLOCK_IDS.DIRT, 64)
     self:add_to_inventory(BLOCK_IDS.STONE, 32)
     self:add_to_inventory(BLOCK_IDS.WOOD, 16)
+
+    log.info("Player:", self.components.position:tostring())
 end
 
 function PlayerSystem.update(self, dt)
