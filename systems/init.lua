@@ -1,7 +1,7 @@
 -- Systems Module
 -- Shared definitions and constants for systems
 
-local systems = {
+local Systems = {
     -- System priority constants
     PRIORITY_GAME = 0,
     PRIORITY_WORLD = 10,
@@ -16,4 +16,4 @@ local systems = {
     PRIORITY_RENDER = 100,
 }
 
-return systems
+return Systems

@@ -1,7 +1,7 @@
 -- Components Module
 -- Shared definitions and constants for components
 
-local components = {
+local Components = {
     -- Component type constants (for future ECS enhancements)
     TYPE_POSITION = "position",
     TYPE_VELOCITY = "velocity",
@@ -20,4 +20,4 @@ local components = {
     TYPE_MOUSESTATE = "mousestate",
 }
 
-return components
+return Components
