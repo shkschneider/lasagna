@@ -243,7 +243,7 @@ function PlayerSystem.update(self, dt)
         end
     end
 
-    -- Update stance based on ground contact  
+    -- Update stance based on ground contact
     -- When landing while jumping or falling, return to standing or crouching
     if hit_ground and (stance.current == Stance.JUMPING or stance.current == Stance.FALLING) then
         -- Land on ground - return to standing or crouching based on input
@@ -263,7 +263,7 @@ function PlayerSystem.update(self, dt)
         if stance.current == Stance.CROUCHING then
             jump_force = jump_force * 0.5
         end
-        vel.vy = -jump_force
+        vel.vy = -jump_force * dt
         stance.current = Stance.JUMPING
     end
 
