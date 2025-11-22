@@ -46,7 +46,7 @@ BlocksRegistry:register({
     solid = true,
     color = {0.3, 0.7, 0.2, 1},
     tier = 0,
-    drops = function() return BlockRef.GRASS, 1 end,
+    drops = function() return BlockRef.DIRT, 1 end,
 })
 
 -- Register Stone
