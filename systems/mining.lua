@@ -1,23 +1,23 @@
 -- Mining System
 -- Handles block mining and placing
 
-local blocks = require("core/blocks")
+local blocks = require("core.blocks")
 
 local MiningSystem = {
     priority = 60,
 }
 
-function MiningSystem:load(world_system, player_system, drop_system)
+function MiningSystem.load(self, world_system, player_system, drop_system)
     self.world_system = world_system
     self.player_system = player_system
     self.drop_system = drop_system
 end
 
-function MiningSystem:update(dt)
+function MiningSystem.update(self, dt)
     -- Mining happens on mouse press, handled in mousepressed
 end
 
-function MiningSystem:mousepressed(x, y, button, camera_x, camera_y)
+function MiningSystem.mousepressed(self, x, y, button, camera_x, camera_y)
     local world_x = x + camera_x
     local world_y = y + camera_y
 
@@ -25,14 +25,14 @@ function MiningSystem:mousepressed(x, y, button, camera_x, camera_y)
 
     if button == 1 then
         -- Left click: mine block
-        self:mine_block(col, row)
+        self.mine_block(self, col, row)
     elseif button == 2 then
         -- Right click: place block
-        self:place_block(col, row)
+        self.place_block(self, col, row)
     end
 end
 
-function MiningSystem:mine_block(col, row)
+function MiningSystem.mine_block(self, col, row)
     local player_x, player_y, player_layer = self.player_system:get_position()
     local block_id = self.world_system:get_block(player_layer, col, row)
     local proto = blocks.get_proto(block_id)
@@ -66,7 +66,7 @@ function MiningSystem:mine_block(col, row)
     end
 end
 
-function MiningSystem:place_block(col, row)
+function MiningSystem.place_block(self, col, row)
     local player_x, player_y, player_layer = self.player_system:get_position()
     local block_id = self.player_system:get_selected_block_id()
 

@@ -1,15 +1,15 @@
 -- Player System
 -- Manages player entity and player-specific logic
 
-local Position = require("components/position")
-local Velocity = require("components/velocity")
-local Physics = require("components/physics")
-local Collider = require("components/collider")
-local Visual = require("components/visual")
-local Layer = require("components/layer")
-local Inventory = require("components/inventory")
-local Omnitool = require("components/omnitool")
-local blocks = require("core/blocks")
+local Position = require("components.position")
+local Velocity = require("components.velocity")
+local Physics = require("components.physics")
+local Collider = require("components.collider")
+local Visual = require("components.visual")
+local Layer = require("components.layer")
+local Inventory = require("components.inventory")
+local Omnitool = require("components.omnitool")
+local blocks = require("core.blocks")
 
 local PlayerSystem = {
     priority = 20,
@@ -19,7 +19,7 @@ local PlayerSystem = {
     JUMP_FORCE = 300,
 }
 
-function PlayerSystem:load(x, y, layer, world_system)
+function PlayerSystem.load(self, x, y, layer, world_system)
     -- Store reference to world system for queries
     self.world_system = world_system
 
@@ -39,12 +39,12 @@ function PlayerSystem:load(x, y, layer, world_system)
     end
 
     -- Add starting items
-    self:add_to_inventory(blocks.DIRT, 64)
-    self:add_to_inventory(blocks.STONE, 32)
-    self:add_to_inventory(blocks.WOOD, 16)
+    self.add_to_inventory(self, blocks.DIRT, 64)
+    self.add_to_inventory(self, blocks.STONE, 32)
+    self.add_to_inventory(self, blocks.WOOD, 16)
 end
 
-function PlayerSystem:update(dt)
+function PlayerSystem.update(self, dt)
     local pos = self.components.position
     local vel = self.components.velocity
     local phys = self.components.physics
@@ -150,7 +150,7 @@ function PlayerSystem:update(dt)
     end
 end
 
-function PlayerSystem:draw(camera_x, camera_y)
+function PlayerSystem.draw(self, camera_x, camera_y)
     local pos = self.components.position
     local vis = self.components.visual
 
@@ -162,7 +162,7 @@ function PlayerSystem:draw(camera_x, camera_y)
         vis.height)
 end
 
-function PlayerSystem:keypressed(key)
+function PlayerSystem.keypressed(self, key)
     -- Hotbar selection
     local num = tonumber(key)
     if num and num >= 1 and num <= self.components.inventory.hotbar_size then
@@ -172,13 +172,13 @@ function PlayerSystem:keypressed(key)
     -- Layer switching
     if key == "q" then
         local target_layer = math.max(-1, self.components.position.layer - 1)
-        if self:can_switch_layer(target_layer) then
+        if self.can_switch_layer(self, target_layer) then
             self.components.position.layer = target_layer
             self.components.layer.current_layer = target_layer
         end
     elseif key == "e" then
         local target_layer = math.min(1, self.components.position.layer + 1)
-        if self:can_switch_layer(target_layer) then
+        if self.can_switch_layer(self, target_layer) then
             self.components.position.layer = target_layer
             self.components.layer.current_layer = target_layer
         end
@@ -192,15 +192,15 @@ function PlayerSystem:keypressed(key)
     end
 end
 
-function PlayerSystem:can_switch_layer(target_layer)
+function PlayerSystem.can_switch_layer(self, target_layer)
     if target_layer < -1 or target_layer > 1 then
         return false
     end
 
-    return not self:check_collision(self.components.position.x, self.components.position.y, target_layer)
+    return not self.check_collision(self, self.components.position.x, self.components.position.y, target_layer)
 end
 
-function PlayerSystem:check_collision(x, y, layer)
+function PlayerSystem.check_collision(self, x, y, layer)
     local col = self.components.collider
     local EPSILON = 0.0001
 
@@ -227,7 +227,7 @@ function PlayerSystem:check_collision(x, y, layer)
 end
 
 -- Inventory management
-function PlayerSystem:add_to_inventory(block_id, count)
+function PlayerSystem.add_to_inventory(self, block_id, count)
     local inv = self.components.inventory
     count = count or 1
 
@@ -277,7 +277,7 @@ function PlayerSystem:add_to_inventory(block_id, count)
     return true
 end
 
-function PlayerSystem:remove_from_selected(count)
+function PlayerSystem.remove_from_selected(self, count)
     local inv = self.components.inventory
     count = count or 1
     local slot = inv.slots[inv.selected_slot]
@@ -296,7 +296,7 @@ function PlayerSystem:remove_from_selected(count)
     return removed
 end
 
-function PlayerSystem:get_selected_block_id()
+function PlayerSystem.get_selected_block_id(self)
     local inv = self.components.inventory
     local slot = inv.slots[inv.selected_slot]
     if slot then
@@ -305,11 +305,11 @@ function PlayerSystem:get_selected_block_id()
     return nil
 end
 
-function PlayerSystem:get_position()
+function PlayerSystem.get_position(self)
     return self.components.position.x, self.components.position.y, self.components.position.layer
 end
 
-function PlayerSystem:get_omnitool_tier()
+function PlayerSystem.get_omnitool_tier(self)
     return self.components.omnitool.tier
 end
 

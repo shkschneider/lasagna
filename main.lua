@@ -4,12 +4,12 @@
 -- Global
 G = require("game")
 
-local WorldSystem = require("systems/world")
-local PlayerSystem = require("systems/player")
-local CameraSystem = require("systems/camera")
-local MiningSystem = require("systems/mining")
-local DropSystem = require("systems/drop")
-local RenderSystem = require("systems/render")
+local WorldSystem = require("systems.world")
+local PlayerSystem = require("systems.player")
+local CameraSystem = require("systems.camera")
+local MiningSystem = require("systems.mining")
+local DropSystem = require("systems.drop")
+local RenderSystem = require("systems.render")
 local log = require("lib.log")
 
 function love.load()
@@ -27,60 +27,60 @@ function love.load()
     end
 
     -- Initialize and register systems with G
-    G:load(seed, debug)
+    G.load(G, seed, debug)
 
     -- Register systems with G for coordination
-    G:register_system("world", WorldSystem)
-    G:register_system("player", PlayerSystem)
-    G:register_system("camera", CameraSystem)
-    G:register_system("mining", MiningSystem)
-    G:register_system("drop", DropSystem)
-    G:register_system("render", RenderSystem)
+    G.register_system(G, "world", WorldSystem)
+    G.register_system(G, "player", PlayerSystem)
+    G.register_system(G, "camera", CameraSystem)
+    G.register_system(G, "mining", MiningSystem)
+    G.register_system(G, "drop", DropSystem)
+    G.register_system(G, "render", RenderSystem)
 
     -- Initialize other systems
-    WorldSystem:load(seed)
+    WorldSystem.load(WorldSystem, seed)
 
-    local spawn_x, spawn_y, spawn_layer = WorldSystem:find_spawn_position(
+    local spawn_x, spawn_y, spawn_layer = WorldSystem.find_spawn_position(WorldSystem,
         math.floor(WorldSystem.WIDTH / 2), 0)
 
-    PlayerSystem:load(spawn_x, spawn_y, spawn_layer, WorldSystem)
-    CameraSystem:load(spawn_x, spawn_y)
-    DropSystem:load(WorldSystem, PlayerSystem)
-    MiningSystem:load(WorldSystem, PlayerSystem, DropSystem)
-    RenderSystem:load()
+    PlayerSystem.load(PlayerSystem, spawn_x, spawn_y, spawn_layer, WorldSystem)
+    CameraSystem.load(CameraSystem, spawn_x, spawn_y)
+    DropSystem.load(DropSystem, WorldSystem, PlayerSystem)
+    MiningSystem.load(MiningSystem, WorldSystem, PlayerSystem, DropSystem)
+    RenderSystem.load(RenderSystem)
 
     log.info("Lasagna loaded with system architecture")
 end
 
 function love.update(dt)
-    if G:is_paused() then
+    if G.is_paused(G) then
         return
     end
 
     -- Update game system first (handles time scale)
-    G:update(dt)
-    local scaled_dt = G:get_scaled_dt()
+    G.update(G, dt)
+    local scaled_dt = G.get_scaled_dt(G)
 
     -- Update player system
-    PlayerSystem:update(scaled_dt)
+    PlayerSystem.update(PlayerSystem, scaled_dt)
 
     -- Update camera to follow player
-    local player_x, player_y, player_layer = PlayerSystem:get_position()
-    CameraSystem:update(scaled_dt, player_x, player_y)
+    local player_x, player_y, player_layer = PlayerSystem.get_position(PlayerSystem)
+    CameraSystem.update(CameraSystem, scaled_dt, player_x, player_y)
 
     -- Update drop system
-    DropSystem:update(scaled_dt)
+    DropSystem.update(DropSystem, scaled_dt)
 end
 
 function love.draw()
-    RenderSystem:draw(WorldSystem, PlayerSystem, CameraSystem)
+    RenderSystem.draw(RenderSystem, WorldSystem, PlayerSystem, CameraSystem)
 
     -- Draw drops
-    local camera_x, camera_y = CameraSystem:get_offset()
-    DropSystem:draw(camera_x, camera_y)
+    local camera_x, camera_y = CameraSystem.get_offset(CameraSystem)
+    DropSystem.draw(DropSystem, camera_x, camera_y)
 
     -- Draw game debug info
-    G:draw()
+    G.draw(G)
 end
 
 function love.keypressed(key)
@@ -91,40 +91,38 @@ function love.keypressed(key)
 
     -- Handle world reload
     if key == "delete" then
-        local seed = G:get_seed()
+        local seed = G.get_seed(G)
 
         -- Reset world and entities
-        WorldSystem:load(seed)
-        DropSystem:load(WorldSystem, PlayerSystem)
+        WorldSystem.load(WorldSystem, seed)
+        DropSystem.load(DropSystem, WorldSystem, PlayerSystem)
 
         -- Reset player at spawn position
-        local spawn_x, spawn_y, spawn_layer = WorldSystem:find_spawn_position(
+        local spawn_x, spawn_y, spawn_layer = WorldSystem.find_spawn_position(WorldSystem,
             math.floor(WorldSystem.WIDTH / 2), 0)
-        PlayerSystem:load(spawn_x, spawn_y, spawn_layer, WorldSystem)
+        PlayerSystem.load(PlayerSystem, spawn_x, spawn_y, spawn_layer, WorldSystem)
 
         -- Reset camera to player position
-        CameraSystem:load(spawn_x, spawn_y)
+        CameraSystem.load(CameraSystem, spawn_x, spawn_y)
 
         -- Reset mining system
-        MiningSystem:load(WorldSystem, PlayerSystem, DropSystem)
+        MiningSystem.load(MiningSystem, WorldSystem, PlayerSystem, DropSystem)
 
         return
     end
 
     -- Pass keypressed to systems
-    G:keypressed(key)
-    PlayerSystem:keypressed(key)
+    G.keypressed(G, key)
+    PlayerSystem.keypressed(PlayerSystem, key)
 end
 
 function love.mousepressed(x, y, button)
-    local camera_x, camera_y = CameraSystem:get_offset()
-    MiningSystem:mousepressed(x, y, button, camera_x, camera_y)
+    local camera_x, camera_y = CameraSystem.get_offset(CameraSystem)
+    MiningSystem.mousepressed(MiningSystem, x, y, button, camera_x, camera_y)
 end
 
 function love.resize(width, height)
-    for _, system in ipairs(G.systems) do
-        if type(system.resize) == "function" then
-            system.resize(width, height)
-        end
-    end
+    CameraSystem.resize(CameraSystem, width, height)
+    RenderSystem.resize(RenderSystem, width, height)
 end
+

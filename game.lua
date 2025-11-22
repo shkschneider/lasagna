@@ -1,9 +1,9 @@
 -- Game System
 -- Manages overall game state, time scale, and coordinates other systems
 
-local GameState = require("components/gamestate")
-local TimeScale = require("components/timescale")
-local States = require("core/states")
+local GameState = require("components.gamestate")
+local TimeScale = require("components.timescale")
+local States = require("core.states")
 
 local Game = {
     priority = 0,
@@ -11,7 +11,7 @@ local Game = {
     systems = {}, -- Holds references to other systems
 }
 
-function Game:load(seed, debug)
+function Game.load(self, seed, debug)
     -- Initialize components
     self.components.gamestate = GameState.new(States.BOOT, debug, seed)
     self.components.timescale = TimeScale.new(1, false)
@@ -20,15 +20,15 @@ function Game:load(seed, debug)
     self.components.gamestate.state = States.LOADING
 end
 
-function Game:register_system(name, system)
+function Game.register_system(self, name, system)
     self.systems[name] = system
 end
 
-function Game:get_system(name)
+function Game.get_system(self, name)
     return self.systems[name]
 end
 
-function Game:update(dt)
+function Game.update(self, dt)
     -- Apply time scale
     if not self.components.timescale.paused then
         dt = dt * self.components.timescale.scale
@@ -45,7 +45,7 @@ function Game:update(dt)
     end
 end
 
-function Game:draw()
+function Game.draw(self)
     -- Draw debug info
     if self.components.gamestate.debug then
         love.graphics.setColor(1, 1, 1, 1)
@@ -55,7 +55,7 @@ function Game:draw()
     end
 end
 
-function Game:keypressed(key)
+function Game.keypressed(self, key)
     -- Toggle debug mode
     if key == "backspace" then
         self.components.gamestate.debug = not self.components.gamestate.debug
@@ -71,20 +71,21 @@ function Game:keypressed(key)
     end
 end
 
-function Game:get_scaled_dt()
+function Game.get_scaled_dt(self)
     return self.scaled_dt or 0
 end
 
-function Game:is_paused()
+function Game.is_paused(self)
     return self.components.timescale.paused
 end
 
-function Game:get_seed()
+function Game.get_seed(self)
     return self.components.gamestate.seed
 end
 
-function Game:is_debug()
+function Game.is_debug(self)
     return self.components.gamestate.debug
 end
 
 return Game
+

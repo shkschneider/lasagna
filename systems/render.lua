@@ -1,7 +1,7 @@
 -- Render System
 -- Handles all rendering operations
 
-local blocks = require("core/blocks")
+local blocks = require("core.blocks")
 
 local RenderSystem = {
     priority = 100,
@@ -10,11 +10,11 @@ local RenderSystem = {
     screen_height = 720,
 }
 
-function RenderSystem:load()
-    self:create_canvases()
+function RenderSystem.load(self)
+    self.create_canvases(self)
 end
 
-function RenderSystem:create_canvases()
+function RenderSystem.create_canvases(self)
     self.screen_width, self.screen_height = love.graphics.getDimensions()
 
     -- Create canvases for each layer
@@ -23,24 +23,24 @@ function RenderSystem:create_canvases()
     self.canvases[1] = love.graphics.newCanvas(self.screen_width, self.screen_height)
 end
 
-function RenderSystem:draw(world_system, player_system, camera_system)
+function RenderSystem.draw(self, world_system, player_system, camera_system)
     local camera_x, camera_y = camera_system:get_offset()
     local player_x, player_y, player_layer = player_system:get_position()
 
     -- Draw world to layer canvases
-    self:draw_world(world_system, player_layer, camera_x, camera_y)
+    self.draw_world(self, world_system, player_layer, camera_x, camera_y)
 
     -- Composite layers to screen
-    self:composite_layers(player_layer)
+    self.composite_layers(self, player_layer)
 
     -- Draw player
     player_system:draw(camera_x, camera_y)
 
     -- Draw UI
-    self:draw_ui(player_system, world_system, camera_x, camera_y)
+    self.draw_ui(self, player_system, world_system, camera_x, camera_y)
 end
 
-function RenderSystem:draw_world(world_system, player_layer, camera_x, camera_y)
+function RenderSystem.draw_world(self, world_system, player_layer, camera_x, camera_y)
     local start_col = math.floor(camera_x / world_system.BLOCK_SIZE) - 1
     local end_col = math.ceil((camera_x + self.screen_width) / world_system.BLOCK_SIZE) + 1
     local start_row = math.floor(camera_y / world_system.BLOCK_SIZE) - 1
@@ -79,7 +79,7 @@ function RenderSystem:draw_world(world_system, player_layer, camera_x, camera_y)
     end
 end
 
-function RenderSystem:composite_layers(player_layer)
+function RenderSystem.composite_layers(self, player_layer)
     -- Clear screen
     love.graphics.clear(0.4, 0.6, 0.9, 1) -- Sky blue background
 
@@ -114,7 +114,7 @@ function RenderSystem:composite_layers(player_layer)
     end
 end
 
-function RenderSystem:draw_ui(player_system, world_system, camera_x, camera_y)
+function RenderSystem.draw_ui(self, player_system, world_system, camera_x, camera_y)
     local pos = player_system.components.position
     local inv = player_system.components.inventory
     local omnitool = player_system.components.omnitool
@@ -188,10 +188,10 @@ function RenderSystem:draw_ui(player_system, world_system, camera_x, camera_y)
     end
 end
 
-function RenderSystem:resize(width, height)
+function RenderSystem.resize(self, width, height)
     self.screen_width = width
     self.screen_height = height
-    self:create_canvases()
+    self.create_canvases(self)
 end
 
 return RenderSystem

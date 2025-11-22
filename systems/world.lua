@@ -1,9 +1,9 @@
 -- World System
 -- Manages world generation, block storage, and world queries
 
-local WorldData = require("components/worlddata")
-local blocks = require("core/blocks")
-local noise = require("lib/noise")
+local WorldData = require("components.worlddata")
+local blocks = require("core.blocks")
+local noise = require("lib.noise")
 
 local WorldSystem = {
     priority = 10,
@@ -13,7 +13,7 @@ local WorldSystem = {
     HEIGHT = 128,
 }
 
-function WorldSystem:load(seed)
+function WorldSystem.load(self, seed)
     -- Initialize components
     self.components.worlddata = WorldData.new(seed, self.WIDTH, self.HEIGHT)
 
@@ -21,16 +21,16 @@ function WorldSystem:load(seed)
     noise.seed(self.components.worlddata.seed)
 end
 
-function WorldSystem:update(dt)
+function WorldSystem.update(self, dt)
     -- World generation happens on-demand in get_block
 end
 
-function WorldSystem:draw()
+function WorldSystem.draw(self)
     -- World rendering is handled by RenderSystem
 end
 
 -- Generate a column if not already generated
-function WorldSystem:generate_column(layer, col)
+function WorldSystem.generate_column(self, layer, col)
     local data = self.components.worlddata
 
     if data.generated_columns[layer] and data.generated_columns[layer][col] then
@@ -48,11 +48,11 @@ function WorldSystem:generate_column(layer, col)
     end
 
     -- Generate terrain for this column
-    self:generate_terrain(layer, col)
+    self.generate_terrain(self, layer, col)
 end
 
 -- Generate terrain for a column (simplified from world.lua)
-function WorldSystem:generate_terrain(layer, col)
+function WorldSystem.generate_terrain(self, layer, col)
     local data = self.components.worlddata
 
     -- Base terrain height
@@ -103,13 +103,13 @@ function WorldSystem:generate_terrain(layer, col)
 end
 
 -- Get block at position
-function WorldSystem:get_block(layer, col, row)
+function WorldSystem.get_block(self, layer, col, row)
     if col < 0 or col >= self.components.worlddata.width or
        row < 0 or row >= self.components.worlddata.height then
         return blocks.AIR
     end
 
-    self:generate_column(layer, col)
+    self.generate_column(self, layer, col)
 
     if self.components.worlddata.layers[layer] and
        self.components.worlddata.layers[layer][col] and
@@ -121,19 +121,19 @@ function WorldSystem:get_block(layer, col, row)
 end
 
 -- Get block prototype at position
-function WorldSystem:get_block_proto(layer, col, row)
-    local block_id = self:get_block(layer, col, row)
+function WorldSystem.get_block_proto(self, layer, col, row)
+    local block_id = self.get_block(self, layer, col, row)
     return blocks.get_proto(block_id)
 end
 
 -- Set block at position
-function WorldSystem:set_block(layer, col, row, block_id)
+function WorldSystem.set_block(self, layer, col, row, block_id)
     if col < 0 or col >= self.components.worlddata.width or
        row < 0 or row >= self.components.worlddata.height then
         return false
     end
 
-    self:generate_column(layer, col)
+    self.generate_column(self, layer, col)
 
     if not self.components.worlddata.layers[layer][col] then
         self.components.worlddata.layers[layer][col] = {}
@@ -144,23 +144,23 @@ function WorldSystem:set_block(layer, col, row, block_id)
 end
 
 -- World to block coordinate conversion
-function WorldSystem:world_to_block(world_x, world_y)
+function WorldSystem.world_to_block(self, world_x, world_y)
     return math.floor(world_x / self.BLOCK_SIZE), math.floor(world_y / self.BLOCK_SIZE)
 end
 
 -- Block to world coordinate conversion
-function WorldSystem:block_to_world(col, row)
+function WorldSystem.block_to_world(self, col, row)
     return col * self.BLOCK_SIZE, row * self.BLOCK_SIZE
 end
 
 -- Find spawn position (simplified)
-function WorldSystem:find_spawn_position(start_col, start_layer)
+function WorldSystem.find_spawn_position(self, start_col, start_layer)
     local col = start_col
     local layer = start_layer or 0
 
     -- Find ground
     for row = 0, self.components.worlddata.height - 1 do
-        local block_proto = self:get_block_proto(layer, col, row)
+        local block_proto = self.get_block_proto(self, layer, col, row)
         if block_proto and block_proto.solid then
             -- Found ground, spawn 2 blocks above
             local spawn_x = col * self.BLOCK_SIZE + self.BLOCK_SIZE / 2

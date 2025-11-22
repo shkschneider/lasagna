@@ -1,5 +1,5 @@
-local BlocksRegistry = require("registries/blocks")
-local ItemsRegistry = require("registries/items")
+local BlocksRegistry = require("registries.blocks")
+local ItemsRegistry = require("registries.items")
 
 local Registry = {}
 
