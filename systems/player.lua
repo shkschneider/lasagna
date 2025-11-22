@@ -73,13 +73,30 @@ function PlayerSystem.update(self, dt)
 
     -- Handle crouching state
     local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
+    local prev_stance = stance.current
 
     if is_crouching then
         stance.current = Stance.CROUCHING
+    else
+        stance.current = Stance.STANDING
+    end
+
+    -- Adjust player position when changing stance to keep bottom at same level
+    if prev_stance ~= stance.current then
+        local prev_height = prev_stance == Stance.STANDING and self.STANDING_HEIGHT or self.CROUCHING_HEIGHT
+        local new_height = stance.current == Stance.STANDING and self.STANDING_HEIGHT or self.CROUCHING_HEIGHT
+        
+        -- Keep the bottom of the player at the same position
+        -- pos.y is center, so bottom is at pos.y + height/2
+        local bottom_y = pos.y + prev_height / 2
+        pos.y = bottom_y - new_height / 2
+    end
+
+    -- Update collider and visual heights
+    if stance.current == Stance.CROUCHING then
         col.height = self.CROUCHING_HEIGHT
         vis.height = self.CROUCHING_HEIGHT
     else
-        stance.current = Stance.STANDING
         col.height = self.STANDING_HEIGHT
         vis.height = self.STANDING_HEIGHT
     end
