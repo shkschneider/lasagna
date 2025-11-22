@@ -57,9 +57,9 @@ function player.update(self, dt, w)
         local check_col
         if self.vx > 0 then
             -- Moving right, check right edge
-            check_col = math.floor((new_x + self.width / 2 - EPSILON) / world.BLOCK_SIZE)
+            check_col = math.floor((new_x + self.width / 2) / world.BLOCK_SIZE)
         else
-            -- Moving left, check left edge
+            -- Moving left, check left edge  
             check_col = math.floor((new_x - self.width / 2) / world.BLOCK_SIZE)
         end
 
@@ -71,6 +71,14 @@ function player.update(self, dt, w)
             local block_proto = world.get_block_proto(w, self.layer, check_col, row)
             if block_proto and block_proto.solid then
                 hit_wall = true
+                -- Snap to wall position
+                if self.vx > 0 then
+                    -- Hit wall on right - snap player to left edge of wall block
+                    self.x = check_col * world.BLOCK_SIZE - self.width / 2
+                else
+                    -- Hit wall on left - snap player to right edge of wall block
+                    self.x = (check_col + 1) * world.BLOCK_SIZE + self.width / 2
+                end
                 break
             end
         end
