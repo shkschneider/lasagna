@@ -81,6 +81,26 @@ function MiningSystem.mine_block(self, col, row, world_system, player_system)
     end
 end
 
+function MiningSystem.has_adjacent_block(self, col, row, layer, world_system)
+    -- Check all 8 surrounding positions for solid blocks
+    local offsets = {
+        {-1, -1}, {0, -1}, {1, -1},  -- top row
+        {-1,  0},          {1,  0},  -- middle row (left and right)
+        {-1,  1}, {0,  1}, {1,  1},  -- bottom row
+    }
+    
+    for _, offset in ipairs(offsets) do
+        local check_col = col + offset[1]
+        local check_row = row + offset[2]
+        local proto = world_system:get_block_proto(layer, check_col, check_row)
+        if proto and proto.solid then
+            return true
+        end
+    end
+    
+    return false
+end
+
 function MiningSystem.place_block(self, col, row, world_system, player_system)
     local player_x, player_y, player_layer = player_system:get_position()
     local block_id = player_system:get_selected_block_id()
@@ -92,6 +112,11 @@ function MiningSystem.place_block(self, col, row, world_system, player_system)
     -- Check if spot is empty
     local current_block = world_system:get_block(player_layer, col, row)
     if current_block ~= BLOCKS.AIR then
+        return
+    end
+
+    -- Check if there's at least one adjacent solid block
+    if not self:has_adjacent_block(col, row, player_layer, world_system) then
         return
     end
 
