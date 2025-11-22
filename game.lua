@@ -1,241 +1,243 @@
--- Main game controller
+-- Game System
+-- Manages overall game state, time scale, and coordinates other systems
 
-local world = require("world")
-local player = require("player")
-local camera = require("camera")
-local render = require("render")
-local entities = require("entities")
-local blocks = require("blocks")
-local inventory = require("inventory")
-local States = require("states")
+local log = require "lib.log"
+local GameState = require("components.gamestate")
+local TimeScale = require("components.timescale")
+local States = require("core.states")
 
-local game = {}
+local Game = {
+    priority = 0,
+    components = {},
+    systems = {
+        world = require("systems.world"),
+        player = require("systems.player"),
+        camera = require("systems.camera"),
+        mining = require("systems.mining"),
+        drop = require("systems.drop"),
+        render = require("systems.render"),
+    },
+}
 
-function game.new(seed, debug)
-    local self = {
-        state = States.BOOT,
-        world = world.new(seed),
-        player = nil,
-        camera = nil,
-        renderer = render.new(),
-        entities = entities.new(),
-        debug = debug or false,
-        timeScale = 1,
-        paused = false,
-    }
-
-    -- Initialize player at spawn point (finds ground automatically)
-    local spawn_x, spawn_y, spawn_layer = world.find_spawn_position(self.world,
-        math.floor(world.WIDTH / 2), 0)
-    self.player = player.new(spawn_x, spawn_y, spawn_layer)
-
-    -- Give player some starting items for testing
-    inventory.add(self.player.inventory, blocks.DIRT, 64)
-    inventory.add(self.player.inventory, blocks.STONE, 32)
-    inventory.add(self.player.inventory, blocks.WOOD, 16)
-
-    -- Initialize camera
-    self.camera = camera.new(spawn_x, spawn_y)
-
-    self.state = States.LOADING
-    return self
+function Game.world(self)
+    return self.systems["world"]
 end
 
-function game.load(self)
-    -- Create render canvases
-    render.create_canvases(self.renderer)
-    self.state = States.PLAYING
+function Game.player(self)
+    return self.systems["player"]
 end
 
-function game.update(self, dt)
-    if self.paused then
+function Game.load(self, seed, debug)
+    assert(type(seed) == "number")
+    log.info("Game:", "debug=" .. tostring(debug))
+
+    -- Initialize components
+    self.components.gamestate = GameState.new(States.BOOT, debug, seed)
+    self.components.timescale = TimeScale.new(1, false)
+
+    -- Transition to loading state
+    self.components.gamestate.state = States.LOADING
+
+    -- Load systems in specific order with correct parameters
+
+    -- 1. Load WorldSystem first (needs seed)
+    log.debug("* world")
+    self.systems.world:load(seed)
+
+    -- 2. Find spawn position
+    local spawn_x, spawn_y, spawn_layer = self.systems.world:find_spawn_position(
+        math.floor(self.systems.world.WIDTH / 2), 0)
+
+    -- 3. Load PlayerSystem at spawn position
+    log.debug("* player")
+    self.systems.player:load(spawn_x, spawn_y, spawn_layer)
+
+    -- 4. Load CameraSystem at spawn position
+    log.debug("* camera")
+    self.systems.camera:load(spawn_x, spawn_y)
+
+    -- 5. Load remaining systems (no special parameters needed)
+    log.debug("* mining")
+    if self.systems.mining and type(self.systems.mining.load) == "function" then
+        self.systems.mining:load()
+    end
+
+    log.debug("* drop")
+    if self.systems.drop and type(self.systems.drop.load) == "function" then
+        self.systems.drop:load()
+    end
+
+    log.debug("* render")
+    if self.systems.render and type(self.systems.render.load) == "function" then
+        self.systems.render:load()
+    end
+
+    -- Transition to playing state
+    self.components.gamestate.state = States.PLAYING
+end
+
+function Game.get_system(self, name)
+    return self.systems[name]
+end
+
+function Game.world(self)
+    return self:get_system("world")
+end
+
+function Game.player(self)
+    return self:get_system("player")
+end
+
+function Game.update(self, dt)
+    -- Check if paused
+    if self.components.timescale.paused then
         return
     end
 
-    dt = dt * self.timeScale
+    -- Apply time scale
+    dt = dt * self.components.timescale.scale
+    self.scaled_dt = dt
 
-    -- Update player
-    player.update(self.player, dt, self.world)
-
-    -- Update camera to follow player
-    camera.follow(self.camera, self.player.x, self.player.y, dt)
-
-    -- Update entities
-    entities.update(self.entities, dt, self.world, self.player)
+    -- Update all systems
+    for _, system in pairs(self.systems) do
+        if type(system.update) == "function" then
+            system:update(dt)
+        end
+    end
 end
 
-function game.draw(self)
-    local camera_x, camera_y = camera.get_offset(self.camera,
-        self.renderer.screen_width, self.renderer.screen_height)
+function Game.draw(self)
+    -- Draw all systems
+    for _, system in pairs(self.systems) do
+        if type(system.draw) == "function" then
+            system:draw()
+        end
+    end
 
-    -- Draw world to layer canvases
-    render.draw_world(self.renderer, self.world, self.player.layer, camera_x, camera_y)
-
-    -- Composite layers to screen
-    render.composite_layers(self.renderer, self.player.layer)
-
-    -- Draw entities
-    entities.draw(self.entities, camera_x, camera_y)
-
-    -- Draw player
-    player.draw(self.player, camera_x, camera_y)
-
-    -- Draw UI
-    render.draw_ui(self.renderer, self.player, self.world, camera_x, camera_y)
-
-    -- Debug info
-    if self.debug then
+    -- Draw debug info last
+    if self.components.gamestate.debug then
         love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.print(string.format("Seed: %s", self.world.seed), 10, 120)
+        love.graphics.print(string.format("Seed: %s", self.components.gamestate:tostring()), 10, 120)
         love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
-        love.graphics.print(string.format("TimeScale: %f", self.timeScale), 10, 140)
+        love.graphics.print(string.format("TimeScale: %f", self.components.timescale:tostring()), 10, 140)
     end
 end
 
-function game.keypressed(self, key)
-    -- Layer switching (only if player can fit in target layer)
-    if key == "q" then
-        local target_layer = math.max(-1, self.player.layer - 1)
-        if game.can_switch_layer(self, target_layer) then
-            self.player.layer = target_layer
-        end
-    elseif key == "e" then
-        local target_layer = math.min(1, self.player.layer + 1)
-        if game.can_switch_layer(self, target_layer) then
-            self.player.layer = target_layer
-        end
+function Game.keypressed(self, key)
+    -- Handle escape
+    if key == "escape" then
+        love.event.quit()
+        return
     end
 
-    -- Hotbar selection (1-9 keys)
-    local num = tonumber(key)
-    if num and num >= 1 and num <= 9 then
-        inventory.select_slot(self.player.inventory, num)
-    end
-
-    if self.debug then
-        -- Development: adjust omnitool tier
-        if key == "=" or key == "+" then
-            self.player.omnitool_tier = math.min(10, self.player.omnitool_tier + 1)
-        elseif key == "-" or key == "_" then
-            self.player.omnitool_tier = math.max(0, self.player.omnitool_tier - 1)
-        end
-        -- Development: adjust time
-        if key == "[" then
-            self.timeScale = self.timeScale / 2
-        elseif key == "]" then
-            self.timeScale = self.timeScale * 2
-        end
-    end
-
-    -- Development
+    -- Toggle debug mode
     if key == "backspace" then
-        self.debug = not self.debug
+        self.components.gamestate.debug = not self.components.gamestate.debug
     end
 
-    -- Reload world (complete reset)
-    if key == "delete" then
-        -- Save the seed before resetting
-        local seed = self.world.seed
-
-        -- Reset world and entities
-        self.world = world.new(seed)
-        self.entities = entities.new()
-
-        -- Reset player at spawn position
-        local spawn_x, spawn_y, spawn_layer = world.find_spawn_position(self.world,
-            math.floor(world.WIDTH / 2), 0)
-        self.player = player.new(spawn_x, spawn_y, spawn_layer)
-
-        -- Give player starting items again
-        inventory.add(self.player.inventory, blocks.DIRT, 64)
-        inventory.add(self.player.inventory, blocks.STONE, 32)
-        inventory.add(self.player.inventory, blocks.WOOD, 16)
-
-        -- Reset camera to player position
-        self.camera.x = spawn_x
-        self.camera.y = spawn_y
-    end
-end
-
--- Check if player can switch to target layer (no collision)
-function game.can_switch_layer(self, target_layer)
-    if target_layer < -1 or target_layer > 1 then
-        return false
+    -- Time scale controls (debug only)
+    if self.components.gamestate.debug then
+        if key == "[" then
+            self.components.timescale.scale = self.components.timescale.scale / 2
+        elseif key == "]" then
+            self.components.timescale.scale = self.components.timescale.scale * 2
+        end
     end
 
-    -- Check if player would collide with blocks in target layer
-    return not player.check_collision(self.player, self.world, self.player.x, self.player.y, target_layer)
-end
-
-function game.mousepressed(self, x, y, button)
-    local camera_x, camera_y = camera.get_offset(self.camera,
-        self.renderer.screen_width, self.renderer.screen_height)
-
-    local world_x = x + camera_x
-    local world_y = y + camera_y
-
-    local col, row = world.world_to_block(world_x, world_y)
-
-    if button == 1 then
-        -- Left click: mine block
-        game.mine_block(self, col, row)
-    elseif button == 2 then
-        -- Right click: place block
-        game.place_block(self, col, row)
-    end
-end
-
-function game.mine_block(self, col, row)
-    local block_id = world.get_block(self.world, self.player.layer, col, row)
-    local proto = blocks.get_proto(block_id)
-
-    if not proto or not proto.solid then
-        return
-    end
-
-    -- Check tier requirement
-    if proto.tier > self.player.omnitool_tier then
-        return -- Can't mine this yet
-    end
-
-    -- Remove block
-    world.set_block(self.world, self.player.layer, col, row, blocks.AIR)
-
-    -- Spawn drop
-    if proto.drops then
-        local drop_id, drop_count = proto.drops()
-        if drop_id then
-            local wx, wy = world.block_to_world(col, row)
-            entities.create_drop(self.entities, wx + world.BLOCK_SIZE / 2,
-                wy + world.BLOCK_SIZE / 2, self.player.layer, drop_id, drop_count)
+    -- Pass to all systems
+    for _, system in pairs(self.systems) do
+        if type(system.keypressed) == "function" then
+            system.keypressed(system, key)
         end
     end
 end
 
-function game.place_block(self, col, row)
-    local block_id = inventory.get_selected_block_id(self.player.inventory)
-
-    if not block_id then
-        return
-    end
-
-    -- Check if spot is empty
-    local current_block = world.get_block(self.world, self.player.layer, col, row)
-    if current_block ~= blocks.AIR then
-        return
-    end
-
-    -- Place block
-    if world.set_block(self.world, self.player.layer, col, row, block_id) then
-        -- Remove from inventory
-        inventory.remove_from_selected(self.player.inventory, 1)
+function Game.keyreleased(self, key)
+    -- Pass to all systems
+    for _, system in pairs(self.systems) do
+        if type(system.keyreleased) == "function" then
+            system.keyreleased(system, key)
+        end
     end
 end
 
-function game.resize(self, width, height)
-    self.renderer.screen_width = width
-    self.renderer.screen_height = height
-    render.create_canvases(self.renderer)
+function Game.mousepressed(self, x, y, button)
+    -- Pass to all systems
+    for _, system in pairs(self.systems) do
+        if type(system.mousepressed) == "function" then
+            system.mousepressed(system, x, y, button)
+        end
+    end
 end
 
-return game
+function Game.mousereleased(self, x, y, button)
+    -- Pass to all systems
+    for _, system in pairs(self.systems) do
+        if type(system.mousereleased) == "function" then
+            system.mousereleased(system, x, y, button)
+        end
+    end
+end
+
+function Game.mousemoved(self, x, y, dx, dy)
+    -- Pass to all systems
+    for _, system in pairs(self.systems) do
+        if type(system.mousemoved) == "function" then
+            system.mousemoved(system, x, y, dx, dy)
+        end
+    end
+end
+
+function Game.wheelmoved(self, x, y)
+    -- Pass to all systems
+    for _, system in pairs(self.systems) do
+        if type(system.wheelmoved) == "function" then
+            system.wheelmoved(system, x, y)
+        end
+    end
+end
+
+function Game.resize(self, width, height)
+    -- Pass to all systems
+    for _, system in pairs(self.systems) do
+        if type(system.resize) == "function" then
+            system.resize(system, width, height)
+        end
+    end
+end
+
+function Game.focus(self, focused)
+    -- Pass to all systems
+    for _, system in pairs(self.systems) do
+        if type(system.focus) == "function" then
+            system.focus(system, focused)
+        end
+    end
+end
+
+function Game.quit(self)
+    -- Pass to all systems
+    for _, system in pairs(self.systems) do
+        if type(system.quit) == "function" then
+            system.quit(system)
+        end
+    end
+end
+
+function Game.get_scaled_dt(self)
+    return self.scaled_dt or 0
+end
+
+function Game.is_paused(self)
+    return self.components.timescale.paused
+end
+
+function Game.get_seed(self)
+    return self.components.gamestate.seed
+end
+
+function Game.is_debug(self)
+    return self.components.gamestate.debug
+end
+
+return Game
