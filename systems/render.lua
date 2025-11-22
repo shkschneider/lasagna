@@ -36,13 +36,13 @@ function RenderSystem.draw(self)
     end
 
     local camera_x, camera_y = camera_system:get_offset()
-    local player_x, player_y, player_layer = player_system:get_position()
+    local player_x, player_y, player_z = player_system:get_position()
 
     -- Draw world to layer canvases
-    self:draw_world(world_system, player_layer, camera_x, camera_y)
+    self:draw_world(world_system, player_z, camera_x, camera_y)
 
     -- Composite layers to screen
-    self:composite_layers(player_layer)
+    self:composite_layers(player_z)
 
     -- Draw player
     player_system:draw(camera_x, camera_y)
@@ -51,7 +51,7 @@ function RenderSystem.draw(self)
     self:draw_ui(player_system, world_system, camera_x, camera_y)
 end
 
-function RenderSystem.draw_world(self, world_system, player_layer, camera_x, camera_y)
+function RenderSystem.draw_world(self, world_system, player_z, camera_x, camera_y)
     local start_col = math.floor(camera_x / world_system.BLOCK_SIZE) - 1
     local end_col = math.ceil((camera_x + self.screen_width) / world_system.BLOCK_SIZE) + 1
     local start_row = math.floor(camera_y / world_system.BLOCK_SIZE) - 1
@@ -90,13 +90,13 @@ function RenderSystem.draw_world(self, world_system, player_layer, camera_x, cam
     end
 end
 
-function RenderSystem.composite_layers(self, player_layer)
+function RenderSystem.composite_layers(self, player_z)
     -- Clear screen
     love.graphics.clear(0.4, 0.6, 0.9, 1) -- Sky blue background
 
     -- Draw back layer (dimmed)
     if self.canvases[-1] then
-        if player_layer == -1 then
+        if player_z == -1 then
             love.graphics.setColor(1, 1, 1, 1)
         else
             love.graphics.setColor(0.5, 0.5, 0.5, 1) -- Dimmed
@@ -106,7 +106,7 @@ function RenderSystem.composite_layers(self, player_layer)
 
     -- Draw main layer
     if self.canvases[0] then
-        if player_layer == 0 then
+        if player_z == 0 then
             love.graphics.setColor(1, 1, 1, 1)
         else
             love.graphics.setColor(0.7, 0.7, 0.7, 1) -- Slightly dimmed
@@ -116,7 +116,7 @@ function RenderSystem.composite_layers(self, player_layer)
 
     -- Draw front layer (semi-transparent)
     if self.canvases[1] then
-        if player_layer == 1 then
+        if player_z == 1 then
             love.graphics.setColor(1, 1, 1, 1)
         else
             love.graphics.setColor(1, 1, 1, 0.6) -- Semi-transparent

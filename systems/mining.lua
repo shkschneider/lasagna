@@ -44,8 +44,8 @@ function MiningSystem.mousepressed(self, x, y, button)
 end
 
 function MiningSystem.mine_block(self, col, row, world_system, player_system)
-    local player_x, player_y, player_layer = player_system:get_position()
-    local block_id = world_system:get_block(player_layer, col, row)
+    local player_x, player_y, player_z = player_system:get_position()
+    local block_id = world_system:get_block(player_z, col, row)
     local proto = Registry.Blocks:get(block_id)
 
     if not proto or not proto.solid then
@@ -59,7 +59,7 @@ function MiningSystem.mine_block(self, col, row, world_system, player_system)
     end
 
     -- Remove block
-    world_system:set_block(player_layer, col, row, BLOCKS.AIR)
+    world_system:set_block(player_z, col, row, BLOCKS.AIR)
 
     -- Spawn drop
     if proto.drops then
@@ -71,7 +71,7 @@ function MiningSystem.mine_block(self, col, row, world_system, player_system)
                 drop_system.create_drop(drop_system,
                     wx + world_system.BLOCK_SIZE / 2,
                     wy + world_system.BLOCK_SIZE / 2,
-                    player_layer,
+                    player_z,
                     drop_id,
                     drop_count
                 )
