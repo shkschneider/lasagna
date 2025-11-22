@@ -10,7 +10,6 @@ function Debug.keypressed(self, key)
     if key == "backspace" then
         self.enabled = not self.enabled
     end
-end
 
 function Debug.draw(self)
     if self.enabled then

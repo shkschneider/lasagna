@@ -3,16 +3,18 @@
 
 require "lib"
 local log = require "lib.log"
+
 local Systems = require "systems"
-local Position = require("components.position")
-local Velocity = require("components.velocity")
-local Physics = require("components.physics")
-local Collider = require("components.collider")
-local Visual = require("components.visual")
-local Layer = require("components.layer")
-local Inventory = require("components.inventory")
-local Omnitool = require("components.omnitool")
-local Registry = require("registries.init")
+local Position = require "components.position"
+local Velocity = require "components.velocity"
+local Physics = require "components.physics"
+local Collider = require "components.collider"
+local Visual = require "components.visual"
+local Layer = require "components.layer"
+local Inventory = require "components.inventory"
+local Omnitool = require "components.omnitool"
+local Registry = require "registries.init"
+
 local BLOCK_IDS = Registry.block_ids()
 
 local PlayerSystem = {
@@ -158,11 +160,12 @@ function PlayerSystem.update(self, dt)
     end
 end
 
-function PlayerSystem.draw(self, camera_x, camera_y)
+function PlayerSystem.draw(self)
     local pos = self.components.position
     local vis = self.components.visual
 
-    local camera_x, camera_y = Systems.get("camera"):get_offset()
+    local camera = Systems.get("camera")
+    local camera_x, camera_y = camera:get_offset()
 
     love.graphics.setColor(vis.color)
     love.graphics.rectangle("fill",
@@ -194,16 +197,18 @@ function PlayerSystem.keypressed(self, key)
         end
     end
 
-    -- Debug: adjust omnitool tier
-    if key == "=" or key == "+" then
-        self.components.omnitool.tier = math.min(10, self.components.omnitool.tier + 1)
-    elseif key == "-" or key == "_" then
-        self.components.omnitool.tier = math.max(0, self.components.omnitool.tier - 1)
+    if G:debug() then
+        -- Debug: adjust omnitool tier
+        if key == "=" or key == "+" then
+            self.components.omnitool.tier = self.components.omnitool.tier + 1
+        elseif key == "-" or key == "_" then
+            self.components.omnitool.tier = math.max(0, self.components.omnitool.tier - 1)
+        end
     end
 end
 
 function PlayerSystem.can_switch_layer(self, target_layer)
-    if target_layer < -1 or target_layer > 1 then
+    if target_layer < -1 or target_layer > 1 then -- TODO constants for MIN and MAX layers
         return false
     end
 

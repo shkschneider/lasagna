@@ -1,22 +1,15 @@
--- Main entry point for Lasagna
--- Wiring layer: passes LÖVE callbacks to Game
-
 -- Global
-G = require("game")
+G = require "game"
 G.VERSION = { major = 0, minor = 1, patch = 3, tostring = function(self)
     return string.format("%d.%d.%d", self.major, self.minor, self.patch)
 end }
 
-local log = require("lib.log")
+local log = require "lib.log"
 
 function love.load()
-    -- Parse environment variables
-    local debug = true -- os.getenv("DEBUG") == "true"
+    local debug = os.getenv("DEBUG") == "true"
     local seed = tonumber(os.getenv("SEED"))
-
     log.level = debug and "debug" or "warn"
-
-    -- Initialize Game and all systems
     log.debug("...")
     G:load(seed, debug)
     log.info("Lasagna", G.VERSION:tostring())
@@ -65,6 +58,3 @@ end
 function love.quit()
     G:quit()
 end
-
-
-

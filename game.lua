@@ -3,8 +3,8 @@
 
 local log = require "lib.log"
 local Systems = require "systems"
-local TimeScale = require("components.timescale")
-local States = require("core.states")
+local TimeScale = require "components.timescale"
+local States = require "core.states"
 
 local Game = {
     priority = 0,
@@ -45,7 +45,6 @@ function Game.update(self, dt)
 
     -- Apply time scale
     dt = dt * self.components.timescale.scale
-    self.scaled_dt = dt
 
     -- Update all systems
     for _, system in Systems.each(self.systems) do
@@ -71,7 +70,7 @@ function Game.keypressed(self, key)
         return
     end
 
-    if self:is_debug() then
+    if self.systems.debug and self.systems.debug.enabled then
         -- Time scale controls
         if key == "[" then
             self.components.timescale.scale = self.components.timescale.scale / 2
@@ -160,20 +159,8 @@ function Game.quit(self)
     end
 end
 
-function Game.get_scaled_dt(self)
-    return self.scaled_dt or 0
-end
-
-function Game.is_paused(self)
-    return self.components.timescale.paused
-end
-
-function Game.get_seed(self)
-    return self.components.gamestate.seed
-end
-
-function Game.is_debug(self)
-    return self.systems.debug and self.systems.debug.enabled
+function Game.debug(self)
+    return self.systems.debug and self.systems.debug.enabled == true
 end
 
 return Game

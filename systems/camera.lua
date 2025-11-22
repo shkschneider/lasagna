@@ -2,10 +2,9 @@
 -- Manages camera positioning and smooth following
 
 local log = require "lib.log"
-
 local Systems = require "systems"
-local Camera = require("components.camera")
-local Position = require("components.position")
+local Camera = require "components.camera"
+local Position = require "components.position"
 
 local CameraSystem = {
     id = "camera",
@@ -47,7 +46,8 @@ end
 
 function CameraSystem.get_offset(self)
     local cam = self.components.camera
-    return cam.x - self.screen_width / 2, cam.y - self.screen_height / 2
+    return cam.x - self.screen_width / 2,
+        cam.y - self.screen_height / 2
 end
 
 function CameraSystem.resize(self, width, height)
