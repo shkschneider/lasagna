@@ -185,14 +185,23 @@ function PlayerSystem.update(self, dt)
             local ground_check_row = math.floor((pos.y + col.height / 2) / world.BLOCK_SIZE) + 1
             local ground_exists = false
             
-            -- Check if the center of the player would be over empty space
-            local center_col = math.floor(new_x / world.BLOCK_SIZE)
-            local block_def = world:get_block_def(pos.z, center_col, ground_check_row)
+            -- Check if there's ground under the edge we're moving toward
+            -- Allow movement until half the player's width would be over the edge
+            local edge_check_col
+            if vel.vx > 0 then
+                -- Moving right: check if right half would be over empty space
+                edge_check_col = math.floor((new_x + col.width / 4) / world.BLOCK_SIZE)
+            else
+                -- Moving left: check if left half would be over empty space
+                edge_check_col = math.floor((new_x - col.width / 4) / world.BLOCK_SIZE)
+            end
+            
+            local block_def = world:get_block_def(pos.z, edge_check_col, ground_check_row)
             if block_def and block_def.solid then
                 ground_exists = true
             end
 
-            -- If center would be over empty space, stop movement
+            -- If no ground under the half-block position, stop movement
             if not ground_exists then
                 hit_wall = true
             end
