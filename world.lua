@@ -500,8 +500,8 @@ function world.find_spawn_position(self, start_col, layer)
                 -- Position player aligned with block grid
                 local wx, wy = world.block_to_world(start_col, row)
                 -- Player center at block center horizontally, 2 blocks above ground vertically
-                wx = wx - world.BLOCK_SIZE / 2
-                wy = wy - world.BLOCK_SIZE * 1
+                wx = wx + world.BLOCK_SIZE / 2
+                wy = wy - world.BLOCK_SIZE
                 return wx, wy, layer
             end
         end
