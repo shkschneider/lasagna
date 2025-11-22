@@ -14,6 +14,7 @@ local Layer = require "components.layer"
 local Inventory = require "components.inventory"
 local Omnitool = require "components.omnitool"
 local Stance = require "components.stance"
+local Controllable = require "components.controllable"
 local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()
@@ -22,9 +23,6 @@ local PlayerSystem = {
     id = "player",
     priority = 20,
     components = {},
-    -- Movement constants
-    MOVE_SPEED = 150,
-    JUMP_FORCE = 300,
     -- Height constants
     STANDING_HEIGHT = nil,  -- Will be set in load
     CROUCHING_HEIGHT = nil, -- Will be set in load
@@ -47,6 +45,7 @@ function PlayerSystem.load(self, x, y, layer)
     self.components.inventory = Inventory.new(9, 64)
     self.components.omnitool = Omnitool.new(0)
     self.components.stance = Stance.new(Stance.STANDING)
+    self.components.controllable = Controllable.new(150, 300)
 
     -- Initialize inventory slots
     for i = 1, self.components.inventory.hotbar_size do
@@ -70,6 +69,8 @@ function PlayerSystem.update(self, dt)
     local col = self.components.collider
     local stance = self.components.stance
     local vis = self.components.visual
+    local ctrl = self.components.controllable
+    local EPSILON = 0.0001
 
     -- Handle crouching state
     local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
@@ -126,27 +127,21 @@ function PlayerSystem.update(self, dt)
         vis.height = self.STANDING_HEIGHT
     end
 
-    -- Calculate movement speed based on stance
-    local move_speed = self.MOVE_SPEED
+    -- Process input through controllable component
+    local stance_modifier = 1.0
     if stance.current == Stance.CROUCHING then
-        move_speed = move_speed * 0.5
+        stance_modifier = 0.5
     end
-
-    -- Horizontal movement
-    vel.vx = 0
-    if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
-        vel.vx = -move_speed
-    end
-    if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-        vel.vx = move_speed
-    end
-
+    
+    local input_vx, jump_impulse = ctrl:process_input(vel.vy, phys.on_ground, stance_modifier)
+    vel.vx = input_vx
+    
     -- Vertical movement (gravity)
     vel.vy = vel.vy + phys.gravity * dt
-
-    -- Jump
-    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and phys.on_ground then
-        vel.vy = -self.JUMP_FORCE
+    
+    -- Apply jump impulse
+    if jump_impulse then
+        vel.vy = jump_impulse
         phys.on_ground = false
     end
 
