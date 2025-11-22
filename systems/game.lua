@@ -8,6 +8,7 @@ local States = require("states")
 local GameSystem = {
     priority = 0,
     components = {},
+    systems = {}, -- Holds references to other systems
 }
 
 function GameSystem:load(seed, debug)
@@ -17,6 +18,14 @@ function GameSystem:load(seed, debug)
     
     -- Transition to loading state
     self.components.gamestate.state = States.LOADING
+end
+
+function GameSystem:register_system(name, system)
+    self.systems[name] = system
+end
+
+function GameSystem:get_system(name)
+    return self.systems[name]
 end
 
 function GameSystem:update(dt)

@@ -1,4 +1,5 @@
 -- Main entry point for Lasagna
+-- Wiring layer: connects systems and handles LÖVE callbacks
 
 local SystemManager = require("system_manager")
 local GameSystem = require("systems/game")
@@ -9,9 +10,6 @@ local MiningSystem = require("systems/mining")
 local DropSystem = require("systems/drop")
 local RenderSystem = require("systems/render")
 local log = require("lib.log")
-
--- Global system manager
-G = {}
 
 function love.load()
     -- Parse environment variables
@@ -27,7 +25,10 @@ function love.load()
         log.info("Using seed:", seed)
     end
 
-    -- Initialize systems and push to manager
+    -- Initialize and register systems with GameSystem
+    GameSystem:load(seed, debug)
+    
+    -- Push systems to manager (sorted by priority)
     SystemManager:push(GameSystem)
     SystemManager:push(WorldSystem)
     SystemManager:push(PlayerSystem)
@@ -36,11 +37,17 @@ function love.load()
     SystemManager:push(DropSystem)
     SystemManager:push(RenderSystem)
     
-    -- Load systems
-    GameSystem:load(seed, debug)
+    -- Register systems with GameSystem for coordination
+    GameSystem:register_system("world", WorldSystem)
+    GameSystem:register_system("player", PlayerSystem)
+    GameSystem:register_system("camera", CameraSystem)
+    GameSystem:register_system("mining", MiningSystem)
+    GameSystem:register_system("drop", DropSystem)
+    GameSystem:register_system("render", RenderSystem)
+    
+    -- Initialize other systems
     WorldSystem:load(seed)
     
-    -- Find spawn position
     local spawn_x, spawn_y, spawn_layer = WorldSystem:find_spawn_position(
         math.floor(WorldSystem.WIDTH / 2), 0)
     
@@ -49,21 +56,12 @@ function love.load()
     DropSystem:load(WorldSystem, PlayerSystem)
     MiningSystem:load(WorldSystem, PlayerSystem, DropSystem)
     RenderSystem:load()
-    
-    -- Store systems globally for easy access
-    G.game = GameSystem
-    G.world = WorldSystem
-    G.player = PlayerSystem
-    G.camera = CameraSystem
-    G.mining = MiningSystem
-    G.drop = DropSystem
-    G.render = RenderSystem
 
     log.info("Lasagna loaded with system architecture")
 end
 
 function love.update(dt)
-    if G.game:is_paused() then
+    if GameSystem:is_paused() then
         return
     end
     
