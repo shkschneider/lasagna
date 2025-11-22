@@ -10,7 +10,8 @@ local Visual = require("components.visual")
 local Layer = require("components.layer")
 local Inventory = require("components.inventory")
 local Omnitool = require("components.omnitool")
-local blocks = require("core.blocks")
+local Registry = require("registries.init")
+local BLOCK_IDS = Registry.block_ids()
 
 local PlayerSystem = {
     id = "player",
@@ -44,9 +45,9 @@ function PlayerSystem.load(self, x, y, layer)
     end
 
     -- Add starting items
-    self:add_to_inventory(blocks.DIRT, 64)
-    self:add_to_inventory(blocks.STONE, 32)
-    self:add_to_inventory(blocks.WOOD, 16)
+    self:add_to_inventory(BLOCK_IDS.DIRT, 64)
+    self:add_to_inventory(BLOCK_IDS.STONE, 32)
+    self:add_to_inventory(BLOCK_IDS.WOOD, 16)
 end
 
 function PlayerSystem.update(self, dt)

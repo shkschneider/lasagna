@@ -5,7 +5,8 @@ local Position = require("components.position")
 local Velocity = require("components.velocity")
 local Physics = require("components.physics")
 local Drop = require("components.drop")
-local Blocks = require("core.blocks")
+local Registry = require("registries.init")
+local BlocksRegistry = Registry.blocks()
 
 local DropSystem = {
     id = "drop",
@@ -109,7 +110,7 @@ function DropSystem.draw(self)
     local camera_x, camera_y = camera_system:get_offset()
 
     for _, ent in ipairs(self.entities) do
-        local proto = blocks.get_proto(ent.drop.block_id)
+        local proto = BlocksRegistry:get(ent.drop.block_id)
         if proto then
             local size = world_system.BLOCK_SIZE / 2
             love.graphics.setColor(proto.color)
