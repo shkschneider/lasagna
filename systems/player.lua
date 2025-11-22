@@ -180,26 +180,22 @@ function PlayerSystem.update(self, dt)
 
         -- Edge detection: prevent falling off edges while crouching
         if not hit_wall and stance.current == Stance.CROUCHING and phys.on_ground and vel.vx ~= 0 then
-            local ground_check_row = math.floor((pos.y + col.height / 2) / world.BLOCK_SIZE) + 1
-            local ground_exists = false
-
-            -- Check if there's ground at the edge in the direction we're moving
-            local edge_check_col
+            -- Check if there's ground in the next column ahead (one block over from current position)
+            local next_col
             if vel.vx > 0 then
-                -- Moving right: check the column at the right edge of where we'd move to
-                edge_check_col = math.floor((new_x + col.width / 2) / world.BLOCK_SIZE)
+                -- Moving right: check the column to the right
+                next_col = math.floor((pos.x + col.width / 2) / world.BLOCK_SIZE) + 1
             else
-                -- Moving left: check the column at the left edge of where we'd move to
-                edge_check_col = math.floor((new_x - col.width / 2) / world.BLOCK_SIZE)
+                -- Moving left: check the column to the left
+                next_col = math.floor((pos.x - col.width / 2) / world.BLOCK_SIZE) - 1
             end
 
-            local block_def = world:get_block_def(pos.z, edge_check_col, ground_check_row)
-            if block_def and block_def.solid then
-                ground_exists = true
-            end
-
-            -- If no ground ahead, stop movement to prevent falling
-            if not ground_exists then
+            -- Check ground one row below player's feet
+            local ground_check_row = math.floor((pos.y + col.height / 2) / world.BLOCK_SIZE) + 1
+            local block_def = world:get_block_def(pos.z, next_col, ground_check_row)
+            
+            -- If no ground in the next column, stop movement to prevent falling
+            if not (block_def and block_def.solid) then
                 hit_wall = true
             end
         end
