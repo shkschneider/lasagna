@@ -12,20 +12,20 @@ function camera.new(x, y)
     }
 end
 
-function camera.follow(cam, target_x, target_y, dt)
-    cam.target_x = target_x
-    cam.target_y = target_y
-    
+function camera.follow(self, target_x, target_y, dt)
+    self.target_x = target_x
+    self.target_y = target_y
+
     -- Smooth interpolation
-    local dx = cam.target_x - cam.x
-    local dy = cam.target_y - cam.y
-    
-    cam.x = cam.x + dx * cam.smoothness * dt
-    cam.y = cam.y + dy * cam.smoothness * dt
+    local dx = self.target_x - self.x
+    local dy = self.target_y - self.y
+
+    self.x = self.x + dx * self.smoothness * dt
+    self.y = self.y + dy * self.smoothness * dt
 end
 
-function camera.get_offset(cam, screen_width, screen_height)
-    return cam.x - screen_width / 2, cam.y - screen_height / 2
+function camera.get_offset(self, screen_width, screen_height)
+    return self.x - screen_width / 2, self.y - screen_height / 2
 end
 
 return camera

@@ -13,24 +13,31 @@ This implementation covers ROADMAP items v0.0 (Project Setup) and v0.1 (Core Pla
 
 #### World & Layers
 - Three-layer world system: -1 (back), 0 (main), 1 (front)
-- Procedural terrain generation with seeded noise
+- Procedural terrain generation with seeded Perlin noise
 - Lazy column generation (only generates visible areas)
-- Layer-specific terrain variation
-- Ores spawn at different depths (Coal, Copper, Iron)
+- Layer-specific terrain variation (Layer 1: smoother/lower, Layer -1: rougher/higher)
+- Ores spawn at different depths using blobs and veins
+- Dirt layer (5-15 blocks deep) with grass on top exposed to air
+- Coal spawns as blobs, metals spawn as veins with branching
+- Surface resources (sand) on Layer 1
+- Cobalt is rare and very deep (layer -1, depth > 40)
 
 #### Player
 - WASD or Arrow keys for horizontal movement
 - Space, W, or Up arrow to jump
-- Player physics with gravity and collision detection
-- Player renders as blue rectangle
+- Player size: BLOCK_SIZE×(BLOCK_SIZE*2) pixels (1 block wide, 2 blocks tall)
+- With BLOCK_SIZE=16: player is 16×32 pixels
+- AABB collision detection with proper physics
+- Player renders as white rectangle
 
 #### Layer System
-- Q key: Switch to previous layer (max: -1)
-- E key: Switch to next layer (max: 1)
+- Q key: Switch to previous layer (max: -1), only when no collision in target layer
+- E key: Switch to next layer (max: 1), only when no collision in target layer
 - Active layer is fully visible
 - Back layer (-1) is dimmed when not active
 - Front layer (1) is semi-transparent when not active
 - Current layer shown in UI
+- Player can only interact with blocks on current layer
 
 #### Inventory & Hotbar
 - 9-slot hotbar at bottom of screen
@@ -48,6 +55,8 @@ This implementation covers ROADMAP items v0.0 (Project Setup) and v0.1 (Core Pla
 
 #### Drops & Pickup
 - Destroyed blocks spawn drop entities
+- Drops size: (BLOCK_SIZE/2)×(BLOCK_SIZE/2) pixels (half of block size)
+- With BLOCK_SIZE=16: drops are 8×8 pixels
 - Drops have physics (gravity, collision, friction)
 - Drops automatically picked up when player is near (same layer only)
 - Pickup has 0.5 second delay after spawn
@@ -61,19 +70,27 @@ This implementation covers ROADMAP items v0.0 (Project Setup) and v0.1 (Core Pla
 
 #### UI
 - Hotbar display at bottom
+- Selected item name displayed above hotbar (centered)
 - Layer indicator (top-left)
 - Omnitool tier display (top-left)
-- Debug info when DEBUG=true (FPS, position, seed)
+- Player position in blocks (top-left)
+- Mouse position in blocks with block name under cursor (top-left)
+- Debug info when DEBUG=true (FPS, seed)
 
 #### Block Types
 - Air (transparent)
 - Dirt (tier 0, brown)
+- Grass (tier 0, green) - Dirt exposed to air becomes grass
 - Stone (tier 0, gray)
 - Wood (tier 0, brown/orange)
-- Coal (tier 0, black)
-- Copper Ore (tier 1, orange)
-- Tin Ore (tier 1, silver-gray)
-- Iron Ore (tier 2, brown-gray)
+- Coal (tier 0, black) - Generated as blobs underground
+- Copper Ore (tier 1, orange) - Generated as veins
+- Tin Ore (tier 1, silver-gray) - Generated as veins
+- Iron Ore (tier 2, brown-gray) - Generated as veins, deep layer -1
+- Lead Ore (tier 2, blue-gray) - Generated as veins, deep layer -1
+- Zinc Ore (tier 2, light gray) - Generated as veins, deep layer -1
+- Cobalt Ore (tier 4, blue) - Rare, very deep veins, layer -1 only
+- Sand (tier 0, tan) - Surface blobs on layer 1
 
 ## How to Run
 
@@ -103,11 +120,13 @@ DEBUG=true SEED=42 love .
 |-----|--------|
 | WASD / Arrows | Move player |
 | Space / W / Up | Jump |
-| Q | Switch to previous layer |
-| E | Switch to next layer |
+| Q | Switch to previous layer (only when no collision) |
+| E | Switch to next layer (only when no collision) |
 | 1-9 | Select hotbar slot |
 | Left Click | Mine block |
 | Right Click | Place block |
+| + / = | Increase omnitool tier (dev) |
+| - / _ | Decrease omnitool tier (dev) |
 | Delete | Reload world with same seed |
 | T (debug) | Add test items to inventory |
 | Escape | Quit game |
@@ -117,13 +136,16 @@ DEBUG=true SEED=42 love .
 ### Basic Movement
 - [ ] Player can move left/right with WASD or arrows
 - [ ] Player can jump with Space, W, or Up
-- [ ] Player collides with ground
-- [ ] Player collides with ceiling
+- [ ] Player collides with ground (AABB collision)
+- [ ] Player collides with ceiling (AABB collision)
+- [ ] Player collides with walls (AABB collision)
+- [ ] Player is BLOCK_SIZE wide and BLOCK_SIZE*2 tall (1 block wide, 2 blocks tall)
 - [ ] Camera follows player smoothly
 
 ### Layer System
 - [ ] Q switches to previous layer (stops at -1)
 - [ ] E switches to next layer (stops at 1)
+- [ ] Layer switching only works when player can fit (no collision in target layer)
 - [ ] Layer indicator updates in UI
 - [ ] Visual appearance changes (dimming/transparency)
 - [ ] Player only interacts with blocks on current layer
@@ -150,6 +172,7 @@ DEBUG=true SEED=42 love .
 
 ### Drops & Pickup
 - [ ] Drops spawn at block center
+- [ ] Drops are (BLOCK_SIZE/2)×(BLOCK_SIZE/2) pixels (half block size)
 - [ ] Drops fall and collide with ground
 - [ ] Walking near drop picks it up
 - [ ] Drops only picked up on same layer
@@ -159,15 +182,21 @@ DEBUG=true SEED=42 love .
 ### World Generation
 - [ ] World generates on demand (lazy loading)
 - [ ] Same seed produces same world
-- [ ] Different layers have different terrain
-- [ ] Ores spawn deeper underground
-- [ ] Surface has dirt layer over stone
+- [ ] Different layers have different terrain (Layer 1 smoother, Layer -1 rougher)
+- [ ] Ores spawn deeper underground using blobs (coal, sand) and veins (metals)
+- [ ] Surface has dirt layer (5-15 blocks) over stone
+- [ ] Grass forms on dirt exposed to air
+- [ ] Sand blobs spawn on Layer 1 surface
+- [ ] Cobalt is very rare and very deep (layer -1, depth > 40)
 
 ### Debug Features
 - [ ] DEBUG=true shows FPS
-- [ ] DEBUG=true shows player position
 - [ ] DEBUG=true shows seed
+- [ ] Player position shown in blocks (top-left)
+- [ ] Mouse position shown in blocks with block name (top-left)
+- [ ] Selected item name shown above hotbar
 - [ ] T key adds test items (debug only)
+- [ ] +/- keys adjust omnitool tier (clamped 0-10)
 - [ ] Delete reloads world
 
 ## Known Limitations (Expected)
@@ -181,7 +210,7 @@ These are intentional omissions for v0.1 MVP:
 - No sound effects
 - Simple placeholder graphics (colored rectangles)
 - No multi-block structures
-- Omnitool tier is fixed at 0 (no upgrade system yet)
+- Omnitool tier can be adjusted with +/- keys for development
 - Inventory is hotbar only (no extra rows)
 
 ## Architecture Notes
