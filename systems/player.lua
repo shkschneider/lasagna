@@ -13,9 +13,9 @@ local Visual = require "components.visual"
 local Layer = require "components.layer"
 local Inventory = require "components.inventory"
 local Omnitool = require "components.omnitool"
-local Registry = require "registries.init"
+local Registry = require "registries"
 
-local BLOCK_IDS = Registry.block_ids()
+local BLOCKS = Registry.blocks()
 
 local PlayerSystem = {
     id = "player",
@@ -45,9 +45,9 @@ function PlayerSystem.load(self, x, y, layer)
     end
 
     -- Add starting items
-    self:add_to_inventory(BLOCK_IDS.DIRT, 64)
-    self:add_to_inventory(BLOCK_IDS.STONE, 32)
-    self:add_to_inventory(BLOCK_IDS.WOOD, 16)
+    self:add_to_inventory(BLOCKS.DIRT, 64)
+    self:add_to_inventory(BLOCKS.STONE, 32)
+    self:add_to_inventory(BLOCKS.WOOD, 16)
 
     log.info("Player:", self.components.position:tostring())
 end
@@ -184,15 +184,15 @@ function PlayerSystem.keypressed(self, key)
 
     -- Layer switching
     if key == "q" then
-        local target_layer = math.max(-1, self.components.position.layer - 1)
+        local target_layer = math.max(-1, self.components.position.z - 1)
         if self.can_switch_layer(self, target_layer) then
-            self.components.position.layer = target_layer
+            self.components.position.z = target_layer
             self.components.layer.current_layer = target_layer
         end
     elseif key == "e" then
-        local target_layer = math.min(1, self.components.position.layer + 1)
+        local target_layer = math.min(1, self.components.position.z + 1)
         if self.can_switch_layer(self, target_layer) then
-            self.components.position.layer = target_layer
+            self.components.position.z = target_layer
             self.components.layer.current_layer = target_layer
         end
     end
@@ -322,7 +322,7 @@ function PlayerSystem.get_selected_block_id(self)
 end
 
 function PlayerSystem.get_position(self)
-    return self.components.position.x, self.components.position.y, self.components.position.layer
+    return self.components.position.x, self.components.position.y, self.components.position.z
 end
 
 function PlayerSystem.get_omnitool_tier(self)

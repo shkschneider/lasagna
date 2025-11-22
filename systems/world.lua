@@ -2,13 +2,13 @@
 -- Manages world generation, block storage, and world queries
 
 local log = require "lib.log"
+local noise = require "lib.noise"
 
 local Systems = require "systems"
-local WorldData = require("components.worlddata")
-local Registry = require("registries.init")
-local BLOCK_IDS = Registry.block_ids()
-local BlocksRegistry = Registry.blocks()
-local noise = require("lib.noise")
+local WorldData = require "components.worlddata"
+local Registry = require "registries"
+
+local BLOCKS = Registry.blocks()
 
 local WorldSystem = {
     id = "world",
@@ -81,10 +81,10 @@ function WorldSystem.generate_terrain(self, z, col)
     for row = 0, data.height - 1 do
         if row >= base_height then
             -- Underground - stone
-            data.layers[z][col][row] = BLOCK_IDS.STONE
+            data.layers[z][col][row] = BLOCKS.STONE
         else
             -- Above ground - air
-            data.layers[z][col][row] = BLOCK_IDS.AIR
+            data.layers[z][col][row] = BLOCKS.AIR
         end
     end
 
@@ -95,16 +95,16 @@ function WorldSystem.generate_terrain(self, z, col)
         (noise.perlin2d(col * 0.05, z * 0.1) + 1) / 2)
 
     for row = base_height, math.min(base_height + dirt_depth - 1, data.height - 1) do
-        if data.layers[z][col][row] == BLOCK_IDS.STONE then
-            data.layers[z][col][row] = BLOCK_IDS.DIRT
+        if data.layers[z][col][row] == BLOCKS.STONE then
+            data.layers[z][col][row] = BLOCKS.DIRT
         end
     end
 
     -- Grass on surface dirt exposed to air
     if base_height > 0 and base_height < data.height then
-        if data.layers[z][col][base_height] == BLOCK_IDS.DIRT and
-           data.layers[z][col][base_height - 1] == BLOCK_IDS.AIR then
-            data.layers[z][col][base_height] = BLOCK_IDS.GRASS
+        if data.layers[z][col][base_height] == BLOCKS.DIRT and
+           data.layers[z][col][base_height - 1] == BLOCKS.AIR then
+            data.layers[z][col][base_height] = BLOCKS.GRASS
         end
     end
 end
@@ -113,7 +113,7 @@ end
 function WorldSystem.get_block(self, z, col, row)
     if col < 0 or col >= self.components.worlddata.width or
        row < 0 or row >= self.components.worlddata.height then
-        return BLOCK_IDS.AIR
+        return BLOCKS.AIR
     end
 
     self.generate_column(self, z, col)
@@ -124,13 +124,13 @@ function WorldSystem.get_block(self, z, col, row)
         return self.components.worlddata.layers[z][col][row]
     end
 
-    return BLOCK_IDS.AIR
+    return BLOCKS.AIR
 end
 
 -- Get block prototype at position
 function WorldSystem.get_block_proto(self, z, col, row)
     local block_id = self.get_block(self, z, col, row)
-    return BlocksRegistry:get(block_id)
+    return Registry.Blocks:get(block_id)
 end
 
 -- Set block at position

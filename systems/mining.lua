@@ -2,9 +2,9 @@
 -- Handles block mining and placing
 
 local Systems = require "systems"
-local Registry = require("registries.init")
-local BLOCK_IDS = Registry.block_ids()
-local BlocksRegistry = Registry.blocks()
+local Registry = require "registries"
+
+local BLOCKS = Registry.blocks()
 
 local MiningSystem = {
     id = "mining",
@@ -47,7 +47,7 @@ end
 function MiningSystem.mine_block(self, col, row, world_system, player_system)
     local player_x, player_y, player_layer = player_system:get_position()
     local block_id = world_system:get_block(player_layer, col, row)
-    local proto = BlocksRegistry:get(block_id)
+    local proto = Registry.Blocks:get(block_id)
 
     if not proto or not proto.solid then
         return
@@ -60,7 +60,7 @@ function MiningSystem.mine_block(self, col, row, world_system, player_system)
     end
 
     -- Remove block
-    world_system:set_block(player_layer, col, row, BLOCK_IDS.AIR)
+    world_system:set_block(player_layer, col, row, BLOCKS.AIR)
 
     -- Spawn drop
     if proto.drops then
@@ -91,7 +91,7 @@ function MiningSystem.place_block(self, col, row, world_system, player_system)
 
     -- Check if spot is empty
     local current_block = world_system:get_block(player_layer, col, row)
-    if current_block ~= BLOCK_IDS.AIR then
+    if current_block ~= BLOCKS.AIR then
         return
     end
 

@@ -1,31 +1,28 @@
-local BlocksRegistry = require("registries.blocks")
-local ItemsRegistry = require("registries.items")
-
 -- Load default block definitions
-local BLOCK_IDS = require("data.blocks")
+local BLOCKS = require "data.blocks"
+local ITEMS = require "data.items"
 
-local Registry = {}
+local Registry = {
+    Blocks = require("registries.blocks"),
+    Items = require("registries.items"),
+}
 
 -- Block registry interface
 function Registry.block(id)
-    return BlocksRegistry:get(id)
+    return Registry.Blocks:get(id)
 end
 
 function Registry.blocks()
-    return BlocksRegistry
-end
-
-function Registry.block_ids()
-    return BLOCK_IDS
+    return BLOCKS
 end
 
 -- Item registry interface
 function Registry.item(id)
-    return ItemsRegistry:get(id)
+    return Registry.Items:get(id)
 end
 
 function Registry.items()
-    return ItemsRegistry
+    return ITEMS
 end
 
 return Registry

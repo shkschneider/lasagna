@@ -2,12 +2,11 @@
 -- Manages drop entities (items on ground)
 
 local Systems = require "systems"
-local Position = require("components.position")
-local Velocity = require("components.velocity")
-local Physics = require("components.physics")
-local Drop = require("components.drop")
-local Registry = require("registries.init")
-local BlocksRegistry = Registry.blocks()
+local Position = require "components.position"
+local Velocity = require "components.velocity"
+local Physics = require "components.physics"
+local Drop = require "components.drop"
+local Registry = require "registries"
 
 local DropSystem = {
     id = "drop",
@@ -64,7 +63,7 @@ function DropSystem.update(self, dt)
             ent.position.x,
             ent.position.y + world_system.BLOCK_SIZE / 2
         )
-        local block_proto = world_system:get_block_proto(ent.position.layer, col, row)
+        local block_proto = world_system:get_block_proto(ent.position.z, col, row)
 
         if block_proto and block_proto.solid then
             ent.velocity.vy = 0
@@ -111,7 +110,7 @@ function DropSystem.draw(self)
     local camera_x, camera_y = camera_system:get_offset()
 
     for _, ent in ipairs(self.entities) do
-        local proto = BlocksRegistry:get(ent.drop.block_id)
+        local proto = Registry.Blocks:get(ent.drop.block_id)
         if proto then
             local size = world_system.BLOCK_SIZE / 2
             love.graphics.setColor(proto.color)

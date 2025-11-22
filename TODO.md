@@ -1,7 +1,5 @@
 # TODO
 
-- architecture (WIP)
-- entity/component/system (WIP)
 - omnitool (WIP)
 
 - player can only place near another block (no floating blocks)

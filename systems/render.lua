@@ -2,8 +2,7 @@
 -- Handles all rendering operations
 
 local Systems = require "systems"
-local Registry = require("registries.init")
-local BlocksRegistry = Registry.blocks()
+local Registry = require "registries"
 
 local RenderSystem = {
     id = "render",
@@ -75,7 +74,7 @@ function RenderSystem.draw_world(self, world_system, player_layer, camera_x, cam
             for col = start_col, end_col do
                 for row = start_row, end_row do
                     local block_id = world_system:get_block(layer, col, row)
-                    local proto = BlocksRegistry:get(block_id)
+                    local proto = Registry.Blocks:get(block_id)
 
                     if proto and proto.solid then
                         love.graphics.setColor(proto.color)
@@ -174,7 +173,7 @@ function RenderSystem.draw_ui(self, player_system, world_system, camera_x, camer
         -- Item in slot
         local slot = inv.slots[i]
         if slot then
-            local proto = BlocksRegistry:get(slot.block_id)
+            local proto = Registry.Blocks:get(slot.block_id)
             if proto then
                 -- Draw item as colored square
                 love.graphics.setColor(proto.color)
@@ -190,7 +189,7 @@ function RenderSystem.draw_ui(self, player_system, world_system, camera_x, camer
     -- Selected item name above hotbar
     local selected_slot = inv.slots[inv.selected_slot]
     if selected_slot then
-        local proto = BlocksRegistry:get(selected_slot.block_id)
+        local proto = Registry.Blocks:get(selected_slot.block_id)
         if proto then
             love.graphics.setColor(1, 1, 1, 1)
             local text = proto.name
