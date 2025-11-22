@@ -70,7 +70,6 @@ function PlayerSystem.update(self, dt)
     local stance = self.components.stance
     local vis = self.components.visual
     local ctrl = self.components.controllable
-    local EPSILON = 0.0001
 
     -- Handle crouching state
     local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
@@ -132,13 +131,13 @@ function PlayerSystem.update(self, dt)
     if stance.current == Stance.CROUCHING then
         stance_modifier = 0.5
     end
-    
+
     local input_vx, jump_impulse = ctrl:process_input(vel.vy, phys.on_ground, stance_modifier)
     vel.vx = input_vx
-    
+
     -- Vertical movement (gravity)
     vel.vy = vel.vy + phys.gravity * dt
-    
+
     -- Apply jump impulse
     if jump_impulse then
         vel.vy = jump_impulse

@@ -16,10 +16,10 @@ end
 function Controllable.process_input(self, current_vy, on_ground, stance_modifier)
     stance_modifier = stance_modifier or 1.0
     local move_speed = self.move_speed * stance_modifier
-    
+
     local vx = 0
     local vy_impulse = nil
-    
+
     -- Horizontal movement
     if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
         vx = -move_speed
@@ -27,12 +27,12 @@ function Controllable.process_input(self, current_vy, on_ground, stance_modifier
     if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
         vx = move_speed
     end
-    
+
     -- Jump
     if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground then
         vy_impulse = -self.jump_force
     end
-    
+
     return vx, vy_impulse
 end
 
