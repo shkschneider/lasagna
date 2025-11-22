@@ -237,11 +237,15 @@ function PlayerSystem.update(self, dt)
 
     if not hit_ground then
         pos.y = new_y
+        -- If not jumping, set to falling (walked off edge)
+        if stance.current ~= Stance.JUMPING then
+            stance.current = Stance.FALLING
+        end
     end
 
     -- Update stance based on ground contact  
-    -- When landing while jumping, return to standing or crouching
-    if hit_ground and stance.current == Stance.JUMPING then
+    -- When landing while jumping or falling, return to standing or crouching
+    if hit_ground and (stance.current == Stance.JUMPING or stance.current == Stance.FALLING) then
         -- Land on ground - return to standing or crouching based on input
         local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
         if is_crouching then
@@ -252,8 +256,8 @@ function PlayerSystem.update(self, dt)
     end
 
     -- Jump (after ground detection so we know if we're on ground)
-    -- Can only jump if not already in JUMPING stance
-    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and stance.current ~= Stance.JUMPING and hit_ground then
+    -- Can only jump if on ground (not jumping or falling)
+    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and hit_ground and (stance.current == Stance.STANDING or stance.current == Stance.CROUCHING) then
         -- Jump height is half when crouching
         local jump_force = self.JUMP_FORCE
         if stance.current == Stance.CROUCHING then
@@ -268,7 +272,7 @@ function PlayerSystem.update(self, dt)
     if pos.y > max_y then
         pos.y = max_y
         vel.vy = 0
-        if stance.current == Stance.JUMPING then
+        if stance.current == Stance.JUMPING or stance.current == Stance.FALLING then
             stance.current = Stance.STANDING
         end
     end
