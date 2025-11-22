@@ -40,7 +40,7 @@ function PlayerSystem.load(self, x, y, layer)
     -- Initialize player components
     self.components.position = Position.new(x, y, layer)
     self.components.velocity = Velocity.new(0, 0)
-    self.components.physics = Physics.new(true, 800, 0.95)
+    self.components.physics = Physics.new(800, 0.95)
     self.components.collider = Collider.new(world.BLOCK_SIZE, self.STANDING_HEIGHT)
     self.components.visual = Visual.new({1, 1, 1, 1}, world.BLOCK_SIZE, self.STANDING_HEIGHT)
     self.components.layer = Layer.new(layer)
@@ -145,9 +145,15 @@ function PlayerSystem.update(self, dt)
     vel.vy = vel.vy + phys.gravity * dt
 
     -- Jump
-    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and phys.on_ground then
-        vel.vy = -self.JUMP_FORCE
-        phys.on_ground = false
+    local on_ground = Stance.is_on_ground(stance)
+    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground then
+        -- Jump height is half when crouching
+        local jump_force = self.JUMP_FORCE
+        if stance.current == Stance.CROUCHING then
+            jump_force = jump_force * 0.5
+        end
+        vel.vy = -jump_force
+        stance.current = Stance.JUMPING
     end
 
     -- Apply horizontal velocity with collision
@@ -179,7 +185,8 @@ function PlayerSystem.update(self, dt)
         end
 
         -- Edge detection: prevent falling off edges while crouching
-        if not hit_wall and stance.current == Stance.CROUCHING and phys.on_ground and vel.vx ~= 0 then
+        local on_ground = Stance.is_on_ground(stance)
+        if not hit_wall and stance.current == Stance.CROUCHING and on_ground and vel.vx ~= 0 then
             -- Check if there's ground in the next column ahead (one block over from current position)
             local next_col
             if vel.vx > 0 then
@@ -209,7 +216,7 @@ function PlayerSystem.update(self, dt)
     local new_y = pos.y + vel.vy * dt
 
     -- Ground collision
-    phys.on_ground = false
+    local hit_ground = false
     local bottom_y = new_y + col.height / 2
     local left_col = math.floor((pos.x - col.width / 2) / world.BLOCK_SIZE)
     local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / world.BLOCK_SIZE)
@@ -220,7 +227,7 @@ function PlayerSystem.update(self, dt)
         if block_def and block_def.solid and vel.vy >= 0 then
             pos.y = bottom_row * world.BLOCK_SIZE - col.height / 2
             vel.vy = 0
-            phys.on_ground = true
+            hit_ground = true
             new_y = pos.y
             break
         end
@@ -240,8 +247,19 @@ function PlayerSystem.update(self, dt)
         end
     end
 
-    if not phys.on_ground then
+    if not hit_ground then
         pos.y = new_y
+    end
+
+    -- Update stance based on ground contact
+    if hit_ground and stance.current == Stance.JUMPING then
+        -- Land on ground - return to standing or crouching based on input
+        local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
+        if is_crouching then
+            stance.current = Stance.CROUCHING
+        else
+            stance.current = Stance.STANDING
+        end
     end
 
     -- Prevent falling through bottom
@@ -249,7 +267,9 @@ function PlayerSystem.update(self, dt)
     if pos.y > max_y then
         pos.y = max_y
         vel.vy = 0
-        phys.on_ground = true
+        if stance.current == Stance.JUMPING then
+            stance.current = Stance.STANDING
+        end
     end
 end
 
