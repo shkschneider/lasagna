@@ -141,12 +141,12 @@ function PlayerSystem.update(self, dt)
         if not hit_wall and stance.current == Stance.CROUCHING and phys.on_ground then
             local ground_check_col
             if vel.vx > 0 then
-                ground_check_col = math.floor((new_x + col.width / 2) / world.BLOCK_SIZE)
+                ground_check_col = math.floor((new_x + col.width / 2) / world.BLOCK_SIZE) + 1
             else
-                ground_check_col = math.floor((new_x - col.width / 2) / world.BLOCK_SIZE)
+                ground_check_col = math.floor((new_x - col.width / 2) / world.BLOCK_SIZE) - 1
             end
 
-            local ground_check_row = math.floor((pos.y + col.height / 2) / world.BLOCK_SIZE)
+            local ground_check_row = math.floor((pos.y + col.height / 2) / world.BLOCK_SIZE) + 1
             local ground_exists = false
 
             -- Check if there's ground at the edge
