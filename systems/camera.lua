@@ -16,8 +16,7 @@ function CameraSystem.load(self, x, y)
     self.components.position = Position.new(x, y, nil)
     log.debug("Camera:", self.components.position:tostring())
     self.components.camera = Camera.new(x, y, x, y, 5)
-    self.screen_width = 1280
-    self.screen_height = 720
+    self.screen_width, self.screen_height = love.graphics.getDimensions()
 end
 
 function CameraSystem.x(self)
@@ -46,8 +45,10 @@ end
 
 function CameraSystem.get_offset(self)
     local cam = self.components.camera
-    return cam.x - self.screen_width / 2,
-        cam.y - self.screen_height / 2
+    -- Get current screen dimensions dynamically
+    local screen_width, screen_height = love.graphics.getDimensions()
+    return cam.x - screen_width / 2,
+        cam.y - screen_height / 2
 end
 
 function CameraSystem.resize(self, width, height)

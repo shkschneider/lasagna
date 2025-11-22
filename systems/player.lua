@@ -95,8 +95,8 @@ function PlayerSystem.update(self, dt)
         local bottom_row = math.floor((pos.y + col.height / 2 - EPSILON) / world.BLOCK_SIZE)
 
         for row = top_row, bottom_row do
-            local block_proto = world:get_block_proto(pos.z, check_col, row)
-            if block_proto and block_proto.solid then
+            local block_def = world:get_block_def(pos.z, check_col, row)
+            if block_def and block_def.solid then
                 hit_wall = true
                 if vel.vx > 0 then
                     pos.x = check_col * world.BLOCK_SIZE - col.width / 2
@@ -123,8 +123,8 @@ function PlayerSystem.update(self, dt)
     local bottom_row = math.floor(bottom_y / world.BLOCK_SIZE)
 
     for c = left_col, right_col do
-        local block_proto = world:get_block_proto(pos.z, c, bottom_row)
-        if block_proto and block_proto.solid and vel.vy >= 0 then
+        local block_def = world:get_block_def(pos.z, c, bottom_row)
+        if block_def and block_def.solid and vel.vy >= 0 then
             pos.y = bottom_row * world.BLOCK_SIZE - col.height / 2
             vel.vy = 0
             phys.on_ground = true
@@ -138,8 +138,8 @@ function PlayerSystem.update(self, dt)
     local top_row = math.floor(top_y / world.BLOCK_SIZE)
 
     for c = left_col, right_col do
-        local block_proto = world:get_block_proto(pos.z, c, top_row)
-        if block_proto and block_proto.solid and vel.vy < 0 then
+        local block_def = world:get_block_def(pos.z, c, top_row)
+        if block_def and block_def.solid and vel.vy < 0 then
             pos.y = (top_row + 1) * world.BLOCK_SIZE + col.height / 2
             vel.vy = 0
             new_y = pos.y
@@ -232,8 +232,8 @@ function PlayerSystem.check_collision(self, x, y, layer)
 
     for c = left_col, right_col do
         for r = top_row, bottom_row do
-            local block_proto = world:get_block_proto(layer, c, r)
-            if block_proto and block_proto.solid then
+            local block_def = world:get_block_def(layer, c, r)
+            if block_def and block_def.solid then
                 return true
             end
         end

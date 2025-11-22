@@ -59,7 +59,7 @@ function DropSystem.update(self, dt)
             ent.position.x,
             ent.position.y + world.BLOCK_SIZE / 2
         )
-        local block_proto = world:get_block_proto(ent.position.z, col, row)
+        local block_proto = world:get_block_def(ent.position.z, col, row)
 
         if block_proto and block_proto.solid then
             ent.velocity.vy = 0
@@ -72,7 +72,7 @@ function DropSystem.update(self, dt)
         end
 
         -- Check pickup by player
-        if ent.drop.pickup_delay <= 0 and ent.position.layer == player_z then
+        if ent.drop.pickup_delay <= 0 and ent.position.z == player_z then
             local dx = ent.position.x - player_x
             local dy = ent.position.y - player_y
             local dist = math.sqrt(dx * dx + dy * dy)
