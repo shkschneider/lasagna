@@ -129,7 +129,7 @@ end
 -- Get block prototype at position
 function WorldSystem.get_block_proto(self, layer, col, row)
     local block_id = self.get_block(self, layer, col, row)
-    return BLOCK_IDS.get_proto(block_id)
+    return BlocksRegistry:get(block_id)
 end
 
 -- Set block at position

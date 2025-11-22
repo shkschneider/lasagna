@@ -46,7 +46,7 @@ end
 function MiningSystem.mine_block(self, col, row, world_system, player_system)
     local player_x, player_y, player_layer = player_system:get_position()
     local block_id = world_system:get_block(player_layer, col, row)
-    local proto = BLOCK_IDS.get_proto(block_id)
+    local proto = BlocksRegistry:get(block_id)
 
     if not proto or not proto.solid then
         return
