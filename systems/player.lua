@@ -192,16 +192,17 @@ function PlayerSystem.update(self, dt)
     if on_ground then
         if stance.current == Stance.JUMPING or stance.current == Stance.FALLING then
             -- Landing: transition to appropriate ground stance
-            -- Don't set CROUCHING here - let the crouch check at the top handle it
             stance.current = Stance.STANDING
         end
     else
-        -- In air
-        if vel.vy > 0 and stance.current ~= Stance.JUMPING then
-            -- Falling (walked off edge or finished jump arc)
-            stance.current = Stance.FALLING
+        -- In air - update based on vertical velocity
+        if vel.vy > 0 then
+            -- Moving downward - falling
+            if stance.current == Stance.JUMPING or stance.current == Stance.STANDING then
+                stance.current = Stance.FALLING
+            end
         end
-        -- Keep JUMPING stance while moving upward
+        -- Keep JUMPING stance while moving upward (vel.vy < 0)
     end
 end
 
