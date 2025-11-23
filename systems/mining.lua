@@ -77,7 +77,8 @@ function MiningSystem.update(self, dt)
         -- Check if block still exists and is the same
         local block_id = world:get_block_id(self.mining_block.z, self.mining_block.col, self.mining_block.row)
         local proto = Registry.Blocks:get(block_id)
-        if block_id ~= self.mining_block.block_id or proto ~= self.mining_block.proto then
+        -- Compare by block_id (which should remain consistent) and proto.id (for safety)
+        if block_id ~= self.mining_block.block_id or (proto and proto.id ~= self.mining_block.proto.id) then
             self:cancel_mining()
             return
         end
@@ -143,6 +144,11 @@ function MiningSystem.start_mining(self, col, row, world, player)
     
     -- Get mining delay for this block
     local delay = self:get_mining_delay(proto)
+    
+    -- Ensure delay is valid (should not be 0 for solid blocks)
+    if delay <= 0 then
+        return
+    end
     
     -- Start mining
     self.mining_active = true
