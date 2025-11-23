@@ -107,6 +107,27 @@ function MiningSystem.mousereleased(self, x, y, button)
     end
 end
 
+function MiningSystem.mousemoved(self, x, y, dx, dy)
+    -- If actively mining and mouse button is held, check if cursor moved to a new block
+    if self.mining_active and self.mining_block and love.mouse.isDown(1) then
+        local world = Systems.get("world")
+        local player = Systems.get("player")
+        local camera = Systems.get("camera")
+        
+        local camera_x, camera_y = camera:get_offset()
+        local world_x = x + camera_x
+        local world_y = y + camera_y
+        
+        local col, row = world:world_to_block(world_x, world_y)
+        
+        -- Check if cursor moved to a different block
+        if col ~= self.mining_block.col or row ~= self.mining_block.row then
+            -- Start mining the new block
+            self:start_mining(col, row, world, player)
+        end
+    end
+end
+
 function MiningSystem.start_mining(self, col, row, world, player)
     local player_x, player_y, player_z = player:get_position()
     local block_id = world:get_block_id(player_z, col, row)
