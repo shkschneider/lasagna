@@ -2,6 +2,7 @@ local Systems = require "systems"
 local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()
+local ITEMS = Registry.items()
 
 local Debug = {
     id = "debug",
@@ -13,10 +14,14 @@ function Debug.load(self, seed, debug)
     if self.enabled then
         local player = Systems.get("player")
         if player then
-            -- Add starting items
-            player:add_to_inventory(BLOCKS.DIRT, STACK_SIZE / 1)
-            player:add_to_inventory(BLOCKS.STONE, STACK_SIZE / 2)
-            player:add_to_inventory(BLOCKS.WOOD, STACK_SIZE / 4)
+            -- Clear existing inventory
+            for i = 1, player.components.inventory.hotbar_size do
+                player.components.inventory.slots[i] = nil
+            end
+            
+            -- Add weapon items
+            player:add_item_to_inventory(ITEMS.GUN, 1)
+            player:add_item_to_inventory(ITEMS.ROCKET_LAUNCHER, 1)
         end
     end
 end
