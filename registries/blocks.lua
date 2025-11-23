@@ -37,8 +37,8 @@ end
 function BlocksRegistry.get_ore_blocks(self)
     local ore_blocks = {}
     for id, block in pairs(self) do
-        -- Skip registry functions
-        if type(block) == "table" and block.ore_gen then
+        -- Skip registry functions and only include blocks with ore_gen metadata
+        if type(block) == "table" and type(id) == "number" and block.ore_gen then
             table.insert(ore_blocks, block)
         end
     end
