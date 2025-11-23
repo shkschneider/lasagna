@@ -3,9 +3,9 @@
 
 local log = require "lib.log"
 local noise = require "lib.noise"
-local WorldGen = require "core.worldgen"
 
 local Systems = require "systems"
+local Generator = require "systems.generator"
 local WorldData = require "components.worlddata"
 local Registry = require "registries"
 
@@ -171,7 +171,7 @@ end
 -- Generate terrain for a column
 function WorldSystem.generate_terrain(self, z, col)
     local data = self.components.worlddata
-    WorldGen.generate_column(data.layers, z, col, data.height)
+    Generator.generate_column(data.layers, z, col, data.height)
 end
 
 -- Get block at position
