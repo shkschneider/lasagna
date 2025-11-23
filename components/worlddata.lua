@@ -1,6 +1,6 @@
 -- WorldData component
 -- World dimensions and storage
--- World is infinite horizontally using chunks of 64 columns each for storage
+-- World is infinite horizontally; uses chunk-based storage (64 columns) but column-based generation
 
 local WorldData = {}
 

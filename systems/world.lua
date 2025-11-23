@@ -285,7 +285,7 @@ function WorldSystem.col_to_chunk(self, col)
     return chunk_index, local_col
 end
 
--- Generate a single column synchronously (called by coroutine)
+-- Generate a single column (called within coroutine context)
 function WorldSystem.generate_column_sync(self, z, col)
     local data = self.components.worlddata
     local key = string.format("%d_%d", z, col)
@@ -325,7 +325,7 @@ function WorldSystem.generate_column_sync(self, z, col)
 end
 
 -- Queue a column for generation (non-blocking)
--- priority: true for immediate generation (visible columns), false for background
+-- priority: true for high-priority queue (visible columns), false for low-priority queue (background)
 function WorldSystem.generate_column(self, z, col, priority)
     local data = self.components.worlddata
     local key = string.format("%d_%d", z, col)
