@@ -26,7 +26,7 @@ local Game = {
 function Game.load(self, seed, debug)
     -- Initialize components
     self.components.gamestate.current = GameState.LOAD
-    log.info("Game", self.components.gamestate:tostring())
+    log.info("Game", self.components.gamestate.current)
     self.components.timescale = TimeScale.new(1, false)
 
     -- Load systems in specific order with correct parameters
@@ -43,17 +43,17 @@ function Game.load(self, seed, debug)
 
     -- Transition to playing state
     self.components.gamestate.current = GameState.PLAY
-    log.info("Game", self.components.gamestate:tostring())
+    log.info("Game", self.components.gamestate.current)
 end
 
 function Game.update(self, dt)
     -- Check if paused
-    if self.components.timescale.paused then
+    if self.components.gamestate.current == GameState.PAUSE then
         return
     end
 
     -- Apply time scale
-    dt = dt * self.components.timescale.scale
+    dt = dt * self.components.timescale.current
 
     -- Update all systems
     for _, system in Systems.iterate(self.systems) do
@@ -82,9 +82,9 @@ function Game.keypressed(self, key)
     if self.systems.debug and self.systems.debug.enabled then
         -- Time scale controls
         if key == "[" then
-            self.components.timescale.scale = self.components.timescale.scale / 2
+            self.components.timescale.current = self.components.timescale.current / 2
         elseif key == "]" then
-            self.components.timescale.scale = self.components.timescale.scale * 2
+            self.components.timescale.current = self.components.timescale.current * 2
         end
     end
 

@@ -15,9 +15,6 @@ function GameState.new(gamestate)
     return {
         id = "gamestate",
         current = gamestate,
-        tostring = function(self)
-            return self.current
-        end
     }
 end
 
