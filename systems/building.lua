@@ -38,7 +38,7 @@ end
 function BuildingSystem.has_adjacent_block(self, col, row, layer)
     local world = Systems.get("world")
 
-    -- Check all 8 surrounding positions for solid blocks
+    -- Check all 8 surrounding positions for solid blocks in the same layer
     local offsets = {
         {-1, -1}, {0, -1}, {1, -1},  -- top row
         {-1,  0},          {1,  0},  -- middle row (left and right)
@@ -54,6 +54,28 @@ function BuildingSystem.has_adjacent_block(self, col, row, layer)
         end
     end
 
+    return false
+end
+
+function BuildingSystem.has_adjacent_layer_block(self, col, row, layer)
+    local world = Systems.get("world")
+    
+    -- Check for solid blocks at the same position in layers above and below
+    local layers_to_check = {}
+    if layer > -1 then
+        table.insert(layers_to_check, layer - 1)
+    end
+    if layer < 1 then
+        table.insert(layers_to_check, layer + 1)
+    end
+    
+    for _, check_layer in ipairs(layers_to_check) do
+        local proto = world:get_block_def(check_layer, col, row)
+        if proto and proto.solid then
+            return true
+        end
+    end
+    
     return false
 end
 
@@ -74,8 +96,15 @@ function BuildingSystem.place_block(self, col, row)
         return
     end
 
-    -- Check if there's at least one adjacent solid block
-    if not self:has_adjacent_block(col, row, player_z) then
+    -- Check if there's at least one adjacent solid block in same layer OR in adjacent layers
+    local has_same_layer_adjacent = self:has_adjacent_block(col, row, player_z)
+    local has_adjacent_layer = self:has_adjacent_layer_block(col, row, player_z)
+    
+    -- Allow placement if:
+    -- 1. There's a solid block in the same layer adjacent, OR
+    -- 2. There's a solid block in an adjacent layer at the same position
+    -- This prevents completely floating blocks while allowing vertical connections
+    if not has_same_layer_adjacent and not has_adjacent_layer then
         return
     end
 

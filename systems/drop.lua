@@ -103,13 +103,20 @@ function DropSystem.draw(self)
     for _, ent in ipairs(self.entities) do
         local proto = Registry.Blocks:get(ent.drop.block_id)
         if proto then
-            local size = world.BLOCK_SIZE / 2
+            -- Drop is 1/2 width and 1/2 height (1/4 surface area)
+            local width = world.BLOCK_SIZE / 2
+            local height = world.BLOCK_SIZE / 2
+            local x = ent.position.x - camera_x - width / 2
+            local y = ent.position.y - camera_y - height / 2
+            
+            -- Draw the colored block
             love.graphics.setColor(proto.color)
-            love.graphics.rectangle("fill",
-                ent.position.x - camera_x - size / 2,
-                ent.position.y - camera_y - size / 2,
-                size,
-                size)
+            love.graphics.rectangle("fill", x, y, width, height)
+            
+            -- Draw 1px white border
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.setLineWidth(1)
+            love.graphics.rectangle("line", x, y, width, height)
         end
     end
 end
