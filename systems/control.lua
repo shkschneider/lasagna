@@ -79,7 +79,7 @@ function ControlSystem.update(self, dt)
         player:consume_stamina(player.STAMINA_RUN_COST * dt)
     end
 
-    -- Jump handling - only when on ground and not crouching
+    -- Jump handling - only when on ground
     local jump_pressed = love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")
     if jump_pressed and not self.jump_pressed_last_frame and on_ground then
         -- Check if player has enough stamina to jump
