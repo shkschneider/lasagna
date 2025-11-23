@@ -60,16 +60,16 @@ function BulletSystem.update(self, dt)
 
         if block_def and block_def.solid then
             -- Bullet hit a block
-            
+
             -- If this bullet destroys blocks, destroy it and spawn drop
             if ent.bullet.destroys_blocks then
                 local block_id = world:get_block_id(ent.position.z, col, row)
                 local proto = Registry.Blocks:get(block_id)
-                
+
                 if proto then
                     -- Remove block
                     world:set_block(ent.position.z, col, row, BLOCKS.AIR)
-                    
+
                     -- Spawn drop
                     if proto.drops then
                         local drop = Systems.get("drop")
@@ -89,7 +89,7 @@ function BulletSystem.update(self, dt)
                     end
                 end
             end
-            
+
             -- Remove bullet
             table.remove(self.entities, i)
         else

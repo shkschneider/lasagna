@@ -266,18 +266,18 @@ function WorldSystem.draw_cursor_highlight(self, camera_x, camera_y, player_z)
     local mouse_x, mouse_y = love.mouse.getPosition()
     local world_x = mouse_x + camera_x
     local world_y = mouse_y + camera_y
-    
+
     -- Convert to block coordinates
     local col, row = self:world_to_block(world_x, world_y)
-    
+
     -- Get block at cursor position
     local block_id = self:get_block_id(player_z, col, row)
     local proto = Registry.Blocks:get(block_id)
-    
+
     -- Calculate screen position
     local screen_x = col * BLOCK_SIZE - camera_x
     local screen_y = row * BLOCK_SIZE - camera_y
-    
+
     -- Check if block exists (solid block)
     if proto and proto.solid then
         -- Draw white 1px border for existing blocks
@@ -302,14 +302,14 @@ function WorldSystem.is_valid_building_location(self, col, row, layer)
     if current_block ~= BLOCKS.AIR then
         return false
     end
-    
+
     -- Check for adjacent blocks in same layer (8 directions)
     local offsets = {
         {-1, -1}, {0, -1}, {1, -1},  -- top row
         {-1,  0},          {1,  0},  -- middle row (left and right)
         {-1,  1}, {0,  1}, {1,  1},  -- bottom row
     }
-    
+
     for _, offset in ipairs(offsets) do
         local check_col = col + offset[1]
         local check_row = row + offset[2]
@@ -318,7 +318,7 @@ function WorldSystem.is_valid_building_location(self, col, row, layer)
             return true
         end
     end
-    
+
     -- Check for blocks in adjacent layers at same position
     if layer - 1 >= LAYER_MIN then
         local proto = self:get_block_def(layer - 1, col, row)
@@ -326,14 +326,14 @@ function WorldSystem.is_valid_building_location(self, col, row, layer)
             return true
         end
     end
-    
+
     if layer + 1 <= LAYER_MAX then
         local proto = self:get_block_def(layer + 1, col, row)
         if proto and proto.solid then
             return true
         end
     end
-    
+
     return false
 end
 
@@ -374,8 +374,6 @@ function WorldSystem.pregenerate_spawn_area(self)
             self:generate_column_immediate(z, col)
         end
     end
-
-    log.info("Pre-generated spawn area: columns", spawn_col - range, "to", spawn_col + range)
 end
 
 
