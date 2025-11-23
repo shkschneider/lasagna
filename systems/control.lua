@@ -15,6 +15,11 @@ local ControlSystem = {
 function ControlSystem.load(self) end
 
 function ControlSystem.update(self, dt)
+    local chat = Systems.get("chat")
+    if chat.in_input_mode then
+        return
+    end
+
     local player = Systems.get("player")
     local world = Systems.get("world")
     local pos = player.components.position
@@ -74,6 +79,11 @@ function ControlSystem.update(self, dt)
 end
 
 function ControlSystem.keypressed(self, key)
+    local chat = Systems.get("chat")
+    if chat.in_input_mode then
+        return
+    end
+
     local player = Systems.get("player")
 
     -- Hotbar selection

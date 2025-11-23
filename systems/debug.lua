@@ -22,12 +22,13 @@ function Debug.load(self, seed, debug)
 end
 
 function Debug.keypressed(self, key)
+    local chat = Systems.get("chat")
+    if chat.in_input_mode then
+        return
+    end
     -- Debug
     if key == "backspace" then
-        local chat = Systems.get("chat")
-        if not chat.in_input_mode then
-            self.enabled = not self.enabled
-        end
+        self.enabled = not self.enabled
     end
     if not self.enabled then
         return
