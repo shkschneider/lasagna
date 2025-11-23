@@ -288,6 +288,9 @@ function WorldSystem.generate_chunk_sync(self, z, chunk_index)
     if not data.generated_chunks[z] then
         data.generated_chunks[z] = {}
     end
+    
+    -- Mark as generating BEFORE we start to prevent race conditions
+    data.generated_chunks[z][chunk_index] = true
 
     if not data.chunks[z][chunk_index] then
         data.chunks[z][chunk_index] = {}
@@ -310,8 +313,7 @@ function WorldSystem.generate_chunk_sync(self, z, chunk_index)
         end
     end
     
-    -- Mark as generated
-    data.generated_chunks[z][chunk_index] = true
+    -- Chunk generation complete (flag already set at the beginning)
 end
 
 -- Queue a chunk for generation (non-blocking)
@@ -391,6 +393,14 @@ function WorldSystem.set_block(self, z, col, row, block_id)
     self:generate_chunk(z, chunk_index, true)
 
     local data = self.components.worlddata
+    
+    -- Ensure the chunk structure exists
+    if not data.chunks[z] then
+        data.chunks[z] = {}
+    end
+    if not data.chunks[z][chunk_index] then
+        data.chunks[z][chunk_index] = {}
+    end
     if not data.chunks[z][chunk_index][local_col] then
         data.chunks[z][chunk_index][local_col] = {}
     end
