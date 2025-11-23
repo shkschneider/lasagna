@@ -9,8 +9,6 @@ local Generator = require "systems.generator"
 local WorldData = require "components.worlddata"
 local Registry = require "registries"
 
-local ONLY_CURRENT_LAYER_VISIBLE = false
-
 local BLOCKS = Registry.blocks()
 
 local WorldSystem = {
@@ -37,7 +35,7 @@ function WorldSystem.load(self, seed, debug)
 
     -- Create canvases for layer rendering
     self:create_canvases()
-    
+
     -- Initialize generation queues
     self.generation_queue_high = {}
     self.generation_queue_low = {}
@@ -61,7 +59,7 @@ end
 function WorldSystem.update(self, dt)
     -- Process pending column generation coroutines
     local completed = {}
-    
+
     for key, co in pairs(self.active_coroutines) do
         local status = coroutine.status(co)
         if status == "dead" then
@@ -75,24 +73,24 @@ function WorldSystem.update(self, dt)
             end
         end
     end
-    
+
     -- Clean up completed coroutines and queued tracking
     for _, key in ipairs(completed) do
         self.active_coroutines[key] = nil
         self.queued_columns[key] = nil
     end
-    
+
     -- Count active coroutines
     local active_count = 0
     for _ in pairs(self.active_coroutines) do
         active_count = active_count + 1
     end
-    
+
     -- Start new coroutines if we have capacity and pending columns
     -- Process high priority queue first, then low priority
     while active_count < self.max_coroutines do
         local col_info = nil
-        
+
         -- Try high priority queue first
         if #self.generation_queue_high > 0 then
             col_info = table.remove(self.generation_queue_high, 1)
@@ -101,23 +99,23 @@ function WorldSystem.update(self, dt)
         else
             break  -- No more columns to generate
         end
-        
+
         local key = string.format("%d_%d", col_info.z, col_info.col)
-        
+
         -- Check if not already generating or generated
         local data = self.components.worlddata
         local already_done = (data.generated_columns[key] == true) or (data.generating_columns[key] == true)
-        
+
         if not self.active_coroutines[key] and not already_done then
             -- Remove from tracking only when we actually start generating
             self.queued_columns[key] = nil
-            
+
             local co = coroutine.create(function()
                 self:generate_column_sync(col_info.z, col_info.col)
             end)
             self.active_coroutines[key] = co
             active_count = active_count + 1
-            
+
             -- Start the coroutine
             local success, err = coroutine.resume(co)
             if not success then
@@ -190,28 +188,28 @@ function WorldSystem.draw(self)
                         if is_layer_above then
                             -- Draw only outlines for layer above player
                             -- Check each direction to see if there's air (draw edge if so)
-                            
+
                             -- Check top
                             local top_block = self:get_block_id(layer, col, row - 1)
                             local top_proto = Registry.Blocks:get(top_block)
                             if not (top_proto and top_proto.solid) then
                                 love.graphics.line(x, y, x + BLOCK_SIZE, y)
                             end
-                            
+
                             -- Check bottom
                             local bottom_block = self:get_block_id(layer, col, row + 1)
                             local bottom_proto = Registry.Blocks:get(bottom_block)
                             if not (bottom_proto and bottom_proto.solid) then
                                 love.graphics.line(x, y + BLOCK_SIZE, x + BLOCK_SIZE, y + BLOCK_SIZE)
                             end
-                            
+
                             -- Check left
                             local left_block = self:get_block_id(layer, col - 1, row)
                             local left_proto = Registry.Blocks:get(left_block)
                             if not (left_proto and left_proto.solid) then
                                 love.graphics.line(x, y, x, y + BLOCK_SIZE)
                             end
-                            
+
                             -- Check right
                             local right_block = self:get_block_id(layer, col + 1, row)
                             local right_proto = Registry.Blocks:get(right_block)
@@ -239,33 +237,19 @@ function WorldSystem.draw(self)
 
     -- Draw each layer from LAYER_MIN to max_layer
     for layer = LAYER_MIN, max_layer do
-        -- Determine if this layer should be drawn based on visibility settings
-        local should_draw = not ONLY_CURRENT_LAYER_VISIBLE
-        if ONLY_CURRENT_LAYER_VISIBLE and debug then
-            if debug.enabled then
-                -- Debug mode on: only draw the player's current layer
-                should_draw = (layer == player_z)
+        local canvas = self.canvases[layer]
+        if canvas then
+            if layer == player_z then
+                -- Full color: player is on this layer
+                love.graphics.setColor(1, 1, 1, 1)
+            elseif layer == player_z + 1 then
+                -- Full color: this is the layer above player (outlines already have alpha)
+                love.graphics.setColor(1, 1, 1, 1)
             else
-                -- Debug mode off: draw all layers
-                should_draw = true
+                -- Dimmed: layers below player
+                love.graphics.setColor(0.5, 0.5, 0.5, 0.5)
             end
-        end
-        
-        if should_draw then
-            local canvas = self.canvases[layer]
-            if canvas then
-                if layer == player_z then
-                    -- Full color: player is on this layer
-                    love.graphics.setColor(1, 1, 1, 1)
-                elseif layer == player_z + 1 then
-                    -- Full color: this is the layer above player (outlines already have alpha)
-                    love.graphics.setColor(1, 1, 1, 1)
-                else
-                    -- Dimmed: layers below player
-                    love.graphics.setColor(0.5, 0.5, 0.5, 0.5)
-                end
-                love.graphics.draw(canvas, 0, 0)
-            end
+            love.graphics.draw(canvas, 0, 0)
         end
     end
 
@@ -324,7 +308,7 @@ function WorldSystem.generate_column_sync(self, z, col)
     if data.generated_columns[key] then
         return
     end
-    
+
     -- Mark as generating to prevent duplicate generation
     data.generating_columns[key] = true
 
@@ -335,14 +319,14 @@ function WorldSystem.generate_column_sync(self, z, col)
     if not data.columns[z][col] then
         data.columns[z][col] = {}
     end
-    
+
     -- Generate terrain for this column using Generator module
     -- Pass: column_data, world_col, z, world_height
     Generator.generate_column(data.columns[z][col], col, z, data.height)
-    
+
     -- Yield to prevent frame drops - allows other work to process before next column
     coroutine.yield()
-    
+
     -- Column generation complete - mark as generated and no longer generating
     data.generating_columns[key] = nil
     data.generated_columns[key] = true
@@ -358,25 +342,25 @@ function WorldSystem.generate_column(self, z, col, priority)
     if data.generated_columns[key] then
         return true  -- Already generated
     end
-    
+
     -- Check if currently generating
     if data.generating_columns[key] then
         return false  -- Currently generating
     end
-    
+
     -- Check if coroutine is active
     if self.active_coroutines[key] then
         return false  -- Currently generating
     end
-    
+
     -- Check if already queued (O(1) lookup)
     if self.queued_columns[key] then
         return false  -- Already queued
     end
-    
+
     -- Add to generation queue
     local col_info = {z = z, col = col}
-    
+
     if priority then
         -- High priority: add to high priority queue (O(1))
         table.insert(self.generation_queue_high, col_info)
@@ -384,10 +368,10 @@ function WorldSystem.generate_column(self, z, col, priority)
         -- Normal priority: add to low priority queue (O(1))
         table.insert(self.generation_queue_low, col_info)
     end
-    
+
     -- Track that this column is queued (O(1))
     self.queued_columns[key] = true
-    
+
     return false  -- Queued for generation
 end
 
@@ -426,7 +410,7 @@ function WorldSystem.set_block(self, z, col, row, block_id)
     self:generate_column(z, col, true)
 
     local data = self.components.worlddata
-    
+
     -- Ensure the column structure exists
     if not data.columns[z] then
         data.columns[z] = {}
