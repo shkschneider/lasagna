@@ -96,7 +96,9 @@ function WorldSystem.draw(self)
                     local proto = Registry.Blocks:get(block_id)
 
                     if proto and proto.solid then
-                        love.graphics.setColor(proto.color)
+                        -- Ensure blocks are drawn with full opacity (alpha=1) to properly cover layers below
+                        local r, g, b = proto.color[1] or 1, proto.color[2] or 1, proto.color[3] or 1
+                        love.graphics.setColor(r, g, b, 1)
                         local x = col * self.BLOCK_SIZE - camera_x
                         local y = row * self.BLOCK_SIZE - camera_y
                         love.graphics.rectangle("fill", x, y, self.BLOCK_SIZE, self.BLOCK_SIZE)
@@ -109,6 +111,9 @@ function WorldSystem.draw(self)
     end
 
     -- Composite layers to screen
+    -- Set blend mode to ensure proper layering (solid blocks should completely cover layers below)
+    love.graphics.setBlendMode("alpha", "premultiplied")
+    
     -- Draw back layer (dimmed)
     if self.canvases[-1] then
         if player_z == -1 then
@@ -138,6 +143,9 @@ function WorldSystem.draw(self)
         end
         love.graphics.draw(self.canvases[1], 0, 0)
     end
+    
+    -- Reset blend mode to default
+    love.graphics.setBlendMode("alpha")
 end
 
 -- Generate a column if not already generated
