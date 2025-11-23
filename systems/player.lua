@@ -69,7 +69,7 @@ function PlayerSystem.update(self, dt)
 
     -- Handle crouching toggle (only when on ground)
     local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
-    
+
     if is_crouching and stance.current ~= Stance.CROUCHING and on_ground then
         -- Switch to crouching (only when on ground)
         stance.current = Stance.CROUCHING
@@ -264,7 +264,6 @@ end
 function PlayerSystem.check_collision(self, x, y, layer)
     local world = Systems.get("world")
     local collider = self.components.collider
-    local EPSILON = 0.0001
 
     local left = x - collider.width / 2
     local right = x + collider.width / 2
@@ -380,7 +379,6 @@ function PlayerSystem.is_on_ground(self)
     local pos = self.components.position
     local col = self.components.collider
     local vel = self.components.velocity
-    local EPSILON = 0.0001
 
     -- Check if there's ground directly below the player
     local bottom_y = pos.y + col.height / 2
@@ -402,7 +400,6 @@ function PlayerSystem.can_stand_up(self)
     local world = Systems.get("world")
     local pos = self.components.position
     local col = self.components.collider
-    local EPSILON = 0.0001
 
     -- Check if there's space above for standing (need to check one extra block height)
     local target_y = pos.y - world.BLOCK_SIZE / 2  -- Position after standing
