@@ -149,8 +149,8 @@ function WorldSystem.draw(self)
     if not ONLY_CURRENT_LAYER_VISIBLE or (debug and (not debug.enabled or player_z == -1)) then
         -- Draw back layer (dimmed)
         if self.canvases[-1] then
-            if player_z == -1 or player_z == -2 then
-                -- Full color: either player is on this layer, or layer above player (outlines already have alpha)
+            if player_z == -1 then
+                -- Full color: player is on this layer (this layer is never "above" player since it's the minimum)
                 love.graphics.setColor(1, 1, 1, 1)
             else
                 love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Dimmed
