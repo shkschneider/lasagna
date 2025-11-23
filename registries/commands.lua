@@ -1,8 +1,6 @@
 -- Command Registry
 -- Commands register themselves here for chat expansion
 
-require "lib"
-
 local CommandsRegistry = {}
 
 -- Register a new command
