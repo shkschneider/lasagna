@@ -1,5 +1,6 @@
 # TODO
 
+- remove screen_width, screen_height self copies
 - omnitool (WIP)
 
 - mechanics
@@ -7,4 +8,4 @@
 - communications
 - ages
 
-- why do we need block proto?
+- merge drops? (MERGING_ENABLED)

@@ -55,15 +55,15 @@ function UISystem.draw(self)
         local x = hotbar_x + (i - 1) * slot_size
 
         -- Slot background
+        love.graphics.setColor(0, 0, 0, 0.33)
+        love.graphics.rectangle("fill", x, hotbar_y, slot_size - 2, slot_size - 2)
+
+        -- Slot border
         if i == inv.selected_slot then
             love.graphics.setColor(1, 1, 0, 0.5) -- Yellow for selected
         else
             love.graphics.setColor(0.3, 0.3, 0.3, 0.8)
         end
-        love.graphics.rectangle("fill", x, hotbar_y, slot_size - 4, slot_size - 4)
-
-        -- Slot border
-        love.graphics.setColor(0.8, 0.8, 0.8, 1)
         love.graphics.rectangle("line", x, hotbar_y, slot_size - 4, slot_size - 4)
 
         -- Item in slot
@@ -77,7 +77,7 @@ function UISystem.draw(self)
 
                 -- Draw count
                 love.graphics.setColor(1, 1, 1, 1)
-                love.graphics.print(tostring(slot.count), x + 4, hotbar_y + slot_size - 20)
+                love.graphics.print(tostring(slot.count), x + slot_size / 4, hotbar_y + slot_size - 20 - 10)
             end
         end
     end
