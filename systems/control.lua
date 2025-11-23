@@ -10,6 +10,7 @@ local Stance = require "components.stance"
 local ControlSystem = {
     id = "control",
     priority = 19, -- Run before player system (priority 20)
+    jump_pressed_last_frame = false,  -- Track jump input for edge detection
 }
 
 function ControlSystem.load(self) end
@@ -51,26 +52,53 @@ function ControlSystem.update(self, dt)
 
     -- Horizontal movement
     vel.vx = 0
+    local is_running = false
     if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
         vel.vx = -player.MOVE_SPEED
+        -- Check if shift is pressed and player is on ground
+        if on_ground and (love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")) then
+            if player:has_stamina(0) then  -- Only run if has any stamina
+                vel.vx = vel.vx * 2
+                is_running = true
+            end
+        end
     end
     if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
         if stance.crouched then
             vel.vx = player.MOVE_SPEED / 2
         else
             vel.vx = player.MOVE_SPEED
+            -- Check if shift is pressed and player is on ground
+            if on_ground and (love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")) then
+                if player:has_stamina(0) then  -- Only run if has any stamina
+                    vel.vx = vel.vx * 2
+                    is_running = true
+                end
+            end
         end
+    end
+    
+    -- Consume stamina while running
+    if is_running then
+        player:consume_stamina(player.STAMINA_RUN_COST * dt)
     end
 
     -- Jump handling - only when on ground and not crouching
-    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground then
-        if stance.crouched then
-            vel.vy = -player.JUMP_FORCE
-        else
-            vel.vy = -player.JUMP_FORCE
+    local jump_pressed = love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")
+    if jump_pressed and not self.jump_pressed_last_frame and on_ground then
+        -- Check if player has enough stamina to jump
+        if player:has_stamina(player.STAMINA_JUMP_COST) then
+            if stance.crouched then
+                vel.vy = -player.JUMP_FORCE
+            else
+                vel.vy = -player.JUMP_FORCE
+            end
+            stance.current = Stance.JUMPING
+            -- Consume stamina for jumping
+            player:consume_stamina(player.STAMINA_JUMP_COST)
         end
-        stance.current = Stance.JUMPING
     end
+    self.jump_pressed_last_frame = jump_pressed
 end
 
 function ControlSystem.keypressed(self, key)
