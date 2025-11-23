@@ -9,17 +9,6 @@ Notes
 
 ---
 
-v0.0 — Project setup (tiny)
-- Goals
-  - Create `dev` branch and a minimal README/plan files (spec + roadmap).
-  - Small dev conveniences: debug flag, fixed-seed launch (optional).
-- Non-goals
-  - CI, project board, formal tests.
-- Acceptance criteria
-  - `dev` branch exists and README/ROADMAP.md/spec.md in repo.
-
----
-
 v0.1 — Core playable loop (MVP)
 - Goals (the essential MVP)
   - Rendering pipeline / RenderManager with simple layer canvases (back, default, front).

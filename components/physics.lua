@@ -3,10 +3,9 @@
 
 local Physics = {}
 
-function Physics.new(on_ground, gravity, friction)
+function Physics.new(gravity, friction)
     return {
         id = "physics",
-        on_ground = on_ground or false,
         gravity = gravity or 800,
         friction = friction or 0.95,
     }
