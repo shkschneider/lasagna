@@ -209,8 +209,28 @@ function MiningSystem.complete_mining(self)
         end
     end
 
-    -- Reset mining state
-    self:cancel_mining()
+    -- Check if mouse button is still held down
+    if love.mouse.isDown(1) then
+        -- Get current cursor position and try to start mining the block under cursor
+        local mouse_x, mouse_y = love.mouse.getPosition()
+        local player = Systems.get("player")
+        local camera = Systems.get("camera")
+        
+        local camera_x, camera_y = camera:get_offset()
+        local world_x = mouse_x + camera_x
+        local world_y = mouse_y + camera_y
+        
+        local new_col, new_row = world:world_to_block(world_x, world_y)
+        
+        -- Cancel current mining state first
+        self:cancel_mining()
+        
+        -- Start mining the new block under cursor
+        self:start_mining(new_col, new_row, world, player)
+    else
+        -- Reset mining state
+        self:cancel_mining()
+    end
 end
 
 -- Draw mining progress overlay
