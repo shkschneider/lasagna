@@ -96,7 +96,9 @@ function ChatSystem.keypressed(self, key)
     
     -- Handle backspace
     if key == "backspace" then
-        self.input = self.input:sub(1, -2)
+        if #self.input > 0 then
+            self.input = self.input:sub(1, -2)
+        end
     end
     
     -- Handle escape to close chat
