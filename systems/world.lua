@@ -187,14 +187,36 @@ function WorldSystem.generate_terrain(self, z, col)
         base_height = base_height - 2
     end
 
-    -- Fill terrain
+    -- Fill terrain - ground is always solid except for caves
+    -- Gradual transition: dirt near surface → mixed → stone deep down
     for row = 0, data.height - 1 do
-        if row >= base_height then
-            -- Underground - stone
-            data.layers[z][col][row] = BLOCKS.STONE
-        else
+        if row < base_height then
             -- Above ground - air
             data.layers[z][col][row] = BLOCKS.AIR
+        else
+            -- Below surface - determine if dirt or stone based on depth
+            local depth_below_surface = row - base_height
+            
+            -- Dirt layer: 0-20 blocks below surface with gradual transition to stone
+            -- First 10 blocks: mostly dirt
+            -- Next 10 blocks: mixed dirt/stone transition
+            -- Below 20 blocks: all stone
+            if depth_below_surface < 10 then
+                -- Shallow: all dirt
+                data.layers[z][col][row] = BLOCKS.DIRT
+            elseif depth_below_surface < 20 then
+                -- Transition zone: use noise to mix dirt and stone
+                local transition_noise = noise.perlin2d(col * 0.1 + depth_below_surface, row * 0.1)
+                local stone_chance = (depth_below_surface - 10) / 10 -- 0 at depth 10, 1 at depth 20
+                if transition_noise > (0.3 - stone_chance * 0.6) then
+                    data.layers[z][col][row] = BLOCKS.STONE
+                else
+                    data.layers[z][col][row] = BLOCKS.DIRT
+                end
+            else
+                -- Deep: all stone
+                data.layers[z][col][row] = BLOCKS.STONE
+            end
         end
     end
 
@@ -202,18 +224,6 @@ function WorldSystem.generate_terrain(self, z, col)
     local BEDROCK_DEPTH = 3
     for row = data.height - BEDROCK_DEPTH, data.height - 1 do
         data.layers[z][col][row] = BLOCKS.BEDROCK
-    end
-
-    -- Add dirt layer
-    local DIRT_MIN_DEPTH = 5
-    local DIRT_MAX_DEPTH = 15
-    local dirt_depth = DIRT_MIN_DEPTH + math.floor((DIRT_MAX_DEPTH - DIRT_MIN_DEPTH) *
-        (noise.perlin2d(col * 0.05, z * 0.1) + 1) / 2)
-
-    for row = base_height, math.min(base_height + dirt_depth - 1, data.height - 1) do
-        if data.layers[z][col][row] == BLOCKS.STONE then
-            data.layers[z][col][row] = BLOCKS.DIRT
-        end
     end
 
     -- Grass on surface dirt exposed to air

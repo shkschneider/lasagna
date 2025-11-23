@@ -88,7 +88,7 @@ worldgen.ORE_SEEDS = {
 -- layers: which layers this ore can spawn in (-1, 0, 1)
 worldgen.ORE_CONFIG = {
     COAL = {
-        frequency = 0.008,
+        frequency = 0.012, -- Increased from 0.008
         vein_size = 8,
         vein_spread = 2.5,
         min_depth = 10,
@@ -96,7 +96,7 @@ worldgen.ORE_CONFIG = {
         layers = {[-1] = true, [0] = true},
     },
     COPPER_ORE = {
-        frequency = 0.006,
+        frequency = 0.010, -- Increased from 0.006
         vein_size = 6,
         vein_spread = 2.0,
         min_depth = 15,
@@ -104,7 +104,7 @@ worldgen.ORE_CONFIG = {
         layers = {[-1] = true, [0] = true},
     },
     TIN_ORE = {
-        frequency = 0.005,
+        frequency = 0.008, -- Increased from 0.005
         vein_size = 5,
         vein_spread = 1.8,
         min_depth = 15,
@@ -112,7 +112,7 @@ worldgen.ORE_CONFIG = {
         layers = {[-1] = true, [0] = true},
     },
     IRON_ORE = {
-        frequency = 0.007,
+        frequency = 0.011, -- Increased from 0.007
         vein_size = 7,
         vein_spread = 2.2,
         min_depth = 25,
@@ -122,7 +122,7 @@ worldgen.ORE_CONFIG = {
         layer_frequency_multiplier = {[-1] = 1.5, [0] = 0.7},
     },
     GOLD_ORE = {
-        frequency = 0.002,
+        frequency = 0.004, -- Increased from 0.002
         vein_size = 4,
         vein_spread = 1.5,
         min_depth = 40,
@@ -130,7 +130,7 @@ worldgen.ORE_CONFIG = {
         layers = {[-1] = true},
     },
     LEAD_ORE = {
-        frequency = 0.003,
+        frequency = 0.005, -- Increased from 0.003
         vein_size = 5,
         vein_spread = 1.6,
         min_depth = 35,
@@ -138,7 +138,7 @@ worldgen.ORE_CONFIG = {
         layers = {[-1] = true},
     },
     ZINC_ORE = {
-        frequency = 0.003,
+        frequency = 0.005, -- Increased from 0.003
         vein_size = 5,
         vein_spread = 1.6,
         min_depth = 35,
@@ -146,7 +146,7 @@ worldgen.ORE_CONFIG = {
         layers = {[-1] = true},
     },
     COBALT_ORE = {
-        frequency = 0.001,
+        frequency = 0.002, -- Increased from 0.001
         vein_size = 3,
         vein_spread = 1.2,
         min_depth = 50,
