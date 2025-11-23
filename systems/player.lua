@@ -18,6 +18,7 @@ local Health = require "components.health"
 local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()
+local ITEMS = Registry.items()
 
 local PlayerSystem = {
     id = "player",
@@ -57,6 +58,9 @@ function PlayerSystem.load(self, x, y, z)
     for i = 1, self.components.inventory.hotbar_size do
         self.components.inventory.slots[i] = nil
     end
+
+    -- Add omnitool to slot 1
+    self:add_item_to_inventory(ITEMS.OMNITOOL, 1)
 
     -- Initialize control system
     self.systems.control = require "systems.control"
@@ -407,6 +411,19 @@ function PlayerSystem.get_selected_block_id(self)
         return slot.block_id
     end
     return nil
+end
+
+function PlayerSystem.upgrade(self, upOrDown)
+    assert(type(upOrDown) == "number")
+    if upOrDown > 0 then
+        self.components.omnitool.tier = math.min(self.components.omnitool.tier + 1, self.components.omnitool.max)
+        log.info("Player", "upgrade", self.components.omnitool.tier)
+    elseif upOrDown < 0 then
+        self.components.omnitool.tier = math.max(self.components.omnitool.min, self.components.omnitool.tier - 1)
+        log.info("Player", "downgrade", self.components.omnitool.tier)
+    else
+        assert(false)
+    end
 end
 
 function PlayerSystem.get_position(self)

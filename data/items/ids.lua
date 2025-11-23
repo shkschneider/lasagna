@@ -2,8 +2,9 @@
 -- Central list of item IDs
 
 local ItemRef = {
-    GUN = 1,
-    ROCKET_LAUNCHER = 2,
+    OMNITOOL = 1,
+    GUN = 2,
+    ROCKET_LAUNCHER = 3,
 }
 
 return ItemRef

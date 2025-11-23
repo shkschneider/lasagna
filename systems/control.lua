@@ -96,15 +96,6 @@ function ControlSystem.keypressed(self, key)
             player.components.layer.current_layer = target_layer
         end
     end
-
-    if G:debug() then
-        -- Debug: adjust omnitool tier
-        if key == "=" or key == "+" then
-            player.components.omnitool.tier = player.components.omnitool.tier + 1
-        elseif key == "-" or key == "_" then
-            player.components.omnitool.tier = math.max(0, player.components.omnitool.tier - 1)
-        end
-    end
 end
 
 return ControlSystem
