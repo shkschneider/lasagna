@@ -48,8 +48,8 @@ That's it! The GeneratorSystem will automatically pick up your new ore and gener
 ### max_depth
 - Maximum depth below the surface where the ore can spawn
 - Higher values = spawns deeper underground
-- Use `999` for ores that spawn at any depth below min_depth
-- Example: `100` for shallow ores, `999` for deep ores
+- Use `math.huge` for ores that spawn at any depth below min_depth (unbounded)
+- Example: `100` for shallow ores, `math.huge` for deep ores like cobalt
 
 ### frequency
 - Controls the size of ore veins
@@ -97,7 +97,7 @@ ore_gen = {
 ```lua
 ore_gen = {
     min_depth = 80,
-    max_depth = 999,
+    max_depth = math.huge,  -- Unbounded depth
     frequency = 0.05,
     threshold = 0.7,
     offset = 600,

@@ -182,7 +182,7 @@ BlocksRegistry:register({
     drops = function() return BlockRef.COBALT_ORE, 1 end,
     ore_gen = {
         min_depth = 80,
-        max_depth = 999, -- No upper limit
+        max_depth = math.huge, -- Unbounded depth (spawns at any depth >= 80)
         frequency = 0.05,
         threshold = 0.7,
         offset = 600,
