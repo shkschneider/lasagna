@@ -94,22 +94,29 @@ function PlayerSystem.update(self, dt)
         vel.vx = -self.MOVE_SPEED
     end
     if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-        vel.vx = self.MOVE_SPEED
+        if stance.current == Stance.CROUCHING then
+            vel.vx = self.MOVE_SPEED / 2
+        else
+            vel.vx = self.MOVE_SPEED
+        end
     end
 
     -- Gravity always applies
     vel.vy = vel.vy + phys.gravity * dt
 
     -- Jump handling - only when on ground and not crouching
-    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground and stance.current ~= Stance.CROUCHING then
-        vel.vy = -self.JUMP_FORCE
+    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground then
+        if stance.current == Stance.CROUCHING then
+            vel.vy = -self.JUMP_FORCE / 2
+        else
+            vel.vy = -self.JUMP_FORCE
+        end
         stance.current = Stance.JUMPING
     end
 
     -- Apply horizontal velocity with collision
     local new_x = pos.x + vel.vx * dt
     local hit_wall = false
-    local EPSILON = 0.0001
 
     if vel.vx ~= 0 then
         local check_col
