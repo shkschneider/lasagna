@@ -49,6 +49,34 @@ function UISystem.draw(self)
     local slot_size = 60
     local hotbar_x = (screen_width - (inv.hotbar_size * slot_size)) / 2
 
+    -- Draw health bar above hotbar
+    local health = player.components.health
+    if health and health.max > 0 then
+        local health_bar_height = BLOCK_SIZE / 4  -- 1/4 BLOCK_SIZE high
+        local hotbar_width = inv.hotbar_size * slot_size
+        local health_bar_width = hotbar_width / 2  -- Half the hotbar width
+        local health_bar_x = hotbar_x  -- Aligned left
+        local health_bar_y = hotbar_y - health_bar_height - 10  -- 10px above hotbar
+
+        -- Health bar background
+        love.graphics.setColor(0, 0, 0, 0.5)
+        love.graphics.rectangle("fill", health_bar_x, health_bar_y, health_bar_width, health_bar_height)
+
+        -- Health bar fill
+        local health_percentage = health.current / health.max
+        local health_fill_width = health_bar_width * health_percentage
+
+        -- Color based on health percentage
+        if health_percentage > 0.6 then
+            love.graphics.setColor(0, 1, 0, 0.8)  -- Green
+        elseif health_percentage > 0.3 then
+            love.graphics.setColor(1, 1, 0, 0.8)  -- Yellow
+        else
+            love.graphics.setColor(1, 0, 0, 0.8)  -- Red
+        end
+        love.graphics.rectangle("fill", health_bar_x, health_bar_y, health_fill_width, health_bar_height)
+    end
+
     for i = 1, inv.hotbar_size do
         local x = hotbar_x + (i - 1) * slot_size
 
@@ -69,7 +97,7 @@ function UISystem.draw(self)
         if slot then
             local proto = nil
             local color = nil
-            
+
             if slot.block_id then
                 proto = Registry.Blocks:get(slot.block_id)
                 if proto then
@@ -84,7 +112,7 @@ function UISystem.draw(self)
                     color = {1, 1, 1, 1}
                 end
             end
-            
+
             if proto and color then
                 -- Draw item as colored square
                 love.graphics.setColor(color)
@@ -101,18 +129,18 @@ function UISystem.draw(self)
     local selected_slot = inv.slots[inv.selected_slot]
     if selected_slot then
         local proto = nil
-        
+
         if selected_slot.block_id then
             proto = Registry.Blocks:get(selected_slot.block_id)
         elseif selected_slot.item_id then
             proto = Registry.Items:get(selected_slot.item_id)
         end
-        
+
         if proto then
             love.graphics.setColor(1, 1, 1, 1)
             local text = proto.name
             local text_width = love.graphics.getFont():getWidth(text)
-            love.graphics.print(text, (screen_width - text_width) / 2, hotbar_y - 25)
+            love.graphics.print(text, (screen_width - text_width) / 2, hotbar_y - 40)
         end
     end
 end

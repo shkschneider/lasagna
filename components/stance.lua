@@ -13,6 +13,9 @@ function Stance.new(initial_stance)
         id = "stance",
         current = initial_stance or Stance.STANDING,
         crouched = false,
+        tostring = function(self)
+            return tostring(self.current) .. ":" .. tostring(self.crouched)
+        end
     }
 end
 

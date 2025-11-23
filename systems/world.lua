@@ -522,7 +522,7 @@ function WorldSystem.find_spawn_position(self, z)
             -- Spawn in the last air block (just above the ground)
             -- This ensures the player spawns on the surface, not inside it
             local spawn_x = col * BLOCK_SIZE + BLOCK_SIZE / 2
-            local spawn_y = (row - 9) * BLOCK_SIZE + BLOCK_SIZE / 2 -- FIXME magic 9
+            local spawn_y = (row - 1) * BLOCK_SIZE + BLOCK_SIZE / 2
             return spawn_x, spawn_y, z
         end
     end

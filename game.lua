@@ -61,6 +61,11 @@ function Game.update(self, dt)
         return
     end
 
+    -- Check if player is dead
+    if self.systems.player and self.systems.player:is_dead() then
+        return
+    end
+
     -- Apply time scale
     dt = dt * self.components.timescale.scale
 

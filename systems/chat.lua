@@ -162,7 +162,7 @@ function ChatSystem.process_input(self, input)
                 self:add_message("> " .. input)
                 -- Execute command
                 local success, message = Registry.Commands:execute(command_name, args)
-                log.info("<", command_name, ">", message)
+                log.info("<", command_name, ">", tostring(success), ":", tostring(message))
                 if message then
                     self:add_message(message)
                 end
