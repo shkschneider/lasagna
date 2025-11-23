@@ -187,12 +187,17 @@ end
 
 -- Helper: Convert column coordinate to chunk index and local column
 function WorldSystem.col_to_chunk(self, col)
+    -- Calculate chunk index using floor division
     local chunk_index = math.floor(col / CHUNK_SIZE)
-    local local_col = col % CHUNK_SIZE
-    -- Lua's modulo already handles negative numbers correctly for our use case
-    -- For col=-1: floor(-1/64)=-1, -1%64=63 -> chunk=-1, local_col=63 ✓
-    -- For col=-64: floor(-64/64)=-1, -64%64=0 -> chunk=-1, local_col=0 ✓
-    -- For col=-65: floor(-65/64)=-2, -65%64=63 -> chunk=-2, local_col=63 ✓
+    
+    -- Calculate local column within the chunk
+    -- We need local_col to always be in range [0, CHUNK_SIZE-1]
+    local local_col = col - (chunk_index * CHUNK_SIZE)
+    
+    -- Verify the calculation is correct
+    assert(local_col >= 0 and local_col < CHUNK_SIZE, 
+           "Invalid local_col: " .. local_col .. " for col: " .. col)
+    
     return chunk_index, local_col
 end
 
