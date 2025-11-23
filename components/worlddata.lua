@@ -16,7 +16,8 @@ function WorldData.new(seed, height)
             [0] = {},
             [1] = {},
         },
-        generated_chunks = {},
+        generating_chunks = {},  -- Chunks currently being generated
+        generated_chunks = {},   -- Chunks that have completed generation
     }
 end
 

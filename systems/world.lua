@@ -103,8 +103,10 @@ function WorldSystem.update(self, dt)
         
         -- Check if not already generating or generated
         local data = self.components.worlddata
-        if not self.active_coroutines[key] and 
-           not (data.generated_chunks[chunk_info.z] and data.generated_chunks[chunk_info.z][chunk_info.chunk_index]) then
+        local already_done = (data.generated_chunks[chunk_info.z] and data.generated_chunks[chunk_info.z][chunk_info.chunk_index]) or
+                             (data.generating_chunks[chunk_info.z] and data.generating_chunks[chunk_info.z][chunk_info.chunk_index])
+        
+        if not self.active_coroutines[key] and not already_done then
             -- Remove from tracking only when we actually start generating
             self.queued_chunks[key] = nil
             
@@ -117,9 +119,13 @@ function WorldSystem.update(self, dt)
             -- Start the coroutine
             local success, err = coroutine.resume(co)
             if not success then
-                log.error("World generation coroutine start error:", err)
+                log.error("World generation coroutine error:", err)
                 self.active_coroutines[key] = nil
                 active_count = active_count - 1
+                -- Clear generating flag on error
+                if data.generating_chunks[chunk_info.z] then
+                    data.generating_chunks[chunk_info.z][chunk_info.chunk_index] = nil
+                end
             end
         else
             -- Chunk already generating or generated, remove from tracking
@@ -287,16 +293,21 @@ end
 function WorldSystem.generate_chunk_sync(self, z, chunk_index)
     local data = self.components.worlddata
 
+    -- Check if already generated
     if data.generated_chunks[z] and data.generated_chunks[z][chunk_index] then
         return
     end
 
+    -- Initialize structures
+    if not data.generating_chunks[z] then
+        data.generating_chunks[z] = {}
+    end
     if not data.generated_chunks[z] then
         data.generated_chunks[z] = {}
     end
     
-    -- Mark as generating BEFORE we start to prevent race conditions
-    data.generated_chunks[z][chunk_index] = true
+    -- Mark as generating to prevent duplicate generation
+    data.generating_chunks[z][chunk_index] = true
 
     if not data.chunks[z][chunk_index] then
         data.chunks[z][chunk_index] = {}
@@ -319,7 +330,9 @@ function WorldSystem.generate_chunk_sync(self, z, chunk_index)
         end
     end
     
-    -- Chunk generation complete (flag already set at the beginning)
+    -- Chunk generation complete - mark as generated and no longer generating
+    data.generating_chunks[z][chunk_index] = nil
+    data.generated_chunks[z][chunk_index] = true
 end
 
 -- Queue a chunk for generation (non-blocking)
@@ -332,9 +345,14 @@ function WorldSystem.generate_chunk(self, z, chunk_index, priority)
         return true  -- Already generated
     end
     
+    -- Check if currently generating
+    if data.generating_chunks[z] and data.generating_chunks[z][chunk_index] then
+        return false  -- Currently generating
+    end
+    
     local key = string.format("%d_%d", z, chunk_index)
     
-    -- Check if currently generating
+    -- Check if coroutine is active
     if self.active_coroutines[key] then
         return false  -- Currently generating
     end
