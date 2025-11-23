@@ -72,8 +72,11 @@ function WorldSystem.draw(self)
     start_row = math.max(0, start_row)
     end_row = math.min(self.HEIGHT - 1, end_row)
 
-    -- Draw each layer to its canvas (from LAYER_MIN up to player_z + 1, clamped to LAYER_MAX)
+    -- Calculate max layer to render (from LAYER_MIN up to player_z + 1, clamped to LAYER_MAX)
     local max_layer = math.min(player_z + 1, LAYER_MAX)
+    local debug = Systems.get("debug")
+
+    -- Draw each layer to its canvas
     for layer = LAYER_MIN, max_layer do
         local canvas = self.canvases[layer]
         if canvas then
@@ -149,12 +152,19 @@ function WorldSystem.draw(self)
     -- Set blend mode to ensure proper layering (solid blocks should completely cover layers below)
     love.graphics.setBlendMode("alpha", "premultiplied")
 
-    local debug = Systems.get("debug")
-    local max_layer = math.min(player_z + 1, LAYER_MAX)
-
     -- Draw each layer from LAYER_MIN to max_layer
     for layer = LAYER_MIN, max_layer do
-        if not ONLY_CURRENT_LAYER_VISIBLE or (debug and (not debug.enabled or player_z == layer)) then
+        -- Only draw if ONLY_CURRENT_LAYER_VISIBLE is false, or if debug mode allows this specific layer
+        local should_draw = not ONLY_CURRENT_LAYER_VISIBLE
+        if not should_draw and debug and not debug.enabled then
+            -- Debug mode off: draw all layers
+            should_draw = true
+        elseif not should_draw and debug and debug.enabled then
+            -- Debug mode on: only draw the player's current layer
+            should_draw = (layer == player_z)
+        end
+        
+        if should_draw then
             local canvas = self.canvases[layer]
             if canvas then
                 if layer == player_z then
