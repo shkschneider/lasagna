@@ -33,4 +33,16 @@ function BlocksRegistry.exists(self, id)
     return self[id] ~= nil
 end
 
+-- Get all blocks with ore generation data
+function BlocksRegistry.get_ore_blocks(self)
+    local ore_blocks = {}
+    for id, block in pairs(self) do
+        -- Skip registry functions
+        if type(block) == "table" and block.ore_gen then
+            table.insert(ore_blocks, block)
+        end
+    end
+    return ore_blocks
+end
+
 return BlocksRegistry
