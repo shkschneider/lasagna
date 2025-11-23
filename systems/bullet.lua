@@ -11,6 +11,7 @@ local Bullet = require "components.bullet"
 
 local BULLET_DAMAGE = 10
 local BULLET_LIFETIME = 5
+local BULLET_FRICTION = 1.0  -- No friction for bullets (they maintain velocity)
 
 local BulletSystem = {
     id = "bullet",
@@ -27,7 +28,7 @@ function BulletSystem.create_bullet(self, x, y, layer, vx, vy, width, height, co
         id = uuid(),
         position = Position.new(x, y, layer),
         velocity = Velocity.new(vx, vy),
-        physics = Physics.new(gravity, 1.0),  -- gravity, no friction for bullets
+        physics = Physics.new(gravity, BULLET_FRICTION),
         bullet = Bullet.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color, destroys_blocks),
     }
 
@@ -45,7 +46,9 @@ function BulletSystem.update(self, dt)
         local ent = self.entities[i]
 
         -- Apply physics (gravity)
-        ent.velocity.vy = ent.velocity.vy + ent.physics.gravity * dt
+        if ent.physics then
+            ent.velocity.vy = ent.velocity.vy + ent.physics.gravity * dt
+        end
 
         -- Update position
         ent.position.x = ent.position.x + ent.velocity.vx * dt
