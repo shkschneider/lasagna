@@ -1,11 +1,24 @@
 local Systems = require "systems"
+local Registry = require "registries"
+
+local BLOCKS = Registry.blocks()
 
 local Debug = {
     id = "debug",
+    enabled = false,
 }
 
 function Debug.load(self, seed, debug)
     self.enabled = debug or false
+    if self.enabled then
+        local player = Systems.get("player")
+        if player then
+            -- Add starting items
+            player:add_to_inventory(BLOCKS.DIRT, 64)
+            player:add_to_inventory(BLOCKS.STONE, 32)
+            player:add_to_inventory(BLOCKS.WOOD, 16)
+        end
+    end
 end
 
 function Debug.keypressed(self, key)

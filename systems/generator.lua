@@ -3,10 +3,23 @@
 
 local noise = require "lib.noise"
 local Registry = require "registries"
+local BlocksRegistry = require "registries.blocks"
 
 local BLOCKS = Registry.blocks()
 
 local GeneratorSystem = {}
+
+-- Get ore blocks for generation (cached after first call)
+-- NOTE: This assumes all blocks are registered during initialization
+-- before any world generation occurs (which is currently the case)
+-- Ore blocks are returned sorted by ID for deterministic ordering
+local ore_blocks_cache = nil
+local function get_ore_blocks()
+    if not ore_blocks_cache then
+        ore_blocks_cache = BlocksRegistry:get_ore_blocks()
+    end
+    return ore_blocks_cache
+end
 
 -- Constants
 local SURFACE_HEIGHT_RATIO = 0.75
@@ -62,63 +75,33 @@ end
 
 -- Step 3: Generate ore veins using 3D Perlin noise
 function GeneratorSystem.ore_veins(layers, z, col, base_height, world_height)
+    local ore_blocks = get_ore_blocks()
+    
     for row = base_height, world_height - 3 do -- Stop before bedrock
         if layers[z][col][row] == BLOCKS.STONE then
             local depth_from_surface = row - base_height
-
-            -- Coal: shallow, common (depth 5-100)
-            if depth_from_surface >= 5 and depth_from_surface <= 100 then
-                local coal_noise = noise.perlin3d(col * 0.08, row * 0.08, z * 0.08)
-                if coal_noise > 0.5 then
-                    layers[z][col][row] = BLOCKS.COAL
-                end
-            end
-
-            -- Copper: shallow to mid (depth 10-120)
-            if depth_from_surface >= 10 and depth_from_surface <= 120 then
-                local copper_noise = noise.perlin3d(col * 0.07, row * 0.07, z * 0.07 + 100)
-                if copper_noise > 0.55 then
-                    layers[z][col][row] = BLOCKS.COPPER_ORE
-                end
-            end
-
-            -- Tin: shallow to mid (depth 10-120)
-            if depth_from_surface >= 10 and depth_from_surface <= 120 then
-                local tin_noise = noise.perlin3d(col * 0.07, row * 0.07, z * 0.07 + 200)
-                if tin_noise > 0.55 then
-                    layers[z][col][row] = BLOCKS.TIN_ORE
-                end
-            end
-
-            -- Iron: mid depth (depth 40-150)
-            if depth_from_surface >= 40 and depth_from_surface <= 150 then
-                local iron_noise = noise.perlin3d(col * 0.06, row * 0.06, z * 0.06 + 300)
-                if iron_noise > 0.58 then
-                    layers[z][col][row] = BLOCKS.IRON_ORE
-                end
-            end
-
-            -- Lead: mid to deep (depth 50-160)
-            if depth_from_surface >= 50 and depth_from_surface <= 160 then
-                local lead_noise = noise.perlin3d(col * 0.06, row * 0.06, z * 0.06 + 400)
-                if lead_noise > 0.6 then
-                    layers[z][col][row] = BLOCKS.LEAD_ORE
-                end
-            end
-
-            -- Zinc: mid to deep (depth 50-160)
-            if depth_from_surface >= 50 and depth_from_surface <= 160 then
-                local zinc_noise = noise.perlin3d(col * 0.06, row * 0.06, z * 0.06 + 500)
-                if zinc_noise > 0.6 then
-                    layers[z][col][row] = BLOCKS.ZINC_ORE
-                end
-            end
-
-            -- Cobalt: deep and rare (depth 80+)
-            if depth_from_surface >= 80 then
-                local cobalt_noise = noise.perlin3d(col * 0.05, row * 0.05, z * 0.05 + 600)
-                if cobalt_noise > 0.7 then -- Very rare threshold
-                    layers[z][col][row] = BLOCKS.COBALT_ORE
+            
+            -- Iterate through all registered ore blocks
+            for _, ore_block in ipairs(ore_blocks) do
+                local gen = ore_block.ore_gen
+                
+                -- Check if depth is within range for this ore
+                -- Check math.huge first for performance (short-circuit evaluation)
+                local in_range = depth_from_surface >= gen.min_depth and 
+                                 (gen.max_depth == math.huge or depth_from_surface <= gen.max_depth)
+                
+                if in_range then
+                    local ore_noise = noise.perlin3d(
+                        col * gen.frequency,
+                        row * gen.frequency,
+                        z * gen.frequency + gen.offset
+                    )
+                    
+                    if ore_noise > gen.threshold then
+                        layers[z][col][row] = ore_block.id
+                        -- Note: Don't break - allow later ores to potentially override
+                        -- This matches original behavior where last matching ore wins
+                    end
                 end
             end
         end

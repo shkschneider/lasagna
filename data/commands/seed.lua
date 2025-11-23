@@ -1,17 +1,5 @@
--- Default command definitions
--- Commands register themselves with the CommandsRegistry
-
 local CommandsRegistry = require("registries.commands")
 local Systems = require("systems")
-
--- Register /ping command
-CommandsRegistry:register({
-    name = "ping",
-    description = "Ping-Pong",
-    execute = function(args)
-        return true, "pong"
-    end,
-})
 
 -- Register /seed command
 CommandsRegistry:register({
@@ -26,5 +14,3 @@ CommandsRegistry:register({
         return false, "World not loaded"
     end,
 })
-
-return CommandsRegistry
