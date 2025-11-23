@@ -269,21 +269,6 @@ function WorldSystem.draw(self)
     love.graphics.setBlendMode("alpha")
 end
 
--- Helper: Convert column coordinate to chunk index and local column
-function WorldSystem.col_to_chunk(self, col)
-    -- Calculate chunk index using floor division
-    local chunk_index = math.floor(col / CHUNK_SIZE)
-    
-    -- Calculate local column within the chunk
-    -- We need local_col to always be in range [0, CHUNK_SIZE-1]
-    local local_col = col - (chunk_index * CHUNK_SIZE)
-    
-    -- Verify the calculation is correct
-    assert(local_col >= 0 and local_col < CHUNK_SIZE, 
-           "Invalid local_col: " .. local_col .. " for col: " .. col)
-    
-    return chunk_index, local_col
-end
 
 -- Generate a single column (function executed by coroutines)
 function WorldSystem.generate_column_sync(self, z, col)
@@ -298,23 +283,17 @@ function WorldSystem.generate_column_sync(self, z, col)
     -- Mark as generating to prevent duplicate generation
     data.generating_columns[key] = true
 
-    -- Get chunk coordinates
-    local chunk_index, local_col = self:col_to_chunk(col)
-    
-    -- Ensure chunk structure exists
-    if not data.chunks[z] then
-        data.chunks[z] = {}
+    -- Ensure column structure exists
+    if not data.columns[z] then
+        data.columns[z] = {}
     end
-    if not data.chunks[z][chunk_index] then
-        data.chunks[z][chunk_index] = {}
-    end
-    if not data.chunks[z][chunk_index][local_col] then
-        data.chunks[z][chunk_index][local_col] = {}
+    if not data.columns[z][col] then
+        data.columns[z][col] = {}
     end
     
     -- Generate terrain for this column using Generator module
-    -- Pass: chunk_data, local_col, world_col, z, world_height
-    Generator.generate_column(data.chunks[z][chunk_index], local_col, col, z, data.height)
+    -- Pass: column_data, world_col, z, world_height
+    Generator.generate_column(data.columns[z][col], col, z, data.height)
     
     -- Yield to prevent frame drops - allows other work to process before next column
     coroutine.yield()
@@ -373,16 +352,14 @@ function WorldSystem.get_block_id(self, z, col, row)
         return BLOCKS.AIR
     end
 
-    local chunk_index, local_col = self:col_to_chunk(col)
     -- Request column generation with high priority (visible column)
     self:generate_column(z, col, true)
 
     local data = self.components.worlddata
-    if data.chunks[z] and
-       data.chunks[z][chunk_index] and
-       data.chunks[z][chunk_index][local_col] and
-       data.chunks[z][chunk_index][local_col][row] then
-        return data.chunks[z][chunk_index][local_col][row]
+    if data.columns[z] and
+       data.columns[z][col] and
+       data.columns[z][col][row] then
+        return data.columns[z][col][row]
     end
 
     return BLOCKS.AIR
@@ -400,24 +377,20 @@ function WorldSystem.set_block(self, z, col, row, block_id)
         return false
     end
 
-    local chunk_index, local_col = self:col_to_chunk(col)
     -- Request column generation with high priority (user action)
     self:generate_column(z, col, true)
 
     local data = self.components.worlddata
     
-    -- Ensure the chunk structure exists
-    if not data.chunks[z] then
-        data.chunks[z] = {}
+    -- Ensure the column structure exists
+    if not data.columns[z] then
+        data.columns[z] = {}
     end
-    if not data.chunks[z][chunk_index] then
-        data.chunks[z][chunk_index] = {}
-    end
-    if not data.chunks[z][chunk_index][local_col] then
-        data.chunks[z][chunk_index][local_col] = {}
+    if not data.columns[z][col] then
+        data.columns[z][col] = {}
     end
 
-    data.chunks[z][chunk_index][local_col][row] = block_id
+    data.columns[z][col][row] = block_id
     return true
 end
 

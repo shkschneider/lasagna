@@ -42,43 +42,43 @@ local function calculate_surface_height(col, z, world_height)
 end
 
 -- Step 1: Fill terrain with air above surface and stone below
-function GeneratorSystem.fill(chunk_data, local_col, world_col, base_height, world_height)
+function GeneratorSystem.fill(column_data, world_col, base_height, world_height)
     for row = 0, world_height - 1 do
         if row >= base_height then
             -- Underground - stone by default
-            chunk_data[local_col][row] = BLOCKS.STONE
+            column_data[row] = BLOCKS.STONE
         else
             -- Above ground - air
-            chunk_data[local_col][row] = BLOCKS.AIR
+            column_data[row] = BLOCKS.AIR
         end
     end
-    chunk_data[local_col][world_height - 2] = BLOCKS.BEDROCK
-    chunk_data[local_col][world_height - 1] = BLOCKS.BEDROCK
+    column_data[world_height - 2] = BLOCKS.BEDROCK
+    column_data[world_height - 1] = BLOCKS.BEDROCK
 end
 
 -- Step 2: Add dirt and grass
-function GeneratorSystem.dirt_and_grass(chunk_data, local_col, world_col, z, base_height, world_height)
+function GeneratorSystem.dirt_and_grass(column_data, world_col, z, base_height, world_height)
     local dirt_depth = DIRT_MIN_DEPTH + math.floor((DIRT_MAX_DEPTH - DIRT_MIN_DEPTH) *
         (noise.perlin2d(world_col * 0.05, z * 0.1) + 1) / 2)
     for row = base_height, math.min(base_height + dirt_depth - 1, world_height - 1) do
-        if chunk_data[local_col][row] == BLOCKS.STONE then
-            chunk_data[local_col][row] = BLOCKS.DIRT
+        if column_data[row] == BLOCKS.STONE then
+            column_data[row] = BLOCKS.DIRT
         end
     end
     if base_height > 0 and base_height < world_height then
-        if chunk_data[local_col][base_height] == BLOCKS.DIRT and
-           chunk_data[local_col][base_height - 1] == BLOCKS.AIR then
-            chunk_data[local_col][base_height] = BLOCKS.GRASS
+        if column_data[base_height] == BLOCKS.DIRT and
+           column_data[base_height - 1] == BLOCKS.AIR then
+            column_data[base_height] = BLOCKS.GRASS
         end
     end
 end
 
 -- Step 3: Generate ore veins using 3D Perlin noise
-function GeneratorSystem.ore_veins(chunk_data, local_col, world_col, z, base_height, world_height)
+function GeneratorSystem.ore_veins(column_data, world_col, z, base_height, world_height)
     local ore_blocks = get_ore_blocks()
     
     for row = base_height, world_height - 3 do -- Stop before bedrock
-        if chunk_data[local_col][row] == BLOCKS.STONE then
+        if column_data[row] == BLOCKS.STONE then
             local depth_from_surface = row - base_height
             
             -- Iterate through all registered ore blocks
@@ -91,7 +91,7 @@ function GeneratorSystem.ore_veins(chunk_data, local_col, world_col, z, base_hei
                                  (gen.max_depth == math.huge or depth_from_surface <= gen.max_depth)
                 
                 if in_range then
-                    -- Use world_col for noise to ensure continuity across chunks
+                    -- Use world_col for noise to ensure continuity
                     local ore_noise = noise.perlin3d(
                         world_col * gen.frequency,
                         row * gen.frequency,
@@ -99,7 +99,7 @@ function GeneratorSystem.ore_veins(chunk_data, local_col, world_col, z, base_hei
                     )
                     
                     if ore_noise > gen.threshold then
-                        chunk_data[local_col][row] = ore_block.id
+                        column_data[row] = ore_block.id
                         -- Note: Don't break - allow later ores to potentially override
                         -- This matches original behavior where last matching ore wins
                     end
@@ -110,20 +110,19 @@ function GeneratorSystem.ore_veins(chunk_data, local_col, world_col, z, base_hei
 end
 
 -- Main terrain generation function that orchestrates all steps
--- chunk_data: the chunk storage [local_col][row]
--- local_col: column index within the chunk (0-63)
+-- column_data: the column storage [row]
 -- world_col: absolute column coordinate in the world (for noise continuity)
 -- z: layer index
 -- world_height: height of the world
-function GeneratorSystem.generate_column(chunk_data, local_col, world_col, z, world_height)
+function GeneratorSystem.generate_column(column_data, world_col, z, world_height)
     -- Step 0: Calculate surface height (uses world_col for continuity)
     local base_height = calculate_surface_height(world_col, z, world_height)
     -- Step 1: Fill base terrain (air and stone)
-    GeneratorSystem.fill(chunk_data, local_col, world_col, base_height, world_height)
+    GeneratorSystem.fill(column_data, world_col, base_height, world_height)
     -- Step 2: Add dirt and grass layers
-    GeneratorSystem.dirt_and_grass(chunk_data, local_col, world_col, z, base_height, world_height)
+    GeneratorSystem.dirt_and_grass(column_data, world_col, z, base_height, world_height)
     -- Step 3: Generate ore veins
-    GeneratorSystem.ore_veins(chunk_data, local_col, world_col, z, base_height, world_height)
+    GeneratorSystem.ore_veins(column_data, world_col, z, base_height, world_height)
 
 end
 

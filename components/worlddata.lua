@@ -1,6 +1,6 @@
 -- WorldData component
 -- World dimensions and storage
--- World is infinite horizontally; uses chunk-based storage (64 columns) but column-based generation
+-- World is infinite horizontally with column-based storage and generation
 
 local WorldData = {}
 
@@ -9,9 +9,9 @@ function WorldData.new(seed, height)
         id = "worlddata",
         seed = seed or math.floor(love.math.random() * INFINITY),
         height = height or 512,
-        -- Chunk-based storage: chunks[z][chunk_index] contains 64 columns
+        -- Column-based storage: columns[z][col] contains rows
         -- No horizontal width limit - columns are generated on demand
-        chunks = {
+        columns = {
             [-1] = {},
             [0] = {},
             [1] = {},
