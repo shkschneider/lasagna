@@ -40,6 +40,7 @@ function DropSystem.update(self, dt)
     local player = Systems.get("player")
 
     local PICKUP_RANGE = world.BLOCK_SIZE
+    local MERGE_RANGE = world.BLOCK_SIZE
     local player_x, player_y, player_z = player:get_position()
 
     for i = #self.entities, 1, -1 do
@@ -70,6 +71,39 @@ function DropSystem.update(self, dt)
         -- Apply friction only when on ground
         if on_ground then
             ent.velocity.vx = ent.velocity.vx * ent.physics.friction
+        end
+
+        -- Merge with nearby drops of the same type (performance optimization)
+        -- Only merge when on ground and pickup delay is over
+        if on_ground and ent.drop.pickup_delay <= 0 then
+            for j = i - 1, 1, -1 do
+                local other = self.entities[j]
+                
+                -- Check if same block type and on same layer
+                if other.drop.block_id == ent.drop.block_id and other.position.z == ent.position.z then
+                    local dx = other.position.x - ent.position.x
+                    local dy = other.position.y - ent.position.y
+                    local dist = math.sqrt(dx * dx + dy * dy)
+                    
+                    -- Merge if within range and other is also on ground with no pickup delay
+                    if dist < MERGE_RANGE and other.drop.pickup_delay <= 0 then
+                        -- Check if other drop is also on ground
+                        local other_col, other_row = world.world_to_block(world,
+                            other.position.x,
+                            other.position.y + drop_height / 2
+                        )
+                        local other_block = world:get_block_def(other.position.z, other_col, other_row)
+                        
+                        if other_block and other_block.solid then
+                            -- Merge counts and remove the other drop
+                            ent.drop.count = ent.drop.count + other.drop.count
+                            table.remove(self.entities, j)
+                            -- Adjust index since we removed an element before current
+                            i = i - 1
+                        end
+                    end
+                end
+            end
         end
 
         -- Decrease pickup delay
@@ -123,6 +157,19 @@ function DropSystem.draw(self)
             -- Draw 1px white border
             love.graphics.setColor(1, 1, 1, 1)
             love.graphics.rectangle("line", x, y, width, height)
+            
+            -- Draw count if greater than 1
+            if ent.drop.count > 1 then
+                love.graphics.setColor(1, 1, 1, 1)
+                local count_text = tostring(ent.drop.count)
+                local font = love.graphics.getFont()
+                local text_width = font:getWidth(count_text)
+                local text_height = font:getHeight()
+                -- Draw text centered on drop with slight offset
+                love.graphics.print(count_text, 
+                    x + width / 2 - text_width / 2,
+                    y + height / 2 - text_height / 2)
+            end
         end
     end
     
