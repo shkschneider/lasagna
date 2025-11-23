@@ -86,7 +86,10 @@ function GeneratorSystem.ore_veins(layers, z, col, base_height, world_height)
                 local gen = ore_block.ore_gen
                 
                 -- Check if depth is within range for this ore
-                if depth_from_surface >= gen.min_depth and depth_from_surface <= gen.max_depth then
+                local in_range = depth_from_surface >= gen.min_depth and 
+                                 (gen.max_depth == math.huge or depth_from_surface <= gen.max_depth)
+                
+                if in_range then
                     local ore_noise = noise.perlin3d(
                         col * gen.frequency,
                         row * gen.frequency,
