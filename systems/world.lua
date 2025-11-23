@@ -72,8 +72,9 @@ function WorldSystem.draw(self)
     start_row = math.max(0, start_row)
     end_row = math.min(self.HEIGHT - 1, end_row)
 
-    -- Draw each layer to its canvas
-    for layer = LAYER_MIN, LAYER_MAX do
+    -- Draw each layer to its canvas (from LAYER_MIN up to player_z + 1, clamped to LAYER_MAX)
+    local max_layer = math.min(player_z + 1, LAYER_MAX)
+    for layer = LAYER_MIN, max_layer do
         local canvas = self.canvases[layer]
         if canvas then
             love.graphics.setCanvas(canvas)
@@ -144,54 +145,30 @@ function WorldSystem.draw(self)
         end
     end
 
-    -- Composite layers to screen
+    -- Composite layers to screen (only the layers we rendered: LAYER_MIN to player_z + 1)
     -- Set blend mode to ensure proper layering (solid blocks should completely cover layers below)
     love.graphics.setBlendMode("alpha", "premultiplied")
 
     local debug = Systems.get("debug")
+    local max_layer = math.min(player_z + 1, LAYER_MAX)
 
-    if not ONLY_CURRENT_LAYER_VISIBLE or (debug and (not debug.enabled or player_z == -1)) then
-        -- Draw back layer (dimmed)
-        if self.canvases[-1] then
-            if player_z == -1 then
-                -- Full color: player is on this layer (never "above" since this is the minimum layer)
-                love.graphics.setColor(1, 1, 1, 1)
-            else
-                love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Dimmed
+    -- Draw each layer from LAYER_MIN to max_layer
+    for layer = LAYER_MIN, max_layer do
+        if not ONLY_CURRENT_LAYER_VISIBLE or (debug and (not debug.enabled or player_z == layer)) then
+            local canvas = self.canvases[layer]
+            if canvas then
+                if layer == player_z then
+                    -- Full color: player is on this layer
+                    love.graphics.setColor(1, 1, 1, 1)
+                elseif layer == player_z + 1 then
+                    -- Full color: this is the layer above player (outlines already have alpha)
+                    love.graphics.setColor(1, 1, 1, 1)
+                else
+                    -- Dimmed: layers below player
+                    love.graphics.setColor(0.5, 0.5, 0.5, 0.5)
+                end
+                love.graphics.draw(canvas, 0, 0)
             end
-            love.graphics.draw(self.canvases[-1], 0, 0)
-        end
-    end
-
-    if not ONLY_CURRENT_LAYER_VISIBLE or (debug and (not debug.enabled or player_z == 0)) then
-        -- Draw main layer
-        if self.canvases[0] then
-            if player_z == 0 then
-                -- Full color: player is on this layer
-                love.graphics.setColor(1, 1, 1, 1)
-            elseif player_z == -1 then
-                -- Full color: this is the layer above player (outlines already have alpha)
-                love.graphics.setColor(1, 1, 1, 1)
-            else
-                love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Dimmed
-            end
-            love.graphics.draw(self.canvases[0], 0, 0)
-        end
-    end
-
-    if not ONLY_CURRENT_LAYER_VISIBLE or (debug and (not debug.enabled or player_z == 1)) then
-        -- Draw front layer (semi-transparent)
-        if self.canvases[1] then
-            if player_z == 1 then
-                -- Full color: player is on this layer
-                love.graphics.setColor(1, 1, 1, 1)
-            elseif player_z == 0 then
-                -- Full color: this is the layer above player (outlines already have alpha)
-                love.graphics.setColor(1, 1, 1, 1)
-            else
-                love.graphics.setColor(0.33, 0.33, 0.33, 0.33) -- Very dimmed
-            end
-            love.graphics.draw(self.canvases[1], 0, 0)
         end
     end
 
