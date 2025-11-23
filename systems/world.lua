@@ -25,6 +25,7 @@ local WorldSystem = {
     queued_chunks = {},          -- Hash table to track queued chunks (O(1) lookup)
     active_coroutines = {},      -- Active generation coroutines
     max_coroutines = 4,          -- Maximum concurrent chunk generations
+    YIELD_FREQUENCY = 16,        -- Yield every N columns during generation
 }
 
 function WorldSystem.load(self, seed, debug)
@@ -99,12 +100,14 @@ function WorldSystem.update(self, dt)
         end
         
         local key = string.format("%d_%d", chunk_info.z, chunk_info.chunk_index)
-        self.queued_chunks[key] = nil  -- Remove from tracking
         
         -- Check if not already generating or generated
         local data = self.components.worlddata
         if not self.active_coroutines[key] and 
            not (data.generated_chunks[chunk_info.z] and data.generated_chunks[chunk_info.z][chunk_info.chunk_index]) then
+            -- Remove from tracking only when we actually start generating
+            self.queued_chunks[key] = nil
+            
             local co = coroutine.create(function()
                 self:generate_chunk_sync(chunk_info.z, chunk_info.chunk_index)
             end)
@@ -118,6 +121,9 @@ function WorldSystem.update(self, dt)
                 self.active_coroutines[key] = nil
                 active_count = active_count - 1
             end
+        else
+            -- Chunk already generating or generated, remove from tracking
+            self.queued_chunks[key] = nil
         end
     end
 end
@@ -307,8 +313,8 @@ function WorldSystem.generate_chunk_sync(self, z, chunk_index)
         -- Pass: chunk_data, local_col, world_col, z, world_height
         Generator.generate_column(data.chunks[z][chunk_index], i, world_col, z, data.height)
         
-        -- Yield every few columns to avoid blocking
-        if i % 16 == 0 then
+        -- Yield periodically to avoid blocking
+        if i % self.YIELD_FREQUENCY == 0 then
             coroutine.yield()
         end
     end
