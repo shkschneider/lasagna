@@ -12,24 +12,19 @@ local ControlSystem = {
     priority = 19, -- Run before player system (priority 20)
 }
 
-function ControlSystem.load(self, player_system)
-    self.player = player_system
-end
+function ControlSystem.load(self) end
 
 function ControlSystem.update(self, dt)
-    if not self.player then
-        return
-    end
-
+    local player = Systems.get("player")
     local world = Systems.get("world")
-    local pos = self.player.components.position
-    local vel = self.player.components.velocity
-    local stance = self.player.components.stance
-    local col = self.player.components.collider
-    local vis = self.player.components.visual
+    local pos = player.components.position
+    local vel = player.components.velocity
+    local stance = player.components.stance
+    local col = player.components.collider
+    local vis = player.components.visual
 
     -- Check if on ground first
-    local on_ground = self.player:is_on_ground()
+    local on_ground = player:is_on_ground()
 
     -- Handle crouching toggle (only when on ground)
     local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
@@ -43,7 +38,7 @@ function ControlSystem.update(self, dt)
         pos.y = pos.y + world.BLOCK_SIZE / 2
     elseif not is_crouching and stance.current == Stance.CROUCHING then
         -- Try to stand up - check clearance
-        if self.player:can_stand_up() then
+        if player:can_stand_up() then
             stance.current = Stance.STANDING
             col.height = world.BLOCK_SIZE * 2
             vis.height = world.BLOCK_SIZE * 2
@@ -55,59 +50,57 @@ function ControlSystem.update(self, dt)
     -- Horizontal movement
     vel.vx = 0
     if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
-        vel.vx = -self.player.MOVE_SPEED
+        vel.vx = -player.MOVE_SPEED
     end
     if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
         if stance.current == Stance.CROUCHING then
-            vel.vx = self.player.MOVE_SPEED / 2
+            vel.vx = player.MOVE_SPEED / 2
         else
-            vel.vx = self.player.MOVE_SPEED
+            vel.vx = player.MOVE_SPEED
         end
     end
 
     -- Jump handling - only when on ground and not crouching
     if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground then
         if stance.current == Stance.CROUCHING then
-            vel.vy = -self.player.JUMP_FORCE / 2
+            vel.vy = -player.JUMP_FORCE / 2
         else
-            vel.vy = -self.player.JUMP_FORCE
+            vel.vy = -player.JUMP_FORCE
         end
         stance.current = Stance.JUMPING
     end
 end
 
 function ControlSystem.keypressed(self, key)
-    if not self.player then
-        return
-    end
+    local player = Systems.get("player")
 
     -- Hotbar selection
     local num = tonumber(key)
-    if num and num >= 1 and num <= self.player.components.inventory.hotbar_size then
-        self.player.components.inventory.selected_slot = num
+    if num and num >= 1 and num <= player.components.inventory.hotbar_size then
+        player.components.inventory.selected_slot = num
     end
 
     -- Layer switching
     if key == "q" then
-        local target_layer = math.max(-1, self.player.components.position.z - 1)
-        if self.player.can_switch_layer(self.player, target_layer) then
-            self.player.components.position.z = target_layer
-            self.player.components.layer.current_layer = target_layer
+        local target_layer = math.max(-1, player.components.position.z - 1)
+        if player.can_switch_layer(player, target_layer) then
+            player.components.position.z = target_layer
+            player.components.layer.current_layer = target_layer
         end
     elseif key == "e" then
-        local target_layer = math.min(1, self.player.components.position.z + 1)
-        if self.player.can_switch_layer(self.player, target_layer) then
-            self.player.components.position.z = target_layer
-            self.player.components.layer.current_layer = target_layer
+        local target_layer = math.min(1, player.components.position.z + 1)
+        if player.can_switch_layer(player, target_layer) then
+            player.components.position.z = target_layer
+            player.components.layer.current_layer = target_layer
         end
     end
 
     if G:debug() then
         -- Debug: adjust omnitool tier
         if key == "=" or key == "+" then
-            self.player.components.omnitool.tier = self.player.components.omnitool.tier + 1
+            player.components.omnitool.tier = player.components.omnitool.tier + 1
         elseif key == "-" or key == "_" then
-            self.player.components.omnitool.tier = math.max(0, self.player.components.omnitool.tier - 1)
+            player.components.omnitool.tier = math.max(0, player.components.omnitool.tier - 1)
         end
     end
 end
