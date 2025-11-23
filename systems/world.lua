@@ -338,19 +338,17 @@ function WorldSystem.block_to_world(self, col, row)
 end
 
 -- Find spawn position (simplified)
-function WorldSystem.find_spawn_position(self, start_col, start_z)
-    local col = start_col
-    local z = start_z or 0
-
+function WorldSystem.find_spawn_position(self, z)
+    z = z or 0
     -- Find the surface by searching for the first solid block from top
-    local surface_row = nil
+    local col = BLOCK_SIZE
     for row = 0, self.components.worlddata.height - 1 do
         local block_def = self.get_block_def(self, z, col, row)
         if block_def and block_def.solid then
             -- Spawn in the last air block (just above the ground)
             -- This ensures the player spawns on the surface, not inside it
             local spawn_x = col * BLOCK_SIZE + BLOCK_SIZE / 2
-            local spawn_y = (row - 1) * BLOCK_SIZE + BLOCK_SIZE / 2
+            local spawn_y = (row - 9) * BLOCK_SIZE + BLOCK_SIZE / 2 -- FIXME magic 9
             return spawn_x, spawn_y, z
         end
     end

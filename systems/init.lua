@@ -13,7 +13,7 @@ function Systems.load(systems, seed, debug)
         log.debug("system:", id)
         if id == "world" then
             system:load(seed, debug)
-            x, y, z = system:find_spawn_position(math.floor(system.WIDTH / 2), 0)
+            x, y, z = system:find_spawn_position(0)
         elseif id == "player" then
             assert(x and y and z)
             system:load(x, y, z)
