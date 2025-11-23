@@ -218,10 +218,15 @@ function WorldSystem.generate_terrain(self, z, col)
         end
     end
 
+    -- Apply cave generation (creates underground tunnels and caverns)
+    -- Must be called before ore generation so gems can spawn near cave walls
+    worldgen.apply_cave_generation(BLOCKS, data.layers, z, col, base_height, data.height)
+
     -- Apply sand generation (surface biomes)
     worldgen.apply_sand_generation(BLOCKS, data.layers, z, col, base_height, data.height)
 
     -- Apply ore vein generation
+    -- Called after caves so ores can spawn near cave walls (for gems)
     worldgen.apply_ore_generation(BLOCKS, data.layers, z, col, base_height, data.height)
 end
 

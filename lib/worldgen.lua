@@ -1,5 +1,56 @@
 -- WorldGen library
 -- Advanced ore vein, gem, and sand generation functions
+--
+-- This module implements the procedural generation rules for Lasagna's world,
+-- including ore veins, gems, caves, and surface biomes like desert strips.
+--
+-- GENERATION ORDER (important for correct behavior):
+-- 1. Basic terrain (stone, dirt, grass) - done in world.lua
+-- 2. Cave generation (carves out air pockets) - creates exploration space
+-- 3. Sand generation (surface biomes) - replaces surface blocks in desert areas
+-- 4. Ore vein generation (replaces stone with ores) - adds resources
+--
+-- ORE GENERATION RULES:
+-- - Ores spawn in VEINS (clusters), never as isolated blocks
+-- - Each ore has:
+--   * frequency: how often veins spawn (lower = rarer)
+--   * vein_size: average blocks per vein
+--   * vein_spread: radius of vein dispersion
+--   * min_depth: depth below surface where ore starts appearing
+--   * layers: which layers (-1, 0, 1) the ore can spawn in
+--   * layer_frequency_multiplier: optional multiplier per layer
+--
+-- LAYER DISTRIBUTION:
+-- - Layer 0 (surface/main): Basic ores (coal, copper, tin), some iron
+-- - Layer -1 (back/deep): All ores, especially rich in iron, gold, rare ores
+-- - Layer 1 (front): Minimal ores, more surface resources
+--
+-- ORE TYPES BY DEPTH:
+-- - Shallow (10-20 blocks): Coal
+-- - Medium (15-30 blocks): Copper, Tin (often mixed)
+-- - Deep (25-40 blocks): Iron (richest in layer -1)
+-- - Very Deep (35-50 blocks): Lead, Zinc
+-- - Ultra Deep (40+ blocks): Gold
+-- - Extreme Deep (50+ blocks): Cobalt (gem, only near caves)
+--
+-- GEM GENERATION:
+-- - Cobalt: Ultra rare, only in layer -1, requires cave exposure
+-- - Gems spawn as small clusters in or near cave walls
+-- - Future: other gem types (emerald, ruby, etc.)
+--
+-- SAND GENERATION:
+-- - Surface only (layer 0, 1)
+-- - Forms desert "strips" or biomes using noise
+-- - Replaces dirt/grass on surface, extends 3-6 blocks deep
+-- - Rarely appears underground (except special cases)
+--
+-- CAVE GENERATION:
+-- - Uses 3D Perlin noise to create winding tunnels
+-- - Layer -1: Most caves (rougher, more dangerous)
+-- - Layer 0: Moderate caves
+-- - Layer 1: Fewer caves (safer, more building space)
+-- - Caves start appearing 20+ blocks below surface
+-- - Creates opportunities for gem discovery
 
 local noise = require "lib.noise"
 
@@ -88,6 +139,33 @@ worldgen.SAND_CONFIG = {
     strip_width = 20, -- Average width of sand strips
     depth_max = 8, -- Maximum depth of sand below surface
 }
+
+-- Cave configuration
+worldgen.CAVE_CONFIG = {
+    -- Layer -1 has more caves (rougher terrain)
+    -- Lower threshold = fewer caves
+    threshold = {[-1] = 0.55, [0] = 0.65, [1] = 0.75},
+    min_depth = 20, -- Caves start appearing at this depth
+}
+
+-- Check if a position should be a cave
+function worldgen.should_be_cave(z, col, row, base_height)
+    local config = worldgen.CAVE_CONFIG
+    
+    -- No caves above ground or too shallow
+    if row < base_height + config.min_depth then
+        return false
+    end
+    
+    -- Use 3D noise for cave generation (creates winding tunnels)
+    local cave_noise = noise.perlin3d(col * 0.03, row * 0.03, z * 100)
+    
+    -- Layer-specific threshold (layer -1 has more caves)
+    local threshold = config.threshold[z] or 0.65
+    
+    -- Caves are regions where noise is close to zero (creates tunnel-like structures)
+    return math.abs(cave_noise) < (1 - threshold)
+end
 
 -- Generate an ore vein at a given position
 -- Returns a table of {col, row} positions that should be replaced with ore
@@ -274,6 +352,21 @@ function worldgen.apply_sand_generation(blocks_ref, layers, z, col, base_height,
             local current_block = layers[z][col][row]
             if current_block == blocks_ref.DIRT or current_block == blocks_ref.GRASS or current_block == blocks_ref.STONE then
                 layers[z][col][row] = blocks_ref.SAND
+            end
+        end
+    end
+end
+
+-- Apply cave generation to a column
+-- Should be called before ore generation so ores can spawn near caves
+function worldgen.apply_cave_generation(blocks_ref, layers, z, col, base_height, world_height)
+    -- Check each row for cave placement
+    for row = base_height, world_height - 1 do
+        -- Only carve caves in solid blocks
+        local current_block = layers[z][col][row]
+        if current_block ~= blocks_ref.AIR then
+            if worldgen.should_be_cave(z, col, row, base_height) then
+                layers[z][col][row] = blocks_ref.AIR
             end
         end
     end
