@@ -58,8 +58,10 @@ local worldgen = {}
 
 -- Constants for noise scaling and offsets
 worldgen.NOISE_CONSTANTS = {
-    CAVE_Z_SCALE = 100,        -- Z-axis multiplier for cave noise
-    ORE_Z_SCALE = 100,         -- Z-axis multiplier for ore noise
+    CAVE_Z_SCALE = 0.1,        -- Z-axis scale for cave noise (keeps coords reasonable)
+    CAVE_Z_OFFSET = 1000,      -- Z-axis offset for cave noise (separates layers)
+    ORE_Z_SCALE = 0.1,         -- Z-axis scale for ore noise (keeps coords reasonable)
+    ORE_Z_OFFSET = 2000,       -- Z-axis offset for ore noise (separates from caves)
     BIOME_Z_SCALE = 10,        -- Z-axis multiplier for biome noise
     BIOME_Z_OFFSET = 1000,     -- Z-axis offset for biome noise
 }
@@ -182,7 +184,8 @@ function worldgen.should_be_cave(z, col, row, base_height)
     end
     
     -- Use 3D noise for cave generation (creates winding tunnels)
-    local cave_noise = noise.perlin3d(col * 0.03, row * 0.03, z * worldgen.NOISE_CONSTANTS.CAVE_Z_SCALE)
+    -- Use offset to separate layers in noise space
+    local cave_noise = noise.perlin3d(col * 0.03, row * 0.03, z * worldgen.NOISE_CONSTANTS.CAVE_Z_SCALE + worldgen.NOISE_CONSTANTS.CAVE_Z_OFFSET)
     
     -- Layer-specific threshold (layer -1 has more caves)
     local threshold = config.threshold[z] or 0.65
@@ -245,9 +248,9 @@ function worldgen.should_spawn_ore(ore_name, config, z, col, row, base_height)
     end
     
     -- Use 3D noise for deterministic vein seed placement
-    -- Use unique ore seed to prevent collisions between ore types
+    -- Use unique ore seed and offset to prevent collisions between ore types
     local ore_seed = worldgen.ORE_SEEDS[ore_name] or 0
-    local noise_val = noise.perlin3d(col * 0.1, row * 0.1, z * worldgen.NOISE_CONSTANTS.ORE_Z_SCALE + ore_seed)
+    local noise_val = noise.perlin3d(col * 0.1, row * 0.1, z * worldgen.NOISE_CONSTANTS.ORE_Z_SCALE + worldgen.NOISE_CONSTANTS.ORE_Z_OFFSET + ore_seed)
     
     return noise_val > (1 - frequency * 2)
 end
