@@ -199,7 +199,11 @@ function PlayerSystem.update(self, dt)
     if on_ground then
         if stance.current == Stance.JUMPING or stance.current == Stance.FALLING then
             -- Landing: transition to appropriate ground stance
-            stance.current = Stance.STANDING
+            if self.components.collider.height <= world.BLOCK_SIZE then
+                stance.current = Stance.CROUCHING
+            else
+                stance.current = Stance.STANDING
+            end
         end
     else
         -- In air - update based on vertical velocity
