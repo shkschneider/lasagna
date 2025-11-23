@@ -16,7 +16,7 @@ function ChatSystem.load(self)
     self.history = {} -- Chat message history
     self.max_history = 9^2
     self.message_timer = 0 -- Timer for message visibility
-    self.message_display_duration = 10 -- Seconds to show messages
+    self.message_display_duration = 5 -- Seconds to show messages
     self.in_input_mode = false -- Whether user is typing
 end
 
@@ -50,6 +50,9 @@ function ChatSystem.draw(self)
     -- Calculate actual height based on history
     local num_lines = math.min(#self.history + 1, math.floor((chat_max_height - chat_padding * 2) / line_height))
     local chat_height = num_lines * line_height + chat_padding * 2
+    if not self.in_input_mode then
+        chat_height = chat_height - line_height
+    end
 
     -- Position at bottom left
     local chat_x = 10
@@ -93,14 +96,10 @@ function ChatSystem.keypressed(self, key)
     -- Check if we should toggle chat
     if key == "return" then
         if not self.in_input_mode then
-            -- Open chat for input in debug mode
-            local debug = Systems.get("debug")
-            if debug and debug.enabled then
-                self.open = true
-                self.in_input_mode = true
-                self.message_timer = 0 -- Stop auto-hide timer
-                love.keyboard.setTextInput(true)
-            end
+            self.open = true
+            self.in_input_mode = true
+            self.message_timer = 0 -- Stop auto-hide timer
+            love.keyboard.setTextInput(true)
         else
             -- Submit the input
             if self.input ~= "" then
@@ -143,9 +142,6 @@ function ChatSystem.textinput(self, text)
 end
 
 function ChatSystem.process_input(self, input)
-    -- Add input to history
-    self:add_message("> " .. input)
-
     -- Check if it's a command (starts with /)
     if input:sub(1, 1) == "/" then
         local command_parts = {}
@@ -162,8 +158,11 @@ function ChatSystem.process_input(self, input)
 
             local debug = Systems.get("debug")
             if debug and debug.enabled then
+                -- Add input to history
+                self:add_message("> " .. input)
                 -- Execute command
                 local success, message = Registry.Commands:execute(command_name, args)
+                log.info("<", command_name, ">", message)
                 if message then
                     self:add_message(message)
                 end
@@ -172,18 +171,18 @@ function ChatSystem.process_input(self, input)
     else
         -- Regular chat message (not a command)
         -- For now, just echo it
-        self:add_message("Chat: " .. input)
+        self:add_message(input)
     end
 end
 
 function ChatSystem.add_message(self, message)
-    table.insert(self.history, message)
+    table.insert(self.history, string.format("%f: %s", G.components.timer, message))
 
     -- Keep history limited
     while #self.history > self.max_history do
         table.remove(self.history, 1)
     end
-    
+
     -- Show chat when message arrives (if not already in input mode)
     self.open = true
     if not self.in_input_mode then

@@ -10,6 +10,7 @@ local Game = {
     priority = 0,
     components = {
         state = States.BOOT,
+        timer = 0,
     },
     systems = {
         world = require("systems.world"),
@@ -40,6 +41,8 @@ function Game.load(self, seed, debug)
 end
 
 function Game.update(self, dt)
+    self.components.timer = self.components.timer + dt
+
     -- Check if paused
     if self.components.timescale.paused then
         return
