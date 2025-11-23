@@ -108,8 +108,8 @@ function MiningSystem.mousereleased(self, x, y, button)
 end
 
 function MiningSystem.mousemoved(self, x, y, dx, dy)
-    -- If actively mining and mouse button is held, check if cursor moved to a new block
-    if self.mining_active and self.mining_block and love.mouse.isDown(1) then
+    -- If actively mining, check if cursor moved to a new block
+    if self.mining_active and self.mining_block then
         local world = Systems.get("world")
         local player = Systems.get("player")
         local camera = Systems.get("camera")
