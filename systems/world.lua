@@ -2,6 +2,7 @@
 -- Manages world generation, block storage, and world queries
 
 local log = require "lib.log"
+local noise = require "lib.noise"
 local WorldGen = require "core.worldgen"
 
 local Systems = require "systems"
