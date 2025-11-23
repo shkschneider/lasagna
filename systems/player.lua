@@ -27,6 +27,10 @@ local PlayerSystem = {
     -- Movement constants
     MOVE_SPEED = 150,
     JUMP_FORCE = 300,
+    -- Fall damage constants
+    SAFE_FALL_BLOCKS = 4,  -- 2x player height
+    FALL_DAMAGE_PER_BLOCK = 5,
+    DAMAGE_DISPLAY_DURATION = 0.5,
 }
 
 function PlayerSystem.load(self, x, y, z)
@@ -183,11 +187,10 @@ function PlayerSystem.update(self, dt)
             if self.fall_start_y ~= nil and stance.current == Stance.FALLING then
                 local fall_distance = pos.y - self.fall_start_y
                 local fall_blocks = fall_distance / BLOCK_SIZE
-                -- Player is 2 blocks tall, safe fall is 2x height = 4 blocks
-                local safe_fall = 4
-                if fall_blocks > safe_fall then
-                    local excess_blocks = fall_blocks - safe_fall
-                    local damage = math.floor(excess_blocks * 5)
+                -- Player is 2 blocks tall, safe fall is 2x height
+                if fall_blocks > self.SAFE_FALL_BLOCKS then
+                    local excess_blocks = fall_blocks - self.SAFE_FALL_BLOCKS
+                    local damage = math.floor(excess_blocks * self.FALL_DAMAGE_PER_BLOCK)
                     if damage > 0 then
                         self:hit(damage)
                     end
@@ -466,7 +469,7 @@ function PlayerSystem.hit(self, damage)
     self.components.health.current = math.max(0, self.components.health.current - damage)
     
     -- Set damage timer for visual effect
-    self.damage_timer = 0.5
+    self.damage_timer = self.DAMAGE_DISPLAY_DURATION
 end
 
 function PlayerSystem.is_dead(self)
