@@ -16,7 +16,7 @@ local MiningSystem = {
 }
 
 -- Visual constants for mining overlay
-local MINING_OVERLAY_COLOR = {0, 0, 0, 0.8} -- Black with 80% opacity
+local MINING_OVERLAY_COLOR = {0, 0, 0, 0.5} -- Black with 80% opacity
 
 -- Base blocks that mine quickly
 local BASE_BLOCKS = {
@@ -27,29 +27,26 @@ local BASE_BLOCKS = {
 }
 
 -- Calculate mining delay for a block based on its tier and name
-function MiningSystem.get_mining_delay(self, proto)
+function MiningSystem.get_mining_delay(self, omnitool_tier, proto)
+    local BASE = 0.25 / omnitool_tier
+
     if not proto or not proto.solid then
         -- Non-solid blocks (like air) should not be mined
         return 0
     end
-    
-    -- Base blocks (dirt, grass, sand, wood) - 0.5 seconds
+
+    -- Base blocks: base * 1
     if BASE_BLOCKS[proto.name] then
-        return 0.5
+        return 1 * BASE
     end
-    
-    -- Stone - 1.0 seconds base
+
+    -- Stone: base * 2
     if proto.name == "Stone" then
-        return 1.0
+        return 2 * BASE
     end
-    
-    -- Ores: 1 second base + 0.5 seconds per tier
-    -- Tier 0 (Coal): 1.0s
-    -- Tier 1 (Copper, Tin): 1.5s
-    -- Tier 2 (Iron, Lead, Zinc): 2.0s
-    -- Tier 3: 2.5s
-    -- Tier 4 (Cobalt): 3.0s
-    return 1.0 + (proto.tier * 0.5)
+
+    -- Ores: stone + 0.5 seconds per tier
+    return (proto.tier + 2) * BASE
 end
 
 function MiningSystem.load(self)
@@ -63,19 +60,19 @@ function MiningSystem.update(self, dt)
         local world = Systems.get("world")
         local player = Systems.get("player")
         local player_x, player_y, player_z = player:get_position()
-        
+
         -- Check if still holding mouse button
         if not love.mouse.isDown(1) then
             self:cancel_mining()
             return
         end
-        
+
         -- Check if player changed layers
         if player_z ~= self.mining_block.z then
             self:cancel_mining()
             return
         end
-        
+
         -- Check if block still exists and is the same
         local block_id = world:get_block_id(self.mining_block.z, self.mining_block.col, self.mining_block.row)
         local proto = Registry.Blocks:get(block_id)
@@ -84,10 +81,10 @@ function MiningSystem.update(self, dt)
             self:cancel_mining()
             return
         end
-        
+
         -- Update progress
         self.mining_block.progress = self.mining_block.progress + dt
-        
+
         -- Check if mining complete
         if self.mining_block.progress >= self.mining_block.delay then
             self:complete_mining()
@@ -142,16 +139,16 @@ function MiningSystem.start_mining(self, col, row, world, player)
     if proto.tier > player_tier then
         return -- Can't mine this yet
     end
-    
+
     -- Get mining delay for this block
-    local delay = self:get_mining_delay(proto)
-    
+    local delay = self:get_mining_delay(player_tier, proto)
+
     -- Validate delay (should be positive for solid, minable blocks)
     -- Non-solid blocks return 0 and are already filtered out above
     if delay <= 0 then
         return
     end
-    
+
     -- Start mining
     self.mining_active = true
     self.mining_block = {
@@ -174,13 +171,13 @@ function MiningSystem.complete_mining(self)
     if not self.mining_block then
         return
     end
-    
+
     local world = Systems.get("world")
     local z = self.mining_block.z
     local col = self.mining_block.col
     local row = self.mining_block.row
     local proto = self.mining_block.proto
-    
+
     -- Remove block
     world:set_block(z, col, row, BLOCKS.AIR)
 
@@ -201,7 +198,7 @@ function MiningSystem.complete_mining(self)
             end
         end
     end
-    
+
     -- Reset mining state
     self:cancel_mining()
 end
@@ -211,33 +208,33 @@ function MiningSystem.draw(self)
     if not self.mining_active or not self.mining_block then
         return
     end
-    
+
     local camera = Systems.get("camera")
     local world = Systems.get("world")
-    
+
     local camera_x, camera_y = camera:get_offset()
     local wx, wy = world:block_to_world(self.mining_block.col, self.mining_block.row)
-    
+
     -- Convert to screen coordinates
     local screen_x = wx - camera_x
     local screen_y = wy - camera_y
-    
+
     -- Calculate progress ratio
     local progress = math.min(self.mining_block.progress / self.mining_block.delay, 1.0)
-    
+
     -- Draw black square that grows from center
     local max_size = BLOCK_SIZE
     local current_size = max_size * progress
     local offset = (max_size - current_size) / 2
-    
+
     love.graphics.setColor(MINING_OVERLAY_COLOR)
-    love.graphics.rectangle("fill", 
-        screen_x + offset, 
-        screen_y + offset, 
-        current_size, 
+    love.graphics.rectangle("fill",
+        screen_x + offset,
+        screen_y + offset,
+        current_size,
         current_size
     )
-    
+
     -- Reset color
     love.graphics.setColor(1, 1, 1, 1)
 end
