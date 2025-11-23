@@ -15,9 +15,24 @@ function ChatSystem.load(self)
     self.input = ""
     self.history = {} -- Chat message history
     self.max_history = 9^2
+    self.message_timer = 0 -- Timer for message visibility
+    self.message_display_duration = 10 -- Seconds to show messages
+    self.in_input_mode = false -- Whether user is typing
 end
 
-function ChatSystem.update(self, dt) end
+function ChatSystem.update(self, dt)
+    -- Update message visibility timer
+    if self.message_timer > 0 then
+        self.message_timer = self.message_timer - dt
+        if self.message_timer <= 0 then
+            self.message_timer = 0
+            -- Only close if not in input mode
+            if not self.in_input_mode then
+                self.open = false
+            end
+        end
+    end
+end
 
 function ChatSystem.draw(self)
     if not self.open then
@@ -40,12 +55,22 @@ function ChatSystem.draw(self)
     local chat_x = 10
     local chat_y = screen_height - chat_height - 10
 
+    -- Calculate opacity based on timer (dim in last second)
+    local background_opacity = 0.7
+    local text_opacity = 1.0
+    if not self.in_input_mode and self.message_timer > 0 and self.message_timer < 1 then
+        -- Fade out in the last second
+        local fade_factor = self.message_timer -- 0 to 1
+        background_opacity = 0.7 * fade_factor
+        text_opacity = fade_factor
+    end
+
     -- Draw dimmed background
-    love.graphics.setColor(0, 0, 0, 0.7)
+    love.graphics.setColor(0, 0, 0, background_opacity)
     love.graphics.rectangle("fill", chat_x, chat_y, chat_width, chat_height)
 
     -- Draw chat history
-    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.setColor(1, 1, 1, text_opacity)
     local history_y = chat_y + chat_padding
     local visible_history_count = math.min(#self.history, num_lines - 1)
     local start_index = math.max(1, #self.history - visible_history_count + 1)
@@ -56,31 +81,41 @@ function ChatSystem.draw(self)
         history_y = history_y + line_height
     end
 
-    -- Draw input line with cursor
-    local input_text = "> " .. self.input .. "_"
-    love.graphics.print(input_text, chat_x + chat_padding, history_y)
+    -- Draw input line with cursor (only if in input mode)
+    if self.in_input_mode then
+        love.graphics.setColor(1, 1, 1, 1)
+        local input_text = "> " .. self.input .. "_"
+        love.graphics.print(input_text, chat_x + chat_padding, history_y)
+    end
 end
 
 function ChatSystem.keypressed(self, key)
     -- Check if we should toggle chat
     if key == "return" then
-        if not self.open then
-            -- Only open chat in debug mode
-            self.open = true
-            love.keyboard.setTextInput(true)
+        if not self.in_input_mode then
+            -- Open chat for input in debug mode
+            local debug = Systems.get("debug")
+            if debug and debug.enabled then
+                self.open = true
+                self.in_input_mode = true
+                self.message_timer = 0 -- Stop auto-hide timer
+                love.keyboard.setTextInput(true)
+            end
         else
             -- Submit the input
             if self.input ~= "" then
                 self:process_input(self.input)
                 self.input = ""
             end
-            self.open = false
+            self.in_input_mode = false
             love.keyboard.setTextInput(false)
+            -- Start timer to auto-hide after 10 seconds
+            self.message_timer = self.message_display_duration
         end
         return
     end
 
-    if not self.open then
+    if not self.in_input_mode then
         return
     end
 
@@ -94,13 +129,15 @@ function ChatSystem.keypressed(self, key)
     -- Handle escape to close chat
     if key == "escape" then
         self.open = false
+        self.in_input_mode = false
         self.input = ""
+        self.message_timer = 0
         love.keyboard.setTextInput(false)
     end
 end
 
 function ChatSystem.textinput(self, text)
-    if self.open then
+    if self.in_input_mode then
         self.input = self.input .. text
     end
 end
@@ -145,6 +182,12 @@ function ChatSystem.add_message(self, message)
     -- Keep history limited
     while #self.history > self.max_history do
         table.remove(self.history, 1)
+    end
+    
+    -- Show chat when message arrives (if not already in input mode)
+    self.open = true
+    if not self.in_input_mode then
+        self.message_timer = self.message_display_duration
     end
 end
 
