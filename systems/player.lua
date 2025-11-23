@@ -64,11 +64,14 @@ function PlayerSystem.update(self, dt)
     local stance = self.components.stance
     local vis = self.components.visual
 
-    -- Handle crouching toggle
+    -- Check if on ground first
+    local on_ground = self:is_on_ground()
+
+    -- Handle crouching toggle (only when on ground)
     local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
     
-    if is_crouching and stance.current ~= Stance.CROUCHING then
-        -- Switch to crouching
+    if is_crouching and stance.current ~= Stance.CROUCHING and on_ground then
+        -- Switch to crouching (only when on ground)
         stance.current = Stance.CROUCHING
         col.height = world.BLOCK_SIZE
         vis.height = world.BLOCK_SIZE
@@ -97,9 +100,8 @@ function PlayerSystem.update(self, dt)
     -- Gravity always applies
     vel.vy = vel.vy + phys.gravity * dt
 
-    -- Jump handling - only when on ground
-    local on_ground = self:is_on_ground()
-    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground then
+    -- Jump handling - only when on ground and not crouching
+    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground and stance.current ~= Stance.CROUCHING then
         vel.vy = -self.JUMP_FORCE
         stance.current = Stance.JUMPING
     end
@@ -189,11 +191,9 @@ function PlayerSystem.update(self, dt)
     -- Update stance based on current state
     if on_ground then
         if stance.current == Stance.JUMPING or stance.current == Stance.FALLING then
-            if is_crouching then
-                stance.current = Stance.CROUCHING
-            else
-                stance.current = Stance.STANDING
-            end
+            -- Landing: transition to appropriate ground stance
+            -- Don't set CROUCHING here - let the crouch check at the top handle it
+            stance.current = Stance.STANDING
         end
     else
         -- In air
