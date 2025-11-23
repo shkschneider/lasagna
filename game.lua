@@ -71,6 +71,7 @@ function Game.update(self, dt)
 end
 
 function Game.draw(self)
+    love.graphics.setDefaultFilter("nearest", "nearest")
     -- Draw all systems
     for _, system in Systems.iterate(self.systems) do
         if type(system.draw) == "function" then
