@@ -22,24 +22,37 @@ function Debug.load(self, seed, debug)
 end
 
 function Debug.keypressed(self, key)
+    -- Debug
     if key == "backspace" then
         local chat = Systems.get("chat")
         if not chat.in_input_mode then
             self.enabled = not self.enabled
         end
     end
+    if not self.enabled then
+        return
+    end
+    -- Adjust omnitool tier
+    if key == "=" or key == "+" then
+        local player = Systems.get("player")
+        player:upgrade(1)
+    elseif key == "-" or key == "_" then
+        local player = Systems.get("player")
+        player:upgrade(-1)
+    end
 end
 
 function Debug.draw(self)
-    if self.enabled then
-        local player = Systems.get("player")
-        love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
-        love.graphics.print(string.format("GameState: %s", G.components.gamestate:tostring()), 10, 120)
-        love.graphics.print(string.format("TimeScale: %s", G.components.timescale:tostring()), 10, 140)
-        love.graphics.print(string.format("Stance: %s", player.components.stance:tostring()), 10, 160)
-        love.graphics.print(string.format("Health: %s", player.components.health:tostring()), 10, 180)
+    if not self.enabled then
+        return
     end
+    local player = Systems.get("player")
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
+    love.graphics.print(string.format("GameState: %s", G.components.gamestate:tostring()), 10, 120)
+    love.graphics.print(string.format("TimeScale: %s", G.components.timescale:tostring()), 10, 140)
+    love.graphics.print(string.format("Stance: %s", player.components.stance:tostring()), 10, 160)
+    love.graphics.print(string.format("Health: %s", player.components.health:tostring()), 10, 180)
 end
 
 return Debug

@@ -413,6 +413,19 @@ function PlayerSystem.get_selected_block_id(self)
     return nil
 end
 
+function PlayerSystem.upgrade(self, upOrDown)
+    assert(type(upOrDown) == "number")
+    if upOrDown > 0 then
+        self.components.omnitool.tier = math.min(self.components.omnitool.tier + 1, self.components.omnitool.max)
+        log.info("Player", "upgrade", self.components.omnitool.tier)
+    elseif upOrDown < 0 then
+        self.components.omnitool.tier = math.max(self.components.omnitool.min, self.components.omnitool.tier - 1)
+        log.info("Player", "downgrade", self.components.omnitool.tier)
+    else
+        assert(false)
+    end
+end
+
 function PlayerSystem.get_position(self)
     return self.components.position.x, self.components.position.y, self.components.position.z
 end

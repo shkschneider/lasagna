@@ -29,7 +29,7 @@ function UISystem.draw(self)
     love.graphics.print(string.format("Layer: %d", pos.z), 10, 10)
 
     -- Omnitool tier
-    love.graphics.print(string.format("Omnitool Tier: %d", omnitool.tier), 10, 30)
+    love.graphics.print(string.format("OmniTool: %s", omnitool:tostring()), 10, 30)
 
     -- Player position
     local block_x, block_y = world:world_to_block(pos.x, pos.y)

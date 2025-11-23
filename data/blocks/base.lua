@@ -36,7 +36,7 @@ BlocksRegistry:register({
     name = "Stone",
     solid = true,
     color = {0.5, 0.5, 0.5, 1},
-    tier = 0,
+    tier = 1,
     drops = function() return BlockRef.STONE, 1 end,
 })
 

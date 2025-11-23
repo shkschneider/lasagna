@@ -35,18 +35,7 @@ function MiningSystem.get_mining_delay(self, omnitool_tier, proto)
         return 0
     end
 
-    -- Base blocks: base * 1
-    if BASE_BLOCKS[proto.name] then
-        return 1 * BASE
-    end
-
-    -- Stone: base * 2
-    if proto.name == "Stone" then
-        return 2 * BASE
-    end
-
-    -- Ores: stone + 0.5 seconds per tier
-    return (proto.tier + 2) * BASE
+    return (proto.tier + 1) * BASE
 end
 
 function MiningSystem.load(self)
