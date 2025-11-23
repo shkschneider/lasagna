@@ -25,7 +25,7 @@ function DropSystem.create_drop(self, x, y, layer, block_id, count)
         id = uuid(),
         position = Position.new(x, y, layer),
         velocity = Velocity.new((math.random() - 0.5) * 50, -50),
-        physics = Physics.new(false, 400, 0.95),
+        physics = Physics.new(400, 0.8),  -- gravity: 400, friction: 0.8 (more friction for drops)
         drop = Drop.new(block_id, count, 300, 0.5),
     }
 
@@ -50,19 +50,26 @@ function DropSystem.update(self, dt)
         ent.position.x = ent.position.x + ent.velocity.vx * dt
         ent.position.y = ent.position.y + ent.velocity.vy * dt
 
-        -- Friction
-        ent.velocity.vx = ent.velocity.vx * ent.physics.friction
-
         -- Check collision with ground
+        -- Drops are 1/2 block size, so check at their bottom edge (1/4 block offset)
+        local drop_height = world.BLOCK_SIZE / 2
         local col, row = world.world_to_block(world,
             ent.position.x,
-            ent.position.y + world.BLOCK_SIZE / 2
+            ent.position.y + drop_height / 2
         )
         local block_def = world:get_block_def(ent.position.z, col, row)
 
+        local on_ground = false
         if block_def and block_def.solid then
             ent.velocity.vy = 0
-            ent.position.y = row * world.BLOCK_SIZE - world.BLOCK_SIZE / 2
+            -- Position drop so its bottom edge rests on top of the block
+            ent.position.y = row * world.BLOCK_SIZE - drop_height / 2
+            on_ground = true
+        end
+
+        -- Apply friction only when on ground
+        if on_ground then
+            ent.velocity.vx = ent.velocity.vx * ent.physics.friction
         end
 
         -- Decrease pickup delay
