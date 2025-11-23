@@ -1,0 +1,16 @@
+return {
+    AIR = 0,
+    DIRT = 1,
+    GRASS = 2,
+    STONE = 3,
+    WOOD = 4,
+    COPPER_ORE = 5,
+    TIN_ORE = 6,
+    IRON_ORE = 7,
+    COAL = 8,
+    LEAD_ORE = 9,
+    ZINC_ORE = 10,
+    COBALT_ORE = 11,
+    SAND = 12,
+    BEDROCK = 13,
+}

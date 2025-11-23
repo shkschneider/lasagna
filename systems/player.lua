@@ -48,11 +48,6 @@ function PlayerSystem.load(self, x, y, z)
         self.components.inventory.slots[i] = nil
     end
 
-    -- Add starting items
-    self:add_to_inventory(BLOCKS.DIRT, 64)
-    self:add_to_inventory(BLOCKS.STONE, 32)
-    self:add_to_inventory(BLOCKS.WOOD, 16)
-
     -- Initialize control system
     self.systems.control = require "systems.control"
     self.systems.control:load(self)
