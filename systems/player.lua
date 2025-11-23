@@ -44,6 +44,10 @@ function PlayerSystem.load(self, x, y, z)
     self.components.stance = Stance.new(Stance.STANDING)
     self.components.stance.crouched = false
     self.components.health = Health.new(100, 100)
+    
+    -- Fall damage tracking
+    self.fall_start_y = nil
+    self.damage_timer = 0
 
     -- Initialize inventory slots
     for i = 1, self.components.inventory.hotbar_size do
@@ -67,6 +71,11 @@ function PlayerSystem.update(self, dt)
     local col = self.components.collider
     local stance = self.components.stance
     local vis = self.components.visual
+    
+    -- Update damage timer
+    if self.damage_timer > 0 then
+        self.damage_timer = self.damage_timer - dt
+    end
 
     -- Delegate to control system for input handling
     if self.systems.control then
@@ -75,6 +84,13 @@ function PlayerSystem.update(self, dt)
 
     -- Check if on ground first
     local on_ground = self:is_on_ground()
+    
+    -- Track fall start position
+    if not on_ground and stance.current == Stance.FALLING then
+        if self.fall_start_y == nil then
+            self.fall_start_y = pos.y
+        end
+    end
 
     -- Gravity always applies
     vel.vy = vel.vy + phys.gravity * dt
@@ -163,6 +179,21 @@ function PlayerSystem.update(self, dt)
     -- Update stance based on current state
     if on_ground then
         if stance.current == Stance.JUMPING or stance.current == Stance.FALLING then
+            -- Calculate fall damage
+            if self.fall_start_y ~= nil and stance.current == Stance.FALLING then
+                local fall_distance = pos.y - self.fall_start_y
+                local fall_blocks = fall_distance / BLOCK_SIZE
+                -- Player is 2 blocks tall, safe fall is 2x height = 4 blocks
+                local safe_fall = 4
+                if fall_blocks > safe_fall then
+                    local excess_blocks = fall_blocks - safe_fall
+                    local damage = math.floor(excess_blocks * 5)
+                    if damage > 0 then
+                        self:hit(damage)
+                    end
+                end
+                self.fall_start_y = nil
+            end
             stance.current = Stance.STANDING
         end
     else
@@ -184,12 +215,24 @@ function PlayerSystem.draw(self)
     local camera = Systems.get("camera")
     local camera_x, camera_y = camera:get_offset()
 
+    -- Draw player
     love.graphics.setColor(vis.color)
     love.graphics.rectangle("fill",
         pos.x - camera_x - vis.width / 2,
         pos.y - camera_y - vis.height / 2,
         vis.width,
         vis.height)
+    
+    -- Draw red border if recently damaged
+    if self.damage_timer > 0 then
+        love.graphics.setColor(1, 0, 0, 1)
+        love.graphics.setLineWidth(1)
+        love.graphics.rectangle("line",
+            pos.x - camera_x - vis.width / 2,
+            pos.y - camera_y - vis.height / 2,
+            vis.width,
+            vis.height)
+    end
 end
 
 function PlayerSystem.keypressed(self, key)
@@ -412,6 +455,18 @@ function PlayerSystem.can_stand_up(self)
     end
 
     return true
+end
+
+function PlayerSystem.hit(self, damage)
+    if not self.components.health then
+        return
+    end
+    
+    -- Apply damage
+    self.components.health.current = math.max(0, self.components.health.current - damage)
+    
+    -- Set damage timer for visual effect
+    self.damage_timer = 0.5
 end
 
 function PlayerSystem.is_dead(self)
