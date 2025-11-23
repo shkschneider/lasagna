@@ -57,9 +57,9 @@ function GeneratorSystem.fill(chunk_data, local_col, world_col, base_height, wor
 end
 
 -- Step 2: Add dirt and grass
-function GeneratorSystem.dirt_and_grass(chunk_data, local_col, world_col, base_height, world_height)
+function GeneratorSystem.dirt_and_grass(chunk_data, local_col, world_col, z, base_height, world_height)
     local dirt_depth = DIRT_MIN_DEPTH + math.floor((DIRT_MAX_DEPTH - DIRT_MIN_DEPTH) *
-        (noise.perlin2d(world_col * 0.05, 0) + 1) / 2)
+        (noise.perlin2d(world_col * 0.05, z * 0.1) + 1) / 2)
     for row = base_height, math.min(base_height + dirt_depth - 1, world_height - 1) do
         if chunk_data[local_col][row] == BLOCKS.STONE then
             chunk_data[local_col][row] = BLOCKS.DIRT
@@ -121,7 +121,7 @@ function GeneratorSystem.generate_column(chunk_data, local_col, world_col, z, wo
     -- Step 1: Fill base terrain (air and stone)
     GeneratorSystem.fill(chunk_data, local_col, world_col, base_height, world_height)
     -- Step 2: Add dirt and grass layers
-    GeneratorSystem.dirt_and_grass(chunk_data, local_col, world_col, base_height, world_height)
+    GeneratorSystem.dirt_and_grass(chunk_data, local_col, world_col, z, base_height, world_height)
     -- Step 3: Generate ore veins
     GeneratorSystem.ore_veins(chunk_data, local_col, world_col, z, base_height, world_height)
 
