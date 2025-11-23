@@ -110,10 +110,11 @@ The ore generation system works as follows:
 
 1. When a world column is generated, the GeneratorSystem calls `ore_veins()`
 2. `ore_veins()` queries the BlocksRegistry for all blocks with `ore_gen` metadata
-3. For each stone block underground, it iterates through registered ores
-4. If a position is within an ore's depth range, it generates 3D Perlin noise
-5. If the noise value exceeds the threshold, the ore is placed
-6. Only one ore can be placed per block (first match wins)
+3. Ore blocks are sorted by ID for deterministic ordering
+4. For each stone block underground, it iterates through registered ores
+5. If a position is within an ore's depth range, it generates 3D Perlin noise
+6. If the noise value exceeds the threshold, the ore is placed
+7. The loop continues checking other ores (later ores can override earlier ones)
 
 This approach makes the system:
 - **Scalable**: Add ores without touching generator code
