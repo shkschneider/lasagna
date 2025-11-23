@@ -154,14 +154,16 @@ function WorldSystem.draw(self)
 
     -- Draw each layer from LAYER_MIN to max_layer
     for layer = LAYER_MIN, max_layer do
-        -- Only draw if ONLY_CURRENT_LAYER_VISIBLE is false, or if debug mode allows this specific layer
+        -- Determine if this layer should be drawn based on visibility settings
         local should_draw = not ONLY_CURRENT_LAYER_VISIBLE
-        if not should_draw and debug and not debug.enabled then
-            -- Debug mode off: draw all layers
-            should_draw = true
-        elseif not should_draw and debug and debug.enabled then
-            -- Debug mode on: only draw the player's current layer
-            should_draw = (layer == player_z)
+        if ONLY_CURRENT_LAYER_VISIBLE and debug then
+            if debug.enabled then
+                -- Debug mode on: only draw the player's current layer
+                should_draw = (layer == player_z)
+            else
+                -- Debug mode off: draw all layers
+                should_draw = true
+            end
         end
         
         if should_draw then
