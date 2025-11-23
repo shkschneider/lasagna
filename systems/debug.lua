@@ -1,3 +1,5 @@
+local Systems = require "systems"
+
 local Debug = {
     id = "debug",
 }
@@ -14,7 +16,7 @@ end
 
 function Debug.draw(self)
     if self.enabled then
-        local player = require("systems").get("player")
+        local player = Systems.get("player")
         love.graphics.setColor(1, 1, 1, 1)
         love.graphics.print(string.format("State: %s", G.components.state), 10, 120)
         love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
