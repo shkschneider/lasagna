@@ -8,6 +8,9 @@ local Position = require "components.position"
 local Velocity = require "components.velocity"
 local Bullet = require "components.bullet"
 
+local BULLET_DAMAGE = 10
+local BULLET_LIFETIME = 5
+
 local BulletSystem = {
     id = "bullet",
     priority = 65,
@@ -19,9 +22,6 @@ function BulletSystem.load(self)
 end
 
 function BulletSystem.create_bullet(self, x, y, layer, vx, vy, width, height, color)
-    local BULLET_DAMAGE = 10
-    local BULLET_LIFETIME = 5
-    
     local entity = {
         id = uuid(),
         position = Position.new(x, y, layer),
