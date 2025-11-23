@@ -83,7 +83,7 @@ function WorldSystem.draw(self)
     end_row = math.min(self.HEIGHT - 1, end_row)
 
     -- Draw each layer to its canvas
-    for layer = -1, 1 do
+    for layer = LAYER_MIN, LAYER_MAX do
         local canvas = self.canvases[layer]
         if canvas then
             love.graphics.setCanvas(canvas)
@@ -113,7 +113,7 @@ function WorldSystem.draw(self)
     -- Composite layers to screen
     -- Set blend mode to ensure proper layering (solid blocks should completely cover layers below)
     love.graphics.setBlendMode("alpha", "premultiplied")
-    
+
     -- Draw back layer (dimmed)
     if self.canvases[-1] then
         if player_z == -1 then
@@ -143,7 +143,7 @@ function WorldSystem.draw(self)
         end
         love.graphics.draw(self.canvases[1], 0, 0)
     end
-    
+
     -- Reset blend mode to default
     love.graphics.setBlendMode("alpha")
 end
