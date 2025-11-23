@@ -56,6 +56,14 @@ local noise = require "lib.noise"
 
 local worldgen = {}
 
+-- Constants for noise scaling and offsets
+worldgen.NOISE_CONSTANTS = {
+    CAVE_Z_SCALE = 100,        -- Z-axis multiplier for cave noise
+    ORE_Z_SCALE = 100,         -- Z-axis multiplier for ore noise
+    BIOME_Z_SCALE = 10,        -- Z-axis multiplier for biome noise
+    BIOME_Z_OFFSET = 1000,     -- Z-axis offset for biome noise
+}
+
 -- Ore configuration: defines spawn rules for each ore type
 -- frequency: base chance of vein spawning (0-1)
 -- vein_size: average number of blocks in a vein
@@ -158,7 +166,7 @@ function worldgen.should_be_cave(z, col, row, base_height)
     end
     
     -- Use 3D noise for cave generation (creates winding tunnels)
-    local cave_noise = noise.perlin3d(col * 0.03, row * 0.03, z * 100)
+    local cave_noise = noise.perlin3d(col * 0.03, row * 0.03, z * worldgen.NOISE_CONSTANTS.CAVE_Z_SCALE)
     
     -- Layer-specific threshold (layer -1 has more caves)
     local threshold = config.threshold[z] or 0.65
@@ -221,13 +229,14 @@ function worldgen.should_spawn_ore(ore_name, config, z, col, row, base_height)
     end
     
     -- Use 3D noise for deterministic vein seed placement
-    local noise_val = noise.perlin3d(col * 0.1, row * 0.1, z * 100 + ore_name:byte(1))
+    local noise_val = noise.perlin3d(col * 0.1, row * 0.1, z * worldgen.NOISE_CONSTANTS.ORE_Z_SCALE + ore_name:byte(1))
     
     return noise_val > (1 - frequency * 2)
 end
 
 -- Check if a block is exposed to air (for gems)
-function worldgen.is_cave_exposed(layers, z, col, row)
+-- blocks_ref: table of block ID constants (needs AIR constant)
+function worldgen.is_cave_exposed(layers, z, col, row, blocks_ref)
     -- Check adjacent blocks for air
     local directions = {
         {0, -1}, {0, 1}, {-1, 0}, {1, 0}
@@ -239,8 +248,8 @@ function worldgen.is_cave_exposed(layers, z, col, row)
         
         if layers[z] and layers[z][check_col] and layers[z][check_col][check_row] then
             local block_id = layers[z][check_col][check_row]
-            -- Assuming AIR = 0
-            if block_id == 0 then
+            -- Check if it's air
+            if block_id == blocks_ref.AIR then
                 return true
             end
         end
@@ -263,7 +272,7 @@ function worldgen.should_place_sand(col, row, base_height, z)
     end
     
     -- Use noise to create desert strips
-    local biome_noise = noise.perlin2d(col * 0.02, z * 10 + 1000)
+    local biome_noise = noise.perlin2d(col * 0.02, z * worldgen.NOISE_CONSTANTS.BIOME_Z_SCALE + worldgen.NOISE_CONSTANTS.BIOME_Z_OFFSET)
     
     -- If in a desert biome zone
     if biome_noise > 0.3 then
@@ -324,7 +333,7 @@ function worldgen.apply_ore_generation(blocks_ref, layers, z, col, base_height, 
                         if layers[z][pos.col][pos.row] == blocks_ref.STONE then
                             -- For gems, check cave exposure requirement
                             if config.require_cave_exposure then
-                                if worldgen.is_cave_exposed(layers, z, pos.col, pos.row) then
+                                if worldgen.is_cave_exposed(layers, z, pos.col, pos.row, blocks_ref) then
                                     layers[z][pos.col][pos.row] = ore_info.block_id
                                 end
                             else
