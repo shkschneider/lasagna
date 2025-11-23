@@ -27,6 +27,14 @@ function MiningSystem.mousepressed(self, x, y, button)
     local player = Systems.get("player")
     local camera = Systems.get("camera")
 
+    -- Check if player has a weapon item selected
+    local inv = player.components.inventory
+    local slot = inv.slots[inv.selected_slot]
+    if slot and slot.item_id then
+        -- Player has an item selected, not mining
+        return
+    end
+
     local camera_x, camera_y = camera:get_offset()
     local world_x = x + camera_x
     local world_y = y + camera_y
