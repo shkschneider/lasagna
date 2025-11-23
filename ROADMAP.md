@@ -11,14 +11,6 @@ Notes
 
 v0.1 — Core playable loop (MVP)
 - Goals (the essential MVP)
-  - Rendering pipeline / RenderManager with simple layer canvases (back, default, front).
-  - Procedural world generation: 3 layers (-1, 0, 1), seeded, lazy column generation.
-  - Player: movement, camera follow, layer switching (Q/E).
-  - Block model: canonical prototypes (block proto), block placement and removal on current layer.
-  - Mining: Omnitool mines blocks; tier gating for higher-tier ores (basic check).
-  - Inventory & hotbar (9 slots) with stacks (64); simple UI to inspect and select hotbar slot.
-  - Drops: destroying a block spawns Drop entities; drops fall, despawn, and are picked up into player inventory.
-  - Entity lifecycle & physics basics: update/draw pattern, simple gravity for drops.
 - Non-goals
   - Crafting, Ages, machines, enemies, snapshot/death.
 - Acceptance criteria
@@ -28,6 +20,9 @@ v0.1 — Core playable loop (MVP)
   - Player can place blocks from inventory/hotbar on the active layer.
   - Picked-up drops merge into inventory respecting stack sizes.
   - The basic UI shows hotbar, selected item, and item counts.
+v0.1+ - Menu
+- New/Continue
+- Load/Save
 
 ---
 
