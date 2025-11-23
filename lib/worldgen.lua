@@ -64,6 +64,19 @@ worldgen.NOISE_CONSTANTS = {
     BIOME_Z_OFFSET = 1000,     -- Z-axis offset for biome noise
 }
 
+-- Unique seeds for each ore type to prevent collision in noise generation
+-- These ensure each ore has deterministic but unique placement patterns
+worldgen.ORE_SEEDS = {
+    COAL = 1,
+    COPPER_ORE = 2,
+    TIN_ORE = 3,
+    IRON_ORE = 4,
+    GOLD_ORE = 5,
+    LEAD_ORE = 6,
+    ZINC_ORE = 7,
+    COBALT_ORE = 8,
+}
+
 -- Ore configuration: defines spawn rules for each ore type
 -- frequency: base chance of vein spawning (0-1)
 -- vein_size: average number of blocks in a vein
@@ -146,6 +159,9 @@ worldgen.SAND_CONFIG = {
     surface_frequency = 0.15, -- 15% chance of sand strips on surface
     strip_width = 20, -- Average width of sand strips
     depth_max = 8, -- Maximum depth of sand below surface
+    biome_threshold = 0.3, -- Noise threshold for desert biome (higher = less desert)
+    min_sand_depth = 3, -- Minimum sand depth in desert biomes
+    sand_depth_variation = 3, -- Additional random depth variation
 }
 
 -- Cave configuration
@@ -229,7 +245,9 @@ function worldgen.should_spawn_ore(ore_name, config, z, col, row, base_height)
     end
     
     -- Use 3D noise for deterministic vein seed placement
-    local noise_val = noise.perlin3d(col * 0.1, row * 0.1, z * worldgen.NOISE_CONSTANTS.ORE_Z_SCALE + ore_name:byte(1))
+    -- Use unique ore seed to prevent collisions between ore types
+    local ore_seed = worldgen.ORE_SEEDS[ore_name] or 0
+    local noise_val = noise.perlin3d(col * 0.1, row * 0.1, z * worldgen.NOISE_CONSTANTS.ORE_Z_SCALE + ore_seed)
     
     return noise_val > (1 - frequency * 2)
 end
@@ -275,10 +293,10 @@ function worldgen.should_place_sand(col, row, base_height, z)
     local biome_noise = noise.perlin2d(col * 0.02, z * worldgen.NOISE_CONSTANTS.BIOME_Z_SCALE + worldgen.NOISE_CONSTANTS.BIOME_Z_OFFSET)
     
     -- If in a desert biome zone
-    if biome_noise > 0.3 then
+    if biome_noise > worldgen.SAND_CONFIG.biome_threshold then
         -- Vary depth based on another noise layer
         local depth_noise = noise.perlin2d(col * 0.1, row * 0.1)
-        local max_sand_depth = 3 + math.floor(depth_noise * 3)
+        local max_sand_depth = worldgen.SAND_CONFIG.min_sand_depth + math.floor(depth_noise * worldgen.SAND_CONFIG.sand_depth_variation)
         
         return depth_below_surface <= max_sand_depth
     end
@@ -322,15 +340,16 @@ function worldgen.apply_ore_generation(blocks_ref, layers, z, col, base_height, 
                 
                 -- Place ore blocks
                 for _, pos in ipairs(vein_positions) do
-                    -- Check bounds
+                    -- Check bounds (columns can spread beyond current column)
                     if pos.row >= base_height and pos.row < world_height then
-                        -- Initialize column if needed
+                        -- Initialize column if needed (veins can spread to adjacent columns)
                         if not layers[z][pos.col] then
                             layers[z][pos.col] = {}
                         end
                         
-                        -- Only replace stone blocks
-                        if layers[z][pos.col][pos.row] == blocks_ref.STONE then
+                        -- Only replace stone blocks (check for nil in case column/row doesn't exist yet)
+                        local current_block = layers[z][pos.col][pos.row]
+                        if current_block and current_block == blocks_ref.STONE then
                             -- For gems, check cave exposure requirement
                             if config.require_cave_exposure then
                                 if worldgen.is_cave_exposed(layers, z, pos.col, pos.row, blocks_ref) then
