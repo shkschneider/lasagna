@@ -41,8 +41,8 @@ function DropSystem.update(self, dt)
     local world = Systems.get("world")
     local player = Systems.get("player")
 
-    local PICKUP_RANGE = world.BLOCK_SIZE
-    local MERGE_RANGE = world.BLOCK_SIZE
+    local PICKUP_RANGE = BLOCK_SIZE
+    local MERGE_RANGE = BLOCK_SIZE
     local player_x, player_y, player_z = player:get_position()
 
     for i = #self.entities, 1, -1 do
@@ -55,7 +55,7 @@ function DropSystem.update(self, dt)
 
         -- Check collision with ground
         -- Drops are 1/2 block size, so check at their bottom edge (1/4 block offset)
-        local drop_height = world.BLOCK_SIZE / 2
+        local drop_height = BLOCK_SIZE / 2
         local col, row = world.world_to_block(world,
             ent.position.x,
             ent.position.y + drop_height / 2
@@ -66,7 +66,7 @@ function DropSystem.update(self, dt)
         if block_def and block_def.solid then
             ent.velocity.vy = 0
             -- Position drop so its bottom edge rests on top of the block
-            ent.position.y = row * world.BLOCK_SIZE - drop_height / 2
+            ent.position.y = row * BLOCK_SIZE - drop_height / 2
             on_ground = true
         end
 
@@ -147,8 +147,8 @@ function DropSystem.draw(self)
         local proto = Registry.Blocks:get(ent.drop.block_id)
         if proto then
             -- Drop is 1/2 width and 1/2 height (1/4 surface area)
-            local width = world.BLOCK_SIZE / 2
-            local height = world.BLOCK_SIZE / 2
+            local width = BLOCK_SIZE / 2
+            local height = BLOCK_SIZE / 2
             local x = ent.position.x - camera_x - width / 2
             local y = ent.position.y - camera_y - height / 2
 

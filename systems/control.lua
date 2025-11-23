@@ -29,21 +29,23 @@ function ControlSystem.update(self, dt)
     -- Handle crouching toggle (only when on ground)
     local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
 
-    if is_crouching and stance.current ~= Stance.CROUCHING and on_ground then
+    if is_crouching and not stance.crouched then
         -- Switch to crouching (only when on ground)
-        stance.current = Stance.CROUCHING
-        col.height = world.BLOCK_SIZE
-        vis.height = world.BLOCK_SIZE
+        stance.current = Stance.STANDING
+        stance.crouched = true
+        col.height = BLOCK_SIZE * 1
+        vis.height = BLOCK_SIZE * 1
         -- Adjust position to keep bottom aligned
-        pos.y = pos.y + world.BLOCK_SIZE / 2
-    elseif not is_crouching and stance.current == Stance.CROUCHING then
+        pos.y = pos.y + BLOCK_SIZE / 2
+    elseif not is_crouching and stance.crouched then
         -- Try to stand up - check clearance
         if player:can_stand_up() then
             stance.current = Stance.STANDING
-            col.height = world.BLOCK_SIZE * 2
-            vis.height = world.BLOCK_SIZE * 2
+            stance.crouched = false
+            col.height = BLOCK_SIZE * 2
+            vis.height = BLOCK_SIZE * 2
             -- Adjust position to keep bottom aligned
-            pos.y = pos.y - world.BLOCK_SIZE / 2
+            pos.y = pos.y - BLOCK_SIZE / 2
         end
     end
 
@@ -53,7 +55,7 @@ function ControlSystem.update(self, dt)
         vel.vx = -player.MOVE_SPEED
     end
     if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-        if stance.current == Stance.CROUCHING then
+        if stance.crouched then
             vel.vx = player.MOVE_SPEED / 2
         else
             vel.vx = player.MOVE_SPEED
@@ -62,8 +64,8 @@ function ControlSystem.update(self, dt)
 
     -- Jump handling - only when on ground and not crouching
     if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground then
-        if stance.current == Stance.CROUCHING then
-            vel.vy = -player.JUMP_FORCE / 2
+        if stance.crouched then
+            vel.vy = -player.JUMP_FORCE
         else
             vel.vy = -player.JUMP_FORCE
         end

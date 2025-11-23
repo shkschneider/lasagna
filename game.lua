@@ -10,6 +10,8 @@ LAYER_MIN = -1
 LAYER_DEFAULT = 0
 LAYER_MAX = 1
 
+BLOCK_SIZE = 16
+
 local Game = {
     priority = 0,
     components = {
