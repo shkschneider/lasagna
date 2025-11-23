@@ -3,11 +3,10 @@
 
 local Bullet = {}
 
-function Bullet.new(damage, speed, lifetime, width, height, color)
+function Bullet.new(damage, lifetime, width, height, color)
     return {
         id = "bullet",
         damage = damage or 10,
-        speed = speed or 300,
         lifetime = lifetime or 5,
         width = width or 2,
         height = height or 2,

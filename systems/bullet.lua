@@ -19,11 +19,14 @@ function BulletSystem.load(self)
 end
 
 function BulletSystem.create_bullet(self, x, y, layer, vx, vy, width, height, color)
+    local BULLET_DAMAGE = 10
+    local BULLET_LIFETIME = 5
+    
     local entity = {
         id = uuid(),
         position = Position.new(x, y, layer),
         velocity = Velocity.new(vx, vy),
-        bullet = Bullet.new(10, 0, 5, width, height, color),
+        bullet = Bullet.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color),
     }
 
     table.insert(self.entities, entity)
