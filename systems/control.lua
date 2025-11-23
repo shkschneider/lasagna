@@ -67,7 +67,7 @@ function ControlSystem.update(self, dt)
         if stance.crouched then
             -- Crouching slows movement by half
             vel.vx = vel.vx / 2
-        elseif on_ground and is_shift_pressed and player:has_stamina(0) then
+        elseif on_ground and is_shift_pressed and player:has_stamina(player.STAMINA_RUN_COST * dt) then
             -- Running doubles speed (only when on ground and not crouched)
             vel.vx = vel.vx * 2
             is_running = true
@@ -84,11 +84,7 @@ function ControlSystem.update(self, dt)
     if jump_pressed and not self.jump_pressed_last_frame and on_ground then
         -- Check if player has enough stamina to jump
         if player:has_stamina(player.STAMINA_JUMP_COST) then
-            if stance.crouched then
-                vel.vy = -player.JUMP_FORCE
-            else
-                vel.vy = -player.JUMP_FORCE
-            end
+            vel.vy = -player.JUMP_FORCE
             stance.current = Stance.JUMPING
             -- Consume stamina for jumping
             player:consume_stamina(player.STAMINA_JUMP_COST)
