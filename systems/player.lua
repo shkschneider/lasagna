@@ -415,7 +415,7 @@ function PlayerSystem.can_stand_up(self)
 end
 
 function PlayerSystem.is_dead(self)
-    return self.components.health.current <= 0
+    return self.components.health and self.components.health.current <= 0
 end
 
 return PlayerSystem
