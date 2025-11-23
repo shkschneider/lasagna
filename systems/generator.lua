@@ -12,6 +12,7 @@ local GeneratorSystem = {}
 -- Get ore blocks for generation (cached after first call)
 -- NOTE: This assumes all blocks are registered during initialization
 -- before any world generation occurs (which is currently the case)
+-- Ore blocks are returned sorted by ID for deterministic ordering
 local ore_blocks_cache = nil
 local function get_ore_blocks()
     if not ore_blocks_cache then
@@ -94,7 +95,8 @@ function GeneratorSystem.ore_veins(layers, z, col, base_height, world_height)
                     
                     if ore_noise > gen.threshold then
                         layers[z][col][row] = ore_block.id
-                        break -- Stop checking other ores once we place one
+                        -- Note: Don't break - allow later ores to potentially override
+                        -- This matches original behavior where last matching ore wins
                     end
                 end
             end

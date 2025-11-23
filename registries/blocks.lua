@@ -42,6 +42,8 @@ function BlocksRegistry.get_ore_blocks(self)
             table.insert(ore_blocks, block)
         end
     end
+    -- Sort by block ID to ensure consistent, deterministic ordering
+    table.sort(ore_blocks, function(a, b) return a.id < b.id end)
     return ore_blocks
 end
 
