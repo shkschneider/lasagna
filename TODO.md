@@ -4,8 +4,7 @@
 
 - mechanics
 - inventory
-- communications
-- ages
+- communications (WIP)
+- ages (WIP)
 
 - merge drops? (MERGING_ENABLED)
-- only current layer visible in debug? (ONLY_CURRENT_LAYER_VISIBLE)
