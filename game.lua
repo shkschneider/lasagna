@@ -10,6 +10,7 @@ local Game = {
     priority = 0,
     components = {
         state = States.BOOT,
+        timer = 0,
     },
     systems = {
         world = require("systems.world"),
@@ -19,6 +20,7 @@ local Game = {
         building = require("systems.building"),
         drop = require("systems.drop"),
         ui = require("systems.ui"),
+        chat = require("systems.chat"),
         debug = require("systems.debug"),
     },
 }
@@ -39,6 +41,8 @@ function Game.load(self, seed, debug)
 end
 
 function Game.update(self, dt)
+    self.components.timer = self.components.timer + dt
+
     -- Check if paused
     if self.components.timescale.paused then
         return
@@ -129,6 +133,15 @@ function Game.wheelmoved(self, x, y)
     for _, system in Systems.iterate(self.systems) do
         if type(system.wheelmoved) == "function" then
             system:wheelmoved(x, y)
+        end
+    end
+end
+
+function Game.textinput(self, text)
+    -- Pass to all systems
+    for _, system in Systems.iterate(self.systems) do
+        if type(system.textinput) == "function" then
+            system:textinput(text)
         end
     end
 end

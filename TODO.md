@@ -1,6 +1,7 @@
 # TODO
 
 - omnitool (WIP)
+- chat with commands (WIP)
 
 - mechanics
 - inventory

@@ -47,6 +47,10 @@ function love.wheelmoved(x, y)
     G:wheelmoved(x, y)
 end
 
+function love.textinput(text)
+    G:textinput(text)
+end
+
 function love.resize(width, height)
     G:resize(width, height)
 end
