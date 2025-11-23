@@ -38,8 +38,8 @@ function PlayerSystem.load(self, x, y, z)
     self.components.collider = Collider.new(BLOCK_SIZE, BLOCK_SIZE * 2)
     self.components.visual = Visual.new({1, 1, 1, 1}, BLOCK_SIZE, BLOCK_SIZE * 2)
     self.components.layer = Layer.new(layer)
-    self.components.inventory = Inventory.new(9, 64)
-    self.components.omnitool = Omnitool.new(0)
+    self.components.inventory = Inventory.new()
+    self.components.omnitool = Omnitool.new()
     self.components.stance = Stance.new(Stance.STANDING)
     self.components.stance.crouched = false
 

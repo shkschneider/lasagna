@@ -9,7 +9,7 @@ function Inventory.new(hotbar_size, max_stack)
         slots = {},
         selected_slot = 1,
         hotbar_size = hotbar_size or 9,
-        max_stack = max_stack or 64,
+        max_stack = max_stack or STACK_SIZE,
     }
 end
 

@@ -11,6 +11,7 @@ LAYER_DEFAULT = 0
 LAYER_MAX = 1
 
 BLOCK_SIZE = 16
+STACK_SIZE = 64
 
 local Game = {
     priority = 0,
@@ -28,6 +29,7 @@ local Game = {
         ui = require("systems.ui"),
         chat = require("systems.chat"),
         debug = require("systems.debug"),
+        lore = require("systems.lore"),
     },
 }
 

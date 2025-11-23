@@ -14,9 +14,9 @@ function Debug.load(self, seed, debug)
         local player = Systems.get("player")
         if player then
             -- Add starting items
-            player:add_to_inventory(BLOCKS.DIRT, 64)
-            player:add_to_inventory(BLOCKS.STONE, 32)
-            player:add_to_inventory(BLOCKS.WOOD, 16)
+            player:add_to_inventory(BLOCKS.DIRT, STACK_SIZE / 1)
+            player:add_to_inventory(BLOCKS.STONE, STACK_SIZE / 2)
+            player:add_to_inventory(BLOCKS.WOOD, STACK_SIZE / 4)
         end
     end
 end

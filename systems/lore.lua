@@ -1,0 +1,20 @@
+local log = require "lib.log"
+local Systems = require "systems"
+local Registry = require "registries"
+local Lore = require "data.lore"
+
+local LoreSystem = {
+    id = "lore",
+    priority = 200,
+    points = 0,
+}
+
+function LoreSystem.load(self)
+    self.ages = Lore.Ages
+    self.messages = Lore.Messages
+    self.points = 0
+end
+
+function LoreSystem.update(self, dt) end
+
+return LoreSystem
