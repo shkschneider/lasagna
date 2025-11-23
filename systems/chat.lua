@@ -1,163 +1,70 @@
--- Chat System
--- Handles chat interface and command execution
+-- BYTECODE -- commands.lua:7-13
+0001    GGET     2   0      ; "assert"
+0002    TGETS    4   1   1  ; "name"
+0003    KSTR     5   2      ; "Command must have a name"
+0004    CALL     2   1   3
+0005    GGET     2   0      ; "assert"
+0006    TGETS    4   1   3  ; "execute"
+0007    KSTR     5   4      ; "Command must have an execute function"
+0008    CALL     2   1   3
+0009    GGET     2   0      ; "assert"
+0010    MOV      6   0
+0011    TGETS    4   0   5  ; "exists"
+0012    TGETS    7   1   1  ; "name"
+0013    CALL     4   2   3
+0014    NOT      4   4
+0015    KSTR     5   6      ; "Command already exists: "
+0016    GGET     6   7      ; "tostring"
+0017    TGETS    8   1   1  ; "name"
+0018    CALL     6   2   2
+0019    CAT      5   5   6
+0020    CALL     2   1   3
+0021    TGETS    2   1   1  ; "name"
+0022    TSETV    1   0   2
+0023    TGETS    2   1   1  ; "name"
+0024    RET1     2   2
 
-local log = require "lib.log"
-local Systems = require "systems"
-local Registry = require "registries"
+-- BYTECODE -- commands.lua:16-18
+0001    TGETV    2   0   1
+0002    RET1     2   2
 
-local ChatSystem = {
-    id = "chat",
-    priority = 120, -- After UI (110)
-}
+-- BYTECODE -- commands.lua:21-27
+0001    MOV      5   0
+0002    TGETS    3   0   0  ; "get"
+0003    MOV      6   1
+0004    CALL     3   2   3
+0005    ISF          3
+0006    JMP      4 => 0010
+0007    TGETS    4   3   1  ; "execute"
+0008    MOV      6   2
+0009    CALLT    4   2
+0010 => KPRI     4   1
+0011    KSTR     5   2      ; "Unknown command: "
+0012    GGET     6   3      ; "tostring"
+0013    MOV      8   1
+0014    CALL     6   2   2
+0015    CAT      5   5   6
+0016    RET      4   3
 
-function ChatSystem.load(self)
-    self.open = false
-    self.input = ""
-    self.history = {} -- Chat message history
-    self.max_history = 10
-    self.screen_width, self.screen_height = love.graphics.getDimensions()
-end
+-- BYTECODE -- commands.lua:30-32
+0001    TGETV    2   0   1
+0002    ISNEP    2   0
+0003    JMP      2 => 0006
+0004    KPRI     2   1
+0005    JMP      3 => 0007
+0006 => KPRI     2   2
+0007 => RET1     2   2
 
-function ChatSystem.update(self, dt)
-    -- Chat doesn't need updates
-end
+-- BYTECODE -- commands.lua:0-35
+0001    TNEW     0   0
+0002    FNEW     1   1      ; commands.lua:7
+0003    TSETS    1   0   0  ; "register"
+0004    FNEW     1   3      ; commands.lua:16
+0005    TSETS    1   0   2  ; "get"
+0006    FNEW     1   5      ; commands.lua:21
+0007    TSETS    1   0   4  ; "execute"
+0008    FNEW     1   7      ; commands.lua:30
+0009    TSETS    1   0   6  ; "exists"
+0010    UCLO     0 => 0011
+0011 => RET1     0   2
 
-function ChatSystem.draw(self)
-    if not self.open then
-        return
-    end
-
-    local screen_width, screen_height = love.graphics.getDimensions()
-    
-    -- Chat dimensions: 1/3 width, up to 1/2 height
-    local chat_width = screen_width / 3
-    local chat_max_height = screen_height / 2
-    local chat_padding = 10
-    local line_height = 20
-    
-    -- Calculate actual height based on history
-    local num_lines = math.min(#self.history + 1, math.floor((chat_max_height - chat_padding * 2) / line_height))
-    local chat_height = num_lines * line_height + chat_padding * 2
-    
-    -- Position at bottom left
-    local chat_x = 10
-    local chat_y = screen_height - chat_height - 10
-    
-    -- Draw dimmed background
-    love.graphics.setColor(0, 0, 0, 0.7)
-    love.graphics.rectangle("fill", chat_x, chat_y, chat_width, chat_height)
-    
-    -- Draw border
-    love.graphics.setColor(0.8, 0.8, 0.8, 1)
-    love.graphics.rectangle("line", chat_x, chat_y, chat_width, chat_height)
-    
-    -- Draw chat history
-    love.graphics.setColor(1, 1, 1, 1)
-    local history_y = chat_y + chat_padding
-    local visible_history_count = math.min(#self.history, num_lines - 1)
-    local start_index = math.max(1, #self.history - visible_history_count + 1)
-    
-    for i = start_index, #self.history do
-        local message = self.history[i]
-        love.graphics.print(message, chat_x + chat_padding, history_y)
-        history_y = history_y + line_height
-    end
-    
-    -- Draw input line with cursor
-    local input_text = "> " .. self.input .. "_"
-    love.graphics.print(input_text, chat_x + chat_padding, history_y)
-end
-
-function ChatSystem.keypressed(self, key)
-    -- Check if we should toggle chat
-    if key == "return" then
-        if not self.open then
-            -- Only open chat in debug mode
-            local debug = Systems.get("debug")
-            if debug and debug.enabled then
-                self.open = true
-                love.keyboard.setTextInput(true)
-            end
-        else
-            -- Submit the input
-            if self.input ~= "" then
-                self:process_input(self.input)
-                self.input = ""
-            end
-            self.open = false
-            love.keyboard.setTextInput(false)
-        end
-        return
-    end
-    
-    if not self.open then
-        return
-    end
-    
-    -- Handle backspace
-    if key == "backspace" then
-        if #self.input > 0 then
-            self.input = self.input:sub(1, -2)
-        end
-    end
-    
-    -- Handle escape to close chat
-    if key == "escape" then
-        self.open = false
-        self.input = ""
-        love.keyboard.setTextInput(false)
-    end
-end
-
-function ChatSystem.textinput(self, text)
-    if self.open then
-        self.input = self.input .. text
-    end
-end
-
-function ChatSystem.process_input(self, input)
-    -- Add input to history
-    self:add_message("> " .. input)
-    
-    -- Check if it's a command (starts with /)
-    if input:sub(1, 1) == "/" then
-        local command_parts = {}
-        for part in input:gmatch("%S+") do
-            table.insert(command_parts, part)
-        end
-        
-        if #command_parts > 0 then
-            local command_name = command_parts[1]:sub(2) -- Remove leading /
-            local args = {}
-            for i = 2, #command_parts do
-                table.insert(args, command_parts[i])
-            end
-            
-            -- Execute command
-            local success, message = Registry.Commands:execute(command_name, args)
-            if message then
-                self:add_message(message)
-            end
-        end
-    else
-        -- Regular chat message (not a command)
-        -- For now, just echo it
-        self:add_message("Chat: " .. input)
-    end
-end
-
-function ChatSystem.add_message(self, message)
-    table.insert(self.history, message)
-    
-    -- Keep history limited
-    while #self.history > self.max_history do
-        table.remove(self.history, 1)
-    end
-end
-
-function ChatSystem.resize(self, width, height)
-    self.screen_width = width
-    self.screen_height = height
-end
-
-return ChatSystem

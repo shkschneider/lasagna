@@ -7,7 +7,7 @@ local CommandsRegistry = {}
 function CommandsRegistry.register(self, definition)
     assert(definition.name, "Command must have a name")
     assert(definition.execute, "Command must have an execute function")
-    assert(not self:exists(definition.name), "Command already exists: " .. definition.name)
+    assert(not self:exists(definition.name), "Command already exists: " .. tostring(definition.name))
     self[definition.name] = definition
     return definition.name
 end
@@ -23,7 +23,7 @@ function CommandsRegistry.execute(self, name, args)
     if command then
         return command.execute(args)
     end
-    return false, "Unknown command: " .. name
+    return false, "Unknown command: " .. tostring(name)
 end
 
 -- Check if a command exists
