@@ -1,7 +1,6 @@
 local CommandsRegistry = require("registries.commands")
 local Systems = require "systems"
 
--- Register /ping command
 CommandsRegistry:register({
     name = "god",
     description = "Invincible",

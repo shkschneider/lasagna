@@ -1,7 +1,6 @@
 local CommandsRegistry = require("registries.commands")
 local Systems = require("systems")
 
--- Register /seed command
 CommandsRegistry:register({
     name = "seed",
     description = "Display the current world seed",
