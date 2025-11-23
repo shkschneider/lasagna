@@ -61,11 +61,16 @@ function BuildingSystem.has_adjacent_layer_block(self, col, row, layer)
     local world = Systems.get("world")
     
     -- Check for solid blocks at the same position in layers above and below
+    -- Valid layers are -1, 0, 1
     local layers_to_check = {}
-    if layer > -1 then
+    
+    -- Check layer below (if not already at bottom layer)
+    if layer - 1 >= -1 then
         table.insert(layers_to_check, layer - 1)
     end
-    if layer < 1 then
+    
+    -- Check layer above (if not already at top layer)
+    if layer + 1 <= 1 then
         table.insert(layers_to_check, layer + 1)
     end
     

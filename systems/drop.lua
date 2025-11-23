@@ -115,7 +115,6 @@ function DropSystem.draw(self)
             
             -- Draw 1px white border
             love.graphics.setColor(1, 1, 1, 1)
-            love.graphics.setLineWidth(1)
             love.graphics.rectangle("line", x, y, width, height)
         end
     end
