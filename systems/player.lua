@@ -282,6 +282,56 @@ function PlayerSystem.add_to_inventory(self, block_id, count)
     return true
 end
 
+function PlayerSystem.add_item_to_inventory(self, item_id, count)
+    local inv = self.components.inventory
+    count = count or 1
+
+    if count <= 0 then
+        return true
+    end
+
+    -- Try to stack with existing slots
+    for i = 1, inv.hotbar_size do
+        local slot = inv.slots[i]
+        if slot and slot.item_id == item_id then
+            local space = inv.max_stack - slot.count
+            if space > 0 then
+                local to_add = math.min(space, count)
+                slot.count = slot.count + to_add
+                count = count - to_add
+
+                if count == 0 then
+                    return true
+                end
+            end
+        end
+    end
+
+    -- Find empty slots
+    while count > 0 do
+        local empty_slot = nil
+        for i = 1, inv.hotbar_size do
+            if not inv.slots[i] then
+                empty_slot = i
+                break
+            end
+        end
+
+        if not empty_slot then
+            return false
+        end
+
+        local to_add = math.min(inv.max_stack, count)
+        inv.slots[empty_slot] = {
+            item_id = item_id,
+            count = to_add,
+        }
+        count = count - to_add
+    end
+
+    return true
+end
+
 function PlayerSystem.remove_from_selected(self, count)
     local inv = self.components.inventory
     count = count or 1

@@ -67,10 +67,27 @@ function UISystem.draw(self)
         -- Item in slot
         local slot = inv.slots[i]
         if slot then
-            local proto = Registry.Blocks:get(slot.block_id)
-            if proto then
+            local proto = nil
+            local color = nil
+            
+            if slot.block_id then
+                proto = Registry.Blocks:get(slot.block_id)
+                if proto then
+                    color = proto.color
+                end
+            elseif slot.item_id then
+                proto = Registry.Items:get(slot.item_id)
+                if proto and proto.weapon then
+                    -- Use weapon bullet color for display
+                    color = proto.weapon.bullet_color or {1, 1, 1, 1}
+                else
+                    color = {1, 1, 1, 1}
+                end
+            end
+            
+            if proto and color then
                 -- Draw item as colored square
-                love.graphics.setColor(proto.color)
+                love.graphics.setColor(color)
                 love.graphics.rectangle("fill", x + 8, hotbar_y + 8, slot_size - 20, slot_size - 20)
 
                 -- Draw count
@@ -83,7 +100,14 @@ function UISystem.draw(self)
     -- Selected item name above hotbar
     local selected_slot = inv.slots[inv.selected_slot]
     if selected_slot then
-        local proto = Registry.Blocks:get(selected_slot.block_id)
+        local proto = nil
+        
+        if selected_slot.block_id then
+            proto = Registry.Blocks:get(selected_slot.block_id)
+        elseif selected_slot.item_id then
+            proto = Registry.Items:get(selected_slot.item_id)
+        end
+        
         if proto then
             love.graphics.setColor(1, 1, 1, 1)
             local text = proto.name
