@@ -176,6 +176,12 @@ function WorldSystem.generate_terrain(self, z, col)
     local BASE_HEIGHT = 0.75
     local BASE_FREQUENCY = 0.02
     local BASE_AMPLITUDE = 30 -- Increased amplitude for taller world
+    
+    -- Dirt-to-stone transition constants
+    local DIRT_DEPTH = 10 -- Pure dirt layer depth
+    local TRANSITION_DEPTH = 10 -- Transition zone depth
+    local TRANSITION_BASE_THRESHOLD = 0.3 -- Base noise threshold for stone
+    local TRANSITION_THRESHOLD_RANGE = 0.6 -- Range of threshold adjustment
 
     local noise_val = noise.octave_perlin2d(col * BASE_FREQUENCY, z * 0.1, 4, 0.5, 2.0)
     local base_height = math.floor(data.height * BASE_HEIGHT + noise_val * BASE_AMPLITUDE)
@@ -201,14 +207,16 @@ function WorldSystem.generate_terrain(self, z, col)
             -- First 10 blocks: mostly dirt
             -- Next 10 blocks: mixed dirt/stone transition
             -- Below 20 blocks: all stone
-            if depth_below_surface < 10 then
+            if depth_below_surface < DIRT_DEPTH then
                 -- Shallow: all dirt
                 data.layers[z][col][row] = BLOCKS.DIRT
-            elseif depth_below_surface < 20 then
+            elseif depth_below_surface < DIRT_DEPTH + TRANSITION_DEPTH then
                 -- Transition zone: use noise to mix dirt and stone
-                local transition_noise = noise.perlin2d(col * 0.1 + depth_below_surface, row * 0.1)
-                local stone_chance = (depth_below_surface - 10) / 10 -- 0 at depth 10, 1 at depth 20
-                if transition_noise > (0.3 - stone_chance * 0.6) then
+                -- Use consistent 2D coordinates for noise sampling
+                local transition_noise = noise.perlin2d(col * 0.1, (row - base_height) * 0.1 + z * 10)
+                local stone_chance = (depth_below_surface - DIRT_DEPTH) / TRANSITION_DEPTH -- 0 at start, 1 at end
+                local threshold = TRANSITION_BASE_THRESHOLD - stone_chance * TRANSITION_THRESHOLD_RANGE
+                if transition_noise > threshold then
                     data.layers[z][col][row] = BLOCKS.STONE
                 else
                     data.layers[z][col][row] = BLOCKS.DIRT
