@@ -20,9 +20,11 @@ local WorldSystem = {
     HEIGHT = 512,
     canvases = {},
     -- Coroutine-based chunk generation
-    generation_queue = {},  -- Queue of chunks waiting to be generated
-    active_coroutines = {},  -- Active generation coroutines
-    max_coroutines = 4,  -- Maximum concurrent chunk generations
+    generation_queue_high = {},  -- High priority queue (visible chunks)
+    generation_queue_low = {},   -- Low priority queue (background chunks)
+    queued_chunks = {},          -- Hash table to track queued chunks (O(1) lookup)
+    active_coroutines = {},      -- Active generation coroutines
+    max_coroutines = 4,          -- Maximum concurrent chunk generations
 }
 
 function WorldSystem.load(self, seed, debug)
@@ -36,8 +38,10 @@ function WorldSystem.load(self, seed, debug)
     -- Create canvases for layer rendering
     self:create_canvases()
     
-    -- Initialize generation queue
-    self.generation_queue = {}
+    -- Initialize generation queues
+    self.generation_queue_high = {}
+    self.generation_queue_low = {}
+    self.queued_chunks = {}
     self.active_coroutines = {}
 end
 
@@ -68,9 +72,10 @@ function WorldSystem.update(self, dt)
         end
     end
     
-    -- Clean up completed coroutines
+    -- Clean up completed coroutines and queued tracking
     for _, key in ipairs(completed) do
         self.active_coroutines[key] = nil
+        self.queued_chunks[key] = nil
     end
     
     -- Count active coroutines
@@ -80,9 +85,21 @@ function WorldSystem.update(self, dt)
     end
     
     -- Start new coroutines if we have capacity and pending chunks
-    while active_count < self.max_coroutines and #self.generation_queue > 0 do
-        local chunk_info = table.remove(self.generation_queue, 1)
+    -- Process high priority queue first, then low priority
+    while active_count < self.max_coroutines do
+        local chunk_info = nil
+        
+        -- Try high priority queue first
+        if #self.generation_queue_high > 0 then
+            chunk_info = table.remove(self.generation_queue_high, 1)
+        elseif #self.generation_queue_low > 0 then
+            chunk_info = table.remove(self.generation_queue_low, 1)
+        else
+            break  -- No more chunks to generate
+        end
+        
         local key = string.format("%d_%d", chunk_info.z, chunk_info.chunk_index)
+        self.queued_chunks[key] = nil  -- Remove from tracking
         
         -- Check if not already generating or generated
         local data = self.components.worlddata
@@ -302,37 +319,36 @@ end
 function WorldSystem.generate_chunk(self, z, chunk_index, priority)
     local data = self.components.worlddata
 
-    -- Check if already generated or generating
+    -- Check if already generated
     if data.generated_chunks[z] and data.generated_chunks[z][chunk_index] then
         return true  -- Already generated
     end
     
     local key = string.format("%d_%d", z, chunk_index)
+    
+    -- Check if currently generating
     if self.active_coroutines[key] then
         return false  -- Currently generating
     end
     
-    -- Check if already in queue
-    for _, chunk_info in ipairs(self.generation_queue) do
-        if chunk_info.z == z and chunk_info.chunk_index == chunk_index then
-            -- Update priority if needed
-            if priority and not chunk_info.priority then
-                chunk_info.priority = true
-            end
-            return false  -- Already queued
-        end
+    -- Check if already queued (O(1) lookup)
+    if self.queued_chunks[key] then
+        return false  -- Already queued
     end
     
     -- Add to generation queue
-    local chunk_info = {z = z, chunk_index = chunk_index, priority = priority or false}
+    local chunk_info = {z = z, chunk_index = chunk_index}
     
     if priority then
-        -- High priority: add to front of queue
-        table.insert(self.generation_queue, 1, chunk_info)
+        -- High priority: add to high priority queue (O(1))
+        table.insert(self.generation_queue_high, chunk_info)
     else
-        -- Normal priority: add to end of queue
-        table.insert(self.generation_queue, chunk_info)
+        -- Normal priority: add to low priority queue (O(1))
+        table.insert(self.generation_queue_low, chunk_info)
     end
+    
+    -- Track that this chunk is queued (O(1))
+    self.queued_chunks[key] = true
     
     return false  -- Queued for generation
 end
@@ -371,7 +387,8 @@ function WorldSystem.set_block(self, z, col, row, block_id)
     end
 
     local chunk_index, local_col = self:col_to_chunk(col)
-    self:generate_chunk(z, chunk_index)
+    -- Request chunk generation with high priority (user action)
+    self:generate_chunk(z, chunk_index, true)
 
     local data = self.components.worlddata
     if not data.chunks[z][chunk_index][local_col] then
