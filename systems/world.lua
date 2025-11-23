@@ -19,7 +19,7 @@ local WorldSystem = {
     canvases = {},
 }
 
-function WorldSystem.load(self, seed)
+function WorldSystem.load(self, seed, debug)
     -- Initialize components
     self.components.worlddata = WorldData.new(seed, self.WIDTH, self.HEIGHT)
     log.info("World:", self.components.worlddata.seed)

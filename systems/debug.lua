@@ -4,8 +4,8 @@ local Debug = {
     id = "debug",
 }
 
-function Debug.load(self, debug)
-    self.enabled = debug or (os.getenv("DEBUG") == "true")
+function Debug.load(self, seed, debug)
+    self.enabled = debug or false
 end
 
 function Debug.keypressed(self, key)

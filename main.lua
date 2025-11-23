@@ -7,7 +7,7 @@ end }
 local log = require "lib.log"
 
 function love.load()
-    local debug = os.getenv("DEBUG") == "true"
+    local debug = os.getenv("DEBUG") and (os.getenv("DEBUG") == "true") or (G.VERSION.major < 1)
     local seed = tonumber(os.getenv("SEED"))
     log.level = debug and "debug" or "warn"
     log.debug("...")
