@@ -10,6 +10,8 @@ local BLOCKS = Registry.blocks()
 local GeneratorSystem = {}
 
 -- Get ore blocks for generation (cached after first call)
+-- NOTE: This assumes all blocks are registered during initialization
+-- before any world generation occurs (which is currently the case)
 local ore_blocks_cache = nil
 local function get_ore_blocks()
     if not ore_blocks_cache then
