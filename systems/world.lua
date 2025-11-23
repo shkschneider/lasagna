@@ -189,11 +189,10 @@ end
 function WorldSystem.col_to_chunk(self, col)
     local chunk_index = math.floor(col / CHUNK_SIZE)
     local local_col = col % CHUNK_SIZE
-    -- Handle negative columns correctly
-    if col < 0 and local_col ~= 0 then
-        chunk_index = chunk_index - 1
-        local_col = CHUNK_SIZE + local_col
-    end
+    -- Lua's modulo already handles negative numbers correctly for our use case
+    -- For col=-1: floor(-1/64)=-1, -1%64=63 -> chunk=-1, local_col=63 ✓
+    -- For col=-64: floor(-64/64)=-1, -64%64=0 -> chunk=-1, local_col=0 ✓
+    -- For col=-65: floor(-65/64)=-2, -65%64=63 -> chunk=-2, local_col=63 ✓
     return chunk_index, local_col
 end
 
