@@ -285,7 +285,7 @@ function WorldSystem.col_to_chunk(self, col)
     return chunk_index, local_col
 end
 
--- Generate a single column (called within coroutine context)
+-- Generate a single column (function executed by coroutines)
 function WorldSystem.generate_column_sync(self, z, col)
     local data = self.components.worlddata
     local key = string.format("%d_%d", z, col)
@@ -312,11 +312,11 @@ function WorldSystem.generate_column_sync(self, z, col)
         data.chunks[z][chunk_index][local_col] = {}
     end
     
-    -- Generate terrain for this column
+    -- Generate terrain for this column using Generator module
     -- Pass: chunk_data, local_col, world_col, z, world_height
     Generator.generate_column(data.chunks[z][chunk_index], local_col, col, z, data.height)
     
-    -- Single yield after generation to allow other coroutines to run
+    -- Yield to prevent frame drops - allows other work to process before next column
     coroutine.yield()
     
     -- Column generation complete - mark as generated and no longer generating
