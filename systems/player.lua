@@ -57,7 +57,8 @@ function PlayerSystem.load(self, x, y, z)
     self.systems.control = require "systems.control"
     self.systems.control:load(self)
 
-    log.info("Player:", self.components.position:tostring())
+    local px, py = world:world_to_block(self.components.position.x, self.components.position.y)
+    log.debug("Player:", px, py)
 end
 
 function PlayerSystem.update(self, dt)

@@ -206,7 +206,7 @@ function WorldSystem.generate_terrain(self, z, col)
         if data.layers[z][col][row] == BLOCKS.STONE then
             -- Ore generation based on depth and noise
             local depth_from_surface = row - base_height
-            
+
             -- Coal: shallow, common (depth 5-100)
             if depth_from_surface >= 5 and depth_from_surface <= 100 then
                 local coal_noise = noise.perlin3d(col * 0.08, row * 0.08, z * 0.08)
@@ -214,7 +214,7 @@ function WorldSystem.generate_terrain(self, z, col)
                     data.layers[z][col][row] = BLOCKS.COAL
                 end
             end
-            
+
             -- Copper: shallow to mid (depth 10-120)
             if depth_from_surface >= 10 and depth_from_surface <= 120 then
                 local copper_noise = noise.perlin3d(col * 0.07, row * 0.07, z * 0.07 + 100)
@@ -222,7 +222,7 @@ function WorldSystem.generate_terrain(self, z, col)
                     data.layers[z][col][row] = BLOCKS.COPPER_ORE
                 end
             end
-            
+
             -- Tin: shallow to mid (depth 10-120)
             if depth_from_surface >= 10 and depth_from_surface <= 120 then
                 local tin_noise = noise.perlin3d(col * 0.07, row * 0.07, z * 0.07 + 200)
@@ -230,7 +230,7 @@ function WorldSystem.generate_terrain(self, z, col)
                     data.layers[z][col][row] = BLOCKS.TIN_ORE
                 end
             end
-            
+
             -- Iron: mid depth (depth 40-150)
             if depth_from_surface >= 40 and depth_from_surface <= 150 then
                 local iron_noise = noise.perlin3d(col * 0.06, row * 0.06, z * 0.06 + 300)
@@ -238,7 +238,7 @@ function WorldSystem.generate_terrain(self, z, col)
                     data.layers[z][col][row] = BLOCKS.IRON_ORE
                 end
             end
-            
+
             -- Lead: mid to deep (depth 50-160)
             if depth_from_surface >= 50 and depth_from_surface <= 160 then
                 local lead_noise = noise.perlin3d(col * 0.06, row * 0.06, z * 0.06 + 400)
@@ -246,7 +246,7 @@ function WorldSystem.generate_terrain(self, z, col)
                     data.layers[z][col][row] = BLOCKS.LEAD_ORE
                 end
             end
-            
+
             -- Zinc: mid to deep (depth 50-160)
             if depth_from_surface >= 50 and depth_from_surface <= 160 then
                 local zinc_noise = noise.perlin3d(col * 0.06, row * 0.06, z * 0.06 + 500)
@@ -254,7 +254,7 @@ function WorldSystem.generate_terrain(self, z, col)
                     data.layers[z][col][row] = BLOCKS.ZINC_ORE
                 end
             end
-            
+
             -- Cobalt: deep and rare (depth 80+)
             if depth_from_surface >= 80 then
                 local cobalt_noise = noise.perlin3d(col * 0.05, row * 0.05, z * 0.05 + 600)
@@ -347,17 +347,12 @@ function WorldSystem.find_spawn_position(self, start_col, start_z)
     for row = 0, self.components.worlddata.height - 1 do
         local block_def = self.get_block_def(self, z, col, row)
         if block_def and block_def.solid then
-            surface_row = row
-            break
+            -- Spawn in the last air block (just above the ground)
+            -- This ensures the player spawns on the surface, not inside it
+            local spawn_x = col * BLOCK_SIZE + BLOCK_SIZE / 2
+            local spawn_y = (row - 1) * BLOCK_SIZE + BLOCK_SIZE / 2
+            return spawn_x, spawn_y, z
         end
-    end
-
-    if surface_row then
-        -- Spawn in the last air block (just above the ground)
-        -- This ensures the player spawns on the surface, not inside it
-        local spawn_x = col * BLOCK_SIZE + BLOCK_SIZE / 2
-        local spawn_y = (surface_row - 1) * BLOCK_SIZE + BLOCK_SIZE / 2
-        return spawn_x, spawn_y, z
     end
 
     -- Default spawn at top if no ground found
