@@ -393,9 +393,9 @@ end
 function worldgen.apply_cave_generation(blocks_ref, layers, z, col, base_height, world_height)
     -- Check each row for cave placement
     for row = base_height, world_height - 1 do
-        -- Only carve caves in solid blocks
+        -- Only carve caves in solid blocks (but never bedrock)
         local current_block = layers[z][col][row]
-        if current_block ~= blocks_ref.AIR then
+        if current_block ~= blocks_ref.AIR and current_block ~= blocks_ref.BEDROCK then
             if worldgen.should_be_cave(z, col, row, base_height) then
                 layers[z][col][row] = blocks_ref.AIR
             end

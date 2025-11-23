@@ -19,6 +19,7 @@ local BlockRef = {
     COBALT_ORE = 11,
     SAND = 12,
     GOLD_ORE = 13,
+    BEDROCK = 14,
 }
 
 -- Register Air
@@ -158,6 +159,16 @@ BlocksRegistry:register({
     color = {1.0, 0.84, 0.0, 1},
     tier = 3,
     drops = function() return BlockRef.GOLD_ORE, 1 end,
+})
+
+-- Register Bedrock (unbreakable bottom layer)
+BlocksRegistry:register({
+    id = BlockRef.BEDROCK,
+    name = "Bedrock",
+    solid = true,
+    color = {0.05, 0.05, 0.05, 1}, -- Pitch-black (nearly black)
+    tier = 999, -- Extremely high tier makes it effectively unbreakable
+    drops = function() return nil, 0 end, -- No drops when broken
 })
 
 -- Return the block IDs for easy access

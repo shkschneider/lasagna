@@ -18,7 +18,7 @@ local WorldSystem = {
     priority = 10,
     components = {},
     WIDTH = 512,
-    HEIGHT = 128,
+    HEIGHT = 512,
     canvases = {},
 }
 
@@ -172,10 +172,10 @@ end
 function WorldSystem.generate_terrain(self, z, col)
     local data = self.components.worlddata
 
-    -- Base terrain height
-    local BASE_HEIGHT = 0.6
+    -- Base terrain height - 0.75 means 75% of world is ground, 25% is air/sky
+    local BASE_HEIGHT = 0.75
     local BASE_FREQUENCY = 0.02
-    local BASE_AMPLITUDE = 15
+    local BASE_AMPLITUDE = 30 -- Increased amplitude for taller world
 
     local noise_val = noise.octave_perlin2d(col * BASE_FREQUENCY, z * 0.1, 4, 0.5, 2.0)
     local base_height = math.floor(data.height * BASE_HEIGHT + noise_val * BASE_AMPLITUDE)
@@ -196,6 +196,12 @@ function WorldSystem.generate_terrain(self, z, col)
             -- Above ground - air
             data.layers[z][col][row] = BLOCKS.AIR
         end
+    end
+
+    -- Add bedrock at the bottom (last 3 rows)
+    local BEDROCK_DEPTH = 3
+    for row = data.height - BEDROCK_DEPTH, data.height - 1 do
+        data.layers[z][col][row] = BLOCKS.BEDROCK
     end
 
     -- Add dirt layer
