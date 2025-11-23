@@ -10,7 +10,7 @@ function Systems.load(systems, seed, debug)
     local ordered = {}
     for id, system in Systems.iterate(systems) do
         assert(id)
-        log.debug("system:", id)
+        log.debug(string.format("%f system: %s", love.timer.getTime(), id))
         if id == "world" then
             system:load(seed, debug)
             x, y, z = system:find_spawn_position(0)

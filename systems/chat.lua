@@ -176,7 +176,7 @@ function ChatSystem.process_input(self, input)
 end
 
 function ChatSystem.add_message(self, message)
-    table.insert(self.history, string.format("%f: %s", G.components.timer, message))
+    table.insert(self.history, string.format("%f: %s", love.timer.getTime(), message))
 
     -- Keep history limited
     while #self.history > self.max_history do

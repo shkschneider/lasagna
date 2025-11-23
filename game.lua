@@ -17,7 +17,6 @@ local Game = {
     priority = 0,
     components = {
         state = GameState.new(GameState.BOOT),
-        timer = 0,
     },
     systems = {
         world = require("systems.world"),
@@ -38,7 +37,7 @@ local Game = {
 function Game.switch(self, gamestate)
     assert(gamestate)
     self.components.gamestate = GameState.new(gamestate)
-    log.debug("Game", "switch:" .. self.components.gamestate:tostring())
+    log.debug(string.format("%f", love.timer.getTime()), "Game", "switch:" .. self.components.gamestate:tostring())
 end
 
 function Game.load(self, seed, debug)
@@ -54,8 +53,6 @@ function Game.load(self, seed, debug)
 end
 
 function Game.update(self, dt)
-    self.components.timer = self.components.timer + dt
-
     -- Check if paused
     if self.components.timescale.paused then
         return
