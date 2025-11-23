@@ -3,6 +3,7 @@
 
 local log = require "lib.log"
 local noise = require "lib.noise"
+local worldgen = require "lib.worldgen"
 
 local Systems = require "systems"
 local WorldData = require "components.worlddata"
@@ -197,7 +198,7 @@ function WorldSystem.generate_terrain(self, z, col)
         end
     end
 
-    -- Add dirt z
+    -- Add dirt layer
     local DIRT_MIN_DEPTH = 5
     local DIRT_MAX_DEPTH = 15
     local dirt_depth = DIRT_MIN_DEPTH + math.floor((DIRT_MAX_DEPTH - DIRT_MIN_DEPTH) *
@@ -216,6 +217,12 @@ function WorldSystem.generate_terrain(self, z, col)
             data.layers[z][col][base_height] = BLOCKS.GRASS
         end
     end
+
+    -- Apply sand generation (surface biomes)
+    worldgen.apply_sand_generation(BLOCKS, data.layers, z, col, base_height, data.height)
+
+    -- Apply ore vein generation
+    worldgen.apply_ore_generation(BLOCKS, data.layers, z, col, base_height, data.height)
 end
 
 -- Get block at position

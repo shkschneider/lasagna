@@ -18,6 +18,7 @@ local BlockRef = {
     ZINC_ORE = 10,
     COBALT_ORE = 11,
     SAND = 12,
+    GOLD_ORE = 13,
 }
 
 -- Register Air
@@ -147,6 +148,16 @@ BlocksRegistry:register({
     color = {0.9, 0.85, 0.6, 1},
     tier = 0,
     drops = function() return BlockRef.SAND, 1 end,
+})
+
+-- Register Gold Ore
+BlocksRegistry:register({
+    id = BlockRef.GOLD_ORE,
+    name = "Gold Ore",
+    solid = true,
+    color = {1.0, 0.84, 0.0, 1},
+    tier = 3,
+    drops = function() return BlockRef.GOLD_ORE, 1 end,
 })
 
 -- Return the block IDs for easy access
