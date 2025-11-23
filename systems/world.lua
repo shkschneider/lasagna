@@ -82,6 +82,12 @@ function WorldSystem.draw(self)
             -- Check if this is the layer above the player
             local is_layer_above = (layer == player_z + 1)
 
+            -- Set graphics state for outline drawing if this is the layer above
+            if is_layer_above then
+                love.graphics.setColor(1, 1, 1, 0.5)
+                love.graphics.setLineWidth(1)
+            end
+
             -- Draw blocks
             for col = start_col, end_col do
                 for row = start_row, end_row do
@@ -95,8 +101,6 @@ function WorldSystem.draw(self)
                         if is_layer_above then
                             -- Draw only outlines for layer above player
                             -- Check each direction to see if there's air (draw edge if so)
-                            love.graphics.setColor(1, 1, 1, 0.5)
-                            love.graphics.setLineWidth(1)
                             
                             -- Check top
                             local top_block = self:get_block_id(layer, col, row - 1)
