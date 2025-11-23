@@ -74,7 +74,7 @@ function BulletSystem.update(self, dt)
                             local drop_id, drop_count = proto.drops()
                             if drop_id then
                                 local wx, wy = world:block_to_world(col, row)
-                                drop.create_drop(drop,
+                                drop:create_drop(
                                     wx + BLOCK_SIZE / 2,
                                     wy + BLOCK_SIZE / 2,
                                     ent.position.z,
