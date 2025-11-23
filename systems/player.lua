@@ -48,7 +48,7 @@ function PlayerSystem.load(self, x, y, z)
     self.components.stance = Stance.new(Stance.STANDING)
     self.components.stance.crouched = false
     self.components.health = Health.new(100, 100)
-    
+
     -- Fall damage tracking
     self.fall_start_y = nil
     self.damage_timer = 0
@@ -75,7 +75,7 @@ function PlayerSystem.update(self, dt)
     local col = self.components.collider
     local stance = self.components.stance
     local vis = self.components.visual
-    
+
     -- Update damage timer
     if self.damage_timer > 0 then
         self.damage_timer = self.damage_timer - dt
@@ -88,7 +88,7 @@ function PlayerSystem.update(self, dt)
 
     -- Check if on ground first
     local on_ground = self:is_on_ground()
-    
+
     -- Track fall start position when first becoming airborne
     if not on_ground then
         if self.fall_start_y == nil then
@@ -183,7 +183,7 @@ function PlayerSystem.update(self, dt)
     -- Update stance based on current state
     if on_ground then
         -- Calculate fall damage on landing if we were airborne
-        if self.fall_start_y ~= nil then
+        if not self.components.health.invincible and self.fall_start_y ~= nil then
             local fall_distance = pos.y - self.fall_start_y
             local fall_blocks = fall_distance / BLOCK_SIZE
             -- Safe fall is 4 blocks (2x player height, since player is 2 blocks tall)
@@ -196,7 +196,7 @@ function PlayerSystem.update(self, dt)
             end
             self.fall_start_y = nil
         end
-        
+
         if stance.current == Stance.JUMPING or stance.current == Stance.FALLING then
             stance.current = Stance.STANDING
         end
@@ -226,7 +226,7 @@ function PlayerSystem.draw(self)
         pos.y - camera_y - vis.height / 2,
         vis.width,
         vis.height)
-    
+
     -- Draw red border if recently damaged
     if self.damage_timer > 0 then
         love.graphics.setColor(1, 0, 0, 1)
@@ -465,10 +465,10 @@ function PlayerSystem.hit(self, damage)
     if not self.components.health then
         return
     end
-    
+
     -- Apply damage
     self.components.health.current = math.max(0, self.components.health.current - damage)
-    
+
     -- Set damage timer for visual effect
     self.damage_timer = PlayerSystem.DAMAGE_DISPLAY_DURATION
 end

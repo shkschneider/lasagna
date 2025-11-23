@@ -8,6 +8,10 @@ function Health.new(current, max)
         id = "health",
         current = current or 100,
         max = max or 100,
+        invicible = false,
+        tostring = function(self)
+            return string.format("%d%%:%s", self.current, tostring(self.invicible))
+        end
     }
 end
 
