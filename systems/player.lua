@@ -22,6 +22,7 @@ local PlayerSystem = {
     id = "player",
     priority = 20,
     components = {},
+    systems = {},
     -- Movement constants
     MOVE_SPEED = 150,
     JUMP_FORCE = 300,
@@ -34,12 +35,13 @@ function PlayerSystem.load(self, x, y, z)
     self.components.position = Position.new(x or 0, y or 0, z or LAYER_DEFAULT)
     self.components.velocity = Velocity.new(0, 0)
     self.components.physics = Physics.new(800, 0.95)
-    self.components.collider = Collider.new(world.BLOCK_SIZE, world.BLOCK_SIZE * 2)
-    self.components.visual = Visual.new({1, 1, 1, 1}, world.BLOCK_SIZE, world.BLOCK_SIZE * 2)
+    self.components.collider = Collider.new(BLOCK_SIZE, BLOCK_SIZE * 2)
+    self.components.visual = Visual.new({1, 1, 1, 1}, BLOCK_SIZE, BLOCK_SIZE * 2)
     self.components.layer = Layer.new(layer)
     self.components.inventory = Inventory.new(9, 64)
     self.components.omnitool = Omnitool.new(0)
     self.components.stance = Stance.new(Stance.STANDING)
+    self.components.stance.crouched = false
 
     -- Initialize inventory slots
     for i = 1, self.components.inventory.hotbar_size do
@@ -50,6 +52,10 @@ function PlayerSystem.load(self, x, y, z)
     self:add_to_inventory(BLOCKS.DIRT, 64)
     self:add_to_inventory(BLOCKS.STONE, 32)
     self:add_to_inventory(BLOCKS.WOOD, 16)
+
+    -- Initialize control system
+    self.systems.control = require "systems.control"
+    self.systems.control:load(self)
 
     log.info("Player:", self.components.position:tostring())
 end
@@ -64,55 +70,16 @@ function PlayerSystem.update(self, dt)
     local stance = self.components.stance
     local vis = self.components.visual
 
+    -- Delegate to control system for input handling
+    if self.systems.control then
+        self.systems.control:update(dt)
+    end
+
     -- Check if on ground first
     local on_ground = self:is_on_ground()
 
-    -- Handle crouching toggle (only when on ground)
-    local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
-
-    if is_crouching and stance.current ~= Stance.CROUCHING and on_ground then
-        -- Switch to crouching (only when on ground)
-        stance.current = Stance.CROUCHING
-        col.height = world.BLOCK_SIZE
-        vis.height = world.BLOCK_SIZE
-        -- Adjust position to keep bottom aligned
-        pos.y = pos.y + world.BLOCK_SIZE / 2
-    elseif not is_crouching and stance.current == Stance.CROUCHING then
-        -- Try to stand up - check clearance
-        if self:can_stand_up() then
-            stance.current = Stance.STANDING
-            col.height = world.BLOCK_SIZE * 2
-            vis.height = world.BLOCK_SIZE * 2
-            -- Adjust position to keep bottom aligned
-            pos.y = pos.y - world.BLOCK_SIZE / 2
-        end
-    end
-
-    -- Horizontal movement
-    vel.vx = 0
-    if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
-        vel.vx = -self.MOVE_SPEED
-    end
-    if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-        if stance.current == Stance.CROUCHING then
-            vel.vx = self.MOVE_SPEED / 2
-        else
-            vel.vx = self.MOVE_SPEED
-        end
-    end
-
     -- Gravity always applies
     vel.vy = vel.vy + phys.gravity * dt
-
-    -- Jump handling - only when on ground and not crouching
-    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground then
-        if stance.current == Stance.CROUCHING then
-            vel.vy = -self.JUMP_FORCE / 2
-        else
-            vel.vy = -self.JUMP_FORCE
-        end
-        stance.current = Stance.JUMPING
-    end
 
     -- Apply horizontal velocity with collision
     local new_x = pos.x + vel.vx * dt
@@ -121,22 +88,22 @@ function PlayerSystem.update(self, dt)
     if vel.vx ~= 0 then
         local check_col
         if vel.vx > 0 then
-            check_col = math.floor((new_x + col.width / 2) / world.BLOCK_SIZE)
+            check_col = math.floor((new_x + col.width / 2) / BLOCK_SIZE)
         else
-            check_col = math.floor((new_x - col.width / 2) / world.BLOCK_SIZE)
+            check_col = math.floor((new_x - col.width / 2) / BLOCK_SIZE)
         end
 
-        local top_row = math.floor((pos.y - col.height / 2) / world.BLOCK_SIZE)
-        local bottom_row = math.floor((pos.y + col.height / 2 - EPSILON) / world.BLOCK_SIZE)
+        local top_row = math.floor((pos.y - col.height / 2) / BLOCK_SIZE)
+        local bottom_row = math.floor((pos.y + col.height / 2 - EPSILON) / BLOCK_SIZE)
 
         for row = top_row, bottom_row do
             local block_def = world:get_block_def(pos.z, check_col, row)
             if block_def and block_def.solid then
                 hit_wall = true
                 if vel.vx > 0 then
-                    pos.x = check_col * world.BLOCK_SIZE - col.width / 2
+                    pos.x = check_col * BLOCK_SIZE - col.width / 2
                 else
-                    pos.x = (check_col + 1) * world.BLOCK_SIZE + col.width / 2
+                    pos.x = (check_col + 1) * BLOCK_SIZE + col.width / 2
                 end
                 break
             end
@@ -148,20 +115,20 @@ function PlayerSystem.update(self, dt)
     end
 
     -- Apply vertical velocity with collision
-    local new_y = pos.y + vel.vy * dt
+    local new_y = pos.y + (vel.vy * (stance.crouched and 0.5 or 1)) * dt
 
     -- Ground collision
     local was_on_ground = on_ground
     on_ground = false
     local bottom_y = new_y + col.height / 2
-    local left_col = math.floor((pos.x - col.width / 2) / world.BLOCK_SIZE)
-    local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / world.BLOCK_SIZE)
-    local bottom_row = math.floor(bottom_y / world.BLOCK_SIZE)
+    local left_col = math.floor((pos.x - col.width / 2) / BLOCK_SIZE)
+    local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / BLOCK_SIZE)
+    local bottom_row = math.floor(bottom_y / BLOCK_SIZE)
 
     for c = left_col, right_col do
         local block_def = world:get_block_def(pos.z, c, bottom_row)
         if block_def and block_def.solid and vel.vy >= 0 then
-            pos.y = bottom_row * world.BLOCK_SIZE - col.height / 2
+            pos.y = bottom_row * BLOCK_SIZE - col.height / 2
             vel.vy = 0
             on_ground = true
             new_y = pos.y
@@ -171,12 +138,12 @@ function PlayerSystem.update(self, dt)
 
     -- Ceiling collision
     local top_y = new_y - col.height / 2
-    local top_row = math.floor(top_y / world.BLOCK_SIZE)
+    local top_row = math.floor(top_y / BLOCK_SIZE)
 
     for c = left_col, right_col do
         local block_def = world:get_block_def(pos.z, c, top_row)
         if block_def and block_def.solid and vel.vy < 0 then
-            pos.y = (top_row + 1) * world.BLOCK_SIZE + col.height / 2
+            pos.y = (top_row + 1) * BLOCK_SIZE + col.height / 2
             vel.vy = 0
             new_y = pos.y
             break
@@ -188,7 +155,7 @@ function PlayerSystem.update(self, dt)
     end
 
     -- Prevent falling through bottom
-    local max_y = world.HEIGHT * world.BLOCK_SIZE
+    local max_y = world.HEIGHT * BLOCK_SIZE
     if pos.y > max_y then
         pos.y = max_y
         vel.vy = 0
@@ -198,12 +165,7 @@ function PlayerSystem.update(self, dt)
     -- Update stance based on current state
     if on_ground then
         if stance.current == Stance.JUMPING or stance.current == Stance.FALLING then
-            -- Landing: transition to appropriate ground stance
-            if self.components.collider.height <= world.BLOCK_SIZE then
-                stance.current = Stance.CROUCHING
-            else
-                stance.current = Stance.STANDING
-            end
+            stance.current = Stance.STANDING
         end
     else
         -- In air - update based on vertical velocity
@@ -233,34 +195,9 @@ function PlayerSystem.draw(self)
 end
 
 function PlayerSystem.keypressed(self, key)
-    -- Hotbar selection
-    local num = tonumber(key)
-    if num and num >= 1 and num <= self.components.inventory.hotbar_size then
-        self.components.inventory.selected_slot = num
-    end
-
-    -- Layer switching
-    if key == "q" then
-        local target_layer = math.max(-1, self.components.position.z - 1)
-        if self.can_switch_layer(self, target_layer) then
-            self.components.position.z = target_layer
-            self.components.layer.current_layer = target_layer
-        end
-    elseif key == "e" then
-        local target_layer = math.min(1, self.components.position.z + 1)
-        if self.can_switch_layer(self, target_layer) then
-            self.components.position.z = target_layer
-            self.components.layer.current_layer = target_layer
-        end
-    end
-
-    if G:debug() then
-        -- Debug: adjust omnitool tier
-        if key == "=" or key == "+" then
-            self.components.omnitool.tier = self.components.omnitool.tier + 1
-        elseif key == "-" or key == "_" then
-            self.components.omnitool.tier = math.max(0, self.components.omnitool.tier - 1)
-        end
+    -- Delegate to control system
+    if self.systems.control then
+        self.systems.control:keypressed(key)
     end
 end
 
@@ -281,10 +218,10 @@ function PlayerSystem.check_collision(self, x, y, layer)
     local top = y - collider.height / 2
     local bottom = y + collider.height / 2
 
-    local left_col = math.floor(left / world.BLOCK_SIZE)
-    local right_col = math.floor((right - EPSILON) / world.BLOCK_SIZE)
-    local top_row = math.floor(top / world.BLOCK_SIZE)
-    local bottom_row = math.floor((bottom - EPSILON) / world.BLOCK_SIZE)
+    local left_col = math.floor(left / BLOCK_SIZE)
+    local right_col = math.floor((right - EPSILON) / BLOCK_SIZE)
+    local top_row = math.floor(top / BLOCK_SIZE)
+    local bottom_row = math.floor((bottom - EPSILON) / BLOCK_SIZE)
 
     for c = left_col, right_col do
         for r = top_row, bottom_row do
@@ -393,9 +330,9 @@ function PlayerSystem.is_on_ground(self)
 
     -- Check if there's ground directly below the player
     local bottom_y = pos.y + col.height / 2
-    local left_col = math.floor((pos.x - col.width / 2) / world.BLOCK_SIZE)
-    local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / world.BLOCK_SIZE)
-    local bottom_row = math.floor(bottom_y / world.BLOCK_SIZE)
+    local left_col = math.floor((pos.x - col.width / 2) / BLOCK_SIZE)
+    local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / BLOCK_SIZE)
+    local bottom_row = math.floor(bottom_y / BLOCK_SIZE)
 
     for c = left_col, right_col do
         local block_def = world:get_block_def(pos.z, c, bottom_row)
@@ -413,11 +350,11 @@ function PlayerSystem.can_stand_up(self)
     local col = self.components.collider
 
     -- Check if there's space above for standing (need to check one extra block height)
-    local target_y = pos.y - world.BLOCK_SIZE / 2  -- Position after standing
-    local top_y = target_y - world.BLOCK_SIZE  -- Top of standing height
-    local left_col = math.floor((pos.x - col.width / 2) / world.BLOCK_SIZE)
-    local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / world.BLOCK_SIZE)
-    local top_row = math.floor(top_y / world.BLOCK_SIZE)
+    local target_y = pos.y - BLOCK_SIZE / 2  -- Position after standing
+    local top_y = target_y - BLOCK_SIZE  -- Top of standing height
+    local left_col = math.floor((pos.x - col.width / 2) / BLOCK_SIZE)
+    local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / BLOCK_SIZE)
+    local top_row = math.floor(top_y / BLOCK_SIZE)
 
     for c = left_col, right_col do
         local block_def = world:get_block_def(pos.z, c, top_row)

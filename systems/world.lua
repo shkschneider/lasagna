@@ -14,13 +14,12 @@ local WorldSystem = {
     id = "world",
     priority = 10,
     components = {},
-    BLOCK_SIZE = 16,
     WIDTH = 512,
     HEIGHT = 128,
     canvases = {},
 }
 
-function WorldSystem.load(self, seed)
+function WorldSystem.load(self, seed, debug)
     -- Initialize components
     self.components.worlddata = WorldData.new(seed, self.WIDTH, self.HEIGHT)
     log.info("World:", self.components.worlddata.seed)
@@ -33,12 +32,12 @@ function WorldSystem.load(self, seed)
 end
 
 function WorldSystem.create_canvases(self)
-    self.screen_width, self.screen_height = love.graphics.getDimensions()
+    local screen_width, screen_height = love.graphics.getDimensions()
 
     -- Create canvases for each layer
-    self.canvases[-1] = love.graphics.newCanvas(self.screen_width, self.screen_height)
-    self.canvases[0] = love.graphics.newCanvas(self.screen_width, self.screen_height)
-    self.canvases[1] = love.graphics.newCanvas(self.screen_width, self.screen_height)
+    self.canvases[-1] = love.graphics.newCanvas(screen_width, screen_height)
+    self.canvases[0] = love.graphics.newCanvas(screen_width, screen_height)
+    self.canvases[1] = love.graphics.newCanvas(screen_width, screen_height)
 end
 
 function WorldSystem.update(self, dt)
@@ -56,14 +55,6 @@ function WorldSystem.draw(self)
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
 
-    -- Recreate canvases if screen size changed
-    if not self.screen_width or not self.screen_height or
-       self.screen_width ~= screen_width or self.screen_height ~= screen_height then
-        self.screen_width = screen_width
-        self.screen_height = screen_height
-        self:create_canvases()
-    end
-
     local camera_x, camera_y = camera:get_offset()
     local player_x, player_y, player_z = player:get_position()
 
@@ -71,10 +62,10 @@ function WorldSystem.draw(self)
     love.graphics.clear(0.4, 0.6, 0.9, 1)
 
     -- Calculate visible area
-    local start_col = math.floor(camera_x / self.BLOCK_SIZE) - 1
-    local end_col = math.ceil((camera_x + screen_width) / self.BLOCK_SIZE) + 1
-    local start_row = math.floor(camera_y / self.BLOCK_SIZE) - 1
-    local end_row = math.ceil((camera_y + screen_height) / self.BLOCK_SIZE) + 1
+    local start_col = math.floor(camera_x / BLOCK_SIZE) - 1
+    local end_col = math.ceil((camera_x + screen_width) / BLOCK_SIZE) + 1
+    local start_row = math.floor(camera_y / BLOCK_SIZE) - 1
+    local end_row = math.ceil((camera_y + screen_height) / BLOCK_SIZE) + 1
 
     -- Clamp to world bounds
     start_col = math.max(0, start_col)
@@ -99,9 +90,9 @@ function WorldSystem.draw(self)
                         -- Ensure blocks are drawn with full opacity (alpha=1) to properly cover layers below
                         local r, g, b = proto.color[1] or 1, proto.color[2] or 1, proto.color[3] or 1
                         love.graphics.setColor(r, g, b, 1)
-                        local x = col * self.BLOCK_SIZE - camera_x
-                        local y = row * self.BLOCK_SIZE - camera_y
-                        love.graphics.rectangle("fill", x, y, self.BLOCK_SIZE, self.BLOCK_SIZE)
+                        local x = col * BLOCK_SIZE - camera_x
+                        local y = row * BLOCK_SIZE - camera_y
+                        love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
                     end
                 end
             end
@@ -264,12 +255,12 @@ end
 
 -- World to block coordinate conversion
 function WorldSystem.world_to_block(self, world_x, world_y)
-    return math.floor(world_x / self.BLOCK_SIZE), math.floor(world_y / self.BLOCK_SIZE)
+    return math.floor(world_x / BLOCK_SIZE), math.floor(world_y / BLOCK_SIZE)
 end
 
 -- Block to world coordinate conversion
 function WorldSystem.block_to_world(self, col, row)
-    return col * self.BLOCK_SIZE, row * self.BLOCK_SIZE
+    return col * BLOCK_SIZE, row * BLOCK_SIZE
 end
 
 -- Find spawn position (simplified)
@@ -282,19 +273,17 @@ function WorldSystem.find_spawn_position(self, start_col, start_z)
         local block_def = self.get_block_def(self, z, col, row)
         if block_def and block_def.solid then
             -- Found ground, spawn 2 blocks above
-            local spawn_x = col * self.BLOCK_SIZE + self.BLOCK_SIZE / 2
-            local spawn_y = (row - 2) * self.BLOCK_SIZE + self.BLOCK_SIZE
+            local spawn_x = col * BLOCK_SIZE + BLOCK_SIZE / 2
+            local spawn_y = (row - 2) * BLOCK_SIZE + BLOCK_SIZE
             return spawn_x, spawn_y, z
         end
     end
 
     -- Default spawn
-    return col * self.BLOCK_SIZE, 0, z
+    return col * BLOCK_SIZE, 0, z
 end
 
 function WorldSystem.resize(self, width, height)
-    self.screen_width = width
-    self.screen_height = height
     self:create_canvases()
 end
 
