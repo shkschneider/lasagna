@@ -41,7 +41,7 @@ function WorldSystem.load(self, seed, debug)
     self.generation_queue_low = {}
     self.queued_columns = {}
     self.active_coroutines = {}
-    
+
     -- Pre-generate spawn area columns (32 to left and right of spawn)
     -- This ensures player doesn't spawn in the air waiting for terrain
     self:pregenerate_spawn_area()
@@ -266,7 +266,7 @@ function WorldSystem.generate_column_immediate(self, z, col)
     if data.generated_columns[key] then
         return
     end
-    
+
     -- Ensure column structure exists
     if not data.columns[z] then
         data.columns[z] = {}
@@ -274,10 +274,10 @@ function WorldSystem.generate_column_immediate(self, z, col)
     if not data.columns[z][col] then
         data.columns[z][col] = {}
     end
-    
+
     -- Generate terrain for this column using Generator module
     Generator.generate_column(data.columns[z][col], col, z, data.height)
-    
+
     -- Mark as generated immediately (no coroutine yield)
     data.generated_columns[key] = true
 end
@@ -285,8 +285,8 @@ end
 -- Pre-generate columns around spawn area (32 to left and right)
 function WorldSystem.pregenerate_spawn_area(self)
     local spawn_col = BLOCK_SIZE  -- Same as used in find_spawn_position
-    local range = 32  -- Generate 32 columns to each side
-    
+    local range = BLOCK_SIZE  -- Generate initial columns to each side
+
     -- Generate for all layers
     for z = LAYER_MIN, LAYER_MAX do
         for offset = -range, range do
@@ -294,7 +294,7 @@ function WorldSystem.pregenerate_spawn_area(self)
             self:generate_column_immediate(z, col)
         end
     end
-    
+
     log.info("Pre-generated spawn area: columns", spawn_col - range, "to", spawn_col + range)
 end
 
