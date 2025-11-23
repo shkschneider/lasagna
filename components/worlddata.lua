@@ -1,20 +1,22 @@
 -- WorldData component
 -- World dimensions and storage
+-- World is infinite horizontally using chunks of 64 columns each
 
 local WorldData = {}
 
-function WorldData.new(seed, width, height)
+function WorldData.new(seed, height)
     return {
         id = "worlddata",
         seed = seed or math.floor(love.math.random() * INFINITY),
-        width = width or 512,
-        height = height or 128,
-        layers = {
+        height = height or 512,
+        -- Chunk-based storage: layers[z][chunk_index] contains 64 columns
+        -- No horizontal width limit - chunks are generated on demand
+        chunks = {
             [-1] = {},
             [0] = {},
             [1] = {},
         },
-        generated_columns = {},
+        generated_chunks = {},
     }
 end
 

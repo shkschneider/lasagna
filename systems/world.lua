@@ -17,14 +17,13 @@ local WorldSystem = {
     id = "world",
     priority = 10,
     components = {},
-    WIDTH = 512,
     HEIGHT = 512,
     canvases = {},
 }
 
 function WorldSystem.load(self, seed, debug)
-    -- Initialize components
-    self.components.worlddata = WorldData.new(seed, self.WIDTH, self.HEIGHT)
+    -- Initialize components (no width - infinite horizontal)
+    self.components.worlddata = WorldData.new(seed, self.HEIGHT)
     log.info("World:", self.components.worlddata.seed)
 
     -- Seed the noise library
@@ -66,9 +65,7 @@ function WorldSystem.draw(self)
     local start_row = math.floor(camera_y / BLOCK_SIZE) - 1
     local end_row = math.ceil((camera_y + screen_height) / BLOCK_SIZE) + 1
 
-    -- Clamp to world bounds
-    start_col = math.max(0, start_col)
-    end_col = math.min(self.WIDTH - 1, end_col)
+    -- Clamp to world bounds (vertical only - horizontal is infinite)
     start_row = math.max(0, start_row)
     end_row = math.min(self.HEIGHT - 1, end_row)
 
@@ -188,47 +185,64 @@ function WorldSystem.draw(self)
     love.graphics.setBlendMode("alpha")
 end
 
--- Generate a column if not already generated
-function WorldSystem.generate_column(self, z, col)
+-- Helper: Convert column coordinate to chunk index and local column
+function WorldSystem.col_to_chunk(self, col)
+    local chunk_index = math.floor(col / CHUNK_SIZE)
+    local local_col = col % CHUNK_SIZE
+    -- Handle negative columns correctly
+    if col < 0 and local_col ~= 0 then
+        chunk_index = chunk_index - 1
+        local_col = CHUNK_SIZE + local_col
+    end
+    return chunk_index, local_col
+end
+
+-- Generate a chunk if not already generated
+function WorldSystem.generate_chunk(self, z, chunk_index)
     local data = self.components.worlddata
 
-    if data.generated_columns[z] and data.generated_columns[z][col] then
+    if data.generated_chunks[z] and data.generated_chunks[z][chunk_index] then
         return
     end
 
-    if not data.generated_columns[z] then
-        data.generated_columns[z] = {}
+    if not data.generated_chunks[z] then
+        data.generated_chunks[z] = {}
     end
 
-    data.generated_columns[z][col] = true
+    data.generated_chunks[z][chunk_index] = true
 
-    if not data.layers[z][col] then
-        data.layers[z][col] = {}
+    if not data.chunks[z][chunk_index] then
+        data.chunks[z][chunk_index] = {}
     end
 
-    -- Generate terrain for this column
-    self.generate_terrain(self, z, col)
-end
-
--- Generate terrain for a column
-function WorldSystem.generate_terrain(self, z, col)
-    local data = self.components.worlddata
-    Generator.generate_column(data.layers, z, col, data.height)
+    -- Generate all columns in this chunk
+    local start_col = chunk_index * CHUNK_SIZE
+    for i = 0, CHUNK_SIZE - 1 do
+        local world_col = start_col + i
+        if not data.chunks[z][chunk_index][i] then
+            data.chunks[z][chunk_index][i] = {}
+        end
+        -- Generate terrain for this column
+        -- Pass: chunk_data, local_col, world_col, z, world_height
+        Generator.generate_column(data.chunks[z][chunk_index], i, world_col, z, data.height)
+    end
 end
 
 -- Get block at position
 function WorldSystem.get_block_id(self, z, col, row)
-    if col < 0 or col >= self.components.worlddata.width or
-       row < 0 or row >= self.components.worlddata.height then
+    if row < 0 or row >= self.components.worlddata.height then
         return BLOCKS.AIR
     end
 
-    self.generate_column(self, z, col)
+    local chunk_index, local_col = self:col_to_chunk(col)
+    self:generate_chunk(z, chunk_index)
 
-    if self.components.worlddata.layers[z] and
-       self.components.worlddata.layers[z][col] and
-       self.components.worlddata.layers[z][col][row] then
-        return self.components.worlddata.layers[z][col][row]
+    local data = self.components.worlddata
+    if data.chunks[z] and
+       data.chunks[z][chunk_index] and
+       data.chunks[z][chunk_index][local_col] and
+       data.chunks[z][chunk_index][local_col][row] then
+        return data.chunks[z][chunk_index][local_col][row]
     end
 
     return BLOCKS.AIR
@@ -242,18 +256,19 @@ end
 
 -- Set block at position
 function WorldSystem.set_block(self, z, col, row, block_id)
-    if col < 0 or col >= self.components.worlddata.width or
-       row < 0 or row >= self.components.worlddata.height then
+    if row < 0 or row >= self.components.worlddata.height then
         return false
     end
 
-    self.generate_column(self, z, col)
+    local chunk_index, local_col = self:col_to_chunk(col)
+    self:generate_chunk(z, chunk_index)
 
-    if not self.components.worlddata.layers[z][col] then
-        self.components.worlddata.layers[z][col] = {}
+    local data = self.components.worlddata
+    if not data.chunks[z][chunk_index][local_col] then
+        data.chunks[z][chunk_index][local_col] = {}
     end
 
-    self.components.worlddata.layers[z][col][row] = block_id
+    data.chunks[z][chunk_index][local_col][row] = block_id
     return true
 end
 
