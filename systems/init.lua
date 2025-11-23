@@ -6,13 +6,13 @@ function Systems.get(name)
     return G.systems[name]
 end
 
-function Systems.load(systems, seed)
+function Systems.load(systems, seed, debug)
     local ordered = {}
     for id, system in Systems.iterate(systems) do
         assert(id)
         log.debug("system:", id)
         if id == "world" then
-            system:load(seed)
+            system:load(seed, debug)
             x, y, z = system:find_spawn_position(math.floor(system.WIDTH / 2), 0)
         elseif id == "player" then
             assert(x and y and z)
@@ -21,7 +21,7 @@ function Systems.load(systems, seed)
             assert(x and y)
             system:load(x, y)
         elseif type(system.load) == "function" then
-            system:load()
+            system:load(seed, debug)
         else
             log.warn("System", id, "without load()")
         end

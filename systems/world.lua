@@ -8,6 +8,8 @@ local Systems = require "systems"
 local WorldData = require "components.worlddata"
 local Registry = require "registries"
 
+local ONLY_CURRENT_LAYER_VISIBLE = false
+
 local BLOCKS = Registry.blocks()
 
 local WorldSystem = {
@@ -47,10 +49,6 @@ end
 function WorldSystem.draw(self)
     local player = Systems.get("player")
     local camera = Systems.get("camera")
-
-    if not player or not camera then
-        return
-    end
 
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
@@ -105,34 +103,42 @@ function WorldSystem.draw(self)
     -- Set blend mode to ensure proper layering (solid blocks should completely cover layers below)
     love.graphics.setBlendMode("alpha", "premultiplied")
 
-    -- Draw back layer (dimmed)
-    if self.canvases[-1] then
-        if player_z == -1 then
-            love.graphics.setColor(1, 1, 1, 1)
-        else
-            love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Dimmed
+    local debug = Systems.get("debug")
+
+    if not ONLY_CURRENT_LAYER_VISIBLE or (debug and (not debug.enabled or player_z == -1)) then
+        -- Draw back layer (dimmed)
+        if self.canvases[-1] then
+            if player_z == -1 then
+                love.graphics.setColor(1, 1, 1, 1)
+            else
+                love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Dimmed
+            end
+            love.graphics.draw(self.canvases[-1], 0, 0)
         end
-        love.graphics.draw(self.canvases[-1], 0, 0)
     end
 
-    -- Draw main layer
-    if self.canvases[0] then
-        if player_z == 0 then
-            love.graphics.setColor(1, 1, 1, 1)
-        else
-            love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Dimmed
+    if not ONLY_CURRENT_LAYER_VISIBLE or (debug and (not debug.enabled or player_z == 0)) then
+        -- Draw main layer
+        if self.canvases[0] then
+            if player_z == 0 then
+                love.graphics.setColor(1, 1, 1, 1)
+            else
+                love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Dimmed
+            end
+            love.graphics.draw(self.canvases[0], 0, 0)
         end
-        love.graphics.draw(self.canvases[0], 0, 0)
     end
 
-    -- Draw front layer (semi-transparent)
-    if self.canvases[1] then
-        if player_z == 1 then
-            love.graphics.setColor(1, 1, 1, 1)
-        else
-            love.graphics.setColor(0.33, 0.33, 0.33, 0.33) -- Very dimmed
+    if not ONLY_CURRENT_LAYER_VISIBLE or (debug and (not debug.enabled or player_z == 1)) then
+        -- Draw front layer (semi-transparent)
+        if self.canvases[1] then
+            if player_z == 1 then
+                love.graphics.setColor(1, 1, 1, 1)
+            else
+                love.graphics.setColor(0.33, 0.33, 0.33, 0.33) -- Very dimmed
+            end
+            love.graphics.draw(self.canvases[1], 0, 0)
         end
-        love.graphics.draw(self.canvases[1], 0, 0)
     end
 
     -- Reset blend mode to default
