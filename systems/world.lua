@@ -17,7 +17,7 @@ local WorldSystem = {
     priority = 10,
     components = {},
     WIDTH = 512,
-    HEIGHT = 128,
+    HEIGHT = 512,
     canvases = {},
 }
 
@@ -171,13 +171,13 @@ end
 function WorldSystem.generate_terrain(self, z, col)
     local data = self.components.worlddata
 
-    -- Base terrain height
-    local BASE_HEIGHT = 0.6
+    -- Surface at 3/4 of world height
+    local SURFACE_HEIGHT_RATIO = 0.75
     local BASE_FREQUENCY = 0.02
     local BASE_AMPLITUDE = 15
 
     local noise_val = noise.octave_perlin2d(col * BASE_FREQUENCY, z * 0.1, 4, 0.5, 2.0)
-    local base_height = math.floor(data.height * BASE_HEIGHT + noise_val * BASE_AMPLITUDE)
+    local base_height = math.floor(data.height * SURFACE_HEIGHT_RATIO + noise_val * BASE_AMPLITUDE)
 
     -- Layer-specific height adjustments
     if z == 1 then
@@ -189,7 +189,7 @@ function WorldSystem.generate_terrain(self, z, col)
     -- Fill terrain
     for row = 0, data.height - 1 do
         if row >= base_height then
-            -- Underground - stone
+            -- Underground - stone by default
             data.layers[z][col][row] = BLOCKS.STONE
         else
             -- Above ground - air
@@ -197,7 +197,77 @@ function WorldSystem.generate_terrain(self, z, col)
         end
     end
 
-    -- Add dirt z
+    -- Add bedrock layer at the bottom (rows 510-511)
+    if data.height >= 512 then
+        data.layers[z][col][510] = BLOCKS.BEDROCK
+        data.layers[z][col][511] = BLOCKS.BEDROCK
+    end
+
+    -- Replace stone with ores using 3D noise for vein generation
+    for row = base_height, data.height - 3 do -- Stop before bedrock
+        if data.layers[z][col][row] == BLOCKS.STONE then
+            -- Ore generation based on depth and noise
+            local depth_from_surface = row - base_height
+            
+            -- Coal: shallow, common (depth 5-100)
+            if depth_from_surface >= 5 and depth_from_surface <= 100 then
+                local coal_noise = noise.perlin3d(col * 0.08, row * 0.08, z * 0.08)
+                if coal_noise > 0.5 then
+                    data.layers[z][col][row] = BLOCKS.COAL
+                end
+            end
+            
+            -- Copper: shallow to mid (depth 10-120)
+            if depth_from_surface >= 10 and depth_from_surface <= 120 then
+                local copper_noise = noise.perlin3d(col * 0.07, row * 0.07, z * 0.07 + 100)
+                if copper_noise > 0.55 then
+                    data.layers[z][col][row] = BLOCKS.COPPER_ORE
+                end
+            end
+            
+            -- Tin: shallow to mid (depth 10-120)
+            if depth_from_surface >= 10 and depth_from_surface <= 120 then
+                local tin_noise = noise.perlin3d(col * 0.07, row * 0.07, z * 0.07 + 200)
+                if tin_noise > 0.55 then
+                    data.layers[z][col][row] = BLOCKS.TIN_ORE
+                end
+            end
+            
+            -- Iron: mid depth (depth 40-150)
+            if depth_from_surface >= 40 and depth_from_surface <= 150 then
+                local iron_noise = noise.perlin3d(col * 0.06, row * 0.06, z * 0.06 + 300)
+                if iron_noise > 0.58 then
+                    data.layers[z][col][row] = BLOCKS.IRON_ORE
+                end
+            end
+            
+            -- Lead: mid to deep (depth 50-160)
+            if depth_from_surface >= 50 and depth_from_surface <= 160 then
+                local lead_noise = noise.perlin3d(col * 0.06, row * 0.06, z * 0.06 + 400)
+                if lead_noise > 0.6 then
+                    data.layers[z][col][row] = BLOCKS.LEAD_ORE
+                end
+            end
+            
+            -- Zinc: mid to deep (depth 50-160)
+            if depth_from_surface >= 50 and depth_from_surface <= 160 then
+                local zinc_noise = noise.perlin3d(col * 0.06, row * 0.06, z * 0.06 + 500)
+                if zinc_noise > 0.6 then
+                    data.layers[z][col][row] = BLOCKS.ZINC_ORE
+                end
+            end
+            
+            -- Cobalt: deep and rare (depth 80+)
+            if depth_from_surface >= 80 then
+                local cobalt_noise = noise.perlin3d(col * 0.05, row * 0.05, z * 0.05 + 600)
+                if cobalt_noise > 0.7 then -- Very rare threshold
+                    data.layers[z][col][row] = BLOCKS.COBALT_ORE
+                end
+            end
+        end
+    end
+
+    -- Add dirt layer on top of stone (random 5-15 blocks)
     local DIRT_MIN_DEPTH = 5
     local DIRT_MAX_DEPTH = 15
     local dirt_depth = DIRT_MIN_DEPTH + math.floor((DIRT_MAX_DEPTH - DIRT_MIN_DEPTH) *
@@ -209,7 +279,7 @@ function WorldSystem.generate_terrain(self, z, col)
         end
     end
 
-    -- Grass on surface dirt exposed to air
+    -- Grass on the topmost dirt exposed to air
     if base_height > 0 and base_height < data.height then
         if data.layers[z][col][base_height] == BLOCKS.DIRT and
            data.layers[z][col][base_height - 1] == BLOCKS.AIR then
