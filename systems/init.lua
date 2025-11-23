@@ -34,7 +34,7 @@ function Systems.iterate(systems)
         list[#list + 1] = system
     end
     table.sort(list, function(a, b)
-        return (a.priority or 1e9) < (b.priority or 1e9)
+        return (a.priority or INFINITY) < (b.priority or INFINITY)
     end)
     local i = 0
     return function()

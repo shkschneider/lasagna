@@ -218,7 +218,6 @@ end
 function PlayerSystem.check_collision(self, x, y, layer)
     local world = Systems.get("world")
     local collider = self.components.collider
-    local EPSILON = 0.0001
 
     local left = x - collider.width / 2
     local right = x + collider.width / 2
