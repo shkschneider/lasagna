@@ -197,11 +197,9 @@ function WorldSystem.generate_terrain(self, z, col)
         end
     end
 
-    -- Add bedrock layer at the bottom (rows 510-511)
-    if data.height >= 512 then
-        data.layers[z][col][510] = BLOCKS.BEDROCK
-        data.layers[z][col][511] = BLOCKS.BEDROCK
-    end
+    -- Add bedrock layer at the bottom (last 2 rows)
+    data.layers[z][col][data.height - 2] = BLOCKS.BEDROCK
+    data.layers[z][col][data.height - 1] = BLOCKS.BEDROCK
 
     -- Replace stone with ores using 3D noise for vein generation
     for row = base_height, data.height - 3 do -- Stop before bedrock
