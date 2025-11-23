@@ -89,8 +89,8 @@ function PlayerSystem.update(self, dt)
     -- Check if on ground first
     local on_ground = self:is_on_ground()
     
-    -- Track fall start position
-    if not on_ground and stance.current == Stance.FALLING then
+    -- Track fall start position when first becoming airborne
+    if not on_ground then
         if self.fall_start_y == nil then
             self.fall_start_y = pos.y
         end
@@ -182,21 +182,22 @@ function PlayerSystem.update(self, dt)
 
     -- Update stance based on current state
     if on_ground then
-        if stance.current == Stance.JUMPING or stance.current == Stance.FALLING then
-            -- Calculate fall damage
-            if self.fall_start_y ~= nil and stance.current == Stance.FALLING then
-                local fall_distance = pos.y - self.fall_start_y
-                local fall_blocks = fall_distance / BLOCK_SIZE
-                -- Player is 2 blocks tall, safe fall is 2x height
-                if fall_blocks > PlayerSystem.SAFE_FALL_BLOCKS then
-                    local excess_blocks = fall_blocks - PlayerSystem.SAFE_FALL_BLOCKS
-                    local damage = math.floor(excess_blocks * PlayerSystem.FALL_DAMAGE_PER_BLOCK)
-                    if damage > 0 then
-                        self:hit(damage)
-                    end
+        -- Calculate fall damage on landing if we were airborne
+        if self.fall_start_y ~= nil then
+            local fall_distance = pos.y - self.fall_start_y
+            local fall_blocks = fall_distance / BLOCK_SIZE
+            -- Safe fall is 4 blocks (2x player height, since player is 2 blocks tall)
+            if fall_blocks > PlayerSystem.SAFE_FALL_BLOCKS then
+                local excess_blocks = fall_blocks - PlayerSystem.SAFE_FALL_BLOCKS
+                local damage = math.floor(excess_blocks * PlayerSystem.FALL_DAMAGE_PER_BLOCK)
+                if damage > 0 then
+                    self:hit(damage)
                 end
-                self.fall_start_y = nil
             end
+            self.fall_start_y = nil
+        end
+        
+        if stance.current == Stance.JUMPING or stance.current == Stance.FALLING then
             stance.current = Stance.STANDING
         end
     else
