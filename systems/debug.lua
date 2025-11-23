@@ -21,8 +21,8 @@ function Debug.draw(self)
     if self.enabled then
         local player = Systems.get("player")
         love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.print(string.format("State: %s", G.components.state), 10, 120)
         love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
+        love.graphics.print(string.format("GameState: %s", G.components.gamestate:tostring()), 10, 120)
         love.graphics.print(string.format("TimeScale: %s", G.components.timescale:tostring()), 10, 140)
 
         -- Display player stance

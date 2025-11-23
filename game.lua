@@ -4,7 +4,7 @@
 local log = require "lib.log"
 local Systems = require "systems"
 local TimeScale = require "components.timescale"
-local States = require "core.states"
+local GameState = require "components.gamestate"
 
 LAYER_MIN = -1
 LAYER_DEFAULT = 0
@@ -13,7 +13,7 @@ LAYER_MAX = 1
 local Game = {
     priority = 0,
     components = {
-        state = States.BOOT,
+        state = GameState.new(GameState.BOOT),
         timer = 0,
     },
     systems = {
@@ -30,18 +30,17 @@ local Game = {
 }
 
 function Game.load(self, seed, debug)
-    log.info("Game", "LOADING")
-
     -- Initialize components
-    self.components.state = States.LOADING
+    self.components.gamestate = GameState.new(GameState.LOAD)
+    log.info("Game", self.components.gamestate:tostring())
     self.components.timescale = TimeScale.new(1, false)
 
     -- Load systems in specific order with correct parameters
     Systems.load(self.systems, seed)
 
     -- Transition to playing state
-    self.components.state = States.PLAYING
-    log.info("Game", "PLAYING")
+    self.components.gamestate = GameState.new(GameState.PLAY)
+    log.info("Game", self.components.gamestate:tostring())
 end
 
 function Game.update(self, dt)
@@ -75,6 +74,8 @@ end
 function Game.keypressed(self, key)
     -- Handle escape
     if key == "escape" then
+        self.components.gamestate = GameState.new(GameState.QUIT)
+        log.info("Game", self.components.gamestate:tostring())
         love.event.quit()
         return
     end
