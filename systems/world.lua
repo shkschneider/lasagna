@@ -119,7 +119,7 @@ function WorldSystem.draw(self)
         if player_z == -1 then
             love.graphics.setColor(1, 1, 1, 1)
         else
-            love.graphics.setColor(0.5, 0.5, 0.5, 1) -- Dimmed
+            love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Dimmed
         end
         love.graphics.draw(self.canvases[-1], 0, 0)
     end
@@ -129,7 +129,7 @@ function WorldSystem.draw(self)
         if player_z == 0 then
             love.graphics.setColor(1, 1, 1, 1)
         else
-            love.graphics.setColor(0.7, 0.7, 0.7, 1) -- Slightly dimmed
+            love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Dimmed
         end
         love.graphics.draw(self.canvases[0], 0, 0)
     end
@@ -139,7 +139,7 @@ function WorldSystem.draw(self)
         if player_z == 1 then
             love.graphics.setColor(1, 1, 1, 1)
         else
-            love.graphics.setColor(1, 1, 1, 0.6) -- Semi-transparent
+            love.graphics.setColor(0.33, 0.33, 0.33, 0.33) -- Very dimmed
         end
         love.graphics.draw(self.canvases[1], 0, 0)
     end
@@ -184,9 +184,9 @@ function WorldSystem.generate_terrain(self, z, col)
 
     -- Layer-specific height adjustments
     if z == 1 then
-        base_height = base_height - 5
+        base_height = base_height + 2
     elseif z == -1 then
-        base_height = base_height + 5
+        base_height = base_height - 2
     end
 
     -- Fill terrain
