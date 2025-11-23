@@ -19,13 +19,12 @@ local WorldSystem = {
     components = {},
     HEIGHT = 512,
     canvases = {},
-    -- Coroutine-based chunk generation
-    generation_queue_high = {},  -- High priority queue (visible chunks)
-    generation_queue_low = {},   -- Low priority queue (background chunks)
-    queued_chunks = {},          -- Hash table to track queued chunks (O(1) lookup)
+    -- Coroutine-based column generation
+    generation_queue_high = {},  -- High priority queue (visible columns)
+    generation_queue_low = {},   -- Low priority queue (background columns)
+    queued_columns = {},         -- Hash table to track queued columns (O(1) lookup)
     active_coroutines = {},      -- Active generation coroutines
-    max_coroutines = 4,          -- Maximum concurrent chunk generations
-    YIELD_FREQUENCY = 16,        -- Yield every N columns during generation
+    max_coroutines = 8,          -- Maximum concurrent column generations (increased for finer granularity)
 }
 
 function WorldSystem.load(self, seed, debug)
@@ -42,7 +41,7 @@ function WorldSystem.load(self, seed, debug)
     -- Initialize generation queues
     self.generation_queue_high = {}
     self.generation_queue_low = {}
-    self.queued_chunks = {}
+    self.queued_columns = {}
     self.active_coroutines = {}
 end
 
@@ -56,7 +55,7 @@ function WorldSystem.create_canvases(self)
 end
 
 function WorldSystem.update(self, dt)
-    -- Process pending chunk generation coroutines
+    -- Process pending column generation coroutines
     local completed = {}
     
     for key, co in pairs(self.active_coroutines) do
@@ -76,7 +75,7 @@ function WorldSystem.update(self, dt)
     -- Clean up completed coroutines and queued tracking
     for _, key in ipairs(completed) do
         self.active_coroutines[key] = nil
-        self.queued_chunks[key] = nil
+        self.queued_columns[key] = nil
     end
     
     -- Count active coroutines
@@ -85,33 +84,32 @@ function WorldSystem.update(self, dt)
         active_count = active_count + 1
     end
     
-    -- Start new coroutines if we have capacity and pending chunks
+    -- Start new coroutines if we have capacity and pending columns
     -- Process high priority queue first, then low priority
     while active_count < self.max_coroutines do
-        local chunk_info = nil
+        local col_info = nil
         
         -- Try high priority queue first
         if #self.generation_queue_high > 0 then
-            chunk_info = table.remove(self.generation_queue_high, 1)
+            col_info = table.remove(self.generation_queue_high, 1)
         elseif #self.generation_queue_low > 0 then
-            chunk_info = table.remove(self.generation_queue_low, 1)
+            col_info = table.remove(self.generation_queue_low, 1)
         else
-            break  -- No more chunks to generate
+            break  -- No more columns to generate
         end
         
-        local key = string.format("%d_%d", chunk_info.z, chunk_info.chunk_index)
+        local key = string.format("%d_%d", col_info.z, col_info.col)
         
         -- Check if not already generating or generated
         local data = self.components.worlddata
-        local already_done = (data.generated_chunks[chunk_info.z] and data.generated_chunks[chunk_info.z][chunk_info.chunk_index]) or
-                             (data.generating_chunks[chunk_info.z] and data.generating_chunks[chunk_info.z][chunk_info.chunk_index])
+        local already_done = (data.generated_columns[key] == true) or (data.generating_columns[key] == true)
         
         if not self.active_coroutines[key] and not already_done then
             -- Remove from tracking only when we actually start generating
-            self.queued_chunks[key] = nil
+            self.queued_columns[key] = nil
             
             local co = coroutine.create(function()
-                self:generate_chunk_sync(chunk_info.z, chunk_info.chunk_index)
+                self:generate_column_sync(col_info.z, col_info.col)
             end)
             self.active_coroutines[key] = co
             active_count = active_count + 1
@@ -123,13 +121,11 @@ function WorldSystem.update(self, dt)
                 self.active_coroutines[key] = nil
                 active_count = active_count - 1
                 -- Clear generating flag on error
-                if data.generating_chunks[chunk_info.z] then
-                    data.generating_chunks[chunk_info.z][chunk_info.chunk_index] = nil
-                end
+                data.generating_columns[key] = nil
             end
         else
-            -- Chunk already generating or generated, remove from tracking
-            self.queued_chunks[key] = nil
+            -- Column already generating or generated, remove from tracking
+            self.queued_columns[key] = nil
         end
     end
 end
@@ -289,68 +285,60 @@ function WorldSystem.col_to_chunk(self, col)
     return chunk_index, local_col
 end
 
--- Generate a chunk synchronously (called by coroutine)
-function WorldSystem.generate_chunk_sync(self, z, chunk_index)
+-- Generate a single column synchronously (called by coroutine)
+function WorldSystem.generate_column_sync(self, z, col)
     local data = self.components.worlddata
+    local key = string.format("%d_%d", z, col)
 
     -- Check if already generated
-    if data.generated_chunks[z] and data.generated_chunks[z][chunk_index] then
+    if data.generated_columns[key] then
         return
-    end
-
-    -- Initialize structures
-    if not data.generating_chunks[z] then
-        data.generating_chunks[z] = {}
-    end
-    if not data.generated_chunks[z] then
-        data.generated_chunks[z] = {}
     end
     
     -- Mark as generating to prevent duplicate generation
-    data.generating_chunks[z][chunk_index] = true
+    data.generating_columns[key] = true
 
+    -- Get chunk coordinates
+    local chunk_index, local_col = self:col_to_chunk(col)
+    
+    -- Ensure chunk structure exists
+    if not data.chunks[z] then
+        data.chunks[z] = {}
+    end
     if not data.chunks[z][chunk_index] then
         data.chunks[z][chunk_index] = {}
     end
-
-    -- Generate all columns in this chunk
-    local start_col = chunk_index * CHUNK_SIZE
-    for i = 0, CHUNK_SIZE - 1 do
-        local world_col = start_col + i
-        if not data.chunks[z][chunk_index][i] then
-            data.chunks[z][chunk_index][i] = {}
-        end
-        -- Generate terrain for this column
-        -- Pass: chunk_data, local_col, world_col, z, world_height
-        Generator.generate_column(data.chunks[z][chunk_index], i, world_col, z, data.height)
-        
-        -- Yield periodically to avoid blocking
-        if i % self.YIELD_FREQUENCY == 0 then
-            coroutine.yield()
-        end
+    if not data.chunks[z][chunk_index][local_col] then
+        data.chunks[z][chunk_index][local_col] = {}
     end
     
-    -- Chunk generation complete - mark as generated and no longer generating
-    data.generating_chunks[z][chunk_index] = nil
-    data.generated_chunks[z][chunk_index] = true
+    -- Generate terrain for this column
+    -- Pass: chunk_data, local_col, world_col, z, world_height
+    Generator.generate_column(data.chunks[z][chunk_index], local_col, col, z, data.height)
+    
+    -- Single yield after generation to allow other coroutines to run
+    coroutine.yield()
+    
+    -- Column generation complete - mark as generated and no longer generating
+    data.generating_columns[key] = nil
+    data.generated_columns[key] = true
 end
 
--- Queue a chunk for generation (non-blocking)
--- priority: true for immediate generation (visible chunks), false for background
-function WorldSystem.generate_chunk(self, z, chunk_index, priority)
+-- Queue a column for generation (non-blocking)
+-- priority: true for immediate generation (visible columns), false for background
+function WorldSystem.generate_column(self, z, col, priority)
     local data = self.components.worlddata
+    local key = string.format("%d_%d", z, col)
 
     -- Check if already generated
-    if data.generated_chunks[z] and data.generated_chunks[z][chunk_index] then
+    if data.generated_columns[key] then
         return true  -- Already generated
     end
     
     -- Check if currently generating
-    if data.generating_chunks[z] and data.generating_chunks[z][chunk_index] then
+    if data.generating_columns[key] then
         return false  -- Currently generating
     end
-    
-    local key = string.format("%d_%d", z, chunk_index)
     
     -- Check if coroutine is active
     if self.active_coroutines[key] then
@@ -358,23 +346,23 @@ function WorldSystem.generate_chunk(self, z, chunk_index, priority)
     end
     
     -- Check if already queued (O(1) lookup)
-    if self.queued_chunks[key] then
+    if self.queued_columns[key] then
         return false  -- Already queued
     end
     
     -- Add to generation queue
-    local chunk_info = {z = z, chunk_index = chunk_index}
+    local col_info = {z = z, col = col}
     
     if priority then
         -- High priority: add to high priority queue (O(1))
-        table.insert(self.generation_queue_high, chunk_info)
+        table.insert(self.generation_queue_high, col_info)
     else
         -- Normal priority: add to low priority queue (O(1))
-        table.insert(self.generation_queue_low, chunk_info)
+        table.insert(self.generation_queue_low, col_info)
     end
     
-    -- Track that this chunk is queued (O(1))
-    self.queued_chunks[key] = true
+    -- Track that this column is queued (O(1))
+    self.queued_columns[key] = true
     
     return false  -- Queued for generation
 end
@@ -386,8 +374,8 @@ function WorldSystem.get_block_id(self, z, col, row)
     end
 
     local chunk_index, local_col = self:col_to_chunk(col)
-    -- Request chunk generation with high priority (visible chunk)
-    self:generate_chunk(z, chunk_index, true)
+    -- Request column generation with high priority (visible column)
+    self:generate_column(z, col, true)
 
     local data = self.components.worlddata
     if data.chunks[z] and
@@ -413,8 +401,8 @@ function WorldSystem.set_block(self, z, col, row, block_id)
     end
 
     local chunk_index, local_col = self:col_to_chunk(col)
-    -- Request chunk generation with high priority (user action)
-    self:generate_chunk(z, chunk_index, true)
+    -- Request column generation with high priority (user action)
+    self:generate_column(z, col, true)
 
     local data = self.components.worlddata
     
