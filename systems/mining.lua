@@ -222,10 +222,7 @@ function MiningSystem.complete_mining(self)
         
         local new_col, new_row = world:world_to_block(world_x, world_y)
         
-        -- Cancel current mining state first
-        self:cancel_mining()
-        
-        -- Start mining the new block under cursor
+        -- Start mining the new block under cursor (this will reset the state)
         self:start_mining(new_col, new_row, world, player)
     else
         -- Reset mining state
