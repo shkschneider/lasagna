@@ -182,6 +182,11 @@ function WorldSystem.generate_terrain(self, z, col)
     local TRANSITION_DEPTH = 10 -- Transition zone depth
     local TRANSITION_BASE_THRESHOLD = 0.3 -- Base noise threshold for stone
     local TRANSITION_THRESHOLD_RANGE = 0.6 -- Range of threshold adjustment
+    
+    -- Noise sampling constants
+    local NOISE_SCALE_HORIZONTAL = 0.1 -- Horizontal noise sampling scale
+    local NOISE_SCALE_VERTICAL = 0.1 -- Vertical noise sampling scale
+    local NOISE_LAYER_OFFSET = 10 -- Layer separation in noise space
 
     local noise_val = noise.octave_perlin2d(col * BASE_FREQUENCY, z * 0.1, 4, 0.5, 2.0)
     local base_height = math.floor(data.height * BASE_HEIGHT + noise_val * BASE_AMPLITUDE)
@@ -203,17 +208,20 @@ function WorldSystem.generate_terrain(self, z, col)
             -- Below surface - determine if dirt or stone based on depth
             local depth_below_surface = row - base_height
             
-            -- Dirt layer: 0-20 blocks below surface with gradual transition to stone
-            -- First 10 blocks: mostly dirt
-            -- Next 10 blocks: mixed dirt/stone transition
-            -- Below 20 blocks: all stone
+            -- Three zones based on depth:
+            -- 0 to DIRT_DEPTH: Pure dirt layer
+            -- DIRT_DEPTH to DIRT_DEPTH+TRANSITION_DEPTH: Gradual transition
+            -- Beyond DIRT_DEPTH+TRANSITION_DEPTH: Solid stone
             if depth_below_surface < DIRT_DEPTH then
                 -- Shallow: all dirt
                 data.layers[z][col][row] = BLOCKS.DIRT
             elseif depth_below_surface < DIRT_DEPTH + TRANSITION_DEPTH then
                 -- Transition zone: use noise to mix dirt and stone
                 -- Use consistent 2D coordinates for noise sampling
-                local transition_noise = noise.perlin2d(col * 0.1, (row - base_height) * 0.1 + z * 10)
+                local transition_noise = noise.perlin2d(
+                    col * NOISE_SCALE_HORIZONTAL, 
+                    depth_below_surface * NOISE_SCALE_VERTICAL + z * NOISE_LAYER_OFFSET
+                )
                 local stone_chance = (depth_below_surface - DIRT_DEPTH) / TRANSITION_DEPTH -- 0 at start, 1 at end
                 local threshold = TRANSITION_BASE_THRESHOLD - stone_chance * TRANSITION_THRESHOLD_RANGE
                 if transition_noise > threshold then
