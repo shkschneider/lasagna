@@ -79,6 +79,9 @@ function WorldSystem.draw(self)
             love.graphics.setCanvas(canvas)
             love.graphics.clear(0, 0, 0, 0)
 
+            -- Check if this is the layer above the player
+            local is_layer_above = (layer == player_z + 1)
+
             -- Draw blocks
             for col = start_col, end_col do
                 for row = start_row, end_row do
@@ -86,12 +89,49 @@ function WorldSystem.draw(self)
                     local proto = Registry.Blocks:get(block_id)
 
                     if proto and proto.solid then
-                        -- Ensure blocks are drawn with full opacity (alpha=1) to properly cover layers below
-                        local r, g, b = proto.color[1] or 1, proto.color[2] or 1, proto.color[3] or 1
-                        love.graphics.setColor(r, g, b, 1)
                         local x = col * BLOCK_SIZE - camera_x
                         local y = row * BLOCK_SIZE - camera_y
-                        love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
+
+                        if is_layer_above then
+                            -- Draw only outlines for layer above player
+                            -- Check each direction to see if there's air (draw edge if so)
+                            love.graphics.setColor(1, 1, 1, 0.5)
+                            love.graphics.setLineWidth(1)
+                            
+                            -- Check top
+                            local top_block = self:get_block_id(layer, col, row - 1)
+                            local top_proto = Registry.Blocks:get(top_block)
+                            if not (top_proto and top_proto.solid) then
+                                love.graphics.line(x, y, x + BLOCK_SIZE, y)
+                            end
+                            
+                            -- Check bottom
+                            local bottom_block = self:get_block_id(layer, col, row + 1)
+                            local bottom_proto = Registry.Blocks:get(bottom_block)
+                            if not (bottom_proto and bottom_proto.solid) then
+                                love.graphics.line(x, y + BLOCK_SIZE, x + BLOCK_SIZE, y + BLOCK_SIZE)
+                            end
+                            
+                            -- Check left
+                            local left_block = self:get_block_id(layer, col - 1, row)
+                            local left_proto = Registry.Blocks:get(left_block)
+                            if not (left_proto and left_proto.solid) then
+                                love.graphics.line(x, y, x, y + BLOCK_SIZE)
+                            end
+                            
+                            -- Check right
+                            local right_block = self:get_block_id(layer, col + 1, row)
+                            local right_proto = Registry.Blocks:get(right_block)
+                            if not (right_proto and right_proto.solid) then
+                                love.graphics.line(x + BLOCK_SIZE, y, x + BLOCK_SIZE, y + BLOCK_SIZE)
+                            end
+                        else
+                            -- Normal filled blocks for other layers
+                            -- Ensure blocks are drawn with full opacity (alpha=1) to properly cover layers below
+                            local r, g, b = proto.color[1] or 1, proto.color[2] or 1, proto.color[3] or 1
+                            love.graphics.setColor(r, g, b, 1)
+                            love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
+                        end
                     end
                 end
             end
@@ -111,6 +151,9 @@ function WorldSystem.draw(self)
         if self.canvases[-1] then
             if player_z == -1 then
                 love.graphics.setColor(1, 1, 1, 1)
+            elseif player_z == -2 then
+                -- Layer above player (outlines already have alpha, use full color)
+                love.graphics.setColor(1, 1, 1, 1)
             else
                 love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Dimmed
             end
@@ -123,6 +166,9 @@ function WorldSystem.draw(self)
         if self.canvases[0] then
             if player_z == 0 then
                 love.graphics.setColor(1, 1, 1, 1)
+            elseif player_z == -1 then
+                -- Layer above player (outlines already have alpha, use full color)
+                love.graphics.setColor(1, 1, 1, 1)
             else
                 love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Dimmed
             end
@@ -134,6 +180,9 @@ function WorldSystem.draw(self)
         -- Draw front layer (semi-transparent)
         if self.canvases[1] then
             if player_z == 1 then
+                love.graphics.setColor(1, 1, 1, 1)
+            elseif player_z == 0 then
+                -- Layer above player (outlines already have alpha, use full color)
                 love.graphics.setColor(1, 1, 1, 1)
             else
                 love.graphics.setColor(0.33, 0.33, 0.33, 0.33) -- Very dimmed
