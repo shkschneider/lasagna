@@ -7,10 +7,6 @@ local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 
 -- Layer constants
--- TODO: These should be defined in a shared location (e.g., world system or constants module)
--- to avoid inconsistency if the layer range changes
-local MIN_LAYER = -1
-local MAX_LAYER = 1
 
 local BuildingSystem = {
     id = "building",
@@ -65,25 +61,25 @@ end
 
 function BuildingSystem.has_adjacent_layer_block(self, col, row, layer)
     local world = Systems.get("world")
-    
+
     -- Check for solid blocks at the same position in layers above and below
-    
+
     -- Check layer below (if not already at bottom layer)
-    if layer - 1 >= MIN_LAYER then
+    if layer - 1 >= LAYER_MIN then
         local proto = world:get_block_def(layer - 1, col, row)
         if proto and proto.solid then
             return true
         end
     end
-    
+
     -- Check layer above (if not already at top layer)
-    if layer + 1 <= MAX_LAYER then
+    if layer + 1 <= LAYER_MAX then
         local proto = world:get_block_def(layer + 1, col, row)
         if proto and proto.solid then
             return true
         end
     end
-    
+
     return false
 end
 
@@ -107,7 +103,7 @@ function BuildingSystem.place_block(self, col, row)
     -- Check if there's at least one adjacent solid block in same layer OR in adjacent layers
     local has_same_layer_adjacent = self:has_adjacent_block(col, row, player_z)
     local has_adjacent_layer = self:has_adjacent_layer_block(col, row, player_z)
-    
+
     -- Allow placement if:
     -- 1. There's a solid block in the same layer adjacent, OR
     -- 2. There's a solid block in an adjacent layer at the same position

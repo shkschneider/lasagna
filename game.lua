@@ -6,6 +6,10 @@ local Systems = require "systems"
 local TimeScale = require "components.timescale"
 local States = require "core.states"
 
+LAYER_MIN = -1
+LAYER_DEFAULT = 0
+LAYER_MAX = 1
+
 local Game = {
     priority = 0,
     components = {

@@ -149,11 +149,11 @@ function DropSystem.draw(self)
             local height = world.BLOCK_SIZE / 2
             local x = ent.position.x - camera_x - width / 2
             local y = ent.position.y - camera_y - height / 2
-            
+
             -- Draw the colored block
             love.graphics.setColor(proto.color)
             love.graphics.rectangle("fill", x, y, width, height)
-            
+
             -- Draw 1px white border
             love.graphics.setColor(1, 1, 1, 1)
             love.graphics.rectangle("line", x, y, width, height)
@@ -172,7 +172,7 @@ function DropSystem.draw(self)
             end
         end
     end
-    
+
     -- Reset color to white for subsequent rendering
     love.graphics.setColor(1, 1, 1, 1)
 end

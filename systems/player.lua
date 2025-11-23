@@ -27,11 +27,11 @@ local PlayerSystem = {
     JUMP_FORCE = 300,
 }
 
-function PlayerSystem.load(self, x, y, layer)
+function PlayerSystem.load(self, x, y, z)
     local world = Systems.get("world")
 
     -- Initialize player components
-    self.components.position = Position.new(x, y, layer)
+    self.components.position = Position.new(x or 0, y or 0, z or LAYER_DEFAULT)
     self.components.velocity = Velocity.new(0, 0)
     self.components.physics = Physics.new(800, 0.95)
     self.components.collider = Collider.new(world.BLOCK_SIZE, world.BLOCK_SIZE * 2)
