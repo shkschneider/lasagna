@@ -9,9 +9,7 @@ local UISystem = {
     priority = 110,
 }
 
-function UISystem.load(self)
-    self.screen_width, self.screen_height = love.graphics.getDimensions()
-end
+function UISystem.load(self) end
 
 function UISystem.draw(self)
     local player = Systems.get("player")
@@ -93,11 +91,6 @@ function UISystem.draw(self)
             love.graphics.print(text, (screen_width - text_width) / 2, hotbar_y - 25)
         end
     end
-end
-
-function UISystem.resize(self, width, height)
-    self.screen_width = width
-    self.screen_height = height
 end
 
 return UISystem

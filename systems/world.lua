@@ -32,12 +32,12 @@ function WorldSystem.load(self, seed, debug)
 end
 
 function WorldSystem.create_canvases(self)
-    self.screen_width, self.screen_height = love.graphics.getDimensions()
+    local screen_width, screen_height = love.graphics.getDimensions()
 
     -- Create canvases for each layer
-    self.canvases[-1] = love.graphics.newCanvas(self.screen_width, self.screen_height)
-    self.canvases[0] = love.graphics.newCanvas(self.screen_width, self.screen_height)
-    self.canvases[1] = love.graphics.newCanvas(self.screen_width, self.screen_height)
+    self.canvases[-1] = love.graphics.newCanvas(screen_width, screen_height)
+    self.canvases[0] = love.graphics.newCanvas(screen_width, screen_height)
+    self.canvases[1] = love.graphics.newCanvas(screen_width, screen_height)
 end
 
 function WorldSystem.update(self, dt)
@@ -54,14 +54,6 @@ function WorldSystem.draw(self)
 
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
-
-    -- Recreate canvases if screen size changed
-    if not self.screen_width or not self.screen_height or
-       self.screen_width ~= screen_width or self.screen_height ~= screen_height then
-        self.screen_width = screen_width
-        self.screen_height = screen_height
-        self:create_canvases()
-    end
 
     local camera_x, camera_y = camera:get_offset()
     local player_x, player_y, player_z = player:get_position()
@@ -292,8 +284,6 @@ function WorldSystem.find_spawn_position(self, start_col, start_z)
 end
 
 function WorldSystem.resize(self, width, height)
-    self.screen_width = width
-    self.screen_height = height
     self:create_canvases()
 end
 
