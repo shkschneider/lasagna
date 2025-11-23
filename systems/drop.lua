@@ -10,6 +10,8 @@ local Physics = require "components.physics"
 local Drop = require "components.drop"
 local Registry = require "registries"
 
+local MERGING_ENABLED = false
+
 local DropSystem = {
     id = "drop",
     priority = 70,
@@ -25,7 +27,7 @@ function DropSystem.create_drop(self, x, y, layer, block_id, count)
         id = uuid(),
         position = Position.new(x, y, layer),
         velocity = Velocity.new((math.random() - 0.5) * 50, -50),
-        physics = Physics.new(false, 400, 0.95),
+        physics = Physics.new(400, 0.8),  -- gravity: 400, friction: 0.8 (more friction for drops)
         drop = Drop.new(block_id, count, 300, 0.5),
     }
 
@@ -40,6 +42,7 @@ function DropSystem.update(self, dt)
     local player = Systems.get("player")
 
     local PICKUP_RANGE = world.BLOCK_SIZE
+    local MERGE_RANGE = world.BLOCK_SIZE
     local player_x, player_y, player_z = player:get_position()
 
     for i = #self.entities, 1, -1 do
@@ -50,19 +53,59 @@ function DropSystem.update(self, dt)
         ent.position.x = ent.position.x + ent.velocity.vx * dt
         ent.position.y = ent.position.y + ent.velocity.vy * dt
 
-        -- Friction
-        ent.velocity.vx = ent.velocity.vx * ent.physics.friction
-
         -- Check collision with ground
+        -- Drops are 1/2 block size, so check at their bottom edge (1/4 block offset)
+        local drop_height = world.BLOCK_SIZE / 2
         local col, row = world.world_to_block(world,
             ent.position.x,
-            ent.position.y + world.BLOCK_SIZE / 2
+            ent.position.y + drop_height / 2
         )
         local block_def = world:get_block_def(ent.position.z, col, row)
 
+        local on_ground = false
         if block_def and block_def.solid then
             ent.velocity.vy = 0
-            ent.position.y = row * world.BLOCK_SIZE - world.BLOCK_SIZE / 2
+            -- Position drop so its bottom edge rests on top of the block
+            ent.position.y = row * world.BLOCK_SIZE - drop_height / 2
+            on_ground = true
+        end
+
+        -- Apply friction only when on ground
+        if on_ground then
+            ent.velocity.vx = ent.velocity.vx * ent.physics.friction
+        end
+
+        -- Merge with nearby drops of the same type (performance optimization)
+        -- Only merge when on ground and pickup delay is over
+        if MERGING_ENABLED and on_ground and ent.drop.pickup_delay <= 0 then
+            for j = i - 1, 1, -1 do
+                local other = self.entities[j]
+
+                -- Check if same block type and on same layer
+                if other.drop.block_id == ent.drop.block_id and other.position.z == ent.position.z then
+                    local dx = other.position.x - ent.position.x
+                    local dy = other.position.y - ent.position.y
+                    local dist = math.sqrt(dx * dx + dy * dy)
+
+                    -- Merge if within range and other is also on ground with no pickup delay
+                    if dist < MERGE_RANGE and other.drop.pickup_delay <= 0 then
+                        -- Check if other drop is also on ground
+                        local other_col, other_row = world.world_to_block(world,
+                            other.position.x,
+                            other.position.y + drop_height / 2
+                        )
+                        local other_block = world:get_block_def(other.position.z, other_col, other_row)
+
+                        if other_block and other_block.solid then
+                            -- Merge counts and remove the other drop
+                            ent.drop.count = ent.drop.count + other.drop.count
+                            table.remove(self.entities, j)
+                            -- Adjust index since we removed an element before current
+                            i = i - 1
+                        end
+                    end
+                end
+            end
         end
 
         -- Decrease pickup delay
@@ -103,15 +146,30 @@ function DropSystem.draw(self)
     for _, ent in ipairs(self.entities) do
         local proto = Registry.Blocks:get(ent.drop.block_id)
         if proto then
-            local size = world.BLOCK_SIZE / 2
+            -- Drop is 1/2 width and 1/2 height (1/4 surface area)
+            local width = world.BLOCK_SIZE / 2
+            local height = world.BLOCK_SIZE / 2
+            local x = ent.position.x - camera_x - width / 2
+            local y = ent.position.y - camera_y - height / 2
+
+            -- Draw the colored block
             love.graphics.setColor(proto.color)
-            love.graphics.rectangle("fill",
-                ent.position.x - camera_x - size / 2,
-                ent.position.y - camera_y - size / 2,
-                size,
-                size)
+            love.graphics.rectangle("fill", x, y, width, height)
+
+            if MERGING_ENABLED and ent.drop.count > 1 then
+                -- Draw 1px gold border
+                love.graphics.setColor(1, 0.8, 0, 1)
+                love.graphics.rectangle("line", x, y, width, height)
+            else
+                -- Draw 1px white border
+                love.graphics.setColor(1, 1, 1, 1)
+                love.graphics.rectangle("line", x, y, width, height)
+            end
         end
     end
+
+    -- Reset color to white for subsequent rendering
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 return DropSystem
