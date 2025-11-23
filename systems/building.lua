@@ -65,20 +65,18 @@ function BuildingSystem.has_adjacent_layer_block(self, col, row, layer)
     local world = Systems.get("world")
     
     -- Check for solid blocks at the same position in layers above and below
-    local layers_to_check = {}
     
     -- Check layer below (if not already at bottom layer)
     if layer - 1 >= MIN_LAYER then
-        table.insert(layers_to_check, layer - 1)
+        local proto = world:get_block_def(layer - 1, col, row)
+        if proto and proto.solid then
+            return true
+        end
     end
     
     -- Check layer above (if not already at top layer)
     if layer + 1 <= MAX_LAYER then
-        table.insert(layers_to_check, layer + 1)
-    end
-    
-    for _, check_layer in ipairs(layers_to_check) do
-        local proto = world:get_block_def(check_layer, col, row)
+        local proto = world:get_block_def(layer + 1, col, row)
         if proto and proto.solid then
             return true
         end
