@@ -49,6 +49,36 @@ function UISystem.draw(self)
     local slot_size = 60
     local hotbar_x = (screen_width - (inv.hotbar_size * slot_size)) / 2
 
+    -- Draw health bar above hotbar
+    local health = player.components.health
+    local health_bar_height = BLOCK_SIZE / 4  -- 1/4 BLOCK_SIZE high
+    local hotbar_width = inv.hotbar_size * slot_size
+    local health_bar_width = hotbar_width / 2  -- Half the hotbar width
+    local health_bar_x = hotbar_x  -- Aligned left
+    local health_bar_y = hotbar_y - health_bar_height - 10  -- 10px above hotbar
+
+    -- Health bar background
+    love.graphics.setColor(0, 0, 0, 0.5)
+    love.graphics.rectangle("fill", health_bar_x, health_bar_y, health_bar_width, health_bar_height)
+
+    -- Health bar fill
+    local health_percentage = health.current / health.max
+    local health_fill_width = health_bar_width * health_percentage
+    
+    -- Color based on health percentage
+    if health_percentage > 0.6 then
+        love.graphics.setColor(0, 1, 0, 0.8)  -- Green
+    elseif health_percentage > 0.3 then
+        love.graphics.setColor(1, 1, 0, 0.8)  -- Yellow
+    else
+        love.graphics.setColor(1, 0, 0, 0.8)  -- Red
+    end
+    love.graphics.rectangle("fill", health_bar_x, health_bar_y, health_fill_width, health_bar_height)
+
+    -- Health bar border
+    love.graphics.setColor(1, 1, 1, 0.8)
+    love.graphics.rectangle("line", health_bar_x, health_bar_y, health_bar_width, health_bar_height)
+
     for i = 1, inv.hotbar_size do
         local x = hotbar_x + (i - 1) * slot_size
 

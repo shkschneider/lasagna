@@ -14,6 +14,7 @@ local Layer = require "components.layer"
 local Inventory = require "components.inventory"
 local Omnitool = require "components.omnitool"
 local Stance = require "components.stance"
+local Health = require "components.health"
 local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()
@@ -42,6 +43,7 @@ function PlayerSystem.load(self, x, y, z)
     self.components.omnitool = Omnitool.new()
     self.components.stance = Stance.new(Stance.STANDING)
     self.components.stance.crouched = false
+    self.components.health = Health.new(100, 100)
 
     -- Initialize inventory slots
     for i = 1, self.components.inventory.hotbar_size do
@@ -410,6 +412,10 @@ function PlayerSystem.can_stand_up(self)
     end
 
     return true
+end
+
+function PlayerSystem.is_dead(self)
+    return self.components.health.current <= 0
 end
 
 return PlayerSystem
