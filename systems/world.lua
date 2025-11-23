@@ -342,18 +342,25 @@ function WorldSystem.find_spawn_position(self, start_col, start_z)
     local col = start_col
     local z = start_z or 0
 
-    -- Find ground
+    -- Find the surface by searching for the first solid block from top
+    local surface_row = nil
     for row = 0, self.components.worlddata.height - 1 do
         local block_def = self.get_block_def(self, z, col, row)
         if block_def and block_def.solid then
-            -- Found ground, spawn 2 blocks above
-            local spawn_x = col * BLOCK_SIZE + BLOCK_SIZE / 2
-            local spawn_y = (row - 2) * BLOCK_SIZE + BLOCK_SIZE
-            return spawn_x, spawn_y, z
+            surface_row = row
+            break
         end
     end
 
-    -- Default spawn
+    if surface_row then
+        -- Spawn in the last air block (just above the ground)
+        -- This ensures the player spawns on the surface, not inside it
+        local spawn_x = col * BLOCK_SIZE + BLOCK_SIZE / 2
+        local spawn_y = (surface_row - 1) * BLOCK_SIZE + BLOCK_SIZE / 2
+        return spawn_x, spawn_y, z
+    end
+
+    -- Default spawn at top if no ground found
     return col * BLOCK_SIZE, 0, z
 end
 
