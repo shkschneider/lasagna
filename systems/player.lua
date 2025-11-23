@@ -18,6 +18,7 @@ local Health = require "components.health"
 local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()
+local ITEMS = Registry.items()
 
 local PlayerSystem = {
     id = "player",
@@ -57,6 +58,9 @@ function PlayerSystem.load(self, x, y, z)
     for i = 1, self.components.inventory.hotbar_size do
         self.components.inventory.slots[i] = nil
     end
+
+    -- Add omnitool to slot 1
+    self:add_item_to_inventory(ITEMS.OMNITOOL, 1)
 
     -- Initialize control system
     self.systems.control = require "systems.control"

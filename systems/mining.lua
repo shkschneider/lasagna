@@ -5,6 +5,7 @@ local Systems = require "systems"
 local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()
+local ITEMS = Registry.items()
 
 local MiningSystem = {
     id = "mining",
@@ -135,6 +136,13 @@ function MiningSystem.start_mining(self, col, row, world, player)
 
     if not proto or not proto.solid then
         return
+    end
+
+    -- Check if player has omnitool equipped
+    local inv = player.components.inventory
+    local selected_slot = inv.slots[inv.selected_slot]
+    if not selected_slot or selected_slot.item_id ~= ITEMS.OMNITOOL then
+        return -- Can only mine with omnitool equipped
     end
 
     -- Check tier requirement

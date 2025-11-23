@@ -14,12 +14,7 @@ function Debug.load(self, seed, debug)
     if self.enabled then
         local player = Systems.get("player")
         if player then
-            -- Clear existing inventory
-            for i = 1, player.components.inventory.hotbar_size do
-                player.components.inventory.slots[i] = nil
-            end
-
-            -- Add weapon items
+            -- Add weapon items to slots 2 and 3 (slot 1 is for omnitool)
             player:add_item_to_inventory(ITEMS.GUN, 1)
             player:add_item_to_inventory(ITEMS.ROCKET_LAUNCHER, 1)
         end
