@@ -6,6 +6,7 @@ require "lib"
 local Systems = require "systems"
 local Position = require "components.position"
 local Velocity = require "components.velocity"
+local Physics = require "components.physics"
 local Bullet = require "components.bullet"
 
 local BULLET_DAMAGE = 10
@@ -26,7 +27,8 @@ function BulletSystem.create_bullet(self, x, y, layer, vx, vy, width, height, co
         id = uuid(),
         position = Position.new(x, y, layer),
         velocity = Velocity.new(vx, vy),
-        bullet = Bullet.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color, gravity, destroys_blocks),
+        physics = Physics.new(gravity, 1.0),  -- gravity, no friction for bullets
+        bullet = Bullet.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color, destroys_blocks),
     }
 
     table.insert(self.entities, entity)
@@ -42,10 +44,8 @@ function BulletSystem.update(self, dt)
     for i = #self.entities, 1, -1 do
         local ent = self.entities[i]
 
-        -- Apply gravity
-        if ent.bullet.gravity > 0 then
-            ent.velocity.vy = ent.velocity.vy + ent.bullet.gravity * dt
-        end
+        -- Apply physics (gravity)
+        ent.velocity.vy = ent.velocity.vy + ent.physics.gravity * dt
 
         -- Update position
         ent.position.x = ent.position.x + ent.velocity.vx * dt
