@@ -149,10 +149,8 @@ function WorldSystem.draw(self)
     if not ONLY_CURRENT_LAYER_VISIBLE or (debug and (not debug.enabled or player_z == -1)) then
         -- Draw back layer (dimmed)
         if self.canvases[-1] then
-            if player_z == -1 then
-                love.graphics.setColor(1, 1, 1, 1)
-            elseif player_z == -2 then
-                -- Layer above player (outlines already have alpha, use full color)
+            if player_z == -1 or player_z == -2 then
+                -- Full color: either player is on this layer, or layer above player (outlines already have alpha)
                 love.graphics.setColor(1, 1, 1, 1)
             else
                 love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Dimmed
@@ -164,10 +162,8 @@ function WorldSystem.draw(self)
     if not ONLY_CURRENT_LAYER_VISIBLE or (debug and (not debug.enabled or player_z == 0)) then
         -- Draw main layer
         if self.canvases[0] then
-            if player_z == 0 then
-                love.graphics.setColor(1, 1, 1, 1)
-            elseif player_z == -1 then
-                -- Layer above player (outlines already have alpha, use full color)
+            if player_z == 0 or player_z == -1 then
+                -- Full color: either player is on this layer, or layer above player (outlines already have alpha)
                 love.graphics.setColor(1, 1, 1, 1)
             else
                 love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Dimmed
@@ -179,10 +175,8 @@ function WorldSystem.draw(self)
     if not ONLY_CURRENT_LAYER_VISIBLE or (debug and (not debug.enabled or player_z == 1)) then
         -- Draw front layer (semi-transparent)
         if self.canvases[1] then
-            if player_z == 1 then
-                love.graphics.setColor(1, 1, 1, 1)
-            elseif player_z == 0 then
-                -- Layer above player (outlines already have alpha, use full color)
+            if player_z == 1 or player_z == 0 then
+                -- Full color: either player is on this layer, or layer above player (outlines already have alpha)
                 love.graphics.setColor(1, 1, 1, 1)
             else
                 love.graphics.setColor(0.33, 0.33, 0.33, 0.33) -- Very dimmed
