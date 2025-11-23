@@ -18,7 +18,7 @@ function Debug.load(self, seed, debug)
             for i = 1, player.components.inventory.hotbar_size do
                 player.components.inventory.slots[i] = nil
             end
-            
+
             -- Add weapon items
             player:add_item_to_inventory(ITEMS.GUN, 1)
             player:add_item_to_inventory(ITEMS.ROCKET_LAUNCHER, 1)
@@ -42,11 +42,7 @@ function Debug.draw(self)
         love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
         love.graphics.print(string.format("GameState: %s", G.components.gamestate:tostring()), 10, 120)
         love.graphics.print(string.format("TimeScale: %s", G.components.timescale:tostring()), 10, 140)
-
-        -- Display player stance
-        if player and player.components and player.components.stance then
-            love.graphics.print(string.format("Stance: %s", player.components.stance.current), 10, 160)
-        end
+        love.graphics.print(string.format("Stance: %s", player.components.stance:tostring()), 10, 160)
     end
 end
 
