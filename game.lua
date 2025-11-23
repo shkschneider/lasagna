@@ -31,18 +31,22 @@ local Game = {
     },
 }
 
+function Game.switch(self, gamestate)
+    assert(gamestate)
+    self.components.gamestate = GameState.new(gamestate)
+    log.debug("Game", "switch:" .. self.components.gamestate:tostring())
+end
+
 function Game.load(self, seed, debug)
     -- Initialize components
-    self.components.gamestate = GameState.new(GameState.LOAD)
-    log.info("Game", self.components.gamestate:tostring())
+    self:switch(GameState.LOAD)
     self.components.timescale = TimeScale.new(1, false)
 
     -- Load systems in specific order with correct parameters
     Systems.load(self.systems, seed, debug)
 
     -- Transition to playing state
-    self.components.gamestate = GameState.new(GameState.PLAY)
-    log.info("Game", self.components.gamestate:tostring())
+    self:switch(GameState.PLAY)
 end
 
 function Game.update(self, dt)
@@ -76,8 +80,7 @@ end
 function Game.keypressed(self, key)
     -- Handle escape
     if key == "escape" then
-        self.components.gamestate = GameState.new(GameState.QUIT)
-        log.info("Game", self.components.gamestate:tostring())
+        self:switch(GameState.QUIT)
         love.event.quit()
         return
     end
