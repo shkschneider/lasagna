@@ -22,6 +22,7 @@ local PlayerSystem = {
     id = "player",
     priority = 20,
     components = {},
+    systems = {},
     -- Movement constants
     MOVE_SPEED = 150,
     JUMP_FORCE = 300,
@@ -51,6 +52,10 @@ function PlayerSystem.load(self, x, y, z)
     self:add_to_inventory(BLOCKS.STONE, 32)
     self:add_to_inventory(BLOCKS.WOOD, 16)
 
+    -- Initialize control system
+    self.systems.control = require "systems.control"
+    self.systems.control:load(self)
+
     log.info("Player:", self.components.position:tostring())
 end
 
@@ -64,55 +69,16 @@ function PlayerSystem.update(self, dt)
     local stance = self.components.stance
     local vis = self.components.visual
 
+    -- Delegate to control system for input handling
+    if self.systems.control then
+        self.systems.control:update(dt)
+    end
+
     -- Check if on ground first
     local on_ground = self:is_on_ground()
 
-    -- Handle crouching toggle (only when on ground)
-    local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
-
-    if is_crouching and stance.current ~= Stance.CROUCHING and on_ground then
-        -- Switch to crouching (only when on ground)
-        stance.current = Stance.CROUCHING
-        col.height = world.BLOCK_SIZE
-        vis.height = world.BLOCK_SIZE
-        -- Adjust position to keep bottom aligned
-        pos.y = pos.y + world.BLOCK_SIZE / 2
-    elseif not is_crouching and stance.current == Stance.CROUCHING then
-        -- Try to stand up - check clearance
-        if self:can_stand_up() then
-            stance.current = Stance.STANDING
-            col.height = world.BLOCK_SIZE * 2
-            vis.height = world.BLOCK_SIZE * 2
-            -- Adjust position to keep bottom aligned
-            pos.y = pos.y - world.BLOCK_SIZE / 2
-        end
-    end
-
-    -- Horizontal movement
-    vel.vx = 0
-    if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
-        vel.vx = -self.MOVE_SPEED
-    end
-    if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-        if stance.current == Stance.CROUCHING then
-            vel.vx = self.MOVE_SPEED / 2
-        else
-            vel.vx = self.MOVE_SPEED
-        end
-    end
-
     -- Gravity always applies
     vel.vy = vel.vy + phys.gravity * dt
-
-    -- Jump handling - only when on ground and not crouching
-    if (love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")) and on_ground then
-        if stance.current == Stance.CROUCHING then
-            vel.vy = -self.JUMP_FORCE / 2
-        else
-            vel.vy = -self.JUMP_FORCE
-        end
-        stance.current = Stance.JUMPING
-    end
 
     -- Apply horizontal velocity with collision
     local new_x = pos.x + vel.vx * dt
@@ -233,34 +199,9 @@ function PlayerSystem.draw(self)
 end
 
 function PlayerSystem.keypressed(self, key)
-    -- Hotbar selection
-    local num = tonumber(key)
-    if num and num >= 1 and num <= self.components.inventory.hotbar_size then
-        self.components.inventory.selected_slot = num
-    end
-
-    -- Layer switching
-    if key == "q" then
-        local target_layer = math.max(-1, self.components.position.z - 1)
-        if self.can_switch_layer(self, target_layer) then
-            self.components.position.z = target_layer
-            self.components.layer.current_layer = target_layer
-        end
-    elseif key == "e" then
-        local target_layer = math.min(1, self.components.position.z + 1)
-        if self.can_switch_layer(self, target_layer) then
-            self.components.position.z = target_layer
-            self.components.layer.current_layer = target_layer
-        end
-    end
-
-    if G:debug() then
-        -- Debug: adjust omnitool tier
-        if key == "=" or key == "+" then
-            self.components.omnitool.tier = self.components.omnitool.tier + 1
-        elseif key == "-" or key == "_" then
-            self.components.omnitool.tier = math.max(0, self.components.omnitool.tier - 1)
-        end
+    -- Delegate to control system
+    if self.systems.control then
+        self.systems.control:keypressed(key)
     end
 end
 
