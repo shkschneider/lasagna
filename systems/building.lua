@@ -7,6 +7,8 @@ local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 
 -- Layer constants
+-- TODO: These should be defined in a shared location (e.g., world system or constants module)
+-- to avoid inconsistency if the layer range changes
 local MIN_LAYER = -1
 local MAX_LAYER = 1
 

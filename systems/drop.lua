@@ -118,6 +118,9 @@ function DropSystem.draw(self)
             love.graphics.rectangle("line", x, y, width, height)
         end
     end
+    
+    -- Reset color to white for subsequent rendering
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 return DropSystem
