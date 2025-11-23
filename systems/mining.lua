@@ -17,6 +17,14 @@ local MiningSystem = {
 -- Visual constants for mining overlay
 local MINING_OVERLAY_COLOR = {0, 0, 0, 0.8} -- Black with 80% opacity
 
+-- Base blocks that mine quickly
+local BASE_BLOCKS = {
+    ["Dirt"] = true,
+    ["Grass"] = true,
+    ["Sand"] = true,
+    ["Wood"] = true,
+}
+
 -- Calculate mining delay for a block based on its tier and name
 function MiningSystem.get_mining_delay(self, proto)
     if not proto or not proto.solid then
@@ -25,14 +33,7 @@ function MiningSystem.get_mining_delay(self, proto)
     end
     
     -- Base blocks (dirt, grass, sand, wood) - 0.5 seconds
-    local base_blocks = {
-        ["Dirt"] = true,
-        ["Grass"] = true,
-        ["Sand"] = true,
-        ["Wood"] = true,
-    }
-    
-    if base_blocks[proto.name] then
+    if BASE_BLOCKS[proto.name] then
         return 0.5
     end
     
@@ -77,8 +78,8 @@ function MiningSystem.update(self, dt)
         -- Check if block still exists and is the same
         local block_id = world:get_block_id(self.mining_block.z, self.mining_block.col, self.mining_block.row)
         local proto = Registry.Blocks:get(block_id)
-        -- Compare by block_id (which should remain consistent) and proto.id (for safety)
-        if block_id ~= self.mining_block.block_id or (proto and proto.id ~= self.mining_block.proto.id) then
+        -- Cancel if block no longer exists or changed
+        if not proto or block_id ~= self.mining_block.block_id or proto.id ~= self.mining_block.proto.id then
             self:cancel_mining()
             return
         end
@@ -145,7 +146,8 @@ function MiningSystem.start_mining(self, col, row, world, player)
     -- Get mining delay for this block
     local delay = self:get_mining_delay(proto)
     
-    -- Ensure delay is valid (should not be 0 for solid blocks)
+    -- Validate delay (should be positive for solid, minable blocks)
+    -- Non-solid blocks return 0 and are already filtered out above
     if delay <= 0 then
         return
     end
