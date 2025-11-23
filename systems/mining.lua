@@ -14,9 +14,13 @@ local MiningSystem = {
     mining_block = nil, -- {z, col, row, progress, delay}
 }
 
+-- Visual constants for mining overlay
+local MINING_OVERLAY_COLOR = {0, 0, 0, 0.8} -- Black with 80% opacity
+
 -- Calculate mining delay for a block based on its tier and name
 function MiningSystem.get_mining_delay(self, proto)
     if not proto or not proto.solid then
+        -- Non-solid blocks (like air) should not be mined
         return 0
     end
     
@@ -72,7 +76,8 @@ function MiningSystem.update(self, dt)
         
         -- Check if block still exists and is the same
         local block_id = world:get_block_id(self.mining_block.z, self.mining_block.col, self.mining_block.row)
-        if block_id ~= self.mining_block.block_id then
+        local proto = Registry.Blocks:get(block_id)
+        if block_id ~= self.mining_block.block_id or proto ~= self.mining_block.proto then
             self:cancel_mining()
             return
         end
@@ -217,7 +222,7 @@ function MiningSystem.draw(self)
     local current_size = max_size * progress
     local offset = (max_size - current_size) / 2
     
-    love.graphics.setColor(0, 0, 0, 0.8)
+    love.graphics.setColor(MINING_OVERLAY_COLOR)
     love.graphics.rectangle("fill", 
         screen_x + offset, 
         screen_y + offset, 
