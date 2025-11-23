@@ -1,6 +1,7 @@
 local Registry = {
     Blocks = require("registries.blocks"),
     Items = require("registries.items"),
+    Commands = require("registries.commands"),
 }
 
 -- Blocks
@@ -25,6 +26,18 @@ end
 
 function Registry.items()
     return ITEMS
+end
+
+-- Commands
+
+local COMMANDS = require "data.commands"
+
+function Registry.command(name)
+    return Registry.Commands:get(name)
+end
+
+function Registry.commands()
+    return COMMANDS
 end
 
 return Registry

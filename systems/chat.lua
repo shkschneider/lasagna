@@ -1,0 +1,161 @@
+-- Chat System
+-- Handles chat interface and command execution
+
+local log = require "lib.log"
+local Systems = require "systems"
+local Registry = require "registries"
+
+local ChatSystem = {
+    id = "chat",
+    priority = 120, -- After UI (110)
+}
+
+function ChatSystem.load(self)
+    self.open = false
+    self.input = ""
+    self.history = {} -- Chat message history
+    self.max_history = 10
+    self.screen_width, self.screen_height = love.graphics.getDimensions()
+end
+
+function ChatSystem.update(self, dt)
+    -- Chat doesn't need updates
+end
+
+function ChatSystem.draw(self)
+    if not self.open then
+        return
+    end
+
+    local screen_width, screen_height = love.graphics.getDimensions()
+    
+    -- Chat dimensions: 1/3 width, up to 1/2 height
+    local chat_width = screen_width / 3
+    local chat_max_height = screen_height / 2
+    local chat_padding = 10
+    local line_height = 20
+    
+    -- Calculate actual height based on history
+    local num_lines = math.min(#self.history + 1, math.floor((chat_max_height - chat_padding * 2) / line_height))
+    local chat_height = num_lines * line_height + chat_padding * 2
+    
+    -- Position at bottom left
+    local chat_x = 10
+    local chat_y = screen_height - chat_height - 10
+    
+    -- Draw dimmed background
+    love.graphics.setColor(0, 0, 0, 0.7)
+    love.graphics.rectangle("fill", chat_x, chat_y, chat_width, chat_height)
+    
+    -- Draw border
+    love.graphics.setColor(0.8, 0.8, 0.8, 1)
+    love.graphics.rectangle("line", chat_x, chat_y, chat_width, chat_height)
+    
+    -- Draw chat history
+    love.graphics.setColor(1, 1, 1, 1)
+    local history_y = chat_y + chat_padding
+    local visible_history_count = math.min(#self.history, num_lines - 1)
+    local start_index = math.max(1, #self.history - visible_history_count + 1)
+    
+    for i = start_index, #self.history do
+        local message = self.history[i]
+        love.graphics.print(message, chat_x + chat_padding, history_y)
+        history_y = history_y + line_height
+    end
+    
+    -- Draw input line with cursor
+    local input_text = "> " .. self.input .. "_"
+    love.graphics.print(input_text, chat_x + chat_padding, history_y)
+end
+
+function ChatSystem.keypressed(self, key)
+    -- Check if we should toggle chat
+    if key == "return" then
+        if not self.open then
+            -- Only open chat in debug mode
+            local debug = Systems.get("debug")
+            if debug and debug.enabled then
+                self.open = true
+                love.keyboard.setTextInput(true)
+            end
+        else
+            -- Submit the input
+            if self.input ~= "" then
+                self:process_input(self.input)
+                self.input = ""
+            end
+            self.open = false
+            love.keyboard.setTextInput(false)
+        end
+        return
+    end
+    
+    if not self.open then
+        return
+    end
+    
+    -- Handle backspace
+    if key == "backspace" then
+        self.input = self.input:sub(1, -2)
+    end
+    
+    -- Handle escape to close chat
+    if key == "escape" then
+        self.open = false
+        self.input = ""
+        love.keyboard.setTextInput(false)
+    end
+end
+
+function ChatSystem.textinput(self, text)
+    if self.open then
+        self.input = self.input .. text
+    end
+end
+
+function ChatSystem.process_input(self, input)
+    -- Add input to history
+    self:add_message("> " .. input)
+    
+    -- Check if it's a command (starts with /)
+    if input:sub(1, 1) == "/" then
+        local command_parts = {}
+        for part in input:gmatch("%S+") do
+            table.insert(command_parts, part)
+        end
+        
+        if #command_parts > 0 then
+            local command_name = command_parts[1]:sub(2) -- Remove leading /
+            local args = {}
+            for i = 2, #command_parts do
+                table.insert(args, command_parts[i])
+            end
+            
+            -- Execute command
+            local success, message = Registry.Commands:execute(command_name, args)
+            if message then
+                self:add_message(message)
+            end
+        end
+    else
+        -- Regular chat message (not a command)
+        -- For now, just echo it
+        self:add_message("Chat: " .. input)
+    end
+end
+
+function ChatSystem.add_message(self, message)
+    table.insert(self.history, message)
+    
+    -- Keep history limited
+    while #self.history > self.max_history do
+        table.remove(self.history, 1)
+    end
+end
+
+function ChatSystem.resize(self, width, height)
+    self.screen_width = width
+    self.screen_height = height
+end
+
+return ChatSystem
