@@ -21,12 +21,12 @@ function BulletSystem.load(self)
     self.entities = {}
 end
 
-function BulletSystem.create_bullet(self, x, y, layer, vx, vy, width, height, color)
+function BulletSystem.create_bullet(self, x, y, layer, vx, vy, width, height, color, gravity, destroys_blocks)
     local entity = {
         id = uuid(),
         position = Position.new(x, y, layer),
         velocity = Velocity.new(vx, vy),
-        bullet = Bullet.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color),
+        bullet = Bullet.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color, gravity, destroys_blocks),
     }
 
     table.insert(self.entities, entity)
@@ -36,9 +36,16 @@ end
 
 function BulletSystem.update(self, dt)
     local world = Systems.get("world")
+    local Registry = require "registries"
+    local BLOCKS = Registry.blocks()
 
     for i = #self.entities, 1, -1 do
         local ent = self.entities[i]
+
+        -- Apply gravity
+        if ent.bullet.gravity > 0 then
+            ent.velocity.vy = ent.velocity.vy + ent.bullet.gravity * dt
+        end
 
         -- Update position
         ent.position.x = ent.position.x + ent.velocity.vx * dt
@@ -49,7 +56,38 @@ function BulletSystem.update(self, dt)
         local block_def = world:get_block_def(ent.position.z, col, row)
 
         if block_def and block_def.solid then
-            -- Bullet hit a block, remove it
+            -- Bullet hit a block
+            
+            -- If this bullet destroys blocks, destroy it and spawn drop
+            if ent.bullet.destroys_blocks then
+                local block_id = world:get_block_id(ent.position.z, col, row)
+                local proto = Registry.Blocks:get(block_id)
+                
+                if proto then
+                    -- Remove block
+                    world:set_block(ent.position.z, col, row, BLOCKS.AIR)
+                    
+                    -- Spawn drop
+                    if proto.drops then
+                        local drop = Systems.get("drop")
+                        if drop then
+                            local drop_id, drop_count = proto.drops()
+                            if drop_id then
+                                local wx, wy = world:block_to_world(col, row)
+                                drop.create_drop(drop,
+                                    wx + BLOCK_SIZE / 2,
+                                    wy + BLOCK_SIZE / 2,
+                                    ent.position.z,
+                                    drop_id,
+                                    drop_count
+                                )
+                            end
+                        end
+                    end
+                end
+            end
+            
+            -- Remove bullet
             table.remove(self.entities, i)
         else
             -- Decrease lifetime
