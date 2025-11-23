@@ -188,9 +188,9 @@ function PlayerSystem.update(self, dt)
                 local fall_distance = pos.y - self.fall_start_y
                 local fall_blocks = fall_distance / BLOCK_SIZE
                 -- Player is 2 blocks tall, safe fall is 2x height
-                if fall_blocks > self.SAFE_FALL_BLOCKS then
-                    local excess_blocks = fall_blocks - self.SAFE_FALL_BLOCKS
-                    local damage = math.floor(excess_blocks * self.FALL_DAMAGE_PER_BLOCK)
+                if fall_blocks > PlayerSystem.SAFE_FALL_BLOCKS then
+                    local excess_blocks = fall_blocks - PlayerSystem.SAFE_FALL_BLOCKS
+                    local damage = math.floor(excess_blocks * PlayerSystem.FALL_DAMAGE_PER_BLOCK)
                     if damage > 0 then
                         self:hit(damage)
                     end
@@ -469,7 +469,7 @@ function PlayerSystem.hit(self, damage)
     self.components.health.current = math.max(0, self.components.health.current - damage)
     
     -- Set damage timer for visual effect
-    self.damage_timer = self.DAMAGE_DISPLAY_DURATION
+    self.damage_timer = PlayerSystem.DAMAGE_DISPLAY_DURATION
 end
 
 function PlayerSystem.is_dead(self)
