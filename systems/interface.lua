@@ -1,7 +1,6 @@
 local Object = require "core.object"
 local Registry = require "registries"
 
--- TODO rename file to interface.lua
 local Interface = Object.new {
     id = "ui",
     priority = 110,
