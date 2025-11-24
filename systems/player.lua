@@ -15,6 +15,7 @@ local Inventory = require "components.inventory"
 local Omnitool = require "components.omnitool"
 local Stance = require "components.stance"
 local Health = require "components.health"
+local Stamina = require "components.stamina"
 local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()
@@ -32,6 +33,10 @@ local PlayerSystem = {
     SAFE_FALL_BLOCKS = 4,  -- 2x player height
     FALL_DAMAGE_PER_BLOCK = 5,
     DAMAGE_DISPLAY_DURATION = 0.5,
+    -- Stamina constants
+    STAMINA_REGEN_RATE = 1,  -- per second
+    STAMINA_RUN_COST = 2.5,  -- per second
+    STAMINA_JUMP_COST = 5,   -- per jump
 }
 
 function PlayerSystem.load(self, x, y, z)
@@ -49,6 +54,7 @@ function PlayerSystem.load(self, x, y, z)
     self.components.stance = Stance.new(Stance.STANDING)
     self.components.stance.crouched = false
     self.components.health = Health.new(100, 100)
+    self.components.stamina = Stamina.new(100, 100)
 
     -- Fall damage tracking
     self.fall_start_y = nil
@@ -79,10 +85,16 @@ function PlayerSystem.update(self, dt)
     local col = self.components.collider
     local stance = self.components.stance
     local vis = self.components.visual
+    local stamina = self.components.stamina
 
     -- Update damage timer
     if self.damage_timer > 0 then
         self.damage_timer = self.damage_timer - dt
+    end
+
+    -- Regenerate stamina
+    if stamina.current < stamina.max then
+        stamina.current = math.min(stamina.max, stamina.current + PlayerSystem.STAMINA_REGEN_RATE * dt)
     end
 
     -- Delegate to control system for input handling
@@ -492,6 +504,23 @@ end
 
 function PlayerSystem.is_dead(self)
     return self.components.health and self.components.health.current <= 0
+end
+
+function PlayerSystem.consume_stamina(self, amount)
+    if not self.components.stamina then
+        return false
+    end
+    
+    if self.components.stamina.current >= amount then
+        self.components.stamina.current = math.max(0, self.components.stamina.current - amount)
+        return true
+    end
+    
+    return false
+end
+
+function PlayerSystem.has_stamina(self, amount)
+    return self.components.stamina and self.components.stamina.current >= amount
 end
 
 return PlayerSystem

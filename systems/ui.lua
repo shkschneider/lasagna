@@ -51,6 +51,7 @@ function UISystem.draw(self)
 
     -- Draw health bar above hotbar
     local health = player.components.health
+    local stamina = player.components.stamina
     if health and health.max > 0 then
         local health_bar_height = BLOCK_SIZE / 4  -- 1/4 BLOCK_SIZE high
         local hotbar_width = inv.hotbar_size * slot_size
@@ -75,6 +76,27 @@ function UISystem.draw(self)
             love.graphics.setColor(1, 0, 0, 0.8)  -- Red
         end
         love.graphics.rectangle("fill", health_bar_x, health_bar_y, health_fill_width, health_bar_height)
+    end
+    
+    -- Draw stamina bar above hotbar (right side)
+    if stamina and stamina.max > 0 then
+        local stamina_bar_height = BLOCK_SIZE / 4  -- 1/4 BLOCK_SIZE high
+        local hotbar_width = inv.hotbar_size * slot_size
+        local stamina_bar_width = hotbar_width / 2  -- Half the hotbar width
+        local stamina_bar_x = hotbar_x + hotbar_width / 2  -- Aligned right (after health bar)
+        local stamina_bar_y = hotbar_y - stamina_bar_height - 10  -- 10px above hotbar
+
+        -- Stamina bar background
+        love.graphics.setColor(0, 0, 0, 0.5)
+        love.graphics.rectangle("fill", stamina_bar_x, stamina_bar_y, stamina_bar_width, stamina_bar_height)
+
+        -- Stamina bar fill
+        local stamina_percentage = stamina.current / stamina.max
+        local stamina_fill_width = stamina_bar_width * stamina_percentage
+
+        -- Blue color for stamina
+        love.graphics.setColor(0, 0.5, 1, 0.8)  -- Blue
+        love.graphics.rectangle("fill", stamina_bar_x, stamina_bar_y, stamina_fill_width, stamina_bar_height)
     end
 
     for i = 1, inv.hotbar_size do

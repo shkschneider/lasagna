@@ -54,6 +54,7 @@ function Debug.draw(self)
     love.graphics.print(string.format("TimeScale: %s", G.components.timescale:tostring()), 10, 140)
     love.graphics.print(string.format("Stance: %s", player.components.stance:tostring()), 10, 160)
     love.graphics.print(string.format("Health: %s", player.components.health:tostring()), 10, 180)
+    love.graphics.print(string.format("Stamina: %s", player.components.stamina:tostring()), 10, 200)
 end
 
 return Debug
