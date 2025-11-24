@@ -50,8 +50,8 @@ Components update/draw in priority order (lowest to highest):
 - **Priority 10**: Physics (gravity application)
 - **Priority 20**: Velocity (position updates)
 - **Priority 30**: Bullet, Drop (lifetime, behavior)
-- **Priority 50**: Health (regeneration)
-- **Priority 51**: Stamina (regeneration)
+- **Priority 50**: Health (regeneration, health bar UI)
+- **Priority 51**: Stamina (regeneration, stamina bar UI)
 - **Priority 100**: Visual (rendering)
 
 ## Component Types
@@ -78,8 +78,34 @@ Components with update() methods that modify entity state:
 
 Components with draw() methods that render entities:
 - **Visual**: Basic colored rectangle rendering
+- **Health**: Health bar UI rendering (positioned above hotbar)
+- **Stamina**: Stamina bar UI rendering (positioned above hotbar)
 - **Bullet**: Custom bullet rendering
 - **Drop**: Block-based drop rendering with borders
+
+#### UI Component Rendering
+
+Health and Stamina components demonstrate self-contained UI rendering:
+
+```lua
+function Health.draw(self, entity)
+    if not self.enabled then return end
+    if not self.max or self.max <= 0 then return end
+    
+    -- Access entity.inventory for positioning
+    if not entity or not entity.inventory then return end
+    
+    -- Calculate position relative to hotbar
+    local screen_width, screen_height = love.graphics.getDimensions()
+    local inv = entity.inventory
+    local hotbar_x = (screen_width - (inv.hotbar_size * 60)) / 2
+    
+    -- Draw health bar UI
+    -- (green/yellow/red based on percentage)
+end
+```
+
+This pattern keeps UI rendering logic with the data it displays, while still allowing access to other entity components for positioning context.
 
 ## Entity Composition
 
