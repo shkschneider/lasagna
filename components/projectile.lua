@@ -1,11 +1,9 @@
-local Object = require "core.object"
+local Projectile = {}
 
-local Bullet = Object.new {}
-
-function Bullet.new(damage, lifetime, width, height, color, destroys_blocks)
+function Projectile.new(damage, lifetime, width, height, color, destroys_blocks)
     local instance = {
         id = "bullet",
-        priority = 30,  -- Bullets update after velocity
+        priority = 30,  -- Projectiles update after velocity
         damage = damage or 10,
         lifetime = lifetime or 5,
         width = width or 2,
@@ -17,14 +15,14 @@ function Bullet.new(damage, lifetime, width, height, color, destroys_blocks)
     }
 
     -- Assign update and draw methods to instance
-    instance.update = Bullet.update
-    instance.draw = Bullet.draw
+    instance.update = Projectile.update
+    instance.draw = Projectile.draw
 
     return instance
 end
 
 -- Component update method - handles bullet lifetime and collision
-function Bullet.update(self, dt, entity)
+function Projectile.update(self, dt, entity)
     if not self.enabled then return end
 
     -- Decrease lifetime
@@ -35,7 +33,7 @@ function Bullet.update(self, dt, entity)
 end
 
 -- Component draw method - renders bullet
-function Bullet.draw(self, entity, camera_x, camera_y)
+function Projectile.draw(self, entity, camera_x, camera_y)
     if not self.enabled then return end
 
     if entity and entity.position then
@@ -47,4 +45,4 @@ function Bullet.draw(self, entity, camera_x, camera_y)
     end
 end
 
-return Bullet
+return Projectile

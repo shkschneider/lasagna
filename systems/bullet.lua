@@ -2,7 +2,7 @@ local Object = require "core.object"
 local Position = require "components.position"
 local Velocity = require "components.velocity"
 local Physics = require "components.physics"
-local BulletComponent = require "components.bullet"
+local Projectile = require "components.projectile"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 
@@ -22,7 +22,7 @@ function Bullet.newBullet(self, x, y, layer, vx, vy, width, height, color, gravi
         position = Position.new(x, y, layer),
         velocity = Velocity.new(vx, vy),
         physics = Physics.new(gravity, BULLET_FRICTION),
-        bullet = BulletComponent.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color, destroys_blocks),
+        bullet = Projectile.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color, destroys_blocks),
     }
     table.insert(self.entities, entity)
     return entity

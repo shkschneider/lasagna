@@ -2,7 +2,7 @@ local Object = require "core.object"
 local Position = require "components.position"
 local Velocity = require "components.velocity"
 local Physics = require "components.physics"
-local DropComponent = require "components.drop"
+local ItemDrop = require "components.itemdrop"
 local Registry = require "registries"
 
 local MERGING_ENABLED = false
@@ -20,7 +20,7 @@ function Drop.newDrop(self, x, y, layer, block_id, count)
         position = Position.new(x, y, layer),
         velocity = Velocity.new((math.random() - 0.5) * 50, -50),
         physics = Physics.new(400, 0.8),  -- gravity: 400, friction: 0.8 (more friction for drops)
-        drop = DropComponent.new(block_id, count, 300, 0.5),
+        drop = ItemDrop.new(block_id, count, 300, 0.5),
     }
     table.insert(self.entities, entity)
     return entity

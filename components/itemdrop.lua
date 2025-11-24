@@ -1,12 +1,9 @@
--- Drop component
--- Drop entity data
+local ItemDrop = {}
 
-local Drop = {}
-
-function Drop.new(block_id, count, lifetime, pickup_delay)
+function ItemDrop.new(block_id, count, lifetime, pickup_delay)
     local instance = {
-        id = "drop",
-        priority = 30,  -- Drops update after velocity
+        id = "itemdrop",
+        priority = 30,  -- ItemDrops update after velocity
         block_id = block_id,
         count = count or 1,
         lifetime = lifetime or 300,
@@ -16,14 +13,14 @@ function Drop.new(block_id, count, lifetime, pickup_delay)
     }
 
     -- Assign update and draw methods to instance
-    instance.update = Drop.update
-    instance.draw = Drop.draw
+    instance.update = ItemDrop.update
+    instance.draw = ItemDrop.draw
 
     return instance
 end
 
 -- Component update method - handles drop lifetime and pickup delay
-function Drop.update(self, dt, entity)
+function ItemDrop.update(self, dt, entity)
     if not self.enabled then return end
 
     -- Decrease pickup delay
@@ -39,7 +36,7 @@ function Drop.update(self, dt, entity)
 end
 
 -- Component draw method - renders drop
-function Drop.draw(self, entity, camera_x, camera_y)
+function ItemDrop.draw(self, entity, camera_x, camera_y)
     if not self.enabled then return end
 
     if entity and entity.position then
@@ -49,7 +46,7 @@ function Drop.draw(self, entity, camera_x, camera_y)
             -- Use global BLOCK_SIZE constant
             local MERGING_ENABLED = false  -- TODO: Access from system configuration
 
-            -- Drop is 1/2 width and 1/2 height (1/4 surface area)
+            -- ItemDrop is 1/2 width and 1/2 height (1/4 surface area)
             local width = BLOCK_SIZE / 2
             local height = BLOCK_SIZE / 2
             local x = entity.position.x - (camera_x or 0) - width / 2
@@ -72,4 +69,4 @@ function Drop.draw(self, entity, camera_x, camera_y)
     end
 end
 
-return Drop
+return ItemDrop
