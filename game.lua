@@ -36,19 +36,6 @@ local Game = Object.new {
 function Game.load(self, seed, debug)
     self:switch(GameState.LOAD)
     Object.load(self, seed, debug)
-    -- self.world:load(seed) -- 10
-    -- -- self.control:load() -- 19
-    -- self.player:load() -- 20
-    -- self.mining:load() -- 60
-    -- self.building:load() -- 61
-    -- self.weapon:load() -- 62
-    -- self.bullet:load() -- 65
-    -- self.drop:load() -- 70
-    -- self.camera:load() -- 90
-    -- self.ui:load() -- 110
-    -- self.chat:load() -- 120
-    -- self.lore:load() -- 200
-    -- self.debug:load(debug)
     log.debug("All systems operational.")
     self:switch(GameState.PLAY)
 end
