@@ -4,6 +4,7 @@
 local log = require "lib.log"
 local noise = require "lib.noise"
 
+local Object = require "core.object"
 local Systems = require "systems"
 local Generator = require "systems.generator"
 local WorldData = require "components.worlddata"
@@ -11,10 +12,9 @@ local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()
 
-local WorldSystem = {
+local WorldSystem = Object.new {
     id = "world",
     priority = 10,
-    components = {},
     HEIGHT = 512,
     canvases = {},
     -- Coroutine-based column generation
@@ -27,11 +27,11 @@ local WorldSystem = {
 
 function WorldSystem.load(self, seed, debug)
     -- Initialize components (no width - infinite horizontal)
-    self.components.worlddata = WorldData.new(seed, self.HEIGHT)
-    log.info("World:", self.components.worlddata.seed)
+    self.worlddata = WorldData.new(seed, self.HEIGHT)
+    log.info("World:", self.worlddata.seed)
 
     -- Seed the noise library
-    noise.seed(self.components.worlddata.seed)
+    noise.seed(self.worlddata.seed)
 
     -- Create canvases for layer rendering
     self:create_canvases()
@@ -45,6 +45,8 @@ function WorldSystem.load(self, seed, debug)
     -- Pre-generate spawn area columns (32 to left and right of spawn)
     -- This ensures player doesn't spawn in the air waiting for terrain
     self:pregenerate_spawn_area()
+
+    Object.load(self)
 end
 
 function WorldSystem.create_canvases(self)
@@ -103,7 +105,7 @@ function WorldSystem.update(self, dt)
         local key = string.format("%d_%d", col_info.z, col_info.col)
 
         -- Check if not already generating or generated
-        local data = self.components.worlddata
+        local data = self.worlddata
         local already_done = (data.generated_columns[key] == true) or (data.generating_columns[key] == true)
 
         if not self.active_coroutines[key] and not already_done then
@@ -130,6 +132,8 @@ function WorldSystem.update(self, dt)
             self.queued_columns[key] = nil
         end
     end
+
+    Object.update(self, dt)
 end
 
 function WorldSystem.draw(self)
@@ -258,6 +262,8 @@ function WorldSystem.draw(self)
 
     -- Draw cursor highlight
     self:draw_cursor_highlight(camera_x, camera_y, player_z)
+
+    Object.draw(self)
 end
 
 -- Draw cursor highlight for block under cursor
@@ -339,7 +345,7 @@ end
 
 -- Generate a single column immediately without yielding (for initial spawn area)
 function WorldSystem.generate_column_immediate(self, z, col)
-    local data = self.components.worlddata
+    local data = self.worlddata
     local key = string.format("%d_%d", z, col)
 
     -- Check if already generated
@@ -379,7 +385,7 @@ end
 
 -- Generate a single column (function executed by coroutines)
 function WorldSystem.generate_column_sync(self, z, col)
-    local data = self.components.worlddata
+    local data = self.worlddata
     local key = string.format("%d_%d", z, col)
 
     -- Check if already generated
@@ -413,7 +419,7 @@ end
 -- Queue a column for generation (non-blocking)
 -- priority: true for high-priority queue (visible columns), false for low-priority queue (background)
 function WorldSystem.generate_column(self, z, col, priority)
-    local data = self.components.worlddata
+    local data = self.worlddata
     local key = string.format("%d_%d", z, col)
 
     -- Check if already generated
@@ -455,14 +461,14 @@ end
 
 -- Get block at position
 function WorldSystem.get_block_id(self, z, col, row)
-    if row < 0 or row >= self.components.worlddata.height then
+    if row < 0 or row >= self.worlddata.height then
         return BLOCKS.AIR
     end
 
     -- Request column generation with high priority (visible column)
     self:generate_column(z, col, true)
 
-    local data = self.components.worlddata
+    local data = self.worlddata
     if data.columns[z] and
        data.columns[z][col] and
        data.columns[z][col][row] then
@@ -480,14 +486,14 @@ end
 
 -- Set block at position
 function WorldSystem.set_block(self, z, col, row, block_id)
-    if row < 0 or row >= self.components.worlddata.height then
+    if row < 0 or row >= self.worlddata.height then
         return false
     end
 
     -- Request column generation with high priority (user action)
     self:generate_column(z, col, true)
 
-    local data = self.components.worlddata
+    local data = self.worlddata
 
     -- Ensure the column structure exists
     if not data.columns[z] then
@@ -516,7 +522,7 @@ function WorldSystem.find_spawn_position(self, z)
     z = z or 0
     -- Find the surface by searching for the first solid block from top
     local col = BLOCK_SIZE
-    for row = 0, self.components.worlddata.height - 1 do
+    for row = 0, self.worlddata.height - 1 do
         local block_def = self.get_block_def(self, z, col, row)
         if block_def and block_def.solid then
             -- Spawn in the last air block (just above the ground)
@@ -533,6 +539,7 @@ end
 
 function WorldSystem.resize(self, width, height)
     self:create_canvases()
+    Object.resize(self, width, height)
 end
 
 return WorldSystem

@@ -2,6 +2,7 @@
 -- Manages overall game state, time scale, and coordinates other systems
 
 local log = require "lib.log"
+local Object = require "core.object"
 local Systems = require "systems"
 local TimeScale = require "components.timescale"
 local GameState = require "components.gamestate"
@@ -13,185 +14,117 @@ LAYER_MAX = 1
 BLOCK_SIZE = 16
 STACK_SIZE = 64
 
-local Game = {
+local Game = Object.new {
     priority = 0,
-    components = {
-        state = GameState.new(GameState.BOOT),
-    },
-    systems = {
-        world = require("systems.world"),
-        camera = require("systems.camera"),
-        player = require("systems.player"),
-        mining = require("systems.mining"),
-        building = require("systems.building"),
-        weapon = require("systems.weapon"),
-        bullet = require("systems.bullet"),
-        drop = require("systems.drop"),
-        ui = require("systems.ui"),
-        chat = require("systems.chat"),
-        debug = require("systems.debug"),
-        lore = require("systems.lore"),
-    },
+    state = GameState.new(GameState.BOOT),
+    world = require("systems.world"),
+    control = require("systems.control"),
+    camera = require("systems.camera"),
+    player = require("systems.player"),
+    mining = require("systems.mining"),
+    building = require("systems.building"),
+    weapon = require("systems.weapon"),
+    bullet = require("systems.bullet"),
+    drop = require("systems.drop"),
+    ui = require("systems.ui"),
+    chat = require("systems.chat"),
+    debug = require("systems.debug"),
+    lore = require("systems.lore"),
 }
 
 function Game.switch(self, gamestate)
     assert(gamestate)
-    self.components.gamestate = GameState.new(gamestate)
-    log.debug(string.format("%f", love.timer.getTime()), "Game", "switch:" .. self.components.gamestate:tostring())
+    self.gamestate = GameState.new(gamestate)
+    log.debug(string.format("%f", love.timer.getTime()), "Game", "switch:" .. self.gamestate:tostring())
 end
 
 function Game.load(self, seed, debug)
-    -- Initialize components
     self:switch(GameState.LOAD)
-    self.components.timescale = TimeScale.new(1, false)
-
-    -- Load systems in specific order with correct parameters
-    Systems.load(self.systems, seed, debug)
-
-    -- Transition to playing state
+    self.timescale = TimeScale.new(1, false)
+    -- TODO sort
+    Systems.load(self, seed, debug)
+    -- self.world:load(seed, debug)
+    -- self.player:load()
+    -- self.mining:load()
+    -- self.building:load()
+    -- self.weapon:load()
+    -- self.bullet:load()
+    -- self.drop:load()
+    -- self.camera:load()
+    -- self.ui:load()
+    -- self.chat:load()
+    -- self.lore:load()
+    -- self.debug:load(seed, debug)
+    log.debug("All systems operational.")
     self:switch(GameState.PLAY)
 end
 
 function Game.update(self, dt)
-    -- Check if paused
-    if self.components.timescale.paused then
-        return
-    end
-
-    -- Check if player is dead
-    if self.systems.player and self.systems.player:is_dead() then
-        return
-    end
-
-    -- Apply time scale
-    dt = dt * self.components.timescale.scale
-
-    -- Update all systems
-    for _, system in Systems.iterate(self.systems) do
-        if type(system.update) == "function" then
-            system:update(dt)
-        end
-    end
+    if self.timescale.paused then return end
+    if self.player and self.player:is_dead() then return end
+    dt = dt * self.timescale.scale
+    Object.update(self, dt)
 end
 
 function Game.draw(self)
     love.graphics.setDefaultFilter("nearest", "nearest")
-    -- Draw all systems
-    for _, system in Systems.iterate(self.systems) do
-        if type(system.draw) == "function" then
-            system:draw()
-        end
-    end
+    Object.draw(self)
 end
 
 function Game.keypressed(self, key)
-    -- Handle escape
     if key == "escape" then
         self:switch(GameState.QUIT)
         love.event.quit()
         return
     end
-
-    if self.systems.debug and self.systems.debug.enabled then
-        -- Time scale controls
+    if self.debug and self.debug.enabled then
         if key == "[" then
-            self.components.timescale.scale = self.components.timescale.scale / 2
+            self.timescale.scale = self.timescale.scale / 2
         elseif key == "]" then
-            self.components.timescale.scale = self.components.timescale.scale * 2
+            self.timescale.scale = self.timescale.scale * 2
         end
     end
-
-    -- Pass to all systems
-    for _, system in Systems.iterate(self.systems) do
-        if type(system.keypressed) == "function" then
-            system:keypressed(key)
-        end
-    end
+    Object.keypressed(self, key)
 end
 
 function Game.keyreleased(self, key)
-    -- Pass to all systems
-    for _, system in Systems.iterate(self.systems) do
-        if type(system.keyreleased) == "function" then
-            system:keyreleased(key)
-        end
-    end
+    Object.keyreleased(self, key)
 end
 
 function Game.mousepressed(self, x, y, button)
-    -- Pass to all systems
-    for _, system in Systems.iterate(self.systems) do
-        if type(system.mousepressed) == "function" then
-            system:mousepressed(x, y, button)
-        end
-    end
+    Object.mousepressed(self, x, y, button)
 end
 
 function Game.mousereleased(self, x, y, button)
-    -- Pass to all systems
-    for _, system in Systems.iterate(self.systems) do
-        if type(system.mousereleased) == "function" then
-            system:mousereleased(x, y, button)
-        end
-    end
+    Object.mouserelease(self, x, y, button)
 end
 
 function Game.mousemoved(self, x, y, dx, dy)
-    -- Pass to all systems
-    for _, system in Systems.iterate(self.systems) do
-        if type(system.mousemoved) == "function" then
-            system:mousemoved(x, y, dx, dy)
-        end
-    end
+    Object.mousemoved(self, x, y, dx, dy)
 end
 
 function Game.wheelmoved(self, x, y)
-    -- Pass to all systems
-    for _, system in Systems.iterate(self.systems) do
-        if type(system.wheelmoved) == "function" then
-            system:wheelmoved(x, y)
-        end
-    end
+    Object.wheelmoved(self, x, y)
 end
 
 function Game.textinput(self, text)
-    -- Pass to all systems
-    for _, system in Systems.iterate(self.systems) do
-        if type(system.textinput) == "function" then
-            system:textinput(text)
-        end
-    end
+    Object.textinput(self, text)
 end
 
 function Game.resize(self, width, height)
-    -- Pass to all systems
-    for _, system in Systems.iterate(self.systems) do
-        if type(system.resize) == "function" then
-            system:resize(width, height)
-        end
-    end
+    Object.resize(self, width, height)
 end
 
 function Game.focus(self, focused)
-    -- Pass to all systems
-    for _, system in Systems.iterate(self.systems) do
-        if type(system.focus) == "function" then
-            system:focus(focused)
-        end
-    end
+    Object.focus(self, focused)
 end
 
 function Game.quit(self)
-    -- Pass to all systems
-    for _, system in Systems.iterate(self.systems) do
-        if type(system.quit) == "function" then
-            system:quit()
-        end
-    end
+    Object.quit(self, focus)
 end
 
-function Game.debug(self)
-    return self.systems.debug and self.systems.debug.enabled == true
+function Game.is_debug(self)
+    return self.debug and self.debug.enabled == true
 end
 
 return Game

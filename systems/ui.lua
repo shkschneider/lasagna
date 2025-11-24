@@ -1,10 +1,11 @@
 -- UI System
 -- Handles user interface rendering
 
+local Object = require "core.object"
 local Systems = require "systems"
 local Registry = require "registries"
 
-local UISystem = {
+local UISystem = Object.new {
     id = "ui",
     priority = 110,
 }
@@ -20,9 +21,9 @@ function UISystem.draw(self)
     local screen_width, screen_height = love.graphics.getDimensions()
 
     local camera_x, camera_y = camera:get_offset()
-    local pos = player.components.position
-    local inv = player.components.inventory
-    local omnitool = player.components.omnitool
+    local pos = player.position
+    local inv = player.inventory
+    local omnitool = player.omnitool
 
     -- Layer indicator
     love.graphics.setColor(1, 1, 1, 1)
@@ -50,8 +51,8 @@ function UISystem.draw(self)
     local hotbar_x = (screen_width - (inv.hotbar_size * slot_size)) / 2
 
     -- Draw health bar above hotbar
-    local health = player.components.health
-    local stamina = player.components.stamina
+    local health = player.health
+    local stamina = player.stamina
     if health and health.max > 0 then
         local health_bar_height = BLOCK_SIZE / 4  -- 1/4 BLOCK_SIZE high
         local hotbar_width = inv.hotbar_size * slot_size
@@ -77,7 +78,7 @@ function UISystem.draw(self)
         end
         love.graphics.rectangle("fill", health_bar_x, health_bar_y, health_fill_width, health_bar_height)
     end
-    
+
     -- Draw stamina bar above hotbar (right side)
     if stamina and stamina.max > 0 then
         local stamina_bar_height = BLOCK_SIZE / 4  -- 1/4 BLOCK_SIZE high

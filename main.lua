@@ -1,3 +1,5 @@
+local Object = require "core.object"
+
 -- Global
 G = require "game"
 G.VERSION = { major = 0, minor = 1, patch = nil, tostring = function(self)

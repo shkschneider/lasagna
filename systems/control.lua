@@ -4,16 +4,15 @@
 require "lib"
 local log = require "lib.log"
 
+local Object = require "core.object"
 local Systems = require "systems"
 local Stance = require "components.stance"
 
-local ControlSystem = {
+local ControlSystem = Object.new {
     id = "control",
     priority = 19, -- Run before player system (priority 20)
     jump_pressed_last_frame = false,  -- Track jump input for edge detection
 }
-
-function ControlSystem.load(self) end
 
 function ControlSystem.update(self, dt)
     local chat = Systems.get("chat")
@@ -23,11 +22,11 @@ function ControlSystem.update(self, dt)
 
     local player = Systems.get("player")
     local world = Systems.get("world")
-    local pos = player.components.position
-    local vel = player.components.velocity
-    local stance = player.components.stance
-    local col = player.components.collider
-    local vis = player.components.visual
+    local pos = player.position
+    local vel = player.velocity
+    local stance = player.stance
+    local col = player.collider
+    local vis = player.visual
 
     -- Check if on ground first
     local on_ground = player:is_on_ground()
@@ -59,14 +58,14 @@ function ControlSystem.update(self, dt)
     vel.vx = 0
     local is_running = false
     local is_shift_pressed = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
-    
+
     if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
         vel.vx = -player.MOVE_SPEED
     end
     if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
         vel.vx = player.MOVE_SPEED
     end
-    
+
     -- Apply movement modifiers
     if vel.vx ~= 0 then
         if stance.crouched then
@@ -78,7 +77,7 @@ function ControlSystem.update(self, dt)
             is_running = true
         end
     end
-    
+
     -- Consume stamina while running
     if is_running then
         player:consume_stamina(player.STAMINA_RUN_COST * dt)
@@ -108,22 +107,22 @@ function ControlSystem.keypressed(self, key)
 
     -- Hotbar selection
     local num = tonumber(key)
-    if num and num >= 1 and num <= player.components.inventory.hotbar_size then
-        player.components.inventory.selected_slot = num
+    if num and num >= 1 and num <= player.inventory.hotbar_size then
+        player.inventory.selected_slot = num
     end
 
     -- Layer switching
     if key == "q" then
-        local target_layer = math.max(-1, player.components.position.z - 1)
+        local target_layer = math.max(-1, player.position.z - 1)
         if player.can_switch_layer(player, target_layer) then
-            player.components.position.z = target_layer
-            player.components.layer.current_layer = target_layer
+            player.position.z = target_layer
+            player.layer.current_layer = target_layer
         end
     elseif key == "e" then
-        local target_layer = math.min(1, player.components.position.z + 1)
+        local target_layer = math.min(1, player.position.z + 1)
         if player.can_switch_layer(player, target_layer) then
-            player.components.position.z = target_layer
-            player.components.layer.current_layer = target_layer
+            player.position.z = target_layer
+            player.layer.current_layer = target_layer
         end
     end
 end

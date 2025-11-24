@@ -1,6 +1,7 @@
 -- Building System
 -- Handles block placing
 
+local Object = require "core.object"
 local Systems = require "systems"
 local Registry = require "registries"
 
@@ -8,7 +9,7 @@ local BLOCKS = Registry.blocks()
 
 -- Layer constants
 
-local BuildingSystem = {
+local BuildingSystem = Object.new {
     id = "building",
     priority = 61,
 }

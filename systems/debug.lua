@@ -1,10 +1,11 @@
+local Object = require "core.object"
 local Systems = require "systems"
 local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
-local Debug = {
+local Debug = Object.new {
     id = "debug",
     enabled = false,
 }
@@ -50,11 +51,11 @@ function Debug.draw(self)
     local player = Systems.get("player")
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
-    love.graphics.print(string.format("GameState: %s", G.components.gamestate:tostring()), 10, 120)
-    love.graphics.print(string.format("TimeScale: %s", G.components.timescale:tostring()), 10, 140)
-    love.graphics.print(string.format("Stance: %s", player.components.stance:tostring()), 10, 160)
-    love.graphics.print(string.format("Health: %s", player.components.health:tostring()), 10, 180)
-    love.graphics.print(string.format("Stamina: %s", player.components.stamina:tostring()), 10, 200)
+    love.graphics.print(string.format("GameState: %s", G.gamestate:tostring()), 10, 120)
+    love.graphics.print(string.format("TimeScale: %s", G.timescale:tostring()), 10, 140)
+    love.graphics.print(string.format("Stance: %s", player.stance:tostring()), 10, 160)
+    love.graphics.print(string.format("Health: %s", player.health:tostring()), 10, 180)
+    love.graphics.print(string.format("Stamina: %s", player.stamina:tostring()), 10, 200)
 end
 
 return Debug

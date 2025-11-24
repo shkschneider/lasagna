@@ -2,10 +2,11 @@
 -- Handles chat interface and command execution
 
 local log = require "lib.log"
+local Object = require "core.object"
 local Systems = require "systems"
 local Registry = require "registries"
 
-local ChatSystem = {
+local ChatSystem = Object.new {
     id = "chat",
     priority = 120, -- After UI (110)
 }

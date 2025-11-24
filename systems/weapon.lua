@@ -3,12 +3,13 @@
 
 require "lib"
 
+local Object = require "core.object"
 local Systems = require "systems"
 local Registry = require "registries"
 
 local ITEMS = Registry.items()
 
-local WeaponSystem = {
+local WeaponSystem = Object.new {
     id = "weapon",
     priority = 62,
     cooldown = 0,

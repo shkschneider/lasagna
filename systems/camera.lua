@@ -2,32 +2,32 @@
 -- Manages camera positioning and smooth following
 
 local log = require "lib.log"
+local Object = require "core.object"
 local Systems = require "systems"
 local Camera = require "components.camera"
 local Position = require "components.position"
 
-local CameraSystem = {
+local CameraSystem = Object.new {
     id = "camera",
     priority = 90,
-    components = {},
 }
 
 function CameraSystem.load(self, x, y)
-    self.components.position = Position.new(x, y, nil)
-    log.debug("Camera:", self.components.position:tostring())
-    self.components.camera = Camera.new(x, y, x, y, 5)
+    self.position = Position.new(x, y, nil)
+    log.debug("Camera:", self.position:tostring())
+    self.camera = Camera.new(x, y, x, y, 5)
 end
 
 function CameraSystem.x(self)
-    return self.components.camera.x
+    return self.camera.x
 end
 
 function CameraSystem.y(self)
-    return self.components.camera.y
+    return self.camera.y
 end
 
 function CameraSystem.update(self, dt)
-    local cam = self.components.camera
+    local cam = self.camera
 
     -- Get player position from PlayerSystem
     local target_x, target_y = Systems.get("player"):get_position()
@@ -43,7 +43,7 @@ function CameraSystem.update(self, dt)
 end
 
 function CameraSystem.get_offset(self)
-    local cam = self.components.camera
+    local cam = self.camera
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
     return cam.x - screen_width / 2,

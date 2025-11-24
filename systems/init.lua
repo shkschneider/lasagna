@@ -1,13 +1,33 @@
 local log = require "lib.log"
+local Object = require "core.object"
 
 local Systems = {}
 
 function Systems.get(name)
-    return G.systems[name]
+    return G[name]
+end
+
+function Systems.iterate(self)
+    local list = {}
+    for id, object in pairs(self) do
+        if type(object) == "table" and Object.is(object) then
+            list[#list + 1] = object
+        end
+    end
+    table.sort(list, function(a, b)
+        return (a.priority or INFINITY) < (b.priority or INFINITY)
+    end)
+    local i = 0
+    return function()
+        i = i + 1
+        local object = list[i]
+        if object then
+            return object.id, object
+        end
+    end
 end
 
 function Systems.load(systems, seed, debug)
-    local ordered = {}
     for id, system in Systems.iterate(systems) do
         assert(id)
         log.debug(string.format("%f system: %s", love.timer.getTime(), id))
@@ -24,24 +44,6 @@ function Systems.load(systems, seed, debug)
             system:load(seed, debug)
         else
             log.warn("System", id, "without load()")
-        end
-    end
-end
-
-function Systems.iterate(systems)
-    local list = {}
-    for id, system in pairs(systems) do
-        list[#list + 1] = system
-    end
-    table.sort(list, function(a, b)
-        return (a.priority or INFINITY) < (b.priority or INFINITY)
-    end)
-    local i = 0
-    return function()
-        i = i + 1
-        local system = list[i]
-        if system then
-            return system.id, system
         end
     end
 end

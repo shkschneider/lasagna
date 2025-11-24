@@ -3,6 +3,7 @@
 
 require "lib"
 
+local Object = require "core.object"
 local Systems = require "systems"
 local Position = require "components.position"
 local Velocity = require "components.velocity"
@@ -13,7 +14,7 @@ local BULLET_DAMAGE = 10
 local BULLET_LIFETIME = 5
 local BULLET_FRICTION = 1.0  -- No friction for bullets (they maintain velocity)
 
-local BulletSystem = {
+local BulletSystem = Object.new {
     id = "bullet",
     priority = 65,
     entities = {},

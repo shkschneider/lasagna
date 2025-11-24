@@ -1,9 +1,10 @@
 local log = require "lib.log"
+local Object = require "core.object"
 local Systems = require "systems"
 local Registry = require "registries"
 local Lore = require "data.lore"
 
-local LoreSystem = {
+local LoreSystem = Object.new {
     id = "lore",
     priority = 200,
     points = 0,

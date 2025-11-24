@@ -3,6 +3,7 @@
 
 require "lib"
 
+local Object = require "core.object"
 local Systems = require "systems"
 local Position = require "components.position"
 local Velocity = require "components.velocity"
@@ -12,7 +13,7 @@ local Registry = require "registries"
 
 local MERGING_ENABLED = false
 
-local DropSystem = {
+local DropSystem = Object.new {
     id = "drop",
     priority = 70,
     entities = {},

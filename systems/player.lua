@@ -4,6 +4,7 @@
 require "lib"
 local log = require "lib.log"
 
+local Object = require "core.object"
 local Systems = require "systems"
 local Position = require "components.position"
 local Velocity = require "components.velocity"
@@ -21,11 +22,9 @@ local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
-local PlayerSystem = {
+local PlayerSystem = Object.new {
     id = "player",
     priority = 20,
-    components = {},
-    systems = {},
     -- Movement constants
     MOVE_SPEED = 150,
     JUMP_FORCE = 300,
@@ -43,49 +42,50 @@ function PlayerSystem.load(self, x, y, z)
     local world = Systems.get("world")
 
     -- Initialize player components
-    self.components.position = Position.new(x or 0, y or 0, z or LAYER_DEFAULT)
-    self.components.velocity = Velocity.new(0, 0)
-    self.components.physics = Physics.new(800, 0.95)
-    self.components.collider = Collider.new(BLOCK_SIZE, BLOCK_SIZE * 2)
-    self.components.visual = Visual.new({1, 1, 1, 1}, BLOCK_SIZE, BLOCK_SIZE * 2)
-    self.components.layer = Layer.new(layer)
-    self.components.inventory = Inventory.new()
-    self.components.omnitool = Omnitool.new()
-    self.components.stance = Stance.new(Stance.STANDING)
-    self.components.stance.crouched = false
-    self.components.health = Health.new(100, 100)
-    self.components.stamina = Stamina.new(100, 100)
+    self.position = Position.new(x or 0, y or 0, z or LAYER_DEFAULT)
+    self.velocity = Velocity.new(0, 0)
+    self.physics = Physics.new(800, 0.95)
+    self.collider = Collider.new(BLOCK_SIZE, BLOCK_SIZE * 2)
+    self.visual = Visual.new({1, 1, 1, 1}, BLOCK_SIZE, BLOCK_SIZE * 2)
+    self.layer = Layer.new(layer)
+    self.inventory = Inventory.new()
+    self.omnitool = Omnitool.new()
+    self.stance = Stance.new(Stance.STANDING)
+    self.stance.crouched = false
+    self.health = Health.new(100, 100)
+    self.stamina = Stamina.new(100, 100)
 
     -- Fall damage tracking
     self.fall_start_y = nil
     self.damage_timer = 0
 
     -- Initialize inventory slots
-    for i = 1, self.components.inventory.hotbar_size do
-        self.components.inventory.slots[i] = nil
+    for i = 1, self.inventory.hotbar_size do
+        self.inventory.slots[i] = nil
     end
 
     -- Add omnitool to slot 1
     self:add_item_to_inventory(ITEMS.OMNITOOL, 1)
 
     -- Initialize control system
-    self.systems.control = require "systems.control"
-    self.systems.control:load(self)
+    self.control = require "systems.control"
 
-    local px, py = world:world_to_block(self.components.position.x, self.components.position.y)
+    local px, py = world:world_to_block(self.position.x, self.position.y)
     log.debug("Player:", px, py)
+
+    Object.load(self)
 end
 
 function PlayerSystem.update(self, dt)
     local world = Systems.get("world")
 
-    local pos = self.components.position
-    local vel = self.components.velocity
-    local phys = self.components.physics
-    local col = self.components.collider
-    local stance = self.components.stance
-    local vis = self.components.visual
-    local stamina = self.components.stamina
+    local pos = self.position
+    local vel = self.velocity
+    local phys = self.physics
+    local col = self.collider
+    local stance = self.stance
+    local vis = self.visual
+    local stamina = self.stamina
 
     -- Update damage timer
     if self.damage_timer > 0 then
@@ -98,8 +98,8 @@ function PlayerSystem.update(self, dt)
     end
 
     -- Delegate to control system for input handling
-    if self.systems.control then
-        self.systems.control:update(dt)
+    if self.control then
+        self.control:update(dt)
     end
 
     -- Check if on ground first
@@ -199,7 +199,7 @@ function PlayerSystem.update(self, dt)
     -- Update stance based on current state
     if on_ground then
         -- Calculate fall damage on landing if we were airborne
-        if not self.components.health.invincible and self.fall_start_y ~= nil then
+        if not self.health.invincible and self.fall_start_y ~= nil then
             local fall_distance = pos.y - self.fall_start_y
             local fall_blocks = fall_distance / BLOCK_SIZE
             -- Safe fall is 4 blocks (2x player height, since player is 2 blocks tall)
@@ -226,11 +226,13 @@ function PlayerSystem.update(self, dt)
         end
         -- Keep JUMPING stance while moving upward (vel.vy < 0)
     end
+
+    Object.update(self, dt)
 end
 
 function PlayerSystem.draw(self)
-    local pos = self.components.position
-    local vis = self.components.visual
+    local pos = self.position
+    local vis = self.visual
 
     local camera = Systems.get("camera")
     local camera_x, camera_y = camera:get_offset()
@@ -253,13 +255,12 @@ function PlayerSystem.draw(self)
             vis.width,
             vis.height)
     end
+
+    Object.draw(self)
 end
 
 function PlayerSystem.keypressed(self, key)
-    -- Delegate to control system
-    if self.systems.control then
-        self.systems.control:keypressed(key)
-    end
+    Object.keypressed(self, key)
 end
 
 function PlayerSystem.can_switch_layer(self, target_layer)
@@ -267,12 +268,12 @@ function PlayerSystem.can_switch_layer(self, target_layer)
         return false
     end
 
-    return not self.check_collision(self, self.components.position.x, self.components.position.y, target_layer)
+    return not self.check_collision(self, self.position.x, self.position.y, target_layer)
 end
 
 function PlayerSystem.check_collision(self, x, y, layer)
     local world = Systems.get("world")
-    local collider = self.components.collider
+    local collider = self.collider
 
     local left = x - collider.width / 2
     local right = x + collider.width / 2
@@ -298,7 +299,7 @@ end
 
 -- Inventory management
 function PlayerSystem.add_to_inventory(self, block_id, count)
-    local inv = self.components.inventory
+    local inv = self.inventory
     count = count or 1
 
     if count <= 0 then
@@ -348,7 +349,7 @@ function PlayerSystem.add_to_inventory(self, block_id, count)
 end
 
 function PlayerSystem.add_item_to_inventory(self, item_id, count)
-    local inv = self.components.inventory
+    local inv = self.inventory
     count = count or 1
 
     if count <= 0 then
@@ -398,7 +399,7 @@ function PlayerSystem.add_item_to_inventory(self, item_id, count)
 end
 
 function PlayerSystem.remove_from_selected(self, count)
-    local inv = self.components.inventory
+    local inv = self.inventory
     count = count or 1
     local slot = inv.slots[inv.selected_slot]
 
@@ -417,7 +418,7 @@ function PlayerSystem.remove_from_selected(self, count)
 end
 
 function PlayerSystem.get_selected_block_id(self)
-    local inv = self.components.inventory
+    local inv = self.inventory
     local slot = inv.slots[inv.selected_slot]
     if slot then
         return slot.block_id
@@ -428,29 +429,29 @@ end
 function PlayerSystem.upgrade(self, upOrDown)
     assert(type(upOrDown) == "number")
     if upOrDown > 0 then
-        self.components.omnitool.tier = math.min(self.components.omnitool.tier + 1, self.components.omnitool.max)
-        log.info("Player", "upgrade", self.components.omnitool.tier)
+        self.omnitool.tier = math.min(self.omnitool.tier + 1, self.omnitool.max)
+        log.info("Player", "upgrade", self.omnitool.tier)
     elseif upOrDown < 0 then
-        self.components.omnitool.tier = math.max(self.components.omnitool.min, self.components.omnitool.tier - 1)
-        log.info("Player", "downgrade", self.components.omnitool.tier)
+        self.omnitool.tier = math.max(self.omnitool.min, self.omnitool.tier - 1)
+        log.info("Player", "downgrade", self.omnitool.tier)
     else
         assert(false)
     end
 end
 
 function PlayerSystem.get_position(self)
-    return self.components.position.x, self.components.position.y, self.components.position.z
+    return self.position.x, self.position.y, self.position.z
 end
 
 function PlayerSystem.get_omnitool_tier(self)
-    return self.components.omnitool.tier
+    return self.omnitool.tier
 end
 
 function PlayerSystem.is_on_ground(self)
     local world = Systems.get("world")
-    local pos = self.components.position
-    local col = self.components.collider
-    local vel = self.components.velocity
+    local pos = self.position
+    local col = self.collider
+    local vel = self.velocity
 
     -- Check if there's ground directly below the player
     local bottom_y = pos.y + col.height / 2
@@ -470,8 +471,8 @@ end
 
 function PlayerSystem.can_stand_up(self)
     local world = Systems.get("world")
-    local pos = self.components.position
-    local col = self.components.collider
+    local pos = self.position
+    local col = self.collider
 
     -- Check if there's space above for standing (need to check one extra block height)
     local target_y = pos.y - BLOCK_SIZE / 2  -- Position after standing
@@ -491,36 +492,36 @@ function PlayerSystem.can_stand_up(self)
 end
 
 function PlayerSystem.hit(self, damage)
-    if not self.components.health then
+    if not self.health then
         return
     end
 
     -- Apply damage
-    self.components.health.current = math.max(0, self.components.health.current - damage)
+    self.health.current = math.max(0, self.health.current - damage)
 
     -- Set damage timer for visual effect
     self.damage_timer = PlayerSystem.DAMAGE_DISPLAY_DURATION
 end
 
 function PlayerSystem.is_dead(self)
-    return self.components.health and self.components.health.current <= 0
+    return self.health and self.health.current <= 0
 end
 
 function PlayerSystem.consume_stamina(self, amount)
-    if not self.components.stamina then
+    if not self.stamina then
         return false
     end
-    
-    if self.components.stamina.current >= amount then
-        self.components.stamina.current = math.max(0, self.components.stamina.current - amount)
+
+    if self.stamina.current >= amount then
+        self.stamina.current = math.max(0, self.stamina.current - amount)
         return true
     end
-    
+
     return false
 end
 
 function PlayerSystem.has_stamina(self, amount)
-    return self.components.stamina and self.components.stamina.current >= amount
+    return self.stamina and self.stamina.current >= amount
 end
 
 return PlayerSystem

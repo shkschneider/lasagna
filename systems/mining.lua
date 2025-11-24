@@ -1,13 +1,14 @@
 -- Mining System
 -- Handles block mining with progressive delay and visual feedback
 
+local Object = require "core.object"
 local Systems = require "systems"
 local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
-local MiningSystem = {
+local MiningSystem = Object.new {
     id = "mining",
     priority = 60,
     -- Mining state
@@ -32,7 +33,7 @@ end
 
 function MiningSystem.update(self, dt)
     local player = Systems.get("player")
-    local inv = player.components.inventory
+    local inv = player.inventory
     if not love.mouse.isDown(1) or inv.slots[inv.selected_slot].item_id ~= ITEMS.OMNITOOL then
         -- TODO or mouse moved to another target
         self:cancel_mining()
