@@ -74,7 +74,7 @@ function Object.mousereleased(self, x, y, button)
     assert(type(x) == "number")
     assert(type(y) == "number")
     assert(type(button) == "number")
-    Object_call("mousereleased", x, y, button)
+    Object_call(self, "mousereleased", x, y, button)
 end
 
 function Object.mousemoved(self, x, y, dx, dy)
