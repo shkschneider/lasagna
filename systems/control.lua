@@ -1,8 +1,6 @@
 -- Control System
 -- Manages player input and human controls
 
-local log = require "lib.log"
-
 local Object = require "core.object"
 local Stance = require "components.stance"
 

@@ -13,7 +13,7 @@ BLOCK_SIZE = 16
 STACK_SIZE = 64
 
 -- Global
-Log = require "lib.log"
+Log = require "libraries.rxi.log"
 G = require "core.game"
 G.VERSION = { major = 0, minor = 1, patch = nil, tostring = function(self)
     return string.format("%d.%d.%s", self.major, self.minor, tostring(self.patch or "x"))

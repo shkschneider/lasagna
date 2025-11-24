@@ -1,7 +1,6 @@
 -- Game System
 -- Manages overall game state, time scale, and coordinates other systems
 
-local log = require "lib.log"
 local Object = require "core.object"
 local TimeScale = require "components.timescale"
 local GameState = require "components.gamestate"
@@ -49,7 +48,7 @@ end
 function Game.switch(self, gamestate)
     assert(gamestate)
     self.gamestate = GameState.new(gamestate)
-    log.debug(string.format("%f", love.timer.getTime()), "Game", string.upper(self.gamestate:tostring()))
+    Log.debug(string.format("%f", love.timer.getTime()), "Game", string.upper(self.gamestate:tostring()))
 end
 
 return Game
