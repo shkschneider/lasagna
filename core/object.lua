@@ -126,9 +126,20 @@ function Object.new(...)
     for key, value in pairs(...) do
         object[key] = value
     end
+    -- love2d
     object.load = Object_load
     object.update = Object_update
     object.draw = Object_draw
+    object.keypressed = Object_keypressed
+    object.keyreleased = Object_keyreleased
+    object.mousepressed = Object_mousepressed
+    object.mousereleased = Object_mousereleased
+    object.wheelmoved = Object_wheelmoved
+    object.textinput = Object_textinput
+    object.resize = Object_resize
+    object.focus = Object_focus
+    object.quit = Object_quit
+    -- /love2d
     object.tostring = Object_tostring
     return object
 end

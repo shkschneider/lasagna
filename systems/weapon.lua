@@ -1,24 +1,20 @@
--- Weapon System
--- Handles weapon usage (shooting on mouse click)
-
 local Object = require "core.object"
 local Registry = require "registries"
-
 local ITEMS = Registry.items()
 
-local WeaponSystem = Object.new {
+local Weapon = Object.new {
     id = "weapon",
     priority = 62,
     cooldown = 0,
     mouse_held = false,
 }
 
-function WeaponSystem.load(self)
+function Weapon.load(self)
     self.cooldown = 0
     self.mouse_held = false
 end
 
-function WeaponSystem.update(self, dt)
+function Weapon.update(self, dt)
     -- Decrease cooldown
     if self.cooldown > 0 then
         self.cooldown = self.cooldown - dt
@@ -30,7 +26,7 @@ function WeaponSystem.update(self, dt)
     end
 end
 
-function WeaponSystem.try_shoot(self)
+function Weapon.try_shoot(self)
     -- Get selected item
     local inv = G.player.inventory
     local slot = inv.slots[inv.selected_slot]
@@ -69,7 +65,7 @@ function WeaponSystem.try_shoot(self)
     local vx = dx * speed
     local vy = dy * speed
 
-    G.bullet:create_bullet(
+    G.bullet:newBullet(
         player_x,
         player_y,
         player_z,
@@ -86,7 +82,7 @@ function WeaponSystem.try_shoot(self)
     self.cooldown = item_proto.weapon.cooldown or 0.2
 end
 
-function WeaponSystem.mousepressed(self, x, y, button)
+function Weapon.mousepressed(self, x, y, button)
     if button == 1 then
         self.mouse_held = true
         -- Try to shoot immediately
@@ -96,10 +92,10 @@ function WeaponSystem.mousepressed(self, x, y, button)
     end
 end
 
-function WeaponSystem.mousereleased(self, x, y, button)
+function Weapon.mousereleased(self, x, y, button)
     if button == 1 then
         self.mouse_held = false
     end
 end
 
-return WeaponSystem
+return Weapon

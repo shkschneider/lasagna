@@ -1,7 +1,6 @@
--- Bullet component
--- Projectile data
+local Object = require "core.object"
 
-local Bullet = {}
+local Bullet = Object.new {}
 
 function Bullet.new(damage, lifetime, width, height, color, destroys_blocks)
     local instance = {

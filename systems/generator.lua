@@ -1,14 +1,13 @@
--- World Generation Module
--- Contains all terrain generation logic split into ordered steps
-
 local noise = require "core.noise"
 local Registry = require "registries"
 local BlocksRegistry = require "registries.blocks"
 local BLOCKS = Registry.blocks()
 
-local GeneratorSystem = {}
+-- TODO move to core?
 
-function GeneratorSystem.seed(seed)
+local Generator = {}
+
+function Generator.seed(seed)
     assert(type(seed) == "number")
     noise.seed(seed)
 end
@@ -46,7 +45,7 @@ local function calculate_surface_height(col, z, world_height)
 end
 
 -- Step 1: Fill terrain with air above surface and stone below
-function GeneratorSystem.fill(column_data, world_col, base_height, world_height)
+function Generator.fill(column_data, world_col, base_height, world_height)
     for row = 0, world_height - 1 do
         if row >= base_height then
             -- Underground - stone by default
@@ -61,7 +60,7 @@ function GeneratorSystem.fill(column_data, world_col, base_height, world_height)
 end
 
 -- Step 2: Add dirt and grass
-function GeneratorSystem.dirt_and_grass(column_data, world_col, z, base_height, world_height)
+function Generator.dirt_and_grass(column_data, world_col, z, base_height, world_height)
     local dirt_depth = DIRT_MIN_DEPTH + math.floor((DIRT_MAX_DEPTH - DIRT_MIN_DEPTH) *
         (noise.perlin2d(world_col * 0.05, z * 0.1) + 1) / 2)
     for row = base_height, math.min(base_height + dirt_depth - 1, world_height - 1) do
@@ -78,7 +77,7 @@ function GeneratorSystem.dirt_and_grass(column_data, world_col, z, base_height, 
 end
 
 -- Step 3: Generate ore veins using 3D Perlin noise
-function GeneratorSystem.ore_veins(column_data, world_col, z, base_height, world_height)
+function Generator.ore_veins(column_data, world_col, z, base_height, world_height)
     local ore_blocks = get_ore_blocks()
 
     for row = base_height, world_height - 3 do -- Stop before bedrock
@@ -118,16 +117,16 @@ end
 -- world_col: absolute column coordinate in the world (for noise continuity)
 -- z: layer index
 -- world_height: height of the world
-function GeneratorSystem.generate_column(column_data, world_col, z, world_height)
+function Generator.generate_column(column_data, world_col, z, world_height)
     -- Step 0: Calculate surface height (uses world_col for continuity)
     local base_height = calculate_surface_height(world_col, z, world_height)
     -- Step 1: Fill base terrain (air and stone)
-    GeneratorSystem.fill(column_data, world_col, base_height, world_height)
+    Generator.fill(column_data, world_col, base_height, world_height)
     -- Step 2: Add dirt and grass layers
-    GeneratorSystem.dirt_and_grass(column_data, world_col, z, base_height, world_height)
+    Generator.dirt_and_grass(column_data, world_col, z, base_height, world_height)
     -- Step 3: Generate ore veins
-    GeneratorSystem.ore_veins(column_data, world_col, z, base_height, world_height)
+    Generator.ore_veins(column_data, world_col, z, base_height, world_height)
 
 end
 
-return GeneratorSystem
+return Generator

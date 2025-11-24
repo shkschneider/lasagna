@@ -1,6 +1,3 @@
--- Player System
--- Manages player entity and player-specific logic
-
 local Object = require "core.object"
 local Position = require "components.position"
 local Velocity = require "components.velocity"
@@ -14,27 +11,26 @@ local Stance = require "components.stance"
 local Health = require "components.health"
 local Stamina = require "components.stamina"
 local Registry = require "registries"
-
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
-local PlayerSystem = Object.new {
+local Player = Object.new {
     id = "player",
     priority = 20,
-    -- Movement constants
+    -- Movement constants TODO control?
     MOVE_SPEED = 150,
     JUMP_FORCE = 300,
-    -- Fall damage constants
+    -- Fall damage constants TODO gravity?
     SAFE_FALL_BLOCKS = 4,  -- 2x player height
     FALL_DAMAGE_PER_BLOCK = 5,
     DAMAGE_DISPLAY_DURATION = 0.5,
-    -- Stamina constants
+    -- Stamina constants TODO move
     STAMINA_REGEN_RATE = 1,  -- per second
     STAMINA_RUN_COST = 2.5,  -- per second
     STAMINA_JUMP_COST = 5,   -- per jump
 }
 
-function PlayerSystem.load(self)
+function Player.load(self)
     local x, y, z = G.world:find_spawn_position(LAYER_DEFAULT)
 
     -- Initialize player components
@@ -56,7 +52,7 @@ function PlayerSystem.load(self)
     self.stance.crouched = false
     self.health = Health.new(100, 100)
     -- Health regen disabled by default (0 regen_rate)
-    self.stamina = Stamina.new(100, 100, PlayerSystem.STAMINA_REGEN_RATE)
+    self.stamina = Stamina.new(100, 100, Player.STAMINA_REGEN_RATE)
 
     -- Fall damage tracking
     self.fall_start_y = nil
@@ -72,14 +68,17 @@ function PlayerSystem.load(self)
 
     -- Initialize control system
     self.control = require "systems.control"
+    -- TODO control?
 
-    local px, py = G.world:world_to_block(self.position.x, self.position.y)
-    Log.debug("Player:", px, py)
+    if G.debug.enabled then
+        local px, py = G.world:world_to_block(self.position.x, self.position.y)
+        Log.debug("Player:", px, py)
+    end
 
     Object.load(self)
 end
 
-function PlayerSystem.update(self, dt)
+function Player.update(self, dt)
     local pos = self.position
     local vel = self.velocity
     local phys = self.physics
@@ -202,9 +201,9 @@ function PlayerSystem.update(self, dt)
             local fall_distance = pos.y - self.fall_start_y
             local fall_blocks = fall_distance / BLOCK_SIZE
             -- Safe fall is 4 blocks (2x player height, since player is 2 blocks tall)
-            if fall_blocks > PlayerSystem.SAFE_FALL_BLOCKS then
-                local excess_blocks = fall_blocks - PlayerSystem.SAFE_FALL_BLOCKS
-                local damage = math.floor(excess_blocks * PlayerSystem.FALL_DAMAGE_PER_BLOCK)
+            if fall_blocks > Player.SAFE_FALL_BLOCKS then
+                local excess_blocks = fall_blocks - Player.SAFE_FALL_BLOCKS
+                local damage = math.floor(excess_blocks * Player.FALL_DAMAGE_PER_BLOCK)
                 if damage > 0 then
                     self:hit(damage)
                 end
@@ -227,7 +226,7 @@ function PlayerSystem.update(self, dt)
     end
 end
 
-function PlayerSystem.draw(self)
+function Player.draw(self)
     local pos = self.position
     local vis = self.visual
 
@@ -255,11 +254,7 @@ function PlayerSystem.draw(self)
     Object.draw(self)
 end
 
-function PlayerSystem.keypressed(self, key)
-    Object.keypressed(self, key)
-end
-
-function PlayerSystem.can_switch_layer(self, target_layer)
+function Player.can_switch_layer(self, target_layer)
     if target_layer < -1 or target_layer > 1 then -- TODO constants for MIN and MAX layers
         return false
     end
@@ -267,7 +262,7 @@ function PlayerSystem.can_switch_layer(self, target_layer)
     return not self.check_collision(self, self.position.x, self.position.y, target_layer)
 end
 
-function PlayerSystem.check_collision(self, x, y, layer)
+function Player.check_collision(self, x, y, layer)
     local collider = self.collider
 
     local left = x - collider.width / 2
@@ -293,7 +288,7 @@ function PlayerSystem.check_collision(self, x, y, layer)
 end
 
 -- Inventory management
-function PlayerSystem.add_to_inventory(self, block_id, count)
+function Player.add_to_inventory(self, block_id, count)
     local inv = self.inventory
     count = count or 1
 
@@ -343,7 +338,7 @@ function PlayerSystem.add_to_inventory(self, block_id, count)
     return true
 end
 
-function PlayerSystem.add_item_to_inventory(self, item_id, count)
+function Player.add_item_to_inventory(self, item_id, count)
     local inv = self.inventory
     count = count or 1
 
@@ -393,7 +388,7 @@ function PlayerSystem.add_item_to_inventory(self, item_id, count)
     return true
 end
 
-function PlayerSystem.remove_from_selected(self, count)
+function Player.remove_from_selected(self, count)
     local inv = self.inventory
     count = count or 1
     local slot = inv.slots[inv.selected_slot]
@@ -412,7 +407,7 @@ function PlayerSystem.remove_from_selected(self, count)
     return removed
 end
 
-function PlayerSystem.get_selected_block_id(self)
+function Player.get_selected_block_id(self)
     local inv = self.inventory
     local slot = inv.slots[inv.selected_slot]
     if slot then
@@ -421,7 +416,7 @@ function PlayerSystem.get_selected_block_id(self)
     return nil
 end
 
-function PlayerSystem.upgrade(self, upOrDown)
+function Player.upgrade(self, upOrDown)
     assert(type(upOrDown) == "number")
     if upOrDown > 0 then
         self.omnitool.tier = math.min(self.omnitool.tier + 1, self.omnitool.max)
@@ -434,15 +429,15 @@ function PlayerSystem.upgrade(self, upOrDown)
     end
 end
 
-function PlayerSystem.get_position(self)
+function Player.get_position(self)
     return self.position.x, self.position.y, self.position.z
 end
 
-function PlayerSystem.get_omnitool_tier(self)
+function Player.get_omnitool_tier(self)
     return self.omnitool.tier
 end
 
-function PlayerSystem.is_on_ground(self)
+function Player.is_on_ground(self)
     local pos = self.position
     local col = self.collider
     local vel = self.velocity
@@ -463,7 +458,7 @@ function PlayerSystem.is_on_ground(self)
     return false
 end
 
-function PlayerSystem.can_stand_up(self)
+function Player.can_stand_up(self)
     local pos = self.position
     local col = self.collider
 
@@ -484,7 +479,7 @@ function PlayerSystem.can_stand_up(self)
     return true
 end
 
-function PlayerSystem.hit(self, damage)
+function Player.hit(self, damage)
     if not self.health then
         return
     end
@@ -493,14 +488,14 @@ function PlayerSystem.hit(self, damage)
     self.health.current = math.max(0, self.health.current - damage)
 
     -- Set damage timer for visual effect
-    self.damage_timer = PlayerSystem.DAMAGE_DISPLAY_DURATION
+    self.damage_timer = Player.DAMAGE_DISPLAY_DURATION
 end
 
-function PlayerSystem.is_dead(self)
+function Player.is_dead(self)
     return self.health and self.health.current <= 0
 end
 
-function PlayerSystem.consume_stamina(self, amount)
+function Player.consume_stamina(self, amount)
     if not self.stamina then
         return false
     end
@@ -513,8 +508,8 @@ function PlayerSystem.consume_stamina(self, amount)
     return false
 end
 
-function PlayerSystem.has_stamina(self, amount)
+function Player.has_stamina(self, amount)
     return self.stamina and self.stamina.current >= amount
 end
 
-return PlayerSystem
+return Player

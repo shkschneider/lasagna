@@ -1,15 +1,12 @@
--- Chat System
--- Handles chat interface and command execution
-
 local Object = require "core.object"
 local Registry = require "registries"
 
-local ChatSystem = Object.new {
+local Chat = Object.new {
     id = "chat",
     priority = 120, -- After UI (110)
 }
 
-function ChatSystem.load(self)
+function Chat.load(self)
     self.open = false
     self.input = ""
     self.history = {} -- Chat message history
@@ -19,7 +16,7 @@ function ChatSystem.load(self)
     self.in_input_mode = false -- Whether user is typing
 end
 
-function ChatSystem.update(self, dt)
+function Chat.update(self, dt)
     -- Update message visibility timer
     if self.message_timer > 0 then
         self.message_timer = self.message_timer - dt
@@ -33,7 +30,7 @@ function ChatSystem.update(self, dt)
     end
 end
 
-function ChatSystem.draw(self)
+function Chat.draw(self)
     if not self.open then
         return
     end
@@ -91,7 +88,7 @@ function ChatSystem.draw(self)
     end
 end
 
-function ChatSystem.keypressed(self, key)
+function Chat.keypressed(self, key)
     -- Check if we should toggle chat
     if key == "return" then
         if not self.in_input_mode then
@@ -134,13 +131,13 @@ function ChatSystem.keypressed(self, key)
     end
 end
 
-function ChatSystem.textinput(self, text)
+function Chat.textinput(self, text)
     if self.in_input_mode then
         self.input = self.input .. text
     end
 end
 
-function ChatSystem.process_input(self, input)
+function Chat.process_input(self, input)
     -- Check if it's a command (starts with /)
     if input:sub(1, 1) == "/" then
         local command_parts = {}
@@ -155,7 +152,7 @@ function ChatSystem.process_input(self, input)
                 table.insert(args, command_parts[i])
             end
 
-            local debug = Systems.get("debug")
+            local debug = s.get("debug")
             if debug and debug.enabled then
                 -- Add input to history
                 self:add_message("> " .. input)
@@ -174,7 +171,7 @@ function ChatSystem.process_input(self, input)
     end
 end
 
-function ChatSystem.add_message(self, message)
+function Chat.add_message(self, message)
     table.insert(self.history, string.format("%f: %s", love.timer.getTime(), message))
 
     -- Keep history limited
@@ -189,4 +186,4 @@ function ChatSystem.add_message(self, message)
     end
 end
 
-return ChatSystem
+return Chat

@@ -1,14 +1,12 @@
--- World System
--- Manages world generation, block storage, and world queries
-
 local Object = require "core.object"
 local Generator = require "systems.generator"
 local WorldData = require "components.worlddata"
 local Registry = require "registries"
-
 local BLOCKS = Registry.blocks()
 
-local WorldSystem = Object.new {
+-- TODO some generate_... still there
+
+local World = Object.new {
     id = "world",
     priority = 10,
     HEIGHT = 512,
@@ -21,7 +19,7 @@ local WorldSystem = Object.new {
     max_coroutines = 8,          -- Maximum concurrent column generations (increased for finer granularity)
 }
 
-function WorldSystem.load(self, seed, _)
+function World.load(self, seed, _)
     -- Initialize components (no width - infinite horizontal)
     self.worlddata = WorldData.new(seed, self.HEIGHT)
     Log.info("World:", self.worlddata.seed)
@@ -45,7 +43,7 @@ function WorldSystem.load(self, seed, _)
     Object.load(self)
 end
 
-function WorldSystem.create_canvases(self)
+function World.create_canvases(self)
     local screen_width, screen_height = love.graphics.getDimensions()
 
     -- Create canvases for each layer
@@ -54,7 +52,7 @@ function WorldSystem.create_canvases(self)
     self.canvases[1] = love.graphics.newCanvas(screen_width, screen_height)
 end
 
-function WorldSystem.update(self, dt)
+function World.update(self, dt)
     -- Process pending column generation coroutines
     local completed = {}
 
@@ -132,7 +130,7 @@ function WorldSystem.update(self, dt)
     Object.update(self, dt)
 end
 
-function WorldSystem.draw(self)
+function World.draw(self)
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
 
@@ -259,7 +257,7 @@ function WorldSystem.draw(self)
 end
 
 -- Draw cursor highlight for block under cursor
-function WorldSystem.draw_cursor_highlight(self, camera_x, camera_y, player_z)
+function World.draw_cursor_highlight(self, camera_x, camera_y, player_z)
     -- Get mouse position
     local mouse_x, mouse_y = love.mouse.getPosition()
     local world_x = mouse_x + camera_x
@@ -294,7 +292,7 @@ function WorldSystem.draw_cursor_highlight(self, camera_x, camera_y, player_z)
 end
 
 -- Check if a location is valid for building
-function WorldSystem.is_valid_building_location(self, col, row, layer)
+function World.is_valid_building_location(self, col, row, layer)
     -- Check if spot is empty (air)
     local current_block = self:get_block_id(layer, col, row)
     if current_block ~= BLOCKS.AIR then
@@ -336,7 +334,7 @@ function WorldSystem.is_valid_building_location(self, col, row, layer)
 end
 
 -- Generate a single column immediately without yielding (for initial spawn area)
-function WorldSystem.generate_column_immediate(self, z, col)
+function World.generate_column_immediate(self, z, col)
     local data = self.worlddata
     local key = string.format("%d_%d", z, col)
 
@@ -361,7 +359,7 @@ function WorldSystem.generate_column_immediate(self, z, col)
 end
 
 -- Pre-generate columns around spawn area (32 to left and right)
-function WorldSystem.pregenerate_spawn_area(self)
+function World.pregenerate_spawn_area(self)
     local spawn_col = BLOCK_SIZE  -- Same as used in find_spawn_position
     local range = BLOCK_SIZE  -- Generate initial columns to each side
 
@@ -376,7 +374,7 @@ end
 
 
 -- Generate a single column (function executed by coroutines)
-function WorldSystem.generate_column_sync(self, z, col)
+function World.generate_column_sync(self, z, col)
     local data = self.worlddata
     local key = string.format("%d_%d", z, col)
 
@@ -410,7 +408,7 @@ end
 
 -- Queue a column for generation (non-blocking)
 -- priority: true for high-priority queue (visible columns), false for low-priority queue (background)
-function WorldSystem.generate_column(self, z, col, priority)
+function World.generate_column(self, z, col, priority)
     local data = self.worlddata
     local key = string.format("%d_%d", z, col)
 
@@ -452,7 +450,7 @@ function WorldSystem.generate_column(self, z, col, priority)
 end
 
 -- Get block at position
-function WorldSystem.get_block_id(self, z, col, row)
+function World.get_block_id(self, z, col, row)
     if row < 0 or row >= self.worlddata.height then
         return BLOCKS.AIR
     end
@@ -471,13 +469,13 @@ function WorldSystem.get_block_id(self, z, col, row)
 end
 
 -- Get block prototype at position
-function WorldSystem.get_block_def(self, z, col, row)
+function World.get_block_def(self, z, col, row)
     local block_id = self.get_block_id(self, z, col, row)
     return Registry.Blocks:get(block_id)
 end
 
 -- Set block at position
-function WorldSystem.set_block(self, z, col, row, block_id)
+function World.set_block(self, z, col, row, block_id)
     if row < 0 or row >= self.worlddata.height then
         return false
     end
@@ -500,17 +498,17 @@ function WorldSystem.set_block(self, z, col, row, block_id)
 end
 
 -- World to block coordinate conversion
-function WorldSystem.world_to_block(self, world_x, world_y)
+function World.world_to_block(self, world_x, world_y)
     return math.floor(world_x / BLOCK_SIZE), math.floor(world_y / BLOCK_SIZE)
 end
 
 -- Block to world coordinate conversion
-function WorldSystem.block_to_world(self, col, row)
+function World.block_to_world(self, col, row)
     return col * BLOCK_SIZE, row * BLOCK_SIZE
 end
 
 -- Find spawn position (simplified)
-function WorldSystem.find_spawn_position(self, z)
+function World.find_spawn_position(self, z)
     z = z or 0
     -- Find the surface by searching for the first solid block from top
     local col = BLOCK_SIZE
@@ -529,9 +527,9 @@ function WorldSystem.find_spawn_position(self, z)
     return col * BLOCK_SIZE, 0, z
 end
 
-function WorldSystem.resize(self, width, height)
+function World.resize(self, width, height)
     self:create_canvases()
     Object.resize(self, width, height)
 end
 
-return WorldSystem
+return World

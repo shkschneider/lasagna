@@ -1,38 +1,36 @@
--- Drop System
--- Manages drop entities (items on ground)
-
 local Object = require "core.object"
 local Position = require "components.position"
 local Velocity = require "components.velocity"
 local Physics = require "components.physics"
-local Drop = require "components.drop"
+local DropComponent = require "components.drop"
 local Registry = require "registries"
 
 local MERGING_ENABLED = false
 
-local DropSystem = Object.new {
+local Drop = Object.new {
     id = "drop",
     priority = 70,
     entities = {},
+    -- TODO component: drop
 }
 
-function DropSystem.load(self)
-    self.entities = {}
-end
-
-function DropSystem.create_drop(self, x, y, layer, block_id, count)
+function Drop.newDrop(self, x, y, layer, block_id, count)
     local entity = {
         id = uuid(),
         position = Position.new(x, y, layer),
         velocity = Velocity.new((math.random() - 0.5) * 50, -50),
         physics = Physics.new(400, 0.8),  -- gravity: 400, friction: 0.8 (more friction for drops)
-        drop = Drop.new(block_id, count, 300, 0.5),
+        drop = DropComponent.new(block_id, count, 300, 0.5),
     }
     table.insert(self.entities, entity)
     return entity
 end
 
-function DropSystem.update(self, dt)
+function Drop.load(self)
+    self.entities = {}
+end
+
+function Drop.update(self, dt)
     local PICKUP_RANGE = BLOCK_SIZE
     local MERGE_RANGE = BLOCK_SIZE
     local player_x, player_y, player_z = G.player:get_position()
@@ -44,7 +42,7 @@ function DropSystem.update(self, dt)
         -- This handles physics, velocity, and drop lifetime
         Object.update(ent, dt)
 
-        -- System-level coordination: Check collision with ground
+        -- -level coordination: Check collision with ground
         -- Drops are 1/2 block size, so check at their bottom edge (1/4 block offset)
         local drop_height = BLOCK_SIZE / 2
         local col, row = G.world:world_to_block(
@@ -66,7 +64,7 @@ function DropSystem.update(self, dt)
             ent.velocity.vx = ent.velocity.vx * ent.physics.friction
         end
 
-        -- System-level coordination: Merge with nearby drops
+        -- -level coordination: Merge with nearby drops
         if MERGING_ENABLED and on_ground and ent.drop.pickup_delay <= 0 then
             for j = i - 1, 1, -1 do
                 local other = self.entities[j]
@@ -98,7 +96,7 @@ function DropSystem.update(self, dt)
             end
         end
 
-        -- System-level coordination: Check pickup by player
+        -- -level coordination: Check pickup by player
         if ent.drop.pickup_delay <= 0 and ent.position.z == player_z then
             local dx = ent.position.x - player_x
             local dy = ent.position.y - player_y
@@ -120,7 +118,7 @@ function DropSystem.update(self, dt)
     end
 end
 
-function DropSystem.draw(self)
+function Drop.draw(self)
     local camera_x, camera_y = G.camera:get_offset()
 
     for _, ent in ipairs(self.entities) do
@@ -132,4 +130,4 @@ function DropSystem.draw(self)
     love.graphics.setColor(1, 1, 1, 1)
 end
 
-return DropSystem
+return Drop

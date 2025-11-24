@@ -1,16 +1,13 @@
--- Control System
--- Manages player input and human controls
-
 local Object = require "core.object"
 local Stance = require "components.stance"
 
-local ControlSystem = Object.new {
+local Control = Object.new {
     id = "control",
     priority = 19, -- Run before player system (priority 20)
     jump_pressed_last_frame = false,  -- Track jump input for edge detection
 }
 
-function ControlSystem.update(self, dt)
+function Control.update(self, dt)
     if G.chat.in_input_mode then
         return
     end
@@ -90,7 +87,7 @@ function ControlSystem.update(self, dt)
     self.jump_pressed_last_frame = jump_pressed
 end
 
-function ControlSystem.keypressed(self, key)
+function Control.keypressed(self, key)
     if G.chat.in_input_mode then
         return
     end
@@ -117,4 +114,4 @@ function ControlSystem.keypressed(self, key)
     end
 end
 
-return ControlSystem
+return Control

@@ -1,6 +1,5 @@
 local Object = require "core.object"
 local Registry = require "registries"
-
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
@@ -31,7 +30,7 @@ function Debug.keypressed(self, key)
     end
     -- Reset
     if key == "delete" then -- FIXME
-        G:load(G.world.worlddata.seed, G.debug.enabled)
+        G:reload()
         return
     end
     -- Adjust omnitool tier

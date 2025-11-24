@@ -1,48 +1,36 @@
--- Camera System
--- Manages camera positioning and smooth following
-
 local Object = require "core.object"
-local Camera = require "components.camera"
 local Position = require "components.position"
 
-local CameraSystem = Object.new {
+local Camera = Object.new {
     id = "camera",
     priority = 90,
 }
 
-function CameraSystem.load(self)
+function Camera.load(self)
     local x, y = G.player:get_position()
     self.position = Position.new(x, y, nil)
-    self.camera = Camera.new(x, y, x, y, 5)
+    self.target = Position.new(0, 0, nil)
+    self.smoothness = 5
 end
 
-function CameraSystem.x(self)
-    return self.camera.x
-end
-
-function CameraSystem.y(self)
-    return self.camera.y
-end
-
-function CameraSystem.update(self, dt)
-    -- Get player position from PlayerSystem
+function Camera.update(self, dt)
+    -- Get player position from Player
     local target_x, target_y = G.player:get_position()
-    self.camera.target_x = target_x
-    self.camera.target_y = target_y
+    self.target.x = target_x
+    self.target.y = target_y
 
     -- Smooth interpolation
-    local dx = self.camera.target_x - self.camera.x
-    local dy = self.camera.target_y - self.camera.y
+    local dx = self.target.x - self.position.x
+    local dy = self.target.y - self.position.y
 
-    self.camera.x = self.camera.x + dx * self.camera.smoothness * dt
-    self.camera.y = self.camera.y + dy * self.camera.smoothness * dt
+    self.position.x = self.position.x + dx * self.smoothness * dt
+    self.position.y = self.position.y + dy * self.smoothness * dt
 end
 
-function CameraSystem.get_offset(self)
+function Camera.get_offset(self)
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
-    return self.camera.x - screen_width / 2,
-        self.camera.y - screen_height / 2
+    return self.position.x - screen_width / 2, self.position.y - screen_height / 2
 end
 
-return CameraSystem
+return Camera

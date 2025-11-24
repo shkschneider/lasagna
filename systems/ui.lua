@@ -1,17 +1,13 @@
--- UI System
--- Handles user interface rendering
-
 local Object = require "core.object"
 local Registry = require "registries"
 
-local UISystem = Object.new {
+-- TODO rename file to interface.lua
+local Interface = Object.new {
     id = "ui",
     priority = 110,
 }
 
-function UISystem.load(self) end
-
-function UISystem.draw(self)
+function Interface.draw(self)
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
 
@@ -113,4 +109,4 @@ function UISystem.draw(self)
     end
 end
 
-return UISystem
+return Interface

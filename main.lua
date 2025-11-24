@@ -1,48 +1,49 @@
--- Game System
--- Manages overall game state, time scale, and coordinates other systems
-
-require "core"
 local Object = require "core.object"
-local State = require "components.state"
+local GameState = require "components.gamestate"
 
+-- Globals
+require "core"
 LAYER_MIN = -1
 LAYER_DEFAULT = 0
 LAYER_MAX = 1
-
 BLOCK_SIZE = 16
 STACK_SIZE = 64
-
--- Global
 Log = require "libraries.rxi.log"
 G = require "core.game"
+G.NAME = "Lasagna"
 G.VERSION = { major = 0, minor = 1, patch = nil, tostring = function(self)
     return string.format("%d.%d.%s", self.major, self.minor, tostring(self.patch or "x"))
 end }
 
 function love.load()
+    love.graphics.setDefaultFilter("nearest", "nearest")
     local debug = os.getenv("DEBUG") and (os.getenv("DEBUG") == "true") or (G.VERSION.major < 1)
     local seed = tonumber(os.getenv("SEED") or os.time())
+    G:switch(GameState.LOAD)
     Log.level = debug and "debug" or "warn"
-    Log.info("Lasagna", G.VERSION:tostring())
-    G:load(seed, debug)
+    Log.info(G.NAME, G.VERSION:tostring())
+    Object.load(G, seed, debug)
+    G:switch(GameState.PLAY)
 end
 
 function love.update(dt)
-    G:update(dt)
+    if G.time.paused then return end
+    if G.player and G.player:is_dead() then return end
+    dt = dt * G.time.scale
+    Object.update(G, dt)
 end
 
 function love.draw()
-    love.graphics.setDefaultFilter("nearest", "nearest")
     Object.draw(G)
 end
 
 function love.keypressed(key)
     if key == "escape" then
-        G:newState(State.QUIT)
+        G:switch(GameState.QUIT)
         love.event.quit()
         return
     end
-    Object.keyreleased(G, key)
+    Object.keypressed(G, key)
 end
 
 function love.keyreleased(key)

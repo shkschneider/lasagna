@@ -1,44 +1,38 @@
--- Bullet System
--- Manages bullet entities (projectiles from weapons)
-
 local Object = require "core.object"
 local Position = require "components.position"
 local Velocity = require "components.velocity"
 local Physics = require "components.physics"
-local Bullet = require "components.bullet"
+local BulletComponent = require "components.bullet"
 local Registry = require "registries"
-
 local BLOCKS = Registry.blocks()
 
 local BULLET_DAMAGE = 10
 local BULLET_LIFETIME = 5
 local BULLET_FRICTION = 1.0  -- No friction for bullets (they maintain velocity)
 
-local BulletSystem = Object.new {
+local Bullet = Object.new {
     id = "bullet",
     priority = 65,
     entities = {},
 }
 
-function BulletSystem.load(self)
-    self.entities = {}
-end
-
-function BulletSystem.create_bullet(self, x, y, layer, vx, vy, width, height, color, gravity, destroys_blocks)
+function Bullet.newBullet(self, x, y, layer, vx, vy, width, height, color, gravity, destroys_blocks)
     local entity = {
         id = uuid(),
         position = Position.new(x, y, layer),
         velocity = Velocity.new(vx, vy),
         physics = Physics.new(gravity, BULLET_FRICTION),
-        bullet = Bullet.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color, destroys_blocks),
+        bullet = BulletComponent.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color, destroys_blocks),
     }
-
     table.insert(self.entities, entity)
-
     return entity
 end
 
-function BulletSystem.update(self, dt)
+function Bullet.load(self)
+    self.entities = {}
+end
+
+function Bullet.update(self, dt)
     for i = #self.entities, 1, -1 do
         local ent = self.entities[i]
 
@@ -66,7 +60,7 @@ function BulletSystem.update(self, dt)
                         local drop_id, drop_count = proto.drops()
                         if drop_id then
                             local wx, wy = G.world:block_to_world(col, row)
-                            G.drop:create_drop(
+                            G.drop:newDrop(
                                 wx + BLOCK_SIZE / 2,
                                 wy + BLOCK_SIZE / 2,
                                 ent.position.z,
@@ -87,7 +81,7 @@ function BulletSystem.update(self, dt)
     end
 end
 
-function BulletSystem.draw(self)
+function Bullet.draw(self)
     local camera_x, camera_y = G.camera:get_offset()
 
     for _, ent in ipairs(self.entities) do
@@ -99,4 +93,4 @@ function BulletSystem.draw(self)
     love.graphics.setColor(1, 1, 1, 1)
 end
 
-return BulletSystem
+return Bullet

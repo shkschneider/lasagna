@@ -1,24 +1,20 @@
--- Mining System
--- Handles block mining with progressive delay and visual feedback
-
 local Object = require "core.object"
 local Registry = require "registries"
-
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
-local MiningSystem = Object.new {
+-- Visual constants for mining overlay
+local MINING_OVERLAY_COLOR = {0, 0, 0, 0.5} -- Black with 80% opacity
+
+local Mining = Object.new {
     id = "mining",
     priority = 60,
     -- Mining state
     target = nil, -- {z, col, row, progress, delay}
 }
 
--- Visual constants for mining overlay
-local MINING_OVERLAY_COLOR = {0, 0, 0, 0.5} -- Black with 80% opacity
-
 -- Calculate mining delay for a block based on its tier and name
-function MiningSystem.get_mining_delay(self, omnitool_tier, proto)
+function Mining.get_mining_delay(self, omnitool_tier, proto)
     local BASE = 0.25 / omnitool_tier
     if not proto or not proto.solid then
         return 0
@@ -26,11 +22,11 @@ function MiningSystem.get_mining_delay(self, omnitool_tier, proto)
     return (proto.tier + 1) * BASE
 end
 
-function MiningSystem.load(self)
+function Mining.load(self)
     self.target = nil
 end
 
-function MiningSystem.update(self, dt)
+function Mining.update(self, dt)
     local inv = G.player.inventory
     if not love.mouse.isDown(1) or inv.slots[inv.selected_slot].item_id ~= ITEMS.OMNITOOL then
         -- TODO or mouse moved to another target
@@ -62,7 +58,7 @@ function MiningSystem.update(self, dt)
     end
 end
 
-function MiningSystem.start_mining(self, col, row)
+function Mining.start_mining(self, col, row)
     local player_x, player_y, player_z = G.player:get_position()
     local block_id = G.world:get_block_id(player_z, col, row)
     local proto = Registry.Blocks:get(block_id)
@@ -100,11 +96,11 @@ function MiningSystem.start_mining(self, col, row)
     }
 end
 
-function MiningSystem.cancel_mining(self)
+function Mining.cancel_mining(self)
     self.target = nil
 end
 
-function MiningSystem.complete_mining(self)
+function Mining.complete_mining(self)
     if not self.target then
         return
     end
@@ -137,7 +133,7 @@ function MiningSystem.complete_mining(self)
 end
 
 -- Draw mining progress overlay
-function MiningSystem.draw(self)
+function Mining.draw(self)
     if not self.target then
         return
     end
@@ -169,4 +165,4 @@ function MiningSystem.draw(self)
     love.graphics.setColor(1, 1, 1, 1)
 end
 
-return MiningSystem
+return Mining

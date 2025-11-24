@@ -1,23 +1,13 @@
--- Building System
--- Handles block placing
-
 local Object = require "core.object"
 local Registry = require "registries"
-
 local BLOCKS = Registry.blocks()
 
--- Layer constants
-
-local BuildingSystem = Object.new {
+local Building = Object.new {
     id = "building",
     priority = 61,
 }
 
-function BuildingSystem.load(self) end
-
-function BuildingSystem.update(self, dt) end
-
-function BuildingSystem.mousepressed(self, x, y, button)
+function Building.mousepressed(self, x, y, button)
     if button ~= 2 then
         return
     end
@@ -40,7 +30,7 @@ function BuildingSystem.mousepressed(self, x, y, button)
     self:place_block(col, row)
 end
 
-function BuildingSystem.has_adjacent_block(self, col, row, layer)
+function Building.has_adjacent_block(self, col, row, layer)
     -- Check all 8 surrounding positions for solid blocks in the same layer
     local offsets = {
         {-1, -1}, {0, -1}, {1, -1},  -- top row
@@ -60,7 +50,7 @@ function BuildingSystem.has_adjacent_block(self, col, row, layer)
     return false
 end
 
-function BuildingSystem.has_adjacent_layer_block(self, col, row, layer)
+function Building.has_adjacent_layer_block(self, col, row, layer)
     -- Check for solid blocks at the same position in layers above and below
 
     -- Check layer below (if not already at bottom layer)
@@ -82,7 +72,7 @@ function BuildingSystem.has_adjacent_layer_block(self, col, row, layer)
     return false
 end
 
-function BuildingSystem.place_block(self, col, row)
+function Building.place_block(self, col, row)
     local player_x, player_y, player_z = player:get_position()
     local block_id = player:get_selected_block_id()
 
@@ -115,4 +105,4 @@ function BuildingSystem.place_block(self, col, row)
     end
 end
 
-return BuildingSystem
+return Building
