@@ -46,8 +46,8 @@ function Drop.draw(self, entity, camera_x, camera_y)
         local Registry = require "registries"
         local proto = Registry.Blocks:get(self.block_id)
         if proto then
-            local BLOCK_SIZE = 16  -- TODO: use global constant
-            local MERGING_ENABLED = false  -- Match drop system setting
+            -- Use global BLOCK_SIZE constant
+            local MERGING_ENABLED = false  -- TODO: Access from system configuration
             
             -- Drop is 1/2 width and 1/2 height (1/4 surface area)
             local width = BLOCK_SIZE / 2
