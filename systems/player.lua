@@ -73,6 +73,9 @@ function Player.load(self)
     if G.debug.enabled then
         local px, py = G.world:world_to_block(self.position.x, self.position.y)
         Log.debug("Player:", px, py)
+        -- Add weapon items to slots 2 and 3 (slot 1 is for omnitool)
+        G.player:add_item_to_inventory(ITEMS.GUN, 1)
+        G.player:add_item_to_inventory(ITEMS.ROCKET_LAUNCHER, 1)
     end
 
     Object.load(self)

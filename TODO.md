@@ -1,6 +1,5 @@
 # TODO
 
-- delete=reset
 - mechanics
 - inventory
 - communications (WIP)

@@ -28,7 +28,12 @@ function Game.switch(self, gamestate)
 end
 
 function Game.reload(self)
-    error("TODO")
+    local seed = G.world.worlddata.seed
+    local debug = G.debug.enabled or false
+    self = require "core.game"
+    self:switch(GameState.LOAD)
+    Object.load(self, seed, debug)
+    self:switch(GameState.PLAY)
 end
 
 return Game
