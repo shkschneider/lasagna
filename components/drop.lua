@@ -4,7 +4,7 @@
 local Drop = {}
 
 function Drop.new(block_id, count, lifetime, pickup_delay)
-    return {
+    local instance = {
         id = "drop",
         priority = 30,  -- Drops update after velocity
         block_id = block_id,
@@ -14,6 +14,12 @@ function Drop.new(block_id, count, lifetime, pickup_delay)
         enabled = true,
         dead = false,  -- Mark for removal
     }
+    
+    -- Assign update and draw methods to instance
+    instance.update = Drop.update
+    instance.draw = Drop.draw
+    
+    return instance
 end
 
 -- Component update method - handles drop lifetime and pickup delay

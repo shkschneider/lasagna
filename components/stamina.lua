@@ -4,7 +4,7 @@
 local Stamina = {}
 
 function Stamina.new(current, max, regen_rate)
-    return {
+    local instance = {
         id = "stamina",
         priority = 51,  -- Components update in priority order
         current = current or 100,
@@ -14,6 +14,12 @@ function Stamina.new(current, max, regen_rate)
             return string.format("%d%%", math.floor(self.current))
         end
     }
+    
+    -- Assign update and draw methods to instance
+    instance.update = Stamina.update
+    instance.draw = Stamina.draw
+    
+    return instance
 end
 
 -- Component update method - called automatically by Object recursion

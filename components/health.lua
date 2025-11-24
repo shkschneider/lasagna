@@ -4,7 +4,7 @@
 local Health = {}
 
 function Health.new(current, max)
-    return {
+    local instance = {
         id = "health",
         priority = 50,  -- Components update in priority order
         current = current or 100,
@@ -15,6 +15,12 @@ function Health.new(current, max)
             return string.format("%d%%:%s", self.current, tostring(self.invicible))
         end
     }
+    
+    -- Assign update and draw methods to instance
+    instance.update = Health.update
+    instance.draw = Health.draw
+    
+    return instance
 end
 
 -- Component update method - called automatically by Object recursion

@@ -4,7 +4,7 @@
 local Visual = {}
 
 function Visual.new(color, width, height)
-    return {
+    local instance = {
         id = "visual",
         priority = 100,  -- Visuals render late
         color = color or { 1, 1, 1, 1 },
@@ -12,6 +12,12 @@ function Visual.new(color, width, height)
         height = height or 32,
         enabled = true,  -- Allow toggling for debugging
     }
+    
+    -- Assign update and draw methods to instance
+    instance.update = Visual.update
+    instance.draw = Visual.draw
+    
+    return instance
 end
 
 -- Component update method

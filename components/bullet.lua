@@ -4,7 +4,7 @@
 local Bullet = {}
 
 function Bullet.new(damage, lifetime, width, height, color, destroys_blocks)
-    return {
+    local instance = {
         id = "bullet",
         priority = 30,  -- Bullets update after velocity
         damage = damage or 10,
@@ -16,6 +16,12 @@ function Bullet.new(damage, lifetime, width, height, color, destroys_blocks)
         enabled = true,
         dead = false,  -- Mark for removal
     }
+    
+    -- Assign update and draw methods to instance
+    instance.update = Bullet.update
+    instance.draw = Bullet.draw
+    
+    return instance
 end
 
 -- Component update method - handles bullet lifetime and collision

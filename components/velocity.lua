@@ -4,13 +4,19 @@
 local Velocity = {}
 
 function Velocity.new(vx, vy)
-    return {
+    local instance = {
         id = "velocity",
         priority = 20,  -- Velocity updates after physics
         vx = vx or 0,
         vy = vy or 0,
         enabled = true,  -- Allow toggling for debugging
     }
+    
+    -- Assign update and draw methods to instance
+    instance.update = Velocity.update
+    instance.draw = Velocity.draw
+    
+    return instance
 end
 
 -- Component update method - applies velocity to parent entity's position

@@ -4,13 +4,19 @@
 local Physics = {}
 
 function Physics.new(gravity, friction)
-    return {
+    local instance = {
         id = "physics",
         priority = 10,  -- Physics updates early
         gravity = gravity or 800,
         friction = friction or 0.95,
         enabled = true,  -- Allow toggling for debugging
     }
+    
+    -- Assign update and draw methods to instance
+    instance.update = Physics.update
+    instance.draw = Physics.draw
+    
+    return instance
 end
 
 -- Component update method - applies gravity to parent entity's velocity
