@@ -17,25 +17,54 @@ Key gameplay points (from README):
 
 ### Core Components
 1. main.lua: Entry point. Handles window setup and Love callbacks. Delegates to the Game object for update/draw and input handling.
-2. game.lua: High-level game controller. Manages World, Player, Camera, and Render pipeline.
-3. world/: World simulation, terrain generation, block storage, and entity registry. Uses lazy generation for columns.
-4. entities/: Player, bullets, rockets, drops, and other moving objects. Each entity implements update(dt, world, player) and draw().
-5. data/: Block and Item prototype definitions. Prototypes must follow a minimal interface (name, max_stack, optional drop function).
-6. lib/: Small dependencies (object system, noise, logging).
+2. core/game.lua: High-level game controller. Manages World, Player, Camera, and Render pipeline.
+3. core/object.lua: Recursive composition system. Automatically calls update/draw on all components based on priority.
+4. components/: Component definitions with update/draw methods. Entities are composed of multiple components.
+5. systems/: Thin coordinators that manage entity collections and handle cross-entity interactions.
+6. world/: World simulation, terrain generation, block storage. Uses lazy generation for columns.
+7. data/: Block and Item prototype definitions.
+
+### Component-based Architecture
+
+Lasagna uses a component-based architecture with recursive composition:
+
+- **Components** contain data and behavior (update/draw methods)
+- **Entities** are composed of multiple components (position, velocity, physics, visual, etc.)
+- **Systems** are thin coordinators that manage entities and handle cross-entity logic
+- **Object system** recursively calls update/draw on all components based on priority
+
+Component priorities (lower = earlier):
+- 10: Physics (gravity)
+- 20: Velocity (position updates)
+- 30: Bullet/Drop (lifetime, behavior)
+- 50: Health (regeneration)
+- 51: Stamina (regeneration)
+- 100: Visual (rendering)
+
+See `docs/component-architecture.md` for detailed documentation.
 
 ### Important patterns & invariants
+- Components must assign update/draw methods to instances in new() constructor
+- Components should check self.enabled before executing logic (for debugging)
+- Systems coordinate (collision, pickup, spawning) while components implement (physics, rendering, behavior)
+- Simple entities (bullets, drops) use full component-based update/draw
+- Complex entities (player) selectively disable components and handle logic manually
+- Use Object.update(entity, dt) to recursively call all component updates
 - World stores blocks and should expose a canonical accessor: world:get_block_proto(z,col,row) which returns either a prototype table or nil.
 - Inventory entries should be normalized to a single shape (recommended: { proto = <proto>, count = n }).
 - Dropping items must never silently discard items: proto:drop(...) should exist or a default Item:drop spawns a Drop entity.
 - Minimize global state (G.*). Prefer wiring modules through a Game object and dependency injection for testability and easier migration.
-- Centralize canvas/rendering in a RenderManager: create and manage layer canvases in one place and composite to screen.
 
 ## Coding Conventions
 - Indentation: 4 spaces
 - Naming: snake_case for variables/functions, PascalCase for objects/classes, SCREAMING_SNAKE_CASE for constants
 - Use local for variables/functions unless global is required
 - Require dependencies at top of files
-- Use the Object system in lib/object.lua for class-like definitions
+- Use the Object system in core/object.lua for recursive composition
+- Components must assign update/draw methods to instances in new()
+- Component update signature: function Component.update(self, dt, entity)
+- Component draw signature: function Component.draw(self, entity, ...)
+- All components should have priority and enabled fields
 
 ## Development Workflow
 
@@ -61,8 +90,11 @@ Hot reload world:
 - Press Delete to reload the world with the current seed.
 
 ## Testing & Instrumentation
-- Add a small test harness for headless checks: inventory add/remove, block place/remove, drop spawn, entity lifecycle.
+- Components can be tested independently using Lua 5.1 (see /tmp/test_components.lua for examples)
+- Test component update/draw methods directly: `component:update(dt, entity)`
+- Test enable/disable: `component.enabled = false` should prevent updates
 - Add timing instrumentation in the main update loop under DEBUG to profile world, entity updates, and rendering.
+- Run component tests: `lua5.1 /tmp/test_components.lua` (requires lua5.1 package)
 
 ## Migration notes (engine-agnostic guidance)
 - Keep gameplay logic engine-agnostic where practical. Define a small Engine Abstraction Layer (EAL) mapping used Love APIs to simple functions (draw_rect, create_canvas, draw_image, get_mouse_pos, play_sound).
@@ -70,8 +102,10 @@ Hot reload world:
 
 ## Common tasks for contributors
 - Adding block types: add to data/blocks.lua, ensure drop() behavior and test in-game.
-- Adding entities: add to entities/, implement update and draw, register in world entity registry.
-- Modifying player controls: edit entities/player.lua; change movement constants in game.lua.
+- Adding components: create in components/, implement new() with update/draw assignment, set priority and enabled.
+- Adding entities: compose from components/, use Object.update/draw for automatic component updates.
+- Modifying player controls: edit systems/player.lua and systems/control.lua; change movement constants in systems/player.lua.
+- Adding systems: create in systems/, manage entity collection, call Object.update on entities, handle cross-entity logic.
 
 ## Notes for Copilot and automation
 - When generating code, prefer small focused diffs and include tests where possible.
