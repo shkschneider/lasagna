@@ -1,4 +1,17 @@
+-- Game System
+-- Manages overall game state, time scale, and coordinates other systems
+
+local log = require "lib.log"
 local Object = require "core.object"
+local Systems = require "systems"
+local GameState = require "components.gamestate"
+
+LAYER_MIN = -1
+LAYER_DEFAULT = 0
+LAYER_MAX = 1
+
+BLOCK_SIZE = 16
+STACK_SIZE = 64
 
 -- Global
 G = require "game"
@@ -12,9 +25,8 @@ function love.load()
     local debug = os.getenv("DEBUG") and (os.getenv("DEBUG") == "true") or (G.VERSION.major < 1)
     local seed = tonumber(os.getenv("SEED"))
     log.level = debug and "debug" or "warn"
-    log.debug("...")
-    G:load(seed, debug)
     log.info("Lasagna", G.VERSION:tostring())
+    G:load(seed, debug)
 end
 
 function love.update(dt)
@@ -22,45 +34,51 @@ function love.update(dt)
 end
 
 function love.draw()
-    G:draw()
+    love.graphics.setDefaultFilter("nearest", "nearest")
+    Object.draw(G)
 end
 
 function love.keypressed(key)
-    G:keypressed(key)
+    if key == "escape" then
+        G:switch(GameState.QUIT)
+        love.event.quit()
+        return
+    end
+    Object.keyreleased(G, key)
 end
 
 function love.keyreleased(key)
-    G:keyreleased(key)
+    Object.keyreleased(G, key)
 end
 
 function love.mousepressed(x, y, button)
-    G:mousepressed(x, y, button)
+    Object.mousepressed(G, x, y, button)
 end
 
 function love.mousereleased(x, y, button)
-    G:mousereleased(x, y, button)
+    Object.mousereleased(G, x, y, button)
 end
 
 function love.mousemoved(x, y, dx, dy)
-    G:mousemoved(x, y, dx, dy)
+    Object.mousemoved(G, x, y, dx, dy)
 end
 
 function love.wheelmoved(x, y)
-    G:wheelmoved(x, y)
+    Object.wheelmoved(G, x, y)
 end
 
 function love.textinput(text)
-    G:textinput(text)
+    Object.textinput(G, text)
 end
 
 function love.resize(width, height)
-    G:resize(width, height)
+    Object.resize(G, width, height)
 end
 
 function love.focus(focused)
-    G:focus(focused)
+    Object.focus(G, focused)
 end
 
 function love.quit()
-    G:quit()
+    Object.quit(G)
 end

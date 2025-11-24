@@ -17,6 +17,7 @@ STACK_SIZE = 64
 local Game = Object.new {
     priority = 0,
     state = GameState.new(GameState.BOOT),
+    timescale = TimeScale.new(1),
     world = require("systems.world"),
     control = require("systems.control"),
     camera = require("systems.camera"),
@@ -40,21 +41,19 @@ end
 
 function Game.load(self, seed, debug)
     self:switch(GameState.LOAD)
-    self.timescale = TimeScale.new(1, false)
-    -- TODO sort
-    Systems.load(self, seed, debug)
-    -- self.world:load(seed, debug)
-    -- self.player:load()
-    -- self.mining:load()
-    -- self.building:load()
-    -- self.weapon:load()
-    -- self.bullet:load()
-    -- self.drop:load()
-    -- self.camera:load()
-    -- self.ui:load()
-    -- self.chat:load()
-    -- self.lore:load()
-    -- self.debug:load(seed, debug)
+    self.world:load(seed) -- 10
+    -- self.control:load() -- 19
+    self.player:load() -- 20
+    self.mining:load() -- 60
+    self.building:load() -- 61
+    self.weapon:load() -- 62
+    self.bullet:load() -- 65
+    self.drop:load() -- 70
+    self.camera:load() -- 90
+    self.ui:load() -- 110
+    self.chat:load() -- 120
+    self.lore:load() -- 200
+    self.debug:load(debug)
     log.debug("All systems operational.")
     self:switch(GameState.PLAY)
 end
@@ -64,67 +63,6 @@ function Game.update(self, dt)
     if self.player and self.player:is_dead() then return end
     dt = dt * self.timescale.scale
     Object.update(self, dt)
-end
-
-function Game.draw(self)
-    love.graphics.setDefaultFilter("nearest", "nearest")
-    Object.draw(self)
-end
-
-function Game.keypressed(self, key)
-    if key == "escape" then
-        self:switch(GameState.QUIT)
-        love.event.quit()
-        return
-    end
-    if self.debug and self.debug.enabled then
-        if key == "[" then
-            self.timescale.scale = self.timescale.scale / 2
-        elseif key == "]" then
-            self.timescale.scale = self.timescale.scale * 2
-        end
-    end
-    Object.keypressed(self, key)
-end
-
-function Game.keyreleased(self, key)
-    Object.keyreleased(self, key)
-end
-
-function Game.mousepressed(self, x, y, button)
-    Object.mousepressed(self, x, y, button)
-end
-
-function Game.mousereleased(self, x, y, button)
-    Object.mouserelease(self, x, y, button)
-end
-
-function Game.mousemoved(self, x, y, dx, dy)
-    Object.mousemoved(self, x, y, dx, dy)
-end
-
-function Game.wheelmoved(self, x, y)
-    Object.wheelmoved(self, x, y)
-end
-
-function Game.textinput(self, text)
-    Object.textinput(self, text)
-end
-
-function Game.resize(self, width, height)
-    Object.resize(self, width, height)
-end
-
-function Game.focus(self, focused)
-    Object.focus(self, focused)
-end
-
-function Game.quit(self)
-    Object.quit(self, focus)
-end
-
-function Game.is_debug(self)
-    return self.debug and self.debug.enabled == true
 end
 
 return Game

@@ -8,11 +8,13 @@ function Object.is(self)
     return self.__type and self.__type == Object.__type
 end
 
-local function Object_call(object, name, ...)
-    for id, object in pairs(object) do
-        if type(object) == "table" and object[name] then
+local function Object_call(self, name, ...)
+    for id, object in pairs(self) do
+        if type(object) == "table" then
             local f = object[name]
-            f(object, ...)
+            if type(f) == "function" then
+                f(object, ...)
+            end
         end
     end
 end

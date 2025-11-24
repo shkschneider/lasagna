@@ -38,11 +38,12 @@ local PlayerSystem = Object.new {
     STAMINA_JUMP_COST = 5,   -- per jump
 }
 
-function PlayerSystem.load(self, x, y, z)
+function PlayerSystem.load(self)
     local world = Systems.get("world")
+    local x, y, z = world:find_spawn_position(LAYER_DEFAULT)
 
     -- Initialize player components
-    self.position = Position.new(x or 0, y or 0, z or LAYER_DEFAULT)
+    self.position = Position.new(x, y, z)
     self.velocity = Velocity.new(0, 0)
     self.physics = Physics.new(800, 0.95)
     self.collider = Collider.new(BLOCK_SIZE, BLOCK_SIZE * 2)

@@ -25,7 +25,7 @@ local WorldSystem = Object.new {
     max_coroutines = 8,          -- Maximum concurrent column generations (increased for finer granularity)
 }
 
-function WorldSystem.load(self, seed, debug)
+function WorldSystem.load(self, seed)
     -- Initialize components (no width - infinite horizontal)
     self.worlddata = WorldData.new(seed, self.HEIGHT)
     log.info("World:", self.worlddata.seed)

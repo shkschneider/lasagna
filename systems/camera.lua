@@ -12,7 +12,9 @@ local CameraSystem = Object.new {
     priority = 90,
 }
 
-function CameraSystem.load(self, x, y)
+function CameraSystem.load(self)
+    local player = Systems.get("player")
+    local x, y = player.position.x, player.position.y
     self.position = Position.new(x, y, nil)
     log.debug("Camera:", self.position:tostring())
     self.camera = Camera.new(x, y, x, y, 5)

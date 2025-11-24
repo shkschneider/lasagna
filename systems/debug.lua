@@ -10,7 +10,7 @@ local Debug = Object.new {
     enabled = false,
 }
 
-function Debug.load(self, seed, debug)
+function Debug.load(self, debug)
     self.enabled = debug or false
     if self.enabled then
         local player = Systems.get("player")
