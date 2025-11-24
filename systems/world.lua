@@ -1,7 +1,6 @@
 -- World System
 -- Manages world generation, block storage, and world queries
 
-local log = require "lib.log"
 local Object = require "core.object"
 local Generator = require "systems.generator"
 local WorldData = require "components.worlddata"
@@ -25,7 +24,7 @@ local WorldSystem = Object.new {
 function WorldSystem.load(self, seed, _)
     -- Initialize components (no width - infinite horizontal)
     self.worlddata = WorldData.new(seed, self.HEIGHT)
-    log.info("World:", self.worlddata.seed)
+    Log.info("World:", self.worlddata.seed)
 
     -- Seed the noise library
     Generator.seed(self.worlddata.seed)
@@ -67,7 +66,7 @@ function WorldSystem.update(self, dt)
             -- Resume the coroutine for a bit
             local success, err = coroutine.resume(co)
             if not success then
-                log.error("World generation coroutine error:", err)
+                Log.error("World generation coroutine error:", err)
                 table.insert(completed, key)
             end
         end
@@ -118,7 +117,7 @@ function WorldSystem.update(self, dt)
             -- Start the coroutine
             local success, err = coroutine.resume(co)
             if not success then
-                log.error("World generation coroutine error:", err)
+                Log.error("World generation coroutine error:", err)
                 self.active_coroutines[key] = nil
                 active_count = active_count - 1
                 -- Clear generating flag on error

@@ -2,7 +2,6 @@
 -- Manages overall game state, time scale, and coordinates other systems
 
 require "core"
-local log = require "lib.log"
 local Object = require "core.object"
 local GameState = require "components.gamestate"
 
@@ -14,18 +13,17 @@ BLOCK_SIZE = 16
 STACK_SIZE = 64
 
 -- Global
+Log = require "lib.log"
 G = require "core.game"
 G.VERSION = { major = 0, minor = 1, patch = nil, tostring = function(self)
     return string.format("%d.%d.%s", self.major, self.minor, tostring(self.patch or "x"))
 end }
 
-local log = require "lib.log"
-
 function love.load()
     local debug = os.getenv("DEBUG") and (os.getenv("DEBUG") == "true") or (G.VERSION.major < 1)
     local seed = tonumber(os.getenv("SEED") or os.time())
-    log.level = debug and "debug" or "warn"
-    log.info("Lasagna", G.VERSION:tostring())
+    Log.level = debug and "debug" or "warn"
+    Log.info("Lasagna", G.VERSION:tostring())
     G:load(seed, debug)
 end
 

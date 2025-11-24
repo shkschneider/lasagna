@@ -1,8 +1,6 @@
 -- Player System
 -- Manages player entity and player-specific logic
 
-local log = require "lib.log"
-
 local Object = require "core.object"
 local Position = require "components.position"
 local Velocity = require "components.velocity"
@@ -69,7 +67,7 @@ function PlayerSystem.load(self)
     self.control = require "systems.control"
 
     local px, py = G.world:world_to_block(self.position.x, self.position.y)
-    log.debug("Player:", px, py)
+    Log.debug("Player:", px, py)
 
     Object.load(self)
 end
@@ -424,10 +422,10 @@ function PlayerSystem.upgrade(self, upOrDown)
     assert(type(upOrDown) == "number")
     if upOrDown > 0 then
         self.omnitool.tier = math.min(self.omnitool.tier + 1, self.omnitool.max)
-        log.info("Player", "upgrade", self.omnitool.tier)
+        Log.info("Player", "upgrade", self.omnitool.tier)
     elseif upOrDown < 0 then
         self.omnitool.tier = math.max(self.omnitool.min, self.omnitool.tier - 1)
-        log.info("Player", "downgrade", self.omnitool.tier)
+        Log.info("Player", "downgrade", self.omnitool.tier)
     else
         assert(false)
     end

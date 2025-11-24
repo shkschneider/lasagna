@@ -1,7 +1,6 @@
 -- Chat System
 -- Handles chat interface and command execution
 
-local log = require "lib.log"
 local Object = require "core.object"
 local Registry = require "registries"
 
@@ -162,7 +161,7 @@ function ChatSystem.process_input(self, input)
                 self:add_message("> " .. input)
                 -- Execute command
                 local success, message = Registry.Commands:execute(command_name, args)
-                log.info("<", command_name, ">", tostring(success), ":", tostring(message))
+                Log.info("<", command_name, ">", tostring(success), ":", tostring(message))
                 if message then
                     self:add_message(message)
                 end

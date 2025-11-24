@@ -1,7 +1,6 @@
 -- Camera System
 -- Manages camera positioning and smooth following
 
-local log = require "lib.log"
 local Object = require "core.object"
 local Camera = require "components.camera"
 local Position = require "components.position"
@@ -14,7 +13,6 @@ local CameraSystem = Object.new {
 function CameraSystem.load(self)
     local x, y = G.player:get_position()
     self.position = Position.new(x, y, nil)
-    log.debug("Camera:", self.position:tostring())
     self.camera = Camera.new(x, y, x, y, 5)
 end
 
