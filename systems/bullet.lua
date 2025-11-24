@@ -42,16 +42,10 @@ function BulletSystem.update(self, dt)
     for i = #self.entities, 1, -1 do
         local ent = self.entities[i]
 
-        -- Apply physics (gravity)
-        if ent.physics then
-            ent.velocity.vy = ent.velocity.vy + ent.physics.gravity * dt
-        end
+        -- Call component updates via Object recursion
+        Object.update(ent, dt)
 
-        -- Update position
-        ent.position.x = ent.position.x + ent.velocity.vx * dt
-        ent.position.y = ent.position.y + ent.velocity.vy * dt
-
-        -- Check collision with blocks
+        -- System-level coordination: Check collision with blocks
         local col, row = G.world:world_to_block(ent.position.x, ent.position.y)
         local block_def = G.world:get_block_def(ent.position.z, col, row)
 
@@ -86,12 +80,9 @@ function BulletSystem.update(self, dt)
 
             -- Remove bullet
             table.remove(self.entities, i)
-        else
-            -- Decrease lifetime
-            ent.bullet.lifetime = ent.bullet.lifetime - dt
-            if ent.bullet.lifetime <= 0 then
-                table.remove(self.entities, i)
-            end
+        elseif ent.bullet.dead then
+            -- Remove if marked dead by component (e.g., lifetime expired)
+            table.remove(self.entities, i)
         end
     end
 end
@@ -100,11 +91,8 @@ function BulletSystem.draw(self)
     local camera_x, camera_y = G.camera:get_offset()
 
     for _, ent in ipairs(self.entities) do
-        local x = ent.position.x - camera_x - ent.bullet.width / 2
-        local y = ent.position.y - camera_y - ent.bullet.height / 2
-
-        love.graphics.setColor(ent.bullet.color)
-        love.graphics.rectangle("fill", x, y, ent.bullet.width, ent.bullet.height)
+        -- Call component draw via Object recursion (passes camera via entity draw wrapper)
+        ent.bullet:draw(ent, camera_x, camera_y)
     end
 
     -- Reset color

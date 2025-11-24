@@ -40,12 +40,11 @@ function DropSystem.update(self, dt)
     for i = #self.entities, 1, -1 do
         local ent = self.entities[i]
 
-        -- Physics
-        ent.velocity.vy = ent.velocity.vy + ent.physics.gravity * dt
-        ent.position.x = ent.position.x + ent.velocity.vx * dt
-        ent.position.y = ent.position.y + ent.velocity.vy * dt
+        -- Call component updates via Object recursion
+        -- This handles physics, velocity, and drop lifetime
+        Object.update(ent, dt)
 
-        -- Check collision with ground
+        -- System-level coordination: Check collision with ground
         -- Drops are 1/2 block size, so check at their bottom edge (1/4 block offset)
         local drop_height = BLOCK_SIZE / 2
         local col, row = G.world:world_to_block(
@@ -67,8 +66,7 @@ function DropSystem.update(self, dt)
             ent.velocity.vx = ent.velocity.vx * ent.physics.friction
         end
 
-        -- Merge with nearby drops of the same type (performance optimization)
-        -- Only merge when on ground and pickup delay is over
+        -- System-level coordination: Merge with nearby drops
         if MERGING_ENABLED and on_ground and ent.drop.pickup_delay <= 0 then
             for j = i - 1, 1, -1 do
                 local other = self.entities[j]
@@ -100,12 +98,7 @@ function DropSystem.update(self, dt)
             end
         end
 
-        -- Decrease pickup delay
-        if ent.drop.pickup_delay > 0 then
-            ent.drop.pickup_delay = ent.drop.pickup_delay - dt
-        end
-
-        -- Check pickup by player
+        -- System-level coordination: Check pickup by player
         if ent.drop.pickup_delay <= 0 and ent.position.z == player_z then
             local dx = ent.position.x - player_x
             local dy = ent.position.y - player_y
@@ -120,9 +113,8 @@ function DropSystem.update(self, dt)
             end
         end
 
-        -- Lifetime
-        ent.drop.lifetime = ent.drop.lifetime - dt
-        if ent.drop.lifetime <= 0 then
+        -- Remove if marked dead by component (e.g., lifetime expired)
+        if ent.drop.dead then
             table.remove(self.entities, i)
         end
     end
@@ -132,28 +124,8 @@ function DropSystem.draw(self)
     local camera_x, camera_y = G.camera:get_offset()
 
     for _, ent in ipairs(self.entities) do
-        local proto = Registry.Blocks:get(ent.drop.block_id)
-        if proto then
-            -- Drop is 1/2 width and 1/2 height (1/4 surface area)
-            local width = BLOCK_SIZE / 2
-            local height = BLOCK_SIZE / 2
-            local x = ent.position.x - camera_x - width / 2
-            local y = ent.position.y - camera_y - height / 2
-
-            -- Draw the colored block
-            love.graphics.setColor(proto.color)
-            love.graphics.rectangle("fill", x, y, width, height)
-
-            if MERGING_ENABLED and ent.drop.count > 1 then
-                -- Draw 1px gold border
-                love.graphics.setColor(1, 0.8, 0, 1)
-                love.graphics.rectangle("line", x, y, width, height)
-            else
-                -- Draw 1px white border
-                love.graphics.setColor(1, 1, 1, 1)
-                love.graphics.rectangle("line", x, y, width, height)
-            end
-        end
+        -- Call component draw via Object recursion
+        ent.drop:draw(ent, camera_x, camera_y)
     end
 
     -- Reset color to white for subsequent rendering

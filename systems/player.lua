@@ -40,16 +40,23 @@ function PlayerSystem.load(self)
     -- Initialize player components
     self.position = Position.new(x, y, z)
     self.velocity = Velocity.new(0, 0)
+    -- Disable automatic velocity application for player (complex collision handling)
+    self.velocity.enabled = false
     self.physics = Physics.new(800, 0.95)
+    -- Disable automatic physics for player (complex collision handling)
+    self.physics.enabled = false
     self.collider = Collider.new(BLOCK_SIZE, BLOCK_SIZE * 2)
     self.visual = Visual.new({1, 1, 1, 1}, BLOCK_SIZE, BLOCK_SIZE * 2)
+    -- Disable automatic visual rendering for player (custom draw logic)
+    self.visual.enabled = false
     self.layer = Layer.new(layer)
     self.inventory = Inventory.new()
     self.omnitool = Omnitool.new()
     self.stance = Stance.new(Stance.STANDING)
     self.stance.crouched = false
     self.health = Health.new(100, 100)
-    self.stamina = Stamina.new(100, 100)
+    -- Health regen disabled by default (0 regen_rate)
+    self.stamina = Stamina.new(100, 100, PlayerSystem.STAMINA_REGEN_RATE)
 
     -- Fall damage tracking
     self.fall_start_y = nil
@@ -79,17 +86,15 @@ function PlayerSystem.update(self, dt)
     local col = self.collider
     local stance = self.stance
     local vis = self.visual
-    local stamina = self.stamina
 
     -- Update damage timer
     if self.damage_timer > 0 then
         self.damage_timer = self.damage_timer - dt
     end
 
-    -- Regenerate stamina
-    if stamina.current < stamina.max then
-        stamina.current = math.min(stamina.max, stamina.current + PlayerSystem.STAMINA_REGEN_RATE * dt)
-    end
+    -- Call component updates via Object recursion
+    -- This handles stamina regen and health regen (if enabled)
+    Object.update(self, dt)
 
     -- Delegate to control system for input handling
     if self.control then
@@ -106,10 +111,10 @@ function PlayerSystem.update(self, dt)
         end
     end
 
-    -- Gravity always applies
+    -- Gravity always applies (manual, not via component)
     vel.vy = vel.vy + phys.gravity * dt
 
-    -- Apply horizontal velocity with collision
+    -- Apply horizontal velocity with collision (manual, not via component)
     local new_x = pos.x + vel.vx * dt
     local hit_wall = false
 
@@ -142,7 +147,7 @@ function PlayerSystem.update(self, dt)
         pos.x = new_x
     end
 
-    -- Apply vertical velocity with collision
+    -- Apply vertical velocity with collision (manual, not via component)
     local new_y = pos.y + (vel.vy * (stance.crouched and 0.5 or 1)) * dt
 
     -- Ground collision
@@ -220,8 +225,6 @@ function PlayerSystem.update(self, dt)
         end
         -- Keep JUMPING stance while moving upward (vel.vy < 0)
     end
-
-    Object.update(self, dt)
 end
 
 function PlayerSystem.draw(self)
