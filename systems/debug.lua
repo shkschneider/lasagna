@@ -1,5 +1,4 @@
 local Object = require "core.object"
-local Systems = require "core.systems"
 local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()
@@ -13,18 +12,14 @@ local Debug = Object.new {
 function Debug.load(self, _, debug)
     self.enabled = debug or false
     if self.enabled then
-        local player = Systems.get("player")
-        if player then
-            -- Add weapon items to slots 2 and 3 (slot 1 is for omnitool)
-            player:add_item_to_inventory(ITEMS.GUN, 1)
-            player:add_item_to_inventory(ITEMS.ROCKET_LAUNCHER, 1)
-        end
+        -- Add weapon items to slots 2 and 3 (slot 1 is for omnitool)
+        G.player:add_item_to_inventory(ITEMS.GUN, 1)
+        G.player:add_item_to_inventory(ITEMS.ROCKET_LAUNCHER, 1)
     end
 end
 
 function Debug.keypressed(self, key)
-    local chat = Systems.get("chat")
-    if chat.in_input_mode then
+    if G.chat.in_input_mode then
         return
     end
     -- Debug
@@ -34,13 +29,16 @@ function Debug.keypressed(self, key)
     if not self.enabled then
         return
     end
+    -- Reset
+    if key == "delete" then -- FIXME
+        G:load(G.world.worlddata.seed, G.debug.enabled)
+        return
+    end
     -- Adjust omnitool tier
     if key == "=" or key == "+" then
-        local player = Systems.get("player")
-        player:upgrade(1)
+        G.player:upgrade(1)
     elseif key == "-" or key == "_" then
-        local player = Systems.get("player")
-        player:upgrade(-1)
+        G.player:upgrade(-1)
     end
 end
 
@@ -48,14 +46,13 @@ function Debug.draw(self)
     if not self.enabled then
         return
     end
-    local player = Systems.get("player")
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
     love.graphics.print(string.format("GameState: %s", G.gamestate:tostring()), 10, 120)
     love.graphics.print(string.format("TimeScale: %s", G.timescale:tostring()), 10, 140)
-    love.graphics.print(string.format("Stance: %s", player.stance:tostring()), 10, 160)
-    love.graphics.print(string.format("Health: %s", player.health:tostring()), 10, 180)
-    love.graphics.print(string.format("Stamina: %s", player.stamina:tostring()), 10, 200)
+    love.graphics.print(string.format("Stance: %s", G.player.stance:tostring()), 10, 160)
+    love.graphics.print(string.format("Health: %s", G.player.health:tostring()), 10, 180)
+    love.graphics.print(string.format("Stamina: %s", G.player.stamina:tostring()), 10, 200)
 end
 
 return Debug

@@ -1,17 +1,15 @@
 local CommandsRegistry = require "registries.commands"
-local Systems = require "core.systems"
 
 CommandsRegistry:register({
     name = "god",
     description = "Invincible",
     execute = function(args)
-        local player = Systems.get("player")
-        if player.components.health then
-            if not player.components.health.invincible then
-                player.components.health.invincible = true
+        if G.player.health then
+            if not G.player.health.invincible then
+                G.player.health.invincible = true
                 return true, "Invincible"
             else
-                player.components.health.invincible = false
+                G.player.health.invincible = false
                 return true, "Mortal"
             end
         end

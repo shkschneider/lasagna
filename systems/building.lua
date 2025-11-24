@@ -2,7 +2,6 @@
 -- Handles block placing
 
 local Object = require "core.object"
-local Systems = require "core.systems"
 local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()
@@ -23,32 +22,25 @@ function BuildingSystem.mousepressed(self, x, y, button)
         return
     end
 
-    -- Get systems
-    local world = Systems.get("world")
-    local player = Systems.get("player")
-    local camera = Systems.get("camera")
-
     -- Check if player has a weapon item selected
-    local inv = player.components.inventory
+    local inv = G.player.inventory
     local slot = inv.slots[inv.selected_slot]
     if slot and slot.item_id then
         -- Player has an item selected, not building
         return
     end
 
-    local camera_x, camera_y = camera:get_offset()
+    local camera_x, camera_y = G.camera:get_offset()
     local world_x = x + camera_x
     local world_y = y + camera_y
 
-    local col, row = world:world_to_block(world_x, world_y)
+    local col, row = G.world:world_to_block(world_x, world_y)
 
     -- Right click: place block
     self:place_block(col, row)
 end
 
 function BuildingSystem.has_adjacent_block(self, col, row, layer)
-    local world = Systems.get("world")
-
     -- Check all 8 surrounding positions for solid blocks in the same layer
     local offsets = {
         {-1, -1}, {0, -1}, {1, -1},  -- top row
@@ -59,7 +51,7 @@ function BuildingSystem.has_adjacent_block(self, col, row, layer)
     for _, offset in ipairs(offsets) do
         local check_col = col + offset[1]
         local check_row = row + offset[2]
-        local proto = world:get_block_def(layer, check_col, check_row)
+        local proto = G.world:get_block_def(layer, check_col, check_row)
         if proto and proto.solid then
             return true
         end
@@ -69,13 +61,11 @@ function BuildingSystem.has_adjacent_block(self, col, row, layer)
 end
 
 function BuildingSystem.has_adjacent_layer_block(self, col, row, layer)
-    local world = Systems.get("world")
-
     -- Check for solid blocks at the same position in layers above and below
 
     -- Check layer below (if not already at bottom layer)
     if layer - 1 >= LAYER_MIN then
-        local proto = world:get_block_def(layer - 1, col, row)
+        local proto = G.world:get_block_def(layer - 1, col, row)
         if proto and proto.solid then
             return true
         end
@@ -83,7 +73,7 @@ function BuildingSystem.has_adjacent_layer_block(self, col, row, layer)
 
     -- Check layer above (if not already at top layer)
     if layer + 1 <= LAYER_MAX then
-        local proto = world:get_block_def(layer + 1, col, row)
+        local proto = G.world:get_block_def(layer + 1, col, row)
         if proto and proto.solid then
             return true
         end
@@ -93,9 +83,6 @@ function BuildingSystem.has_adjacent_layer_block(self, col, row, layer)
 end
 
 function BuildingSystem.place_block(self, col, row)
-    local world = Systems.get("world")
-    local player = Systems.get("player")
-
     local player_x, player_y, player_z = player:get_position()
     local block_id = player:get_selected_block_id()
 
@@ -104,7 +91,7 @@ function BuildingSystem.place_block(self, col, row)
     end
 
     -- Check if spot is empty
-    local current_block = world:get_block_id(player_z, col, row)
+    local current_block = G.world:get_block_id(player_z, col, row)
     if current_block ~= BLOCKS.AIR then
         return
     end
@@ -122,9 +109,9 @@ function BuildingSystem.place_block(self, col, row)
     end
 
     -- Place block
-    if world:set_block(player_z, col, row, block_id) then
+    if G.world:set_block(player_z, col, row, block_id) then
         -- Remove from inventory
-        player:remove_from_selected(1)
+        G.player:remove_from_selected(1)
     end
 end
 

@@ -4,7 +4,6 @@
 require "lib"
 
 local Object = require "core.object"
-local Systems = require "core.systems"
 local Position = require "components.position"
 local Velocity = require "components.velocity"
 local Physics = require "components.physics"
@@ -31,20 +30,14 @@ function DropSystem.create_drop(self, x, y, layer, block_id, count)
         physics = Physics.new(400, 0.8),  -- gravity: 400, friction: 0.8 (more friction for drops)
         drop = Drop.new(block_id, count, 300, 0.5),
     }
-
     table.insert(self.entities, entity)
-
     return entity
 end
 
 function DropSystem.update(self, dt)
-    -- Get systems from G
-    local world = Systems.get("world")
-    local player = Systems.get("player")
-
     local PICKUP_RANGE = BLOCK_SIZE
     local MERGE_RANGE = BLOCK_SIZE
-    local player_x, player_y, player_z = player:get_position()
+    local player_x, player_y, player_z = G.player:get_position()
 
     for i = #self.entities, 1, -1 do
         local ent = self.entities[i]
@@ -57,11 +50,11 @@ function DropSystem.update(self, dt)
         -- Check collision with ground
         -- Drops are 1/2 block size, so check at their bottom edge (1/4 block offset)
         local drop_height = BLOCK_SIZE / 2
-        local col, row = world.world_to_block(world,
+        local col, row = G.world:world_to_block(
             ent.position.x,
             ent.position.y + drop_height / 2
         )
-        local block_def = world:get_block_def(ent.position.z, col, row)
+        local block_def = G.world:get_block_def(ent.position.z, col, row)
 
         local on_ground = false
         if block_def and block_def.solid then
@@ -91,11 +84,11 @@ function DropSystem.update(self, dt)
                     -- Merge if within range and other is also on ground with no pickup delay
                     if dist < MERGE_RANGE and other.drop.pickup_delay <= 0 then
                         -- Check if other drop is also on ground
-                        local other_col, other_row = world.world_to_block(world,
+                        local other_col, other_row = G.world:world_to_block(
                             other.position.x,
                             other.position.y + drop_height / 2
                         )
-                        local other_block = world:get_block_def(other.position.z, other_col, other_row)
+                        local other_block = G.world:get_block_def(other.position.z, other_col, other_row)
 
                         if other_block and other_block.solid then
                             -- Merge counts and remove the other drop
@@ -122,7 +115,7 @@ function DropSystem.update(self, dt)
 
             if dist < PICKUP_RANGE then
                 -- Try to add to player inventory
-                if player:add_to_inventory(ent.drop.block_id, ent.drop.count) then
+                if G.player:add_to_inventory(ent.drop.block_id, ent.drop.count) then
                     -- Successfully picked up
                     table.remove(self.entities, i)
                 end
@@ -138,11 +131,7 @@ function DropSystem.update(self, dt)
 end
 
 function DropSystem.draw(self)
-    -- Get systems from G
-    local world = Systems.get("world")
-    local camera = Systems.get("camera")
-
-    local camera_x, camera_y = camera:get_offset()
+    local camera_x, camera_y = G.camera:get_offset()
 
     for _, ent in ipairs(self.entities) do
         local proto = Registry.Blocks:get(ent.drop.block_id)
