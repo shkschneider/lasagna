@@ -3,7 +3,7 @@
 
 local log = require "lib.log"
 local Object = require "core.object"
-local Systems = require "systems"
+local Systems = require "core.systems"
 local GameState = require "components.gamestate"
 
 LAYER_MIN = -1

@@ -4,7 +4,7 @@
 require "lib"
 
 local Object = require "core.object"
-local Systems = require "systems"
+local Systems = require "core.systems"
 local Position = require "components.position"
 local Velocity = require "components.velocity"
 local Physics = require "components.physics"

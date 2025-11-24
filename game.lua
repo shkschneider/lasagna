@@ -3,7 +3,7 @@
 
 local log = require "lib.log"
 local Object = require "core.object"
-local Systems = require "systems"
+local Systems = require "core.systems"
 local TimeScale = require "components.timescale"
 local GameState = require "components.gamestate"
 

@@ -5,7 +5,7 @@ require "lib"
 local log = require "lib.log"
 
 local Object = require "core.object"
-local Systems = require "systems"
+local Systems = require "core.systems"
 local Stance = require "components.stance"
 
 local ControlSystem = Object.new {

@@ -3,7 +3,7 @@
 
 local log = require "lib.log"
 local Object = require "core.object"
-local Systems = require "systems"
+local Systems = require "core.systems"
 local Camera = require "components.camera"
 local Position = require "components.position"
 

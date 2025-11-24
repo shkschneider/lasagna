@@ -4,7 +4,7 @@
 require "lib"
 
 local Object = require "core.object"
-local Systems = require "systems"
+local Systems = require "core.systems"
 local Registry = require "registries"
 
 local ITEMS = Registry.items()

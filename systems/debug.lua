@@ -1,5 +1,5 @@
 local Object = require "core.object"
-local Systems = require "systems"
+local Systems = require "core.systems"
 local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()

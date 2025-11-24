@@ -5,7 +5,7 @@ local log = require "lib.log"
 local noise = require "lib.noise"
 
 local Object = require "core.object"
-local Systems = require "systems"
+local Systems = require "core.systems"
 local Generator = require "systems.generator"
 local WorldData = require "components.worlddata"
 local Registry = require "registries"

@@ -1,5 +1,5 @@
-local CommandsRegistry = require("registries.commands")
-local Systems = require("systems")
+local CommandsRegistry = require "registries.commands"
+local Systems = require "core.systems"
 
 CommandsRegistry:register({
     name = "seed",
