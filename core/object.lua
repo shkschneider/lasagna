@@ -1,26 +1,42 @@
 require "lib"
 
-local Object = {
-    __type = "Object",
-}
+local Object = {}
 
-function Object.is(self)
-    return self.__type and self.__type == Object.__type
+-- Note: if any sub-object priority changes or sub-objects are modified (added/removed)
+--       internal (sorted) cache should be invalidated
+local function Object_refresh(self)
+    self.__objects = nil
 end
 
+-- Note: sub-objects are not in array (indexed) in any object
+--       that is because Object_call shall only be called once per frame
+--       (and it allows to access sub-objects easily with object.subObject)
+--       whereas anytime an object needs another, it would search for it in the array
+--       which would happen many times per frame
+-- Cost: O(1) vs O(N log N)
 local function Object_call(self, name, ...)
-    for id, object in pairs(self) do
-        if type(object) == "table" then
-            local f = object[name]
-            if type(f) == "function" then
-                f(object, ...)
+    if not self.__objects then
+        self.__objects = {}
+        for id, object in pairs(self) do
+            -- all tables are considered potential sub-objects
+            if type(object) == "table" then
+                table.insert(self.__objects, object)
             end
+        end
+        table.sort(self.__objects, function(a, b)
+            return (a.priority or INFINITY) < (b.priority or INFINITY)
+        end)
+    end
+    for _, object in ipairs(self.__objects) do
+        local f = object[name]
+        if type(f) == "function" then
+            f(object, ...)
         end
     end
 end
 
-function Object.load(self)
-    Object_call(self, "load")
+function Object.load(self, ...)
+    Object_call(self, "load", ...)
 end
 
 function Object.update(self, dt)

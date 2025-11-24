@@ -33,27 +33,22 @@ local Game = Object.new {
     lore = require("systems.lore"),
 }
 
-function Game.switch(self, gamestate)
-    assert(gamestate)
-    self.gamestate = GameState.new(gamestate)
-    log.debug(string.format("%f", love.timer.getTime()), "Game", "switch:" .. self.gamestate:tostring())
-end
-
 function Game.load(self, seed, debug)
     self:switch(GameState.LOAD)
-    self.world:load(seed) -- 10
-    -- self.control:load() -- 19
-    self.player:load() -- 20
-    self.mining:load() -- 60
-    self.building:load() -- 61
-    self.weapon:load() -- 62
-    self.bullet:load() -- 65
-    self.drop:load() -- 70
-    self.camera:load() -- 90
-    self.ui:load() -- 110
-    self.chat:load() -- 120
-    self.lore:load() -- 200
-    self.debug:load(debug)
+    Object.load(self, seed, debug)
+    -- self.world:load(seed) -- 10
+    -- -- self.control:load() -- 19
+    -- self.player:load() -- 20
+    -- self.mining:load() -- 60
+    -- self.building:load() -- 61
+    -- self.weapon:load() -- 62
+    -- self.bullet:load() -- 65
+    -- self.drop:load() -- 70
+    -- self.camera:load() -- 90
+    -- self.ui:load() -- 110
+    -- self.chat:load() -- 120
+    -- self.lore:load() -- 200
+    -- self.debug:load(debug)
     log.debug("All systems operational.")
     self:switch(GameState.PLAY)
 end
@@ -63,6 +58,12 @@ function Game.update(self, dt)
     if self.player and self.player:is_dead() then return end
     dt = dt * self.timescale.scale
     Object.update(self, dt)
+end
+
+function Game.switch(self, gamestate)
+    assert(gamestate)
+    self.gamestate = GameState.new(gamestate)
+    log.debug(string.format("%f", love.timer.getTime()), "Game", string.upper(self.gamestate:tostring()))
 end
 
 return Game

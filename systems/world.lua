@@ -25,12 +25,13 @@ local WorldSystem = Object.new {
     max_coroutines = 8,          -- Maximum concurrent column generations (increased for finer granularity)
 }
 
-function WorldSystem.load(self, seed)
+function WorldSystem.load(self, seed, _)
     -- Initialize components (no width - infinite horizontal)
     self.worlddata = WorldData.new(seed, self.HEIGHT)
     log.info("World:", self.worlddata.seed)
 
     -- Seed the noise library
+    assert(self.worlddata.seed)
     noise.seed(self.worlddata.seed)
 
     -- Create canvases for layer rendering

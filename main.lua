@@ -23,7 +23,7 @@ local log = require "lib.log"
 
 function love.load()
     local debug = os.getenv("DEBUG") and (os.getenv("DEBUG") == "true") or (G.VERSION.major < 1)
-    local seed = tonumber(os.getenv("SEED"))
+    local seed = tonumber(os.getenv("SEED") or os.time())
     log.level = debug and "debug" or "warn"
     log.info("Lasagna", G.VERSION:tostring())
     G:load(seed, debug)
