@@ -12,6 +12,9 @@ function Stance.new(current)
     return {
         current = current or Stance.STANDING,
         crouched = false,
+        tostring = function(self)
+            return tostring(self.current)
+        end
     }
 end
 

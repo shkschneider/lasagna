@@ -8,6 +8,8 @@ function WorldData.new(seed, height)
         seed = seed,
         height = height or 512,
         columns = {},  -- Sparse table for column data
+        generated_columns = {},
+        generating_columns = {},
     }
 end
 
