@@ -115,7 +115,7 @@ end
 -- world_col: absolute column coordinate in the world (for noise continuity)
 -- z: layer index
 -- world_height: height of the world
-function Generator.generate_column(column_data, world_col, z, world_height)
+return function(column_data, world_col, z, world_height)
     -- Step 0: Calculate surface height (uses world_col for continuity)
     local base_height = calculate_surface_height(world_col, z, world_height)
     -- Step 1: Fill base terrain (air and stone)
@@ -126,5 +126,3 @@ function Generator.generate_column(column_data, world_col, z, world_height)
     Generator.ore_veins(column_data, world_col, z, base_height, world_height)
 
 end
-
-return Generator

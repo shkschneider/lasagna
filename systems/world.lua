@@ -1,5 +1,6 @@
+local noise = require "core.noise"
+local generator = require "core.generator"
 local Object = require "core.object"
-local Generator = require "core.generator"
 local WorldData = require "components.worlddata"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
@@ -25,7 +26,7 @@ function World.load(self, seed, _)
     Log.info("World:", self.worlddata.seed)
 
     -- Seed the noise library
-    Generator.seed(self.worlddata.seed)
+    noise.seed(self.worlddata.seed)
 
     -- Create canvases for layer rendering
     self:create_canvases()
@@ -351,8 +352,8 @@ function World.generate_column_immediate(self, z, col)
         data.columns[z][col] = {}
     end
 
-    -- Generate terrain for this column using Generator module
-    Generator.generate_column(data.columns[z][col], col, z, data.height)
+    -- Generate terrain for this column
+    generator(data.columns[z][col], col, z, data.height)
 
     -- Mark as generated immediately (no coroutine yield)
     data.generated_columns[key] = true
@@ -394,9 +395,8 @@ function World.generate_column_sync(self, z, col)
         data.columns[z][col] = {}
     end
 
-    -- Generate terrain for this column using Generator module
-    -- Pass: column_data, world_col, z, world_height
-    Generator.generate_column(data.columns[z][col], col, z, data.height)
+    -- Generate terrain for this column
+    generator(data.columns[z][col], col, z, data.height)
 
     -- Yield to prevent frame drops - allows other work to process before next column
     coroutine.yield()
