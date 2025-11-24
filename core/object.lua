@@ -32,6 +32,7 @@ local function Object_call(self, name, ...)
     for _, object in ipairs(self.__objects) do
         local f = object[name]
         if type(f) == "function" then
+            -- Pass parent entity as second parameter for component methods
             f(object, ...)
         end
     end
@@ -46,11 +47,13 @@ end
 
 function Object.update(self, dt)
     assert(type(dt) == "number")
-    Object_call(self, "update", dt)
+    -- Pass self (parent entity) to components for update
+    Object_call(self, "update", dt, self)
 end
 
 function Object.draw(self)
-    Object_call(self, "draw")
+    -- Pass self (parent entity) to components for draw
+    Object_call(self, "draw", self)
 end
 
 function Object.keypressed(self, key)
