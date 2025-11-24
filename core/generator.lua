@@ -3,8 +3,6 @@ local Registry = require "registries"
 local BlocksRegistry = require "registries.blocks"
 local BLOCKS = Registry.blocks()
 
--- TODO move to core?
-
 local Generator = {}
 
 function Generator.seed(seed)

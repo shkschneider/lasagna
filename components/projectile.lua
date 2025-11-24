@@ -10,7 +10,6 @@ function Projectile.new(damage, lifetime, width, height, color, destroys_blocks)
         height = height or 2,
         color = color or {1, 1, 0, 1},  -- yellow by default
         destroys_blocks = destroys_blocks or false,  -- whether bullet destroys blocks on impact
-        enabled = true,
         dead = false,  -- Mark for removal
     }
 
@@ -23,8 +22,6 @@ end
 
 -- Component update method - handles bullet lifetime and collision
 function Projectile.update(self, dt, entity)
-    if not self.enabled then return end
-
     -- Decrease lifetime
     self.lifetime = self.lifetime - dt
     if self.lifetime <= 0 then
@@ -34,8 +31,6 @@ end
 
 -- Component draw method - renders bullet
 function Projectile.draw(self, entity, camera_x, camera_y)
-    if not self.enabled then return end
-
     if entity and entity.position then
         local x = entity.position.x - (camera_x or 0) - self.width / 2
         local y = entity.position.y - (camera_y or 0) - self.height / 2

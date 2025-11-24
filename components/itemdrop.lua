@@ -8,7 +8,6 @@ function ItemDrop.new(block_id, count, lifetime, pickup_delay)
         count = count or 1,
         lifetime = lifetime or 300,
         pickup_delay = pickup_delay or 0.5,
-        enabled = true,
         dead = false,  -- Mark for removal
     }
 
@@ -21,8 +20,6 @@ end
 
 -- Component update method - handles drop lifetime and pickup delay
 function ItemDrop.update(self, dt, entity)
-    if not self.enabled then return end
-
     -- Decrease pickup delay
     if self.pickup_delay > 0 then
         self.pickup_delay = self.pickup_delay - dt
@@ -37,8 +34,6 @@ end
 
 -- Component draw method - renders drop
 function ItemDrop.draw(self, entity, camera_x, camera_y)
-    if not self.enabled then return end
-
     if entity and entity.position then
         local Registry = require "registries"
         local proto = Registry.Blocks:get(self.block_id)
