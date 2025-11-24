@@ -1,5 +1,6 @@
 require "lib"
 
+-- Object is a "Love Object" with composition.
 local Object = {}
 
 -- Note: if any sub-object priority changes or sub-objects are modified (added/removed)
@@ -27,13 +28,17 @@ local function Object_call(self, name, ...)
             return (a.priority or INFINITY) < (b.priority or INFINITY)
         end)
     end
+    -- Profile: local start = love.timer.getTime()
     for _, object in ipairs(self.__objects) do
         local f = object[name]
         if type(f) == "function" then
             f(object, ...)
         end
     end
+    -- Profile: print(string.format("%s %s: %fs", string.upper(name), self.id or "?", (love.timer.getTime() - start)))
 end
+
+-- Love bindings
 
 function Object.load(self, ...)
     Object_call(self, "load", ...)
@@ -110,6 +115,7 @@ function Object.tostring(self)
     return table.tostring(self)
 end
 
+-- Make an Object with = Object.new {...}
 function Object.new(...)
     local object = {
         __type = Object.__type,

@@ -2,7 +2,6 @@
 -- Handles user interface rendering
 
 local Object = require "core.object"
-local Systems = require "core.systems"
 local Registry = require "registries"
 
 local UISystem = Object.new {
@@ -13,17 +12,13 @@ local UISystem = Object.new {
 function UISystem.load(self) end
 
 function UISystem.draw(self)
-    local player = Systems.get("player")
-    local world = Systems.get("world")
-    local camera = Systems.get("camera")
-
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
 
-    local camera_x, camera_y = camera:get_offset()
-    local pos = player.position
-    local inv = player.inventory
-    local omnitool = player.omnitool
+    local camera_x, camera_y = G.camera:get_offset()
+    local pos = G.player.position
+    local inv = G.player.inventory
+    local omnitool = G.player.omnitool
 
     -- Layer indicator
     love.graphics.setColor(1, 1, 1, 1)
@@ -33,15 +28,15 @@ function UISystem.draw(self)
     love.graphics.print(string.format("OmniTool: %s", omnitool:tostring()), 10, 30)
 
     -- Player position
-    local block_x, block_y = world:world_to_block(pos.x, pos.y)
+    local block_x, block_y = G.world:world_to_block(pos.x, pos.y)
     love.graphics.print(string.format("Position: %d, %d", block_x, block_y), 10, 50)
 
     -- Mouse position and block under cursor
     local mouse_x, mouse_y = love.mouse.getPosition()
     local world_x = mouse_x + camera_x
     local world_y = mouse_y + camera_y
-    local mouse_col, mouse_row = world:world_to_block(world_x, world_y)
-    local block_def = world:get_block_def(pos.z, mouse_col, mouse_row)
+    local mouse_col, mouse_row = G.world:world_to_block(world_x, world_y)
+    local block_def = G.world:get_block_def(pos.z, mouse_col, mouse_row)
     local block_name = block_def and block_def.name or "Air"
     love.graphics.print(string.format("Mouse: %d, %d (%s)", mouse_col, mouse_row, block_name), 10, 70)
 
@@ -51,8 +46,8 @@ function UISystem.draw(self)
     local hotbar_x = (screen_width - (inv.hotbar_size * slot_size)) / 2
 
     -- Draw health bar above hotbar
-    local health = player.health
-    local stamina = player.stamina
+    local health = G.player.health
+    local stamina = G.player.stamina
     if health and health.max > 0 then
         local health_bar_height = BLOCK_SIZE / 4  -- 1/4 BLOCK_SIZE high
         local hotbar_width = inv.hotbar_size * slot_size

@@ -3,7 +3,6 @@
 
 local log = require "lib.log"
 local Object = require "core.object"
-local Systems = require "core.systems"
 local TimeScale = require "components.timescale"
 local GameState = require "components.gamestate"
 
@@ -36,11 +35,11 @@ local Game = Object.new {
 function Game.load(self, seed, debug)
     self:switch(GameState.LOAD)
     Object.load(self, seed, debug)
-    log.debug("All systems operational.")
     self:switch(GameState.PLAY)
 end
 
 function Game.update(self, dt)
+    local start = love.timer.getTime()
     if self.timescale.paused then return end
     if self.player and self.player:is_dead() then return end
     dt = dt * self.timescale.scale

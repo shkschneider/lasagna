@@ -5,7 +5,6 @@ require "lib"
 local log = require "lib.log"
 
 local Object = require "core.object"
-local Systems = require "core.systems"
 local Position = require "components.position"
 local Velocity = require "components.velocity"
 local Physics = require "components.physics"
@@ -39,8 +38,7 @@ local PlayerSystem = Object.new {
 }
 
 function PlayerSystem.load(self)
-    local world = Systems.get("world")
-    local x, y, z = world:find_spawn_position(LAYER_DEFAULT)
+    local x, y, z = G.world:find_spawn_position(LAYER_DEFAULT)
 
     -- Initialize player components
     self.position = Position.new(x, y, z)
@@ -71,15 +69,13 @@ function PlayerSystem.load(self)
     -- Initialize control system
     self.control = require "systems.control"
 
-    local px, py = world:world_to_block(self.position.x, self.position.y)
+    local px, py = G.world:world_to_block(self.position.x, self.position.y)
     log.debug("Player:", px, py)
 
     Object.load(self)
 end
 
 function PlayerSystem.update(self, dt)
-    local world = Systems.get("world")
-
     local pos = self.position
     local vel = self.velocity
     local phys = self.physics
@@ -132,7 +128,7 @@ function PlayerSystem.update(self, dt)
         local bottom_row = math.floor((pos.y + col.height / 2 - EPSILON) / BLOCK_SIZE)
 
         for row = top_row, bottom_row do
-            local block_def = world:get_block_def(pos.z, check_col, row)
+            local block_def = G.world:get_block_def(pos.z, check_col, row)
             if block_def and block_def.solid then
                 hit_wall = true
                 if vel.vx > 0 then
@@ -161,7 +157,7 @@ function PlayerSystem.update(self, dt)
     local bottom_row = math.floor(bottom_y / BLOCK_SIZE)
 
     for c = left_col, right_col do
-        local block_def = world:get_block_def(pos.z, c, bottom_row)
+        local block_def = G.world:get_block_def(pos.z, c, bottom_row)
         if block_def and block_def.solid and vel.vy >= 0 then
             pos.y = bottom_row * BLOCK_SIZE - col.height / 2
             vel.vy = 0
@@ -176,7 +172,7 @@ function PlayerSystem.update(self, dt)
     local top_row = math.floor(top_y / BLOCK_SIZE)
 
     for c = left_col, right_col do
-        local block_def = world:get_block_def(pos.z, c, top_row)
+        local block_def = G.world:get_block_def(pos.z, c, top_row)
         if block_def and block_def.solid and vel.vy < 0 then
             pos.y = (top_row + 1) * BLOCK_SIZE + col.height / 2
             vel.vy = 0
@@ -190,7 +186,7 @@ function PlayerSystem.update(self, dt)
     end
 
     -- Prevent falling through bottom
-    local max_y = world.HEIGHT * BLOCK_SIZE
+    local max_y = G.world.HEIGHT * BLOCK_SIZE
     if pos.y > max_y then
         pos.y = max_y
         vel.vy = 0
@@ -235,8 +231,7 @@ function PlayerSystem.draw(self)
     local pos = self.position
     local vis = self.visual
 
-    local camera = Systems.get("camera")
-    local camera_x, camera_y = camera:get_offset()
+    local camera_x, camera_y = G.camera:get_offset()
 
     -- Draw player
     love.graphics.setColor(vis.color)
@@ -273,7 +268,6 @@ function PlayerSystem.can_switch_layer(self, target_layer)
 end
 
 function PlayerSystem.check_collision(self, x, y, layer)
-    local world = Systems.get("world")
     local collider = self.collider
 
     local left = x - collider.width / 2
@@ -288,7 +282,7 @@ function PlayerSystem.check_collision(self, x, y, layer)
 
     for c = left_col, right_col do
         for r = top_row, bottom_row do
-            local block_def = world:get_block_def(layer, c, r)
+            local block_def = G.world:get_block_def(layer, c, r)
             if block_def and block_def.solid then
                 return true
             end
@@ -449,7 +443,6 @@ function PlayerSystem.get_omnitool_tier(self)
 end
 
 function PlayerSystem.is_on_ground(self)
-    local world = Systems.get("world")
     local pos = self.position
     local col = self.collider
     local vel = self.velocity
@@ -461,7 +454,7 @@ function PlayerSystem.is_on_ground(self)
     local bottom_row = math.floor(bottom_y / BLOCK_SIZE)
 
     for c = left_col, right_col do
-        local block_def = world:get_block_def(pos.z, c, bottom_row)
+        local block_def = G.world:get_block_def(pos.z, c, bottom_row)
         if block_def and block_def.solid then
             return true
         end
@@ -471,7 +464,6 @@ function PlayerSystem.is_on_ground(self)
 end
 
 function PlayerSystem.can_stand_up(self)
-    local world = Systems.get("world")
     local pos = self.position
     local col = self.collider
 
@@ -483,7 +475,7 @@ function PlayerSystem.can_stand_up(self)
     local top_row = math.floor(top_y / BLOCK_SIZE)
 
     for c = left_col, right_col do
-        local block_def = world:get_block_def(pos.z, c, top_row)
+        local block_def = G.world:get_block_def(pos.z, c, top_row)
         if block_def and block_def.solid then
             return false
         end

@@ -3,7 +3,6 @@
 
 local log = require "lib.log"
 local Object = require "core.object"
-local Systems = require "core.systems"
 local GameState = require "components.gamestate"
 
 LAYER_MIN = -1
@@ -14,7 +13,7 @@ BLOCK_SIZE = 16
 STACK_SIZE = 64
 
 -- Global
-G = require "game"
+G = require "core.game"
 G.VERSION = { major = 0, minor = 1, patch = nil, tostring = function(self)
     return string.format("%d.%d.%s", self.major, self.minor, tostring(self.patch or "x"))
 end }

@@ -2,7 +2,6 @@
 -- Handles block mining with progressive delay and visual feedback
 
 local Object = require "core.object"
-local Systems = require "core.systems"
 local Registry = require "registries"
 
 local BLOCKS = Registry.blocks()
@@ -32,24 +31,21 @@ function MiningSystem.load(self)
 end
 
 function MiningSystem.update(self, dt)
-    local player = Systems.get("player")
-    local inv = player.inventory
+    local inv = G.player.inventory
     if not love.mouse.isDown(1) or inv.slots[inv.selected_slot].item_id ~= ITEMS.OMNITOOL then
         -- TODO or mouse moved to another target
         self:cancel_mining()
         return
     end
     -- Update mining progress if actively mining
-    local world = Systems.get("world")
-    local player_x, player_y, player_z = player:get_position()
+    local player_x, player_y, player_z = G.player:get_position()
     if not self.target then
         -- Start mining block
-        local camera = Systems.get("camera")
-        local camera_x, camera_y = camera:get_offset()
+        local camera_x, camera_y = G.camera:get_offset()
         local mx, my = love.mouse.getPosition()
         local world_x = mx + camera_x
         local world_y = my + camera_y
-        local col, row = world:world_to_block(world_x, world_y)
+        local col, row = G.world:world_to_block(world_x, world_y)
         self:start_mining(col, row)
     else
         -- Check if player changed layers
@@ -67,11 +63,8 @@ function MiningSystem.update(self, dt)
 end
 
 function MiningSystem.start_mining(self, col, row)
-    local player = Systems.get("player")
-    local world = Systems.get("world")
-
-    local player_x, player_y, player_z = player:get_position()
-    local block_id = world:get_block_id(player_z, col, row)
+    local player_x, player_y, player_z = G.player:get_position()
+    local block_id = G.world:get_block_id(player_z, col, row)
     local proto = Registry.Blocks:get(block_id)
 
     if not proto or not proto.solid then
@@ -81,7 +74,7 @@ function MiningSystem.start_mining(self, col, row)
     -- DONT Check if player has omnitool equipped
 
     -- Check tier requirement
-    local player_tier = player:get_omnitool_tier()
+    local player_tier = G.player:get_omnitool_tier()
     if proto.tier > player_tier then
         return -- Can't mine this yet
     end
@@ -116,30 +109,26 @@ function MiningSystem.complete_mining(self)
         return
     end
 
-    local world = Systems.get("world")
     local z = self.target.z
     local col = self.target.col
     local row = self.target.row
     local proto = self.target.proto
 
     -- Remove block
-    world:set_block(z, col, row, BLOCKS.AIR)
+    G.world:set_block(z, col, row, BLOCKS.AIR)
 
     -- Spawn drop
     if proto.drops then
-        local drop = Systems.get("drop")
-        if drop then
-            local drop_id, drop_count = proto.drops()
-            if drop_id then
-                local wx, wy = world:block_to_world(col, row)
-                drop.create_drop(drop,
-                    wx + BLOCK_SIZE / 2,
-                    wy + BLOCK_SIZE / 2,
-                    z,
-                    drop_id,
-                    drop_count
-                )
-            end
+        local drop_id, drop_count = proto.drops()
+        if drop_id then
+            local wx, wy = G.world:block_to_world(col, row)
+            G.drop:create_drop(
+                wx + BLOCK_SIZE / 2,
+                wy + BLOCK_SIZE / 2,
+                z,
+                drop_id,
+                drop_count
+            )
         end
     end
 
@@ -153,11 +142,8 @@ function MiningSystem.draw(self)
         return
     end
 
-    local camera = Systems.get("camera")
-    local world = Systems.get("world")
-
-    local camera_x, camera_y = camera:get_offset()
-    local wx, wy = world:block_to_world(self.target.col, self.target.row)
+    local camera_x, camera_y = G.camera:get_offset()
+    local wx, wy = G.world:block_to_world(self.target.col, self.target.row)
 
     -- Convert to screen coordinates
     local screen_x = wx - camera_x

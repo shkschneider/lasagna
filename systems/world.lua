@@ -5,7 +5,6 @@ local log = require "lib.log"
 local noise = require "lib.noise"
 
 local Object = require "core.object"
-local Systems = require "core.systems"
 local Generator = require "systems.generator"
 local WorldData = require "components.worlddata"
 local Registry = require "registries"
@@ -138,14 +137,11 @@ function WorldSystem.update(self, dt)
 end
 
 function WorldSystem.draw(self)
-    local player = Systems.get("player")
-    local camera = Systems.get("camera")
-
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
 
-    local camera_x, camera_y = camera:get_offset()
-    local player_x, player_y, player_z = player:get_position()
+    local camera_x, camera_y = G.camera:get_offset()
+    local player_x, player_y, player_z = G.player:get_position()
 
     -- Clear screen with sky blue background
     love.graphics.clear(0.4, 0.6, 0.9, 1)
@@ -162,7 +158,6 @@ function WorldSystem.draw(self)
 
     -- Calculate max layer to render (from LAYER_MIN up to player_z + 1, clamped to LAYER_MAX)
     local max_layer = math.min(player_z + 1, LAYER_MAX)
-    local debug = Systems.get("debug")
 
     -- Draw each layer to its canvas
     for layer = LAYER_MIN, max_layer do

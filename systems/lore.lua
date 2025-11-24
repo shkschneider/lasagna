@@ -13,6 +13,4 @@ function LoreSystem.load(self)
     self.points = 0
 end
 
-function LoreSystem.update(self, dt) end
-
 return LoreSystem

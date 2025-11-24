@@ -4,7 +4,6 @@
 require "lib"
 
 local Object = require "core.object"
-local Systems = require "core.systems"
 local Registry = require "registries"
 
 local ITEMS = Registry.items()
@@ -34,16 +33,8 @@ function WeaponSystem.update(self, dt)
 end
 
 function WeaponSystem.try_shoot(self)
-    local player = Systems.get("player")
-    local camera = Systems.get("camera")
-    local bullet_system = Systems.get("bullet")
-
-    if not player or not camera or not bullet_system then
-        return
-    end
-
     -- Get selected item
-    local inv = player.components.inventory
+    local inv = G.player.inventory
     local slot = inv.slots[inv.selected_slot]
 
     if not slot then
@@ -57,11 +48,11 @@ function WeaponSystem.try_shoot(self)
     end
 
     -- Get player position
-    local player_x, player_y, player_z = player:get_position()
+    local player_x, player_y, player_z = G.player:get_position()
 
     -- Get mouse position in world coordinates
     local mouse_x, mouse_y = love.mouse.getPosition()
-    local camera_x, camera_y = camera:get_offset()
+    local camera_x, camera_y = G.camera:get_offset()
     local world_mouse_x = mouse_x + camera_x
     local world_mouse_y = mouse_y + camera_y
 
@@ -80,7 +71,7 @@ function WeaponSystem.try_shoot(self)
     local vx = dx * speed
     local vy = dy * speed
 
-    bullet_system:create_bullet(
+    G.bullet:create_bullet(
         player_x,
         player_y,
         player_z,
