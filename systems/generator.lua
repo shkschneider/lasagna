@@ -1,13 +1,17 @@
 -- World Generation Module
 -- Contains all terrain generation logic split into ordered steps
 
-local noise = require "lib.noise"
+local noise = require "core.noise"
 local Registry = require "registries"
 local BlocksRegistry = require "registries.blocks"
-
 local BLOCKS = Registry.blocks()
 
 local GeneratorSystem = {}
+
+function GeneratorSystem.seed(seed)
+    assert(type(seed) == "number")
+    noise.seed(seed)
+end
 
 -- Get ore blocks for generation (cached after first call)
 -- NOTE: This assumes all blocks are registered during initialization

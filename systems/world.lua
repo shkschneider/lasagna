@@ -2,8 +2,6 @@
 -- Manages world generation, block storage, and world queries
 
 local log = require "lib.log"
-local noise = require "lib.noise"
-
 local Object = require "core.object"
 local Generator = require "systems.generator"
 local WorldData = require "components.worlddata"
@@ -30,8 +28,7 @@ function WorldSystem.load(self, seed, _)
     log.info("World:", self.worlddata.seed)
 
     -- Seed the noise library
-    assert(self.worlddata.seed)
-    noise.seed(self.worlddata.seed)
+    Generator.seed(self.worlddata.seed)
 
     -- Create canvases for layer rendering
     self:create_canvases()
