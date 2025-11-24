@@ -13,11 +13,10 @@ GameState.QUIT = "quit"
 function GameState.new(state)
     return {
         current = state or GameState.BOOT,
+        tostring = function(self)
+            return self.current
+        end,
     }
-end
-
-function GameState.tostring(self)
-    return self.current
 end
 
 return GameState
