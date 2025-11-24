@@ -2,8 +2,8 @@
 -- Manages overall game state, time scale, and coordinates other systems
 
 local Object = require "core.object"
-local TimeScale = require "components.timescale"
-local GameState = require "components.gamestate"
+local Time = require "components.time"
+local State = require "components.state"
 
 LAYER_MIN = -1
 LAYER_DEFAULT = 0
@@ -14,8 +14,8 @@ STACK_SIZE = 64
 
 local Game = Object.new {
     priority = 0,
-    state = GameState.new(GameState.BOOT),
-    timescale = TimeScale.new(1),
+    state = State.new(State.BOOT),
+    time = Time.new(1),
     world = require("systems.world"),
     control = require("systems.control"),
     camera = require("systems.camera"),
@@ -32,23 +32,23 @@ local Game = Object.new {
 }
 
 function Game.load(self, seed, debug)
-    self:switch(GameState.LOAD)
+    self:newState(State.LOAD)
     Object.load(self, seed, debug)
-    self:switch(GameState.PLAY)
+    self:newState(State.PLAY)
 end
 
 function Game.update(self, dt)
     local start = love.timer.getTime()
-    if self.timescale.paused then return end
+    if self.time.paused then return end
     if self.player and self.player:is_dead() then return end
-    dt = dt * self.timescale.scale
+    dt = dt * self.time.scale
     Object.update(self, dt)
 end
 
-function Game.switch(self, gamestate)
-    assert(gamestate)
-    self.gamestate = GameState.new(gamestate)
-    Log.debug(string.format("%f", love.timer.getTime()), "Game", string.upper(self.gamestate:tostring()))
+function Game.newState(self, state)
+    assert(state)
+    self.state = State.new(state)
+    Log.debug(string.format("%f", love.timer.getTime()), "Game", string.upper(self.state:tostring()))
 end
 
 return Game

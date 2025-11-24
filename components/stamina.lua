@@ -1,7 +1,9 @@
 -- Stamina component
 -- Stamina stored as 0-100 percentage
 
-local Stamina = {}
+local Object = require "core.object"
+
+local Stamina = Object.new {}
 
 function Stamina.new(current, max, regen_rate)
     local instance = {

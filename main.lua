@@ -3,7 +3,7 @@
 
 require "core"
 local Object = require "core.object"
-local GameState = require "components.gamestate"
+local State = require "components.state"
 
 LAYER_MIN = -1
 LAYER_DEFAULT = 0
@@ -38,7 +38,7 @@ end
 
 function love.keypressed(key)
     if key == "escape" then
-        G:switch(GameState.QUIT)
+        G:newState(State.QUIT)
         love.event.quit()
         return
     end

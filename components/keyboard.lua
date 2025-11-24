@@ -1,9 +1,9 @@
 -- KeyboardState component
 -- Keyboard input state
 
-local KeyboardState = {}
+local Keyboard = {}
 
-function KeyboardState.new()
+function Keyboard.new()
     return {
         id = "keyboard",
         keys_down = {},
@@ -11,4 +11,4 @@ function KeyboardState.new()
     }
 end
 
-return KeyboardState
+return Keyboard
