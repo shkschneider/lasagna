@@ -1,7 +1,9 @@
 -- Health component
 -- Health stored as 0-100 percentage
 
-local Health = {}
+local Object = require "core.object"
+
+local Health = Object.new {}
 
 function Health.new(current, max)
     local instance = {
@@ -15,11 +17,11 @@ function Health.new(current, max)
             return string.format("%d%%:%s", self.current, tostring(self.invicible))
         end
     }
-    
+
     -- Assign update and draw methods to instance
     instance.update = Health.update
     instance.draw = Health.draw
-    
+
     return instance
 end
 
@@ -32,37 +34,34 @@ function Health.update(self, dt)
 end
 
 -- Component draw method - draws health bar UI
-function Health.draw(self, entity)
-    if not self.enabled then return end
-    if not self.max or self.max <= 0 then return end
-    
+function Health.draw(self)
     -- Get screen dimensions
     local screen_width, screen_height = love.graphics.getDimensions()
-    
+
     -- Get inventory to position health bar relative to hotbar
-    if not entity or not entity.inventory then return end
-    local inv = entity.inventory
-    
+    if not G.player or not G.player.inventory then return end
+    local inv = G.player.inventory
+
     -- Calculate hotbar position
     local slot_size = 60
     local hotbar_y = screen_height - 80
     local hotbar_x = (screen_width - (inv.hotbar_size * slot_size)) / 2
     local hotbar_width = inv.hotbar_size * slot_size
-    
+
     -- Health bar dimensions and position
     local health_bar_height = BLOCK_SIZE / 4  -- 1/4 BLOCK_SIZE high
     local health_bar_width = hotbar_width / 2  -- Half the hotbar width
     local health_bar_x = hotbar_x  -- Aligned left
     local health_bar_y = hotbar_y - health_bar_height - 10  -- 10px above hotbar
-    
+
     -- Health bar background
     love.graphics.setColor(0, 0, 0, 0.5)
     love.graphics.rectangle("fill", health_bar_x, health_bar_y, health_bar_width, health_bar_height)
-    
+
     -- Health bar fill
     local health_percentage = self.current / self.max
     local health_fill_width = health_bar_width * health_percentage
-    
+
     -- Color based on health percentage
     if health_percentage > 0.6 then
         love.graphics.setColor(0, 1, 0, 0.8)  -- Green
