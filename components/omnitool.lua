@@ -1,8 +1,6 @@
 -- Omnitool component
 -- Mining tier
 
-require "lib"
-
 local Omnitool = {}
 
 local TIER_MIN = 1

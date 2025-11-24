@@ -1,8 +1,6 @@
 -- Block Registry
 -- Blocks register themselves here for game expansion
 
-require "lib"
-
 local BlocksRegistry = {}
 
 -- Register a new block type

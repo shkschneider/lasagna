@@ -1,4 +1,4 @@
-require "lib"
+require "core"
 
 -- Object is a "Love Object" with composition.
 local Object = {}

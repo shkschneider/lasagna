@@ -1,8 +1,6 @@
 -- Weapon System
 -- Handles weapon usage (shooting on mouse click)
 
-require "lib"
-
 local Object = require "core.object"
 local Registry = require "registries"
 

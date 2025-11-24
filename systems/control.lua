@@ -1,7 +1,6 @@
 -- Control System
 -- Manages player input and human controls
 
-require "lib"
 local log = require "lib.log"
 
 local Object = require "core.object"

@@ -1,8 +1,6 @@
 -- Bullet System
 -- Manages bullet entities (projectiles from weapons)
 
-require "lib"
-
 local Object = require "core.object"
 local Position = require "components.position"
 local Velocity = require "components.velocity"

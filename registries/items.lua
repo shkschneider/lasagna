@@ -1,8 +1,6 @@
 -- Item Registry
 -- Items register themselves here for game expansion
 
-require "lib"
-
 local ItemsRegistry = {}
 
 -- Register a new block type

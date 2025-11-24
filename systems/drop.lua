@@ -1,8 +1,6 @@
 -- Drop System
 -- Manages drop entities (items on ground)
 
-require "lib"
-
 local Object = require "core.object"
 local Position = require "components.position"
 local Velocity = require "components.velocity"

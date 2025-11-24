@@ -1,6 +1,7 @@
 -- Game System
 -- Manages overall game state, time scale, and coordinates other systems
 
+require "core"
 local log = require "lib.log"
 local Object = require "core.object"
 local GameState = require "components.gamestate"
