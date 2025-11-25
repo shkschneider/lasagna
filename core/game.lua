@@ -1,24 +1,8 @@
 local Object = require "core.object"
-local Time = require "components.time"
 local GameState = require "components.gamestate"
 
-local Game = {
+local Game = Object.new {
     priority = 0,
-    state = GameState.new(GameState.BOOT),
-    time = Time.new(1),
-    world = require("systems.world"),
-    control = require("systems.control"),
-    camera = require("systems.camera"),
-    player = require("systems.player"),
-    mining = require("systems.mining"),
-    building = require("systems.building"),
-    weapon = require("systems.weapon"),
-    bullet = require("systems.bullet"),
-    drop = require("systems.drop"),
-    ui = require("systems.interface"),
-    chat = require("systems.chat"),
-    lore = require("systems.lore"),
-    debug = require("systems.debug"),
 }
 
 function Game.switch(self, gamestate)
@@ -28,7 +12,25 @@ function Game.switch(self, gamestate)
 end
 
 function Game.load(self, ...)
-    G.debug.enabled = true
+    self:init {
+        -- systems
+        world = require("systems.world"),
+        control = require("systems.control"),
+        camera = require("systems.camera"),
+        player = require("systems.player"),
+        mining = require("systems.mining"),
+        building = require("systems.building"),
+        weapon = require("systems.weapon"),
+        bullet = require("systems.bullet"),
+        drop = require("systems.drop"),
+        ui = require("systems.interface"),
+        chat = require("systems.chat"),
+        lore = require("systems.lore"),
+        debug = require("systems.debug"),
+        -- components
+        state = GameState.new(GameState.BOOT),
+        time = require("components.time").new(1),
+    }
     self:switch(GameState.LOAD)
     Object.load(self, ...)
     self:switch(GameState.PLAY)

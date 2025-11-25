@@ -8,8 +8,10 @@ local Camera = Object.new {
 
 function Camera.load(self)
     local x, y = G.player:get_position()
-    self.position = Position.new(x, y, nil)
-    self.target = Position.new(0, 0, nil)
+    self:init {
+        position = Position.new(x, y, nil),
+        target = Position.new(0, 0, nil),
+    }
     self.smoothness = 5
 end
 

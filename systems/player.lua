@@ -32,29 +32,22 @@ local Player = Object.new {
 
 function Player.load(self)
     local x, y, z = G.world:find_spawn_position(LAYER_DEFAULT)
-
-    -- Initialize player components
-    self.position = Position.new(x, y, z)
-    self.velocity = Velocity.new(0, 0)
-    -- Disable automatic velocity application for player (complex collision handling)
+    self:init {
+        position = Position.new(x, y, z),
+        velocity = Velocity.new(0, 0),
+        physics = Physics.new(800, 0.95),
+        collider = Collider.new(BLOCK_SIZE, BLOCK_SIZE * 2),
+        visual = Visual.new({1, 1, 1, 1}, BLOCK_SIZE, BLOCK_SIZE * 2),
+        layer = Layer.new(layer),
+        inventory = Inventory.new(),
+        omnitool = Omnitool.new(),
+        stance = Stance.new(Stance.STANDING),
+        health = Health.new(100, 100),
+        stamina = Stamina.new(100, 100, Player.STAMINA_REGEN_RATE),
+    }
     self.velocity.enabled = false
-    self.physics = Physics.new(800, 0.95)
-    -- Disable automatic physics for player (complex collision handling)
     self.physics.enabled = false
-    self.collider = Collider.new(BLOCK_SIZE, BLOCK_SIZE * 2)
-    self.visual = Visual.new({1, 1, 1, 1}, BLOCK_SIZE, BLOCK_SIZE * 2)
-    -- Disable automatic visual rendering for player (custom draw logic)
     self.visual.enabled = false
-    self.layer = Layer.new(layer)
-    self.inventory = Inventory.new()
-    self.omnitool = Omnitool.new()
-    self.stance = Stance.new(Stance.STANDING)
-    self.stance.crouched = false
-    self.health = Health.new(100, 100)
-    -- Health regen disabled by default (0 regen_rate)
-    self.stamina = Stamina.new(100, 100, Player.STAMINA_REGEN_RATE)
-
-    -- Fall damage tracking
     self.fall_start_y = nil
     self.damage_timer = 0
 

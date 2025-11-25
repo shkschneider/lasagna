@@ -3,9 +3,14 @@ require "core"
 -- Object is a "Love Object" with composition.
 local Object = {}
 
+local function Object_init(self, objects)
+    assert(type(objects) == "table")
+    rawset(self, "objects", objects)
+end
+
 -- Note: if any sub-object priority changes or sub-objects are modified (added/removed)
 --       internal (sorted) cache should be invalidated
-local function Object_refresh(self)
+local function Object_invalidate(self)
     self.__objects = nil
 end
 
@@ -16,27 +21,26 @@ end
 --       which would happen many times per frame
 -- Cost: O(1) vs O(N log N)
 local function Object_call(self, name, ...)
-    if not self.__objects then
-        self.__objects = {}
-        for id, object in pairs(self) do
-            -- all tables are considered potential sub-objects
-            if type(object) == "table" then
-                table.insert(self.__objects, object)
-            end
+    local cache = rawget(self, "__objects")
+    if not cache then
+        cache = {}
+        rawset(self, "__objects", cache)
+        for id, object in pairs(self.objects) do
+            table.insert(cache, object)
         end
-        table.sort(self.__objects, function(a, b)
+        table.sort(cache, function(a, b)
             return (a.priority or math.inf) < (b.priority or math.inf)
         end)
     end
     -- Profile: local start = love.timer.getTime()
-    for _, object in ipairs(self.__objects) do
+    for _, object in ipairs(cache) do
         local f = object[name]
         if type(f) == "function" then
             -- Pass parent entity as second parameter for component methods
             f(object, ...)
         end
     end
-    -- Profile: print(string.format("%s %s: %fs", string.upper(name), self.id or "?", (love.timer.getTime() - start)))
+    -- /Profile: print(string.format("%s %s: %fs", string.upper(name), self.id or "?", (love.timer.getTime() - start)))
 end
 
 -- Love bindings
@@ -122,10 +126,13 @@ end
 function Object.new(...)
     local object = {
         __type = Object.__type,
+        objects = {},
     }
     for key, value in pairs(...) do
         object[key] = value
     end
+    object.init = Object_init
+    object.invalidate = Object_invalidate
     -- love2d
     object.load = Object_load
     object.update = Object_update
@@ -140,7 +147,15 @@ function Object.new(...)
     object.focus = Object_focus
     object.quit = Object_quit
     -- /love2d
-    object.tostring = Object_tostring
+    setmetatable(object, {
+        __index = function(self, key)
+            return rawget(self, key) or rawget(self, "objects")[key]
+        end,
+        __newindex = function(self, key, value)
+            rawset(self, key, value)
+        end,
+        __tostring = Object_tostring,
+    })
     return object
 end
 

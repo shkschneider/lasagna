@@ -1,7 +1,6 @@
 local noise = require "core.noise"
 local generator = require "core.generator"
 local Object = require "core.object"
-local WorldData = require "components.worlddata"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 
@@ -21,8 +20,9 @@ local World = Object.new {
 }
 
 function World.load(self, seed, _)
-    -- Initialize components (no width - infinite horizontal)
-    self.worlddata = WorldData.new(seed, self.HEIGHT)
+    self:init {
+        worlddata = require("components.worlddata").new(seed, self.HEIGHT),
+    }
     Log.info("World:", self.worlddata.seed)
 
     -- Seed the noise library
