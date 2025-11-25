@@ -251,45 +251,7 @@ function WorldSystem.draw(self)
     -- Reset blend mode to default
     love.graphics.setBlendMode("alpha")
 
-    -- Draw cursor highlight
-    self:draw_cursor_highlight(camera_x, camera_y, player_z)
-
     Object.draw(self)
-end
-
--- Draw cursor highlight for block under cursor
-function WorldSystem.draw_cursor_highlight(self, camera_x, camera_y, player_z)
-    -- Get mouse position
-    local mouse_x, mouse_y = love.mouse.getPosition()
-    local world_x = mouse_x + camera_x
-    local world_y = mouse_y + camera_y
-
-    -- Convert to block coordinates
-    local col, row = self:world_to_block(world_x, world_y)
-
-    -- Get block at cursor position
-    local block_id = self:get_block_id(player_z, col, row)
-    local proto = Registry.Blocks:get(block_id)
-
-    -- Calculate screen position
-    local screen_x = col * BLOCK_SIZE - camera_x
-    local screen_y = row * BLOCK_SIZE - camera_y
-
-    -- Check if block exists (solid block)
-    if proto and proto.solid then
-        -- Draw white 1px border for existing blocks
-        love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.setLineWidth(1)
-        love.graphics.rectangle("line", screen_x, screen_y, BLOCK_SIZE, BLOCK_SIZE)
-    else
-        -- Block is air, check if it's a valid building location
-        if self:is_valid_building_location(col, row, player_z) then
-            -- Draw black 1px border for valid building locations
-            love.graphics.setColor(0, 0, 0, 1)
-            love.graphics.setLineWidth(1)
-            love.graphics.rectangle("line", screen_x, screen_y, BLOCK_SIZE, BLOCK_SIZE)
-        end
-    end
 end
 
 -- Check if a location is valid for building

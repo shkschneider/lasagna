@@ -21,11 +21,8 @@ local PlayerSystem = Object.new {
     -- Fall damage constants TODO gravity?
     SAFE_FALL_BLOCKS = 4,  -- 2x player height
     FALL_DAMAGE_PER_BLOCK = 5,
-    DAMAGE_DISPLAY_DURATION = 0.5,
     -- Stamina constants TODO move
     STAMINA_REGEN_RATE = 1,  -- per second
-    STAMINA_RUN_COST = 2.5,  -- per second
-    STAMINA_JUMP_COST = 5,   -- per jump
 }
 
 function PlayerSystem.load(self)
@@ -54,7 +51,6 @@ function PlayerSystem.load(self)
 
     -- Fall damage tracking
     self.fall_start_y = nil
-    self.damage_timer = 0
 
     -- Initialize inventory slots
     for i = 1, self.inventory.hotbar_size do
@@ -85,13 +81,8 @@ function PlayerSystem.update(self, dt)
     local phys = self.physics
     local stance = self.stance
 
-    -- Update damage timer
-    if self.damage_timer > 0 then
-        self.damage_timer = self.damage_timer - dt
-    end
-
     -- Call component updates via Object recursion
-    -- This handles stamina regen and health regen (if enabled)
+    -- This handles stamina regen, health regen (if enabled), and damage_timer
     Object.update(self, dt)
 
     -- Delegate to control system for input handling
@@ -184,7 +175,7 @@ function PlayerSystem.draw(self)
         self.height)
 
     -- Draw red border if recently damaged
-    if self.damage_timer > 0 then
+    if self.health:is_recently_damaged() then
         love.graphics.setColor(1, 0, 0, 1)
         love.graphics.setLineWidth(1)
         love.graphics.rectangle("line",
@@ -382,32 +373,12 @@ function PlayerSystem.hit(self, damage)
         return
     end
 
-    -- Apply damage
-    self.health.current = math.max(0, self.health.current - damage)
-
-    -- Set damage timer for visual effect
-    self.damage_timer = PlayerSystem.DAMAGE_DISPLAY_DURATION
+    -- Delegate to health component
+    self.health:hit(damage)
 end
 
 function PlayerSystem.is_dead(self)
     return self.health and self.health.current <= 0
-end
-
-function PlayerSystem.consume_stamina(self, amount)
-    if not self.stamina then
-        return false
-    end
-
-    if self.stamina.current >= amount then
-        self.stamina.current = math.max(0, self.stamina.current - amount)
-        return true
-    end
-
-    return false
-end
-
-function PlayerSystem.has_stamina(self, amount)
-    return self.stamina and self.stamina.current >= amount
 end
 
 return PlayerSystem
