@@ -32,6 +32,7 @@ function PlayerSystem.load(self)
     self.position = VectorComponent.new(x, y, z)
     self.velocity = VectorComponent.new(0, 0)
     -- Disable automatic velocity application for player (complex collision handling)
+    self.velocity.enabled = false
     self.physics = PhysicsComponent.new(800, 0.95)
     -- Disable automatic physics for player (complex collision handling)
     self.physics.enabled = false

@@ -121,13 +121,35 @@ This pattern keeps UI rendering logic with the data it displays, while still all
 
 ### Simple Entities (Full Component-based)
 
-Bullets and drops use full component-based updates:
+Bullets and drops are managed by the unified EntitySystem:
+
+```lua
+-- EntitySystem provides a unified entity manager
+local EntitySystem = require "systems.entity"
+
+-- Spawn a bullet
+local bullet = EntitySystem:newBullet(x, y, layer, vx, vy, width, height, color, gravity, destroys_blocks)
+
+-- Spawn a drop
+local drop = EntitySystem:newDrop(x, y, layer, block_id, count)
+
+-- All entities have required components:
+-- - position: VectorComponent (x, y, z)
+-- - velocity: VectorComponent (vx, vy)
+-- - physics: PhysicsComponent (gravity, friction)
+-- - type-specific component (bullet or drop)
+```
+
+Entity components update in priority order:
+1. **Physics** (priority 10): Applies gravity to velocity
+2. **Velocity** (priority 20): Applies velocity to position  
+3. **Behavior** (priority 30): Type-specific logic (lifetime, etc.)
 
 ```lua
 local bullet_entity = {
-    position = Position.new(x, y, layer),
-    velocity = Velocity.new(vx, vy),
-    physics = Physics.new(gravity, friction),
+    position = VectorComponent.new(x, y, layer),
+    velocity = VectorComponent.new(vx, vy),
+    physics = PhysicsComponent.new(gravity, friction),
     bullet = Bullet.new(damage, lifetime, width, height, color),
 }
 
@@ -173,28 +195,55 @@ Systems do NOT:
 - Implement per-entity rendering (moved to components)
 - Implement per-entity behavior (moved to components)
 
-### Example: BulletSystem
+### EntitySystem
+
+The EntitySystem is a unified entity manager that handles all game entities:
 
 ```lua
-function BulletSystem.update(self, dt)
+local EntitySystem = require "systems.entity"
+
+-- In Game:
+G.entity = EntitySystem
+
+-- Spawn entities:
+G.entity:newBullet(x, y, layer, vx, vy, width, height, color, gravity, destroys_blocks)
+G.entity:newDrop(x, y, layer, block_id, count)
+
+-- Query entities:
+local bullets = G.entity:getByType(EntitySystem.TYPE_BULLET)
+local drops = G.entity:getByType(EntitySystem.TYPE_DROP)
+```
+
+### Example: EntitySystem Update
+
+```lua
+function EntitySystem.update(self, dt)
     for i = #self.entities, 1, -1 do
         local ent = self.entities[i]
 
-        -- Component updates (physics, velocity, bullet lifetime)
+        -- Component updates (physics, velocity, type-specific)
         Object.update(ent, dt)
 
-        -- System coordination: collision detection
-        local col, row = G.world:world_to_block(ent.position.x, ent.position.y)
-        local block_def = G.world:get_block_def(ent.position.z, col, row)
-
-        if block_def and block_def.solid then
-            -- System coordination: handle collision effects
-            -- (block destruction, drop spawning, etc.)
-            table.remove(self.entities, i)
-        elseif ent.bullet.dead then
-            -- Remove if marked dead by component
-            table.remove(self.entities, i)
+        -- Type-specific system coordination
+        if ent.type == EntitySystem.TYPE_BULLET then
+            self:updateBullet(ent, i)
+        elseif ent.type == EntitySystem.TYPE_DROP then
+            self:updateDrop(ent, i, player_x, player_y, player_z)
         end
+    end
+end
+
+function EntitySystem.updateBullet(self, ent, index)
+    -- System coordination: collision detection
+    local col, row = G.world:world_to_block(ent.position.x, ent.position.y)
+    local block_def = G.world:get_block_def(ent.position.z, col, row)
+
+    if block_def and block_def.solid then
+        -- Handle collision (block destruction, drop spawning)
+        table.remove(self.entities, index)
+    elseif ent.bullet.dead then
+        -- Remove if marked dead by component
+        table.remove(self.entities, index)
     end
 end
 ```

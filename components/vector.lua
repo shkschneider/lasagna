@@ -1,10 +1,10 @@
 local VectorComponent = {}
 
-function VectorComponent.new(x, y)
-    return {
-        __index = VectorComponent,
+function VectorComponent.new(x, y, z)
+    local instance = {
         id = "vector",
         priority = 20,  -- after physics
+        enabled = true,  -- Can be disabled for custom movement handling (e.g., player)
         x = x or 0,
         y = y or 0,
         z = z or LAYER_DEFAULT,
@@ -12,13 +12,25 @@ function VectorComponent.new(x, y)
             return string.format("%d,%d,%d", self.x, self.y, self.z)
         end
     }
+
+    -- Assign update method to instance
+    instance.update = VectorComponent.update
+
+    return instance
 end
 
+-- Component update method - applies velocity to position
+-- This component acts as the "velocity" when stored in entity.velocity
 function VectorComponent.update(self, dt, entity)
+    -- Skip if disabled (used for player with custom movement handling)
+    if not self.enabled then
+        return
+    end
     -- Apply velocity to position component if it exists
+    -- self is the velocity component (entity.velocity)
     if entity and entity.position then
-        entity.position.x = entity.position.x + self.vx * dt
-        entity.position.y = entity.position.y + self.vy * dt
+        entity.position.x = entity.position.x + self.x * dt
+        entity.position.y = entity.position.y + self.y * dt
     end
 end
 

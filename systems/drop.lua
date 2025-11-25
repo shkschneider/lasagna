@@ -52,7 +52,7 @@ function DropSystem.update(self, dt)
 
         local on_ground = false
         if block_def and block_def.solid then
-            ent.velocity.vy = 0
+            ent.velocity.y = 0
             -- Position drop so its bottom edge rests on top of the block
             ent.position.y = row * BLOCK_SIZE - drop_height / 2
             on_ground = true
@@ -60,7 +60,7 @@ function DropSystem.update(self, dt)
 
         -- Apply friction only when on ground
         if on_ground then
-            ent.velocity.vx = ent.velocity.vx * ent.physics.friction
+            ent.velocity.x = ent.velocity.x * ent.physics.friction
         end
 
         -- -level coordination: Merge with nearby drops
