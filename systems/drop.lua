@@ -1,6 +1,5 @@
 local Object = require "core.object"
-local Position = require "components.position"
-local Velocity = require "components.velocity"
+local VectorComponent = require "components.vector"
 local Physics = require "components.physics"
 local ItemDrop = require "components.itemdrop"
 local Registry = require "registries"
@@ -17,8 +16,8 @@ local Drop = Object.new {
 function Drop.newDrop(self, x, y, layer, block_id, count)
     local entity = {
         id = uuid(),
-        position = Position.new(x, y, layer),
-        velocity = Velocity.new((math.random() - 0.5) * 50, -50),
+        position = VectorComponent.new(x, y, layer),
+        velocity = VectorComponent.new((math.random() - 0.5) * 50, -50),
         physics = Physics.new(400, 0.8),  -- gravity: 400, friction: 0.8 (more friction for drops)
         drop = ItemDrop.new(block_id, count, 300, 0.5),
     }

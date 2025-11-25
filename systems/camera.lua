@@ -1,5 +1,5 @@
 local Object = require "core.object"
-local Position = require "components.position"
+local VectorComponent = require "components.vector"
 
 local Camera = Object.new {
     id = "camera",
@@ -8,8 +8,8 @@ local Camera = Object.new {
 
 function Camera.load(self)
     local x, y = G.player:get_position()
-    self.position = Position.new(x, y, nil)
-    self.target = Position.new(0, 0, nil)
+    self.position = VectorComponent.new(x, y, nil)
+    self.target = VectorComponent.new(0, 0, nil)
     self.smoothness = 5
 end
 

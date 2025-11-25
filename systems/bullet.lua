@@ -1,6 +1,5 @@
 local Object = require "core.object"
-local Position = require "components.position"
-local Velocity = require "components.velocity"
+local VectorComponent = require "components.vector"
 local Physics = require "components.physics"
 local Projectile = require "components.projectile"
 local Registry = require "registries"
@@ -19,8 +18,8 @@ local Bullet = Object.new {
 function Bullet.newBullet(self, x, y, layer, vx, vy, width, height, color, gravity, destroys_blocks)
     local entity = {
         id = uuid(),
-        position = Position.new(x, y, layer),
-        velocity = Velocity.new(vx, vy),
+        position = Vector.new(x, y, layer),
+        velocity = Vector.new(vx, vy),
         physics = Physics.new(gravity, BULLET_FRICTION),
         bullet = Projectile.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color, destroys_blocks),
     }

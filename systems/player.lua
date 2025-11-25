@@ -1,6 +1,5 @@
 local Object = require "core.object"
-local Position = require "components.position"
-local Velocity = require "components.velocity"
+local VectorComponent = require "components.vector"
 local PhysicsComponent = require "components.physics"
 local Layer = require "components.layer"
 local Inventory = require "components.inventory"
@@ -33,10 +32,9 @@ function Player.load(self)
     local x, y, z = G.world:find_spawn_position(LAYER_DEFAULT)
 
     -- Initialize player components
-    self.position = Position.new(x, y, z)
-    self.velocity = Velocity.new(0, 0)
+    self.position = VectorComponent.new(x, y, z)
+    self.velocity = VectorComponent.new(0, 0)
     -- Disable automatic velocity application for player (complex collision handling)
-    self.velocity.enabled = false
     self.physics = PhysicsComponent.new(800, 0.95)
     -- Disable automatic physics for player (complex collision handling)
     self.physics.enabled = false
@@ -158,13 +156,13 @@ function Player.update(self, dt)
         end
     else
         -- In air - update based on vertical velocity
-        if vel.vy > 0 then
+        if vel.y > 0 then
             -- Moving downward - falling
             if stance.current == Stance.JUMPING or stance.current == Stance.STANDING then
                 stance.current = Stance.FALLING
             end
         end
-        -- Keep JUMPING stance while moving upward (vel.vy < 0)
+        -- Keep JUMPING stance while moving upward (vel.y < 0)
     end
 end
 

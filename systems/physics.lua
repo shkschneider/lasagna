@@ -52,18 +52,18 @@ end
 
 -- Apply gravity to velocity
 function Physics.apply_gravity(vel, gravity, dt)
-    vel.vy = vel.vy + gravity * dt
+    vel.y = vel.y + gravity * dt
 end
 
 -- Apply horizontal movement with collision detection
 -- Returns whether a wall was hit and the new x position
 function Physics.apply_horizontal_movement(world, pos, vel, width, height, dt)
-    local new_x = pos.x + vel.vx * dt
+    local new_x = pos.x + vel.x * dt
     local hit_wall = false
 
-    if vel.vx ~= 0 then
+    if vel.x ~= 0 then
         local check_col
-        if vel.vx > 0 then
+        if vel.x > 0 then
             check_col = math.floor((new_x + width / 2) / BLOCK_SIZE)
         else
             check_col = math.floor((new_x - width / 2) / BLOCK_SIZE)
@@ -76,7 +76,7 @@ function Physics.apply_horizontal_movement(world, pos, vel, width, height, dt)
             local block_def = world:get_block_def(pos.z, check_col, row)
             if block_def and block_def.solid then
                 hit_wall = true
-                if vel.vx > 0 then
+                if vel.x > 0 then
                     new_x = check_col * BLOCK_SIZE - width / 2
                 else
                     new_x = (check_col + 1) * BLOCK_SIZE + width / 2
@@ -92,7 +92,7 @@ end
 -- Apply vertical movement with collision detection
 -- Returns on_ground status, whether ceiling was hit, and the new y position
 function Physics.apply_vertical_movement(world, pos, vel, width, height, velocity_modifier, dt)
-    local new_y = pos.y + (vel.vy * velocity_modifier) * dt
+    local new_y = pos.y + (vel.y * velocity_modifier) * dt
     local on_ground = false
     local hit_ceiling = false
 
@@ -104,9 +104,9 @@ function Physics.apply_vertical_movement(world, pos, vel, width, height, velocit
 
     for c = left_col, right_col do
         local block_def = world:get_block_def(pos.z, c, bottom_row)
-        if block_def and block_def.solid and vel.vy >= 0 then
+        if block_def and block_def.solid and vel.y >= 0 then
             new_y = bottom_row * BLOCK_SIZE - height / 2
-            vel.vy = 0
+            vel.y = 0
             on_ground = true
             break
         end
@@ -118,9 +118,9 @@ function Physics.apply_vertical_movement(world, pos, vel, width, height, velocit
 
     for c = left_col, right_col do
         local block_def = world:get_block_def(pos.z, c, top_row)
-        if block_def and block_def.solid and vel.vy < 0 then
+        if block_def and block_def.solid and vel.y < 0 then
             new_y = (top_row + 1) * BLOCK_SIZE + height / 2
-            vel.vy = 0
+            vel.y = 0
             hit_ceiling = true
             break
         end
@@ -136,7 +136,7 @@ function Physics.clamp_to_world(world, pos, vel, height)
 
     if pos.y > max_y then
         pos.y = max_y
-        vel.vy = 0
+        vel.y = 0
         on_ground = true
     end
 

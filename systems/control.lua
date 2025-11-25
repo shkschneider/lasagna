@@ -41,25 +41,25 @@ function Control.update(self, dt)
     end
 
     -- Horizontal movement
-    vel.vx = 0
+    vel.x = 0
     local is_running = false
     local is_shift_pressed = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
 
     if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
-        vel.vx = -G.player.MOVE_SPEED
+        vel.x = -G.player.MOVE_SPEED
     end
     if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-        vel.vx = G.player.MOVE_SPEED
+        vel.x = G.player.MOVE_SPEED
     end
 
     -- Apply movement modifiers
-    if vel.vx ~= 0 then
+    if vel.x ~= 0 then
         if stance.crouched then
             -- Crouching slows movement by half
-            vel.vx = vel.vx / 2
+            vel.x = vel.x / 2
         elseif on_ground and is_shift_pressed and G.player:has_stamina(G.player.STAMINA_RUN_COST * dt) then
             -- Running doubles speed (only when on ground and not crouched)
-            vel.vx = vel.vx * 2
+            vel.x = vel.x * 2
             is_running = true
         end
     end
@@ -74,7 +74,7 @@ function Control.update(self, dt)
     if jump_pressed and not self.jump_pressed_last_frame and on_ground then
         -- Check if player has enough stamina to jump
         if G.player:has_stamina(G.player.STAMINA_JUMP_COST) then
-            vel.vy = -G.player.JUMP_FORCE
+            vel.y = -G.player.JUMP_FORCE
             stance.current = Stance.JUMPING
             -- Consume stamina for jumping
             G.player:consume_stamina(G.player.STAMINA_JUMP_COST)
