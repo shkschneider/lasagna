@@ -1,6 +1,8 @@
 local VectorComponent = {}
 
-function VectorComponent.new(x, y)
+-- For position vectors: new(x, y, z)
+-- For velocity vectors: new(x, y) where x=vx, y=vy
+function VectorComponent.new(x, y, z)
     return {
         __index = VectorComponent,
         id = "vector",
@@ -16,9 +18,10 @@ end
 
 function VectorComponent.update(self, dt, entity)
     -- Apply velocity to position component if it exists
+    -- Velocity uses x and y as horizontal and vertical components
     if entity and entity.position then
-        entity.position.x = entity.position.x + self.vx * dt
-        entity.position.y = entity.position.y + self.vy * dt
+        entity.position.x = entity.position.x + self.x * dt
+        entity.position.y = entity.position.y + self.y * dt
     end
 end
 
