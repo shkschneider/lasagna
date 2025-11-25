@@ -17,6 +17,10 @@ function WorldSystem.load(self, seed, _)
     Log.info("World:", self.worlddata.seed)
     self.generator = require("systems.generator")
 
+    -- Load the generator first (seeds the noise, resets queues)
+    -- This must happen before pregenerate_spawn_area
+    self.generator:load(seed, nil)
+
     -- Create canvases for layer rendering
     self:create_canvases()
 
@@ -24,7 +28,9 @@ function WorldSystem.load(self, seed, _)
     -- This ensures player doesn't spawn in the air waiting for terrain
     self.generator:pregenerate_spawn_area()
 
-    Object.load(self)
+    -- Note: We don't call Object.load(self) here because we already loaded
+    -- the generator manually above. Object.load would try to load it again
+    -- with the same parameters, which is safe but redundant.
 end
 
 function WorldSystem.create_canvases(self)
