@@ -1,5 +1,4 @@
 local Object = require "core.object"
-local GeneratorSystem = require "systems.generator"
 local WorldDataComponent = require "components.worlddata"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
