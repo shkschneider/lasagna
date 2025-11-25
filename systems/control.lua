@@ -95,7 +95,7 @@ function ControlSystem.update(self, dt)
     if jump_pressed and not stance.current ~= StanceComponent.JUMPING and on_ground then
         if stance.crouched then
             -- Crouched jump: reduced height, no stamina cost
-            vel.y = -G.player.JUMP_FORCE -- FIXME / 2
+            vel.y = -G.player.JUMP_FORCE / 2
             stance.current = StanceComponent.JUMPING
         elseif self:has_stamina(ControlSystem.STAMINA_JUMP_COST) then
             -- Full jump: requires and consumes stamina
@@ -104,7 +104,7 @@ function ControlSystem.update(self, dt)
             self:consume_stamina(ControlSystem.STAMINA_JUMP_COST)
         else
             -- Low stamina fallback: crouched-height jump, no stamina cost
-            vel.y = -G.player.JUMP_FORCE -- FIXME / 2
+            vel.y = -G.player.JUMP_FORCE / 2
             stance.current = StanceComponent.JUMPING
         end
     end
