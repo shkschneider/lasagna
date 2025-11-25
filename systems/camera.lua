@@ -19,12 +19,19 @@ function CameraSystem.update(self, dt)
     self.target.x = target_x
     self.target.y = target_y
 
-    -- Smooth interpolation
+    -- Exponential interpolation that always follows the player, even at high speeds
     local dx = self.target.x - self.position.x
     local dy = self.target.y - self.position.y
+    local dist = math.sqrt(dx * dx + dy * dy)
 
-    self.position.x = self.position.x + dx * self.smoothness * dt
-    self.position.y = self.position.y + dy * self.smoothness * dt
+    -- alpha = 1 - exp(-(base + gain * dist) * dt)
+    -- This ensures camera catches up faster when player is far away
+    local base = 5    -- Base follow speed
+    local gain = 0.1  -- Extra speed per pixel of distance
+    local alpha = 1 - math.exp(-(base + gain * dist) * dt)
+
+    self.position.x = self.position.x + dx * alpha
+    self.position.y = self.position.y + dy * alpha
 end
 
 function CameraSystem.get_offset(self)
