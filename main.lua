@@ -1,29 +1,37 @@
-local Object = require "core.object"
-local GameState = require "components.gamestate"
-
--- Globals
 require "core"
-LAYER_MIN = -1
-LAYER_DEFAULT = 0
-LAYER_MAX = 1
-BLOCK_SIZE = 16
-STACK_SIZE = 64
-Log = require "libraries.rxi.log"
+
+-- Global: game
+
 G = require "core.game"
 G.NAME = "Lasagna"
 G.VERSION = { major = 0, minor = 1, patch = nil, tostring = function(self)
     return string.format("%d.%d.%s", self.major, self.minor, tostring(self.patch or "x"))
 end }
 
+-- Global: log
+
+Log = require "libraries.rxi.log"
+
+-- Global: constants
+
+LAYER_MIN = -1
+LAYER_DEFAULT = 0
+LAYER_MAX = 1
+BLOCK_SIZE = 16
+STACK_SIZE = 64
+
+-- love2d
+
+local Object = require "core.object"
+local GameState = require "components.gamestate"
+
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     local debug = os.getenv("DEBUG") and (os.getenv("DEBUG") == "true") or (G.VERSION.major < 1)
     local seed = tonumber(os.getenv("SEED") or os.time())
-    G:switch(GameState.LOAD)
     Log.level = debug and "debug" or "warn"
     Log.info(G.NAME, G.VERSION:tostring())
-    Object.load(G, seed, debug)
-    G:switch(GameState.PLAY)
+    G:load(seed, debug)
 end
 
 function love.update(dt)

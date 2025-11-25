@@ -129,7 +129,7 @@ function Player.update(self, dt)
         end
 
         local top_row = math.floor((pos.y - col.height / 2) / BLOCK_SIZE)
-        local bottom_row = math.floor((pos.y + col.height / 2 - EPSILON) / BLOCK_SIZE)
+        local bottom_row = math.floor((pos.y + col.height / 2 - math.eps) / BLOCK_SIZE)
 
         for row = top_row, bottom_row do
             local block_def = G.world:get_block_def(pos.z, check_col, row)
@@ -157,7 +157,7 @@ function Player.update(self, dt)
     on_ground = false
     local bottom_y = new_y + col.height / 2
     local left_col = math.floor((pos.x - col.width / 2) / BLOCK_SIZE)
-    local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / BLOCK_SIZE)
+    local right_col = math.floor((pos.x + col.width / 2 - math.eps) / BLOCK_SIZE)
     local bottom_row = math.floor(bottom_y / BLOCK_SIZE)
 
     for c = left_col, right_col do
@@ -274,9 +274,9 @@ function Player.check_collision(self, x, y, layer)
     local bottom = y + collider.height / 2
 
     local left_col = math.floor(left / BLOCK_SIZE)
-    local right_col = math.floor((right - EPSILON) / BLOCK_SIZE)
+    local right_col = math.floor((right - math.eps) / BLOCK_SIZE)
     local top_row = math.floor(top / BLOCK_SIZE)
-    local bottom_row = math.floor((bottom - EPSILON) / BLOCK_SIZE)
+    local bottom_row = math.floor((bottom - math.eps) / BLOCK_SIZE)
 
     for c = left_col, right_col do
         for r = top_row, bottom_row do
@@ -448,7 +448,7 @@ function Player.is_on_ground(self)
     -- Check if there's ground directly below the player
     local bottom_y = pos.y + col.height / 2
     local left_col = math.floor((pos.x - col.width / 2) / BLOCK_SIZE)
-    local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / BLOCK_SIZE)
+    local right_col = math.floor((pos.x + col.width / 2 - math.eps) / BLOCK_SIZE)
     local bottom_row = math.floor(bottom_y / BLOCK_SIZE)
 
     for c = left_col, right_col do
@@ -469,7 +469,7 @@ function Player.can_stand_up(self)
     local target_y = pos.y - BLOCK_SIZE / 2  -- Position after standing
     local top_y = target_y - BLOCK_SIZE  -- Top of standing height
     local left_col = math.floor((pos.x - col.width / 2) / BLOCK_SIZE)
-    local right_col = math.floor((pos.x + col.width / 2 - EPSILON) / BLOCK_SIZE)
+    local right_col = math.floor((pos.x + col.width / 2 - math.eps) / BLOCK_SIZE)
     local top_row = math.floor(top_y / BLOCK_SIZE)
 
     for c = left_col, right_col do

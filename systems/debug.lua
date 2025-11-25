@@ -5,7 +5,6 @@ local ITEMS = Registry.items()
 
 local Debug = Object.new {
     id = "debug",
-    priority = 9,
     enabled = false,
 }
 
@@ -43,17 +42,11 @@ function Debug.draw(self)
     end
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
-    if G.state then
-        love.graphics.print(string.format("State: %s", G.state:tostring()), 10, 120)
-    end
-    if G.time then
-        love.graphics.print(string.format("Time: %s", G.time:tostring()), 10, 140)
-    end
-    if G.player then
-        love.graphics.print(string.format("Stance: %s", G.player.stance:tostring()), 10, 160)
-        love.graphics.print(string.format("Health: %s", G.player.health:tostring()), 10, 180)
-        love.graphics.print(string.format("Stamina: %s", G.player.stamina:tostring()), 10, 200)
-    end
+    love.graphics.print(string.format("State: %s", G.state:tostring()), 10, 120)
+    love.graphics.print(string.format("Time: %s", G.time:tostring()), 10, 140)
+    love.graphics.print(string.format("Stance: %s", G.player.stance:tostring()), 10, 160)
+    love.graphics.print(string.format("Health: %s", G.player.health:tostring()), 10, 180)
+    love.graphics.print(string.format("Stamina: %s", G.player.stamina:tostring()), 10, 200)
 end
 
 return Debug

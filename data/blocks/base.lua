@@ -66,6 +66,6 @@ BlocksRegistry:register({
     name = "Bedrock",
     solid = true,
     color = {0.1, 0.1, 0.1, 1},
-    tier = INFINITY, -- Effectively unbreakable
+    tier = math.inf, -- Effectively unbreakable
     drops = function() return nil, 0 end, -- No drops
 })

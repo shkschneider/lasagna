@@ -25,7 +25,7 @@ local function Object_call(self, name, ...)
             end
         end
         table.sort(self.__objects, function(a, b)
-            return (a.priority or INFINITY) < (b.priority or INFINITY)
+            return (a.priority or math.inf) < (b.priority or math.inf)
         end)
     end
     -- Profile: local start = love.timer.getTime()
