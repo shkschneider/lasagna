@@ -33,17 +33,14 @@ function MenuSystem.get_main_menu_items(self)
         label = "Continue",
         enabled = save_exists,
         action = function()
-            -- Load save and start playing
+            -- Load save data first to get the seed
             local save_data = G.save:load()
             if save_data then
-                -- Need to load world first with the saved seed
-                G.world:load(save_data.seed)
-                G.player:load()
-                G.camera:load()
-                G.entity:load()
-                -- Apply save data
+                -- Initialize game with the saved seed
+                G:load(save_data.seed, G.debug.enabled)
+                -- Apply save data (restores player position, inventory, etc.)
                 G.save:apply_save_data(save_data)
-                G:switch(GameStateComponent.PLAY)
+                -- State is already PLAY from G:load
             end
         end
     })
@@ -56,11 +53,8 @@ function MenuSystem.get_main_menu_items(self)
         action = function()
             -- Start new game with random seed
             local seed = os.time()
-            G.world:load(seed)
-            G.player:load()
-            G.camera:load()
-            G.entity:load()
-            G:switch(GameStateComponent.PLAY)
+            G:load(seed, G.debug.enabled)
+            -- State is already PLAY from G:load
         end
     })
 
@@ -112,14 +106,11 @@ function MenuSystem.get_pause_menu_items(self)
         action = function()
             local save_data = G.save:load()
             if save_data then
-                -- Reload world with saved seed
-                G.world:load(save_data.seed)
-                G.player:load()
-                G.camera:load()
-                G.entity:load()
+                -- Reload game with saved seed
+                G:load(save_data.seed, G.debug.enabled)
                 -- Apply save data
                 G.save:apply_save_data(save_data)
-                G:switch(GameStateComponent.PLAY)
+                -- State is already PLAY from G:load
             end
         end
     })

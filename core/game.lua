@@ -28,10 +28,12 @@ function Game.switch(self, gamestate)
     Log.debug(string.format("%f", love.timer.getTime()), "Game", string.upper(self.state:tostring()))
 end
 
-function Game.load(self, ...)
-    G.debug.enabled = true
+function Game.load(self, seed, debug)
+    if debug ~= nil then
+        G.debug.enabled = debug
+    end
     self:switch(GameStateComponent.LOAD)
-    Object.load(self, ...)
+    Object.load(self, seed, debug)
     self:switch(GameStateComponent.PLAY)
 end
 
