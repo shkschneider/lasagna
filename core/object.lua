@@ -32,6 +32,9 @@ local function Object_call(self, name, ...)
     for _, object in ipairs(self.__objects) do
         local f = object[name]
         if type(f) == "function" then
+            if name == "load" and Log then
+                Log.debug("loading", object.id)
+            end
             -- Pass parent entity as second parameter for component methods
             f(object, ...)
         end
