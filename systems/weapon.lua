@@ -27,9 +27,8 @@ function WeaponSystem.update(self, dt)
 end
 
 function WeaponSystem.try_shoot(self)
-    -- Get selected item
-    local inv = G.player.inventory
-    local slot = inv.slots[inv.selected_slot]
+    -- Get selected item from hotbar
+    local slot = G.player.hotbar:get_selected()
 
     if not slot then
         return
@@ -65,7 +64,7 @@ function WeaponSystem.try_shoot(self)
     local vx = dx * speed
     local vy = dy * speed
 
-    G.bullet:newBullet(
+    G.entity:newBullet(
         player_x,
         player_y,
         player_z,

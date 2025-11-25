@@ -1,8 +1,7 @@
 local Object = require "core.object"
 local VectorComponent = require "components.vector"
-local PhysicsComponent = require "components.physics"
-local LayerComponent = require "components.layer"
-local InventoryComponent = require "components.inventory"
+local StackComponent = require "components.stack"
+local StorageSystem = require "systems.storage"
 local OmnitoolComponent = require "components.omnitool"
 local StanceComponent = require "components.stance"
 local HealthComponent = require "components.health"
@@ -11,6 +10,10 @@ local PhysicsSystem = require "systems.physics"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
+
+-- Inventory constants
+local HOTBAR_SIZE = 9
+local BACKPACK_SIZE = 27  -- 3 rows of 9
 
 local PlayerSystem = Object.new {
     id = "player",
@@ -28,20 +31,23 @@ local PlayerSystem = Object.new {
 function PlayerSystem.load(self)
     local x, y, z = G.world:find_spawn_position(LAYER_DEFAULT)
 
-    -- Initialize player components
+    -- Initialize player as an entity with position and velocity
+    -- position.z is used as the layer
     self.position = VectorComponent.new(x, y, z)
     self.velocity = VectorComponent.new(0, 0)
-    -- Disable automatic velocity application for player (complex collision handling)
-    self.physics = PhysicsComponent.new(800, 0.95)
-    -- Disable automatic physics for player (complex collision handling)
-    self.physics.enabled = false
+    -- Disable automatic velocity application for player (uses custom collision handling)
+    self.velocity.enabled = false
+    -- Physics properties (gravity and friction) - player handles these manually via PhysicsSystem
+    self.gravity = PhysicsSystem.DEFAULT_GRAVITY
+    self.friction = PhysicsSystem.DEFAULT_FRICTION
     -- Player dimensions (width and height for collision and rendering)
     self.width = BLOCK_SIZE
     self.height = BLOCK_SIZE * 2
     -- Visual properties for rendering
     self.color = { 1, 1, 1, 1 }
-    self.layer = LayerComponent.new(layer)
-    self.inventory = InventoryComponent.new()
+    -- Player storage: hotbar (9 slots) and backpack (3x9 = 27 slots)
+    self.hotbar = StorageSystem.new(HOTBAR_SIZE)
+    self.backpack = StorageSystem.new(BACKPACK_SIZE)
     self.omnitool = OmnitoolComponent.new()
     self.stance = StanceComponent.new(StanceComponent.STANDING)
     self.stance.crouched = false
@@ -52,13 +58,8 @@ function PlayerSystem.load(self)
     -- Fall damage tracking
     self.fall_start_y = nil
 
-    -- Initialize inventory slots
-    for i = 1, self.inventory.hotbar_size do
-        self.inventory.slots[i] = nil
-    end
-
-    -- Add omnitool to slot 1
-    self:add_item_to_inventory(ITEMS.OMNITOOL, 1)
+    -- Add omnitool to hotbar slot 1
+    self.hotbar:set_slot(1, StackComponent.new(ITEMS.OMNITOOL, 1, "item"))
 
     -- Initialize control system
     self.control = require "systems.control"
@@ -67,9 +68,9 @@ function PlayerSystem.load(self)
     if G.debug.enabled then
         local px, py = G.world:world_to_block(self.position.x, self.position.y)
         Log.debug("Player:", px, py)
-        -- Add weapon items to slots 2 and 3 (slot 1 is for omnitool)
-        G.player:add_item_to_inventory(ITEMS.GUN, 1)
-        G.player:add_item_to_inventory(ITEMS.ROCKET_LAUNCHER, 1)
+        -- Add weapon items to hotbar slots 2 and 3
+        self.hotbar:set_slot(2, StackComponent.new(ITEMS.GUN, 1, "item"))
+        self.hotbar:set_slot(3, StackComponent.new(ITEMS.ROCKET_LAUNCHER, 1, "item"))
     end
 
     Object.load(self)
@@ -78,14 +79,13 @@ end
 function PlayerSystem.update(self, dt)
     local pos = self.position
     local vel = self.velocity
-    local phys = self.physics
     local stance = self.stance
 
     -- Call component updates via Object recursion
     -- This handles stamina regen, health regen (if enabled), and damage_timer
     Object.update(self, dt)
 
-    -- Delegate to control system for input handling
+    -- Delegate to control system for take handling
     if self.control then
         self.control:update(dt)
     end
@@ -100,8 +100,8 @@ function PlayerSystem.update(self, dt)
         end
     end
 
-    -- Apply gravity (using physics system)
-    PhysicsSystem.apply_gravity(vel, phys.gravity, dt)
+    -- Apply gravity (using physics system with player's gravity)
+    PhysicsSystem.apply_gravity(vel, self.gravity, dt)
 
     -- Apply horizontal velocity with collision (using physics system)
     local hit_wall, new_x = PhysicsSystem.apply_horizontal_movement(
@@ -196,129 +196,47 @@ function PlayerSystem.can_switch_layer(self, target_layer)
     return not PhysicsSystem.check_collision(G.world, self.position.x, self.position.y, target_layer, self.width, self.height)
 end
 
--- Inventory management
+-- Inventory management - delegates to InventorySystem
 function PlayerSystem.add_to_inventory(self, block_id, count)
-    local inv = self.inventory
-    count = count or 1
+    local StackComponent = require "components.stack"
+    local stack = StackComponent.new(block_id, count or 1, "block")
 
-    if count <= 0 then
-        return true
+    -- Try hotbar first
+    if self.hotbar:can_take(stack) then
+        return self.hotbar:take(stack)
     end
 
-    -- Try to stack with existing slots
-    for i = 1, inv.hotbar_size do
-        local slot = inv.slots[i]
-        if slot and slot.block_id == block_id then
-            local space = inv.max_stack - slot.count
-            if space > 0 then
-                local to_add = math.min(space, count)
-                slot.count = slot.count + to_add
-                count = count - to_add
-
-                if count == 0 then
-                    return true
-                end
-            end
-        end
+    -- Try backpack
+    if self.backpack:can_take(stack) then
+        return self.backpack:take(stack)
     end
 
-    -- Find empty slots
-    while count > 0 do
-        local empty_slot = nil
-        for i = 1, inv.hotbar_size do
-            if not inv.slots[i] then
-                empty_slot = i
-                break
-            end
-        end
-
-        if not empty_slot then
-            return false
-        end
-
-        local to_add = math.min(inv.max_stack, count)
-        inv.slots[empty_slot] = {
-            block_id = block_id,
-            count = to_add,
-        }
-        count = count - to_add
-    end
-
-    return true
+    return false
 end
 
 function PlayerSystem.add_item_to_inventory(self, item_id, count)
-    local inv = self.inventory
-    count = count or 1
+    local StackComponent = require "components.stack"
+    local stack = StackComponent.new(item_id, count or 1, "item")
 
-    if count <= 0 then
-        return true
+    -- Try hotbar first
+    if self.hotbar:can_take(stack) then
+        return self.hotbar:take(stack)
     end
 
-    -- Try to stack with existing slots
-    for i = 1, inv.hotbar_size do
-        local slot = inv.slots[i]
-        if slot and slot.item_id == item_id then
-            local space = inv.max_stack - slot.count
-            if space > 0 then
-                local to_add = math.min(space, count)
-                slot.count = slot.count + to_add
-                count = count - to_add
-
-                if count == 0 then
-                    return true
-                end
-            end
-        end
+    -- Try backpack
+    if self.backpack:can_take(stack) then
+        return self.backpack:take(stack)
     end
 
-    -- Find empty slots
-    while count > 0 do
-        local empty_slot = nil
-        for i = 1, inv.hotbar_size do
-            if not inv.slots[i] then
-                empty_slot = i
-                break
-            end
-        end
-
-        if not empty_slot then
-            return false
-        end
-
-        local to_add = math.min(inv.max_stack, count)
-        inv.slots[empty_slot] = {
-            item_id = item_id,
-            count = to_add,
-        }
-        count = count - to_add
-    end
-
-    return true
+    return false
 end
 
 function PlayerSystem.remove_from_selected(self, count)
-    local inv = self.inventory
-    count = count or 1
-    local slot = inv.slots[inv.selected_slot]
-
-    if not slot then
-        return 0
-    end
-
-    local removed = math.min(count, slot.count)
-    slot.count = slot.count - removed
-
-    if slot.count <= 0 then
-        inv.slots[inv.selected_slot] = nil
-    end
-
-    return removed
+    return self.hotbar:remove_from_selected(count)
 end
 
 function PlayerSystem.get_selected_block_id(self)
-    local inv = self.inventory
-    local slot = inv.slots[inv.selected_slot]
+    local slot = self.hotbar:get_selected()
     if slot then
         return slot.block_id
     end

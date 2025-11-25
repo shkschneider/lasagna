@@ -27,8 +27,8 @@ function MiningSystem.load(self)
 end
 
 function MiningSystem.update(self, dt)
-    local inv = G.player.inventory
-    if not love.mouse.isDown(1) or inv.slots[inv.selected_slot].item_id ~= ITEMS.OMNITOOL then
+    local slot = G.player.hotbar:get_selected()
+    if not love.mouse.isDown(1) or not slot or slot.item_id ~= ITEMS.OMNITOOL then
         -- TODO or mouse moved to another target
         self:cancel_mining()
         return
@@ -118,7 +118,7 @@ function MiningSystem.complete_mining(self)
         local drop_id, drop_count = proto.drops()
         if drop_id then
             local wx, wy = G.world:block_to_world(col, row)
-            G.drop:newDrop(
+            G.entity:newDrop(
                 wx + BLOCK_SIZE / 2,
                 wy + BLOCK_SIZE / 2,
                 z,

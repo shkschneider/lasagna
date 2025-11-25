@@ -117,22 +117,20 @@ function ControlSystem.keypressed(self, key)
 
     -- Hotbar selection
     local num = tonumber(key)
-    if num and num >= 1 and num <= G.player.inventory.hotbar_size then
-        G.player.inventory.selected_slot = num
+    if num and num >= 1 and num <= G.player.hotbar.size then
+        G.player.hotbar.selected_slot = num
     end
 
-    -- Layer switching
+    -- Layer switching (using position.z as layer)
     if key == "q" then
         local target_layer = math.max(-1, G.player.position.z - 1)
         if G.player:can_switch_layer(target_layer) then
             G.player.position.z = target_layer
-            G.player.layer.current_layer = target_layer
         end
     elseif key == "e" then
         local target_layer = math.min(1, G.player.position.z + 1)
         if G.player:can_switch_layer(target_layer) then
             G.player.position.z = target_layer
-            G.player.layer.current_layer = target_layer
         end
     end
 end

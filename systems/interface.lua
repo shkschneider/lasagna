@@ -12,7 +12,7 @@ function InterfaceSystem.draw(self)
 
     local camera_x, camera_y = G.camera:get_offset()
     local pos = G.player.position
-    local inv = G.player.inventory
+    local hotbar = G.player.hotbar
     local omnitool = G.player.omnitool
 
     -- Draw cursor highlight
@@ -41,9 +41,9 @@ function InterfaceSystem.draw(self)
     -- Draw hotbar
     local hotbar_y = screen_height - 80
     local slot_size = 60
-    local hotbar_x = (screen_width - (inv.hotbar_size * slot_size)) / 2
+    local hotbar_x = (screen_width - (hotbar.size * slot_size)) / 2
 
-    for i = 1, inv.hotbar_size do
+    for i = 1, hotbar.size do
         local x = hotbar_x + (i - 1) * slot_size
 
         -- Slot background
@@ -51,7 +51,7 @@ function InterfaceSystem.draw(self)
         love.graphics.rectangle("fill", x, hotbar_y, slot_size - 2, slot_size - 2)
 
         -- Slot border
-        if i == inv.selected_slot then
+        if i == hotbar.selected_slot then
             love.graphics.setColor(1, 1, 0, 0.5) -- Yellow for selected
         else
             love.graphics.setColor(0.3, 0.3, 0.3, 0.8)
@@ -59,7 +59,7 @@ function InterfaceSystem.draw(self)
         love.graphics.rectangle("line", x, hotbar_y, slot_size - 4, slot_size - 4)
 
         -- Item in slot
-        local slot = inv.slots[i]
+        local slot = hotbar:get_slot(i)
         if slot then
             local proto = nil
             local color = nil
@@ -92,7 +92,7 @@ function InterfaceSystem.draw(self)
     end
 
     -- Selected item name above hotbar
-    local selected_slot = inv.slots[inv.selected_slot]
+    local selected_slot = hotbar:get_selected()
     if selected_slot then
         local proto = nil
 
