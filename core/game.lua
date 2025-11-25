@@ -6,6 +6,7 @@ local Game = {
     priority = 0,
     state = GameStateComponent.new(GameStateComponent.BOOT),
     time = TimeComponent.new(1),
+    generator = require("systems.generator"),
     world = require("systems.world"),
     control = require("systems.control"),
     camera = require("systems.camera"),
