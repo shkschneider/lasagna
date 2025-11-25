@@ -1,5 +1,12 @@
 -- Lua eXtended -- table
 
+if not table.pack then
+    table.pack = function(...) return { n = select("#", ...), ... } end
+end
+if not table.unpack then
+    table.unpack = unpack
+end
+
 local function table_isarray(self)
     if type(self) ~= "table" then return false end
     if next(self) == nil then return true end
