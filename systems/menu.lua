@@ -29,7 +29,7 @@ function MenuSystem.get_main_menu_items(self)
     -- Continue (only if save exists)
     local save_exists = G.save:exists()
     table.insert(items, {
-        key = "1",
+        keys = { "1", "c" },
         label = "Continue",
         enabled = save_exists,
         action = function()
@@ -47,7 +47,7 @@ function MenuSystem.get_main_menu_items(self)
 
     -- New Game
     table.insert(items, {
-        key = "2",
+        keys = { "2", "n" },
         label = "New Game",
         enabled = true,
         action = function()
@@ -60,7 +60,7 @@ function MenuSystem.get_main_menu_items(self)
 
     -- Quit
     table.insert(items, {
-        key = "3",
+        keys = { "3", "q" },
         label = "Quit",
         enabled = true,
         action = function()
@@ -78,7 +78,7 @@ function MenuSystem.get_pause_menu_items(self)
 
     -- Continue
     table.insert(items, {
-        key = "1",
+        keys = { "1", "c" },
         label = "Continue",
         enabled = true,
         action = function()
@@ -88,7 +88,7 @@ function MenuSystem.get_pause_menu_items(self)
 
     -- Save Game
     table.insert(items, {
-        key = "2",
+        keys = { "2", "s" },
         label = "Save Game",
         enabled = true,
         action = function()
@@ -100,7 +100,7 @@ function MenuSystem.get_pause_menu_items(self)
     -- Load Game (only if save exists)
     local save_exists = G.save:exists()
     table.insert(items, {
-        key = "3",
+        keys = { "3", "l" },
         label = "Load Game",
         enabled = save_exists,
         action = function()
@@ -117,12 +117,12 @@ function MenuSystem.get_pause_menu_items(self)
 
     -- Quit
     table.insert(items, {
-        key = "4",
+        keys = { "4", "q" },
         label = "Quit",
         enabled = true,
         action = function()
-            G:switch(GameStateComponent.QUIT)
-            love.event.quit()
+            -- TODO save
+            G:switch(GameStateComponent.MENU)
         end
     })
 
@@ -175,7 +175,7 @@ function MenuSystem.draw(self)
     -- Draw menu items
     for i, item in ipairs(items) do
         local y = start_y + i * line_height
-        local text = item.key .. " " .. item.label
+        local text = table.concat(item.keys) .. " " .. item.label
 
         if item.enabled then
             love.graphics.setColor(1, 1, 1, 1)
@@ -207,7 +207,7 @@ function MenuSystem.keypressed(self, key)
 
     -- Find matching item
     for _, item in ipairs(items) do
-        if key == item.key and item.enabled and item.action then
+        if table.has_value(item.keys, key) and item.enabled and item.action then
             item.action()
             return
         end
