@@ -47,12 +47,12 @@ return ComponentName
 
 Components update/draw in priority order (lowest to highest):
 
-- **Priority 10**: Physics (gravity application)
+- **Priority 10**: Physics component (gravity application)
+- **Priority 15**: Physics system (collision detection and physics coordination)
 - **Priority 20**: Velocity (position updates)
 - **Priority 30**: Bullet, Drop (lifetime, behavior)
 - **Priority 50**: Health (regeneration, health bar UI)
 - **Priority 51**: Stamina (regeneration, stamina bar UI)
-- **Priority 100**: Visual (rendering)
 
 ## Component Types
 
@@ -60,7 +60,6 @@ Components update/draw in priority order (lowest to highest):
 
 Some components are pure data containers without update/draw logic:
 - Position: World coordinates (x, y, z)
-- Collider: Collision box dimensions
 - Layer: Current layer information
 - Inventory: Item storage
 
@@ -74,10 +73,21 @@ Components with update() methods that modify entity state:
 - **Bullet**: Lifetime countdown and death marking
 - **Drop**: Pickup delay and lifetime countdown
 
-### Visual Components (Draw Logic)
+### Systems with Physics Logic
 
-Components with draw() methods that render entities:
-- **Visual**: Basic colored rectangle rendering
+The physics system (`systems/physics.lua`) provides centralized collision detection and physics coordination:
+- **check_collision**: AABB collision with world blocks
+- **is_on_ground**: Check if entity is on solid ground
+- **can_stand_up**: Check clearance for standing
+- **apply_gravity**: Apply gravity to velocity
+- **apply_horizontal_movement**: Horizontal movement with wall collision
+- **apply_vertical_movement**: Vertical movement with floor/ceiling collision
+- **clamp_to_world**: Prevent falling through world bounds
+
+### Entity Rendering
+
+Entities handle their own rendering directly:
+- **Player**: Uses width, height, and color properties directly for rendering
 - **Health**: Health bar UI rendering (positioned above hotbar)
 - **Stamina**: Stamina bar UI rendering (positioned above hotbar)
 - **Bullet**: Custom bullet rendering
@@ -130,17 +140,22 @@ bullet_entity.bullet:draw(bullet_entity, camera_x, camera_y)
 
 ### Complex Entities (Selective Component Usage)
 
-Player uses selective component updates due to complex collision:
+Player uses selective component updates and delegates physics to the physics system:
 
 ```lua
 -- In PlayerSystem.load:
 self.velocity.enabled = false  -- Disable automatic velocity application
-self.physics.enabled = false   -- Disable automatic physics
-self.visual.enabled = false    -- Disable automatic visual rendering
+self.physics.enabled = false   -- Disable automatic physics (handled by physics system)
+self.width = BLOCK_SIZE        -- Player dimensions for collision and rendering
+self.height = BLOCK_SIZE * 2
+self.color = { 1, 1, 1, 1 }    -- Rendering color
 
 -- In PlayerSystem.update:
 Object.update(self, dt)  -- Still calls stamina/health regen
--- Manual physics and collision handling follows...
+-- Physics system handles collision detection and physics:
+PhysicsSystem.apply_gravity(vel, phys.gravity, dt)
+PhysicsSystem.apply_horizontal_movement(G.world, pos, vel, self.width, self.height, dt)
+PhysicsSystem.apply_vertical_movement(G.world, pos, vel, self.width, self.height, modifier, dt)
 ```
 
 ## System Architecture

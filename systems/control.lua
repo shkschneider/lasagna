@@ -15,8 +15,6 @@ function Control.update(self, dt)
     local pos = G.player.position
     local vel = G.player.velocity
     local stance = G.player.stance
-    local col = G.player.collider
-    local vis = G.player.visual
 
     -- Check if on ground first
     local on_ground = G.player:is_on_ground()
@@ -28,8 +26,7 @@ function Control.update(self, dt)
         -- Switch to crouching (only when on ground)
         stance.current = Stance.STANDING
         stance.crouched = true
-        col.height = BLOCK_SIZE * 1
-        vis.height = BLOCK_SIZE * 1
+        G.player.height = BLOCK_SIZE * 1
         -- Adjust position to keep bottom aligned
         pos.y = pos.y + BLOCK_SIZE / 2
     elseif not is_crouching and stance.crouched then
@@ -37,8 +34,7 @@ function Control.update(self, dt)
         if G.player:can_stand_up() then
             stance.current = Stance.STANDING
             stance.crouched = false
-            col.height = BLOCK_SIZE * 2
-            vis.height = BLOCK_SIZE * 2
+            G.player.height = BLOCK_SIZE * 2
             -- Adjust position to keep bottom aligned
             pos.y = pos.y - BLOCK_SIZE / 2
         end
@@ -101,13 +97,13 @@ function Control.keypressed(self, key)
     -- Layer switching
     if key == "q" then
         local target_layer = math.max(-1, G.player.position.z - 1)
-        if G.player.can_switch_layer(G.player, target_layer) then
+        if G.player:can_switch_layer(target_layer) then
             G.player.position.z = target_layer
             G.player.layer.current_layer = target_layer
         end
     elseif key == "e" then
         local target_layer = math.min(1, G.player.position.z + 1)
-        if player.can_switch_layer(G.player, target_layer) then
+        if G.player:can_switch_layer(target_layer) then
             G.player.position.z = target_layer
             G.player.layer.current_layer = target_layer
         end

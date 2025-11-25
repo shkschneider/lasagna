@@ -1,15 +1,14 @@
 local Object = require "core.object"
 local Position = require "components.position"
 local Velocity = require "components.velocity"
-local Physics = require "components.physics"
-local Collider = require "components.collider"
-local Visual = require "components.visual"
+local PhysicsComponent = require "components.physics"
 local Layer = require "components.layer"
 local Inventory = require "components.inventory"
 local Omnitool = require "components.omnitool"
 local Stance = require "components.stance"
 local Health = require "components.health"
 local Stamina = require "components.stamina"
+local PhysicsSystem = require "systems.physics"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
@@ -38,13 +37,14 @@ function Player.load(self)
     self.velocity = Velocity.new(0, 0)
     -- Disable automatic velocity application for player (complex collision handling)
     self.velocity.enabled = false
-    self.physics = Physics.new(800, 0.95)
+    self.physics = PhysicsComponent.new(800, 0.95)
     -- Disable automatic physics for player (complex collision handling)
     self.physics.enabled = false
-    self.collider = Collider.new(BLOCK_SIZE, BLOCK_SIZE * 2)
-    self.visual = Visual.new({1, 1, 1, 1}, BLOCK_SIZE, BLOCK_SIZE * 2)
-    -- Disable automatic visual rendering for player (custom draw logic)
-    self.visual.enabled = false
+    -- Player dimensions (width and height for collision and rendering)
+    self.width = BLOCK_SIZE
+    self.height = BLOCK_SIZE * 2
+    -- Visual properties for rendering
+    self.color = { 1, 1, 1, 1 }
     self.layer = Layer.new(layer)
     self.inventory = Inventory.new()
     self.omnitool = Omnitool.new()
@@ -85,9 +85,7 @@ function Player.update(self, dt)
     local pos = self.position
     local vel = self.velocity
     local phys = self.physics
-    local col = self.collider
     local stance = self.stance
-    local vis = self.visual
 
     -- Update damage timer
     if self.damage_timer > 0 then
@@ -103,8 +101,8 @@ function Player.update(self, dt)
         self.control:update(dt)
     end
 
-    -- Check if on ground first
-    local on_ground = self:is_on_ground()
+    -- Check if on ground first (using physics system)
+    local on_ground = PhysicsSystem.is_on_ground(G.world, pos, self.width, self.height)
 
     -- Track fall start position when first becoming airborne
     if not on_ground then
@@ -113,89 +111,30 @@ function Player.update(self, dt)
         end
     end
 
-    -- Gravity always applies (manual, not via component)
-    vel.vy = vel.vy + phys.gravity * dt
+    -- Apply gravity (using physics system)
+    PhysicsSystem.apply_gravity(vel, phys.gravity, dt)
 
-    -- Apply horizontal velocity with collision (manual, not via component)
-    local new_x = pos.x + vel.vx * dt
-    local hit_wall = false
+    -- Apply horizontal velocity with collision (using physics system)
+    local hit_wall, new_x = PhysicsSystem.apply_horizontal_movement(
+        G.world, pos, vel, self.width, self.height, dt
+    )
+    pos.x = new_x
 
-    if vel.vx ~= 0 then
-        local check_col
-        if vel.vx > 0 then
-            check_col = math.floor((new_x + col.width / 2) / BLOCK_SIZE)
-        else
-            check_col = math.floor((new_x - col.width / 2) / BLOCK_SIZE)
-        end
+    -- Apply vertical velocity with collision (using physics system)
+    local velocity_modifier = stance.crouched and 0.5 or 1
+    local landed, hit_ceiling, new_y = PhysicsSystem.apply_vertical_movement(
+        G.world, pos, vel, self.width, self.height, velocity_modifier, dt
+    )
 
-        local top_row = math.floor((pos.y - col.height / 2) / BLOCK_SIZE)
-        local bottom_row = math.floor((pos.y + col.height / 2 - math.eps) / BLOCK_SIZE)
-
-        for row = top_row, bottom_row do
-            local block_def = G.world:get_block_def(pos.z, check_col, row)
-            if block_def and block_def.solid then
-                hit_wall = true
-                if vel.vx > 0 then
-                    pos.x = check_col * BLOCK_SIZE - col.width / 2
-                else
-                    pos.x = (check_col + 1) * BLOCK_SIZE + col.width / 2
-                end
-                break
-            end
-        end
-    end
-
-    if not hit_wall then
-        pos.x = new_x
-    end
-
-    -- Apply vertical velocity with collision (manual, not via component)
-    local new_y = pos.y + (vel.vy * (stance.crouched and 0.5 or 1)) * dt
-
-    -- Ground collision
-    local was_on_ground = on_ground
-    on_ground = false
-    local bottom_y = new_y + col.height / 2
-    local left_col = math.floor((pos.x - col.width / 2) / BLOCK_SIZE)
-    local right_col = math.floor((pos.x + col.width / 2 - math.eps) / BLOCK_SIZE)
-    local bottom_row = math.floor(bottom_y / BLOCK_SIZE)
-
-    for c = left_col, right_col do
-        local block_def = G.world:get_block_def(pos.z, c, bottom_row)
-        if block_def and block_def.solid and vel.vy >= 0 then
-            pos.y = bottom_row * BLOCK_SIZE - col.height / 2
-            vel.vy = 0
-            on_ground = true
-            new_y = pos.y
-            break
-        end
-    end
-
-    -- Ceiling collision
-    local top_y = new_y - col.height / 2
-    local top_row = math.floor(top_y / BLOCK_SIZE)
-
-    for c = left_col, right_col do
-        local block_def = G.world:get_block_def(pos.z, c, top_row)
-        if block_def and block_def.solid and vel.vy < 0 then
-            pos.y = (top_row + 1) * BLOCK_SIZE + col.height / 2
-            vel.vy = 0
-            new_y = pos.y
-            break
-        end
-    end
-
-    if not on_ground then
+    if not landed then
         pos.y = new_y
     end
 
-    -- Prevent falling through bottom
-    local max_y = G.world.HEIGHT * BLOCK_SIZE
-    if pos.y > max_y then
-        pos.y = max_y
-        vel.vy = 0
-        on_ground = true
-    end
+    on_ground = landed
+
+    -- Clamp to world bounds
+    local clamped_to_ground = PhysicsSystem.clamp_to_world(G.world, pos, vel, self.height)
+    on_ground = on_ground or clamped_to_ground
 
     -- Update stance based on current state
     if on_ground then
@@ -231,27 +170,26 @@ end
 
 function Player.draw(self)
     local pos = self.position
-    local vis = self.visual
 
     local camera_x, camera_y = G.camera:get_offset()
 
-    -- Draw player
-    love.graphics.setColor(vis.color)
+    -- Draw player using direct properties
+    love.graphics.setColor(self.color)
     love.graphics.rectangle("fill",
-        pos.x - camera_x - vis.width / 2,
-        pos.y - camera_y - vis.height / 2,
-        vis.width,
-        vis.height)
+        pos.x - camera_x - self.width / 2,
+        pos.y - camera_y - self.height / 2,
+        self.width,
+        self.height)
 
     -- Draw red border if recently damaged
     if self.damage_timer > 0 then
         love.graphics.setColor(1, 0, 0, 1)
         love.graphics.setLineWidth(1)
         love.graphics.rectangle("line",
-            pos.x - camera_x - vis.width / 2,
-            pos.y - camera_y - vis.height / 2,
-            vis.width,
-            vis.height)
+            pos.x - camera_x - self.width / 2,
+            pos.y - camera_y - self.height / 2,
+            self.width,
+            self.height)
     end
 
     Object.draw(self)
@@ -262,32 +200,7 @@ function Player.can_switch_layer(self, target_layer)
         return false
     end
 
-    return not self.check_collision(self, self.position.x, self.position.y, target_layer)
-end
-
-function Player.check_collision(self, x, y, layer)
-    local collider = self.collider
-
-    local left = x - collider.width / 2
-    local right = x + collider.width / 2
-    local top = y - collider.height / 2
-    local bottom = y + collider.height / 2
-
-    local left_col = math.floor(left / BLOCK_SIZE)
-    local right_col = math.floor((right - math.eps) / BLOCK_SIZE)
-    local top_row = math.floor(top / BLOCK_SIZE)
-    local bottom_row = math.floor((bottom - math.eps) / BLOCK_SIZE)
-
-    for c = left_col, right_col do
-        for r = top_row, bottom_row do
-            local block_def = G.world:get_block_def(layer, c, r)
-            if block_def and block_def.solid then
-                return true
-            end
-        end
-    end
-
-    return false
+    return not PhysicsSystem.check_collision(G.world, self.position.x, self.position.y, target_layer, self.width, self.height)
 end
 
 -- Inventory management
@@ -441,45 +354,11 @@ function Player.get_omnitool_tier(self)
 end
 
 function Player.is_on_ground(self)
-    local pos = self.position
-    local col = self.collider
-    local vel = self.velocity
-
-    -- Check if there's ground directly below the player
-    local bottom_y = pos.y + col.height / 2
-    local left_col = math.floor((pos.x - col.width / 2) / BLOCK_SIZE)
-    local right_col = math.floor((pos.x + col.width / 2 - math.eps) / BLOCK_SIZE)
-    local bottom_row = math.floor(bottom_y / BLOCK_SIZE)
-
-    for c = left_col, right_col do
-        local block_def = G.world:get_block_def(pos.z, c, bottom_row)
-        if block_def and block_def.solid then
-            return true
-        end
-    end
-
-    return false
+    return PhysicsSystem.is_on_ground(G.world, self.position, self.width, self.height)
 end
 
 function Player.can_stand_up(self)
-    local pos = self.position
-    local col = self.collider
-
-    -- Check if there's space above for standing (need to check one extra block height)
-    local target_y = pos.y - BLOCK_SIZE / 2  -- Position after standing
-    local top_y = target_y - BLOCK_SIZE  -- Top of standing height
-    local left_col = math.floor((pos.x - col.width / 2) / BLOCK_SIZE)
-    local right_col = math.floor((pos.x + col.width / 2 - math.eps) / BLOCK_SIZE)
-    local top_row = math.floor(top_y / BLOCK_SIZE)
-
-    for c = left_col, right_col do
-        local block_def = G.world:get_block_def(pos.z, c, top_row)
-        if block_def and block_def.solid then
-            return false
-        end
-    end
-
-    return true
+    return PhysicsSystem.can_stand_up(G.world, self.position, self.width)
 end
 
 function Player.hit(self, damage)
