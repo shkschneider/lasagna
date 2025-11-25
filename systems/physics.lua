@@ -178,12 +178,7 @@ function Physics.update_player(self, player, dt)
     local hit_wall, new_x = Physics.apply_horizontal_movement(
         G.world, pos, vel, width, height, dt
     )
-
-    if not hit_wall then
-        pos.x = new_x
-    else
-        pos.x = new_x
-    end
+    pos.x = new_x
 
     -- Apply vertical velocity with collision
     local velocity_modifier = stance.crouched and 0.5 or 1
