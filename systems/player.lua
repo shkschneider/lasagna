@@ -85,7 +85,7 @@ function PlayerSystem.update(self, dt)
     -- This handles stamina regen, health regen (if enabled), and damage_timer
     Object.update(self, dt)
 
-    -- Delegate to control system for input handling
+    -- Delegate to control system for take handling
     if self.control then
         self.control:update(dt)
     end
@@ -200,34 +200,34 @@ end
 function PlayerSystem.add_to_inventory(self, block_id, count)
     local StackComponent = require "components.stack"
     local stack = StackComponent.new(block_id, count or 1, "block")
-    
+
     -- Try hotbar first
-    if self.hotbar:can_input(stack) then
-        return self.hotbar:input(stack)
+    if self.hotbar:can_take(stack) then
+        return self.hotbar:take(stack)
     end
-    
+
     -- Try backpack
-    if self.backpack:can_input(stack) then
-        return self.backpack:input(stack)
+    if self.backpack:can_take(stack) then
+        return self.backpack:take(stack)
     end
-    
+
     return false
 end
 
 function PlayerSystem.add_item_to_inventory(self, item_id, count)
     local StackComponent = require "components.stack"
     local stack = StackComponent.new(item_id, count or 1, "item")
-    
+
     -- Try hotbar first
-    if self.hotbar:can_input(stack) then
-        return self.hotbar:input(stack)
+    if self.hotbar:can_take(stack) then
+        return self.hotbar:take(stack)
     end
-    
+
     -- Try backpack
-    if self.backpack:can_input(stack) then
-        return self.backpack:input(stack)
+    if self.backpack:can_take(stack) then
+        return self.backpack:take(stack)
     end
-    
+
     return false
 end
 

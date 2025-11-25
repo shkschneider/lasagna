@@ -1,39 +1,26 @@
 -- Storage System
 -- A reusable storage container (array of StackComponents)
 -- Used for hotbar, backpack, chests, etc.
--- Simple API: has(), can_output(), can_input(), input(), output()
+-- Simple API: has(), can_give(), can_take(), take(), give()
 
+local Object = require "core.object"
 local StackComponent = require "components.stack"
 
 local StorageSystem = {}
 
 -- Create a new storage with a given number of slots
 function StorageSystem.new(size)
-    local instance = {
+    local instance = Object.new {
         id = "storage",
         slots = {},
         size = size or 9,
         selected_slot = 1,  -- Currently selected slot (for hotbar-like selection)
     }
-
     -- Initialize empty slots
     for i = 1, instance.size do
-        instance.slots[i] = nil
+        instance.slots[i] = StackComponent.empty()
     end
-
     return setmetatable(instance, { __index = StorageSystem })
-end
-
--- Get the currently selected slot index
-function StorageSystem.get_selected_slot(self)
-    return self.selected_slot
-end
-
--- Set the selected slot index
-function StorageSystem.set_selected_slot(self, slot)
-    if slot >= 1 and slot <= self.size then
-        self.selected_slot = slot
-    end
 end
 
 -- Get the stack in the currently selected slot
@@ -46,18 +33,18 @@ end
 function StorageSystem.remove_from_selected(self, count)
     count = count or 1
     local slot = self.slots[self.selected_slot]
-    
+
     if not slot then
         return 0
     end
-    
+
     local removed = slot:remove(count)
-    
+
     -- Clear slot if empty
     if slot:is_empty() then
         self.slots[self.selected_slot] = nil
     end
-    
+
     return removed
 end
 
@@ -85,17 +72,17 @@ function StorageSystem.has(self, stack)
     return false
 end
 
--- Check if can output (remove) the given stack from storage
+-- Check if can give (remove) the given stack from storage
 -- @param stack: StackComponent to remove
 -- @return true if can remove all items
-function StorageSystem.can_output(self, stack)
+function StorageSystem.can_give(self, stack)
     return self:has(stack)
 end
 
--- Check if can input (add) the given stack to storage
+-- Check if can take (add) the given stack to storage
 -- @param stack: StackComponent to add
 -- @return true if can add all items
-function StorageSystem.can_input(self, stack)
+function StorageSystem.can_take(self, stack)
     if stack == nil or stack:is_empty() then
         return true
     end
@@ -129,7 +116,7 @@ end
 -- Input (add) a stack to storage
 -- @param stack: StackComponent to add
 -- @return true if all items were added, false if some couldn't fit
-function StorageSystem.input(self, stack)
+function StorageSystem.take(self, stack)
     if stack == nil or stack:is_empty() then
         return true
     end
@@ -166,7 +153,7 @@ end
 -- Output (remove) a stack from storage
 -- @param stack: StackComponent describing what to remove
 -- @return true if all items were removed, false if not enough items
-function StorageSystem.output(self, stack)
+function StorageSystem.give(self, stack)
     if stack == nil or stack:is_empty() then
         return true
     end
