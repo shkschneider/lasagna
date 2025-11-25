@@ -1,8 +1,10 @@
 local CommandsRegistry = require "registries.commands"
 
-require "data.commands.ping"
-require "data.commands.seed"
-require "data.commands.god"
-require "data.commands.heal"
+local here = (...):gsub("%.init$", "") .. "."
+require(here .. "god")
+require(here .. "heal")
+require(here .. "ping")
+require(here .. "seed")
+require(here .. "teleport")
 
 return CommandsRegistry

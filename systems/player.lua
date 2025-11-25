@@ -172,7 +172,11 @@ function PlayerSystem.draw(self)
     local camera_x, camera_y = G.camera:get_offset()
 
     -- Draw player using direct properties
-    love.graphics.setColor(self.color)
+    if self:is_dead() then
+        love.graphics.setColor(1, 0, 0, 1) -- red
+    else
+        love.graphics.setColor(self.color)
+    end
     love.graphics.rectangle("fill",
         pos.x - camera_x - self.width / 2,
         pos.y - camera_y - self.height / 2,
