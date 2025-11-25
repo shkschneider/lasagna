@@ -4,7 +4,6 @@ local StanceComponent = require "components.stance"
 local ControlSystem = Object.new {
     id = "control",
     priority = 19, -- Run before player system (priority 20)
-    jump_pressed_last_frame = false,  -- Track jump input for edge detection
 }
 
 function ControlSystem.update(self, dt)
@@ -71,10 +70,10 @@ function ControlSystem.update(self, dt)
 
     -- Jump handling - only when on ground
     local jump_pressed = love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")
-    if jump_pressed and not self.jump_pressed_last_frame and on_ground then
+    if jump_pressed and not stance.current ~= StanceComponent.JUMPING and on_ground then
         if stance.crouched then
             -- Crouched jump: reduced height, no stamina cost
-            vel.y = -G.player.JUMP_FORCE / 2
+            vel.y = -G.player.JUMP_FORCE -- FIXME / 2
             stance.current = StanceComponent.JUMPING
         elseif G.player:has_stamina(G.player.STAMINA_JUMP_COST) then
             -- Full jump: requires and consumes stamina
@@ -83,11 +82,10 @@ function ControlSystem.update(self, dt)
             G.player:consume_stamina(G.player.STAMINA_JUMP_COST)
         else
             -- Low stamina fallback: crouched-height jump, no stamina cost
-            vel.y = -G.player.JUMP_FORCE / 2
+            vel.y = -G.player.JUMP_FORCE -- FIXME / 2
             stance.current = StanceComponent.JUMPING
         end
     end
-    self.jump_pressed_last_frame = jump_pressed
 end
 
 function ControlSystem.keypressed(self, key)
