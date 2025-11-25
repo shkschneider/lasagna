@@ -1,4 +1,5 @@
 local Object = require "core.object"
+local GeneratorSystem = require "systems.generator"
 local WorldDataComponent = require "components.worlddata"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
@@ -11,16 +12,17 @@ local WorldSystem = Object.new {
 }
 
 function WorldSystem.load(self, seed, _)
-    -- Initialize components (no width - infinite horizontal)
+    -- Initialize components
     self.worlddata = WorldDataComponent.new(seed, self.HEIGHT)
     Log.info("World:", self.worlddata.seed)
+    self.generator = require("systems.generator")
 
     -- Create canvases for layer rendering
     self:create_canvases()
 
     -- Pre-generate spawn area columns (32 to left and right of spawn)
     -- This ensures player doesn't spawn in the air waiting for terrain
-    G.generator:pregenerate_spawn_area()
+    self.generator:pregenerate_spawn_area()
 
     Object.load(self)
 end
@@ -210,7 +212,7 @@ function WorldSystem.get_block_id(self, z, col, row)
     end
 
     -- Request column generation with high priority (visible column)
-    G.generator:generate_column(z, col, true)
+    self.generator:generate_column(z, col, true)
 
     local data = self.worlddata
     if data.columns[z] and
@@ -235,7 +237,7 @@ function WorldSystem.set_block(self, z, col, row, block_id)
     end
 
     -- Request column generation with high priority (user action)
-    G.generator:generate_column(z, col, true)
+    self.generator:generate_column(z, col, true)
 
     local data = self.worlddata
 
