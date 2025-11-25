@@ -18,6 +18,7 @@ local Game = {
     chat = require("systems.chat"),
     lore = require("systems.lore"),
     debug = require("systems.debug"),
+    save = require("systems.save"),
 }
 
 function Game.switch(self, gamestate)

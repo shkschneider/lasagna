@@ -249,6 +249,15 @@ function WorldSystem.set_block(self, z, col, row, block_id)
         data.columns[z][col] = {}
     end
 
+    -- Track change from generated terrain
+    if not data.changes[z] then
+        data.changes[z] = {}
+    end
+    if not data.changes[z][col] then
+        data.changes[z][col] = {}
+    end
+    data.changes[z][col][row] = block_id
+
     data.columns[z][col][row] = block_id
     return true
 end
