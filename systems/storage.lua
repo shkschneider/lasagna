@@ -1,17 +1,19 @@
--- Inventory component
--- A collection of slots, each holding a StackComponent
+-- Storage System
+-- A reusable storage container (array of StackComponents)
+-- Used for hotbar, backpack, chests, etc.
 -- Simple API: has(), can_output(), can_input(), input(), output()
 
 local StackComponent = require "components.stack"
 
-local InventoryComponent = {}
+local StorageSystem = {}
 
--- Create a new inventory with a given number of slots
-function InventoryComponent.new(size)
+-- Create a new storage with a given number of slots
+function StorageSystem.new(size)
     local instance = {
-        id = "inventory",
+        id = "storage",
         slots = {},
         size = size or 9,
+        selected_slot = 1,  -- Currently selected slot (for hotbar-like selection)
     }
 
     -- Initialize empty slots
@@ -19,13 +21,50 @@ function InventoryComponent.new(size)
         instance.slots[i] = nil
     end
 
-    return setmetatable(instance, { __index = InventoryComponent })
+    return setmetatable(instance, { __index = StorageSystem })
 end
 
--- Check if inventory has at least the given stack (same type/id and count)
+-- Get the currently selected slot index
+function StorageSystem.get_selected_slot(self)
+    return self.selected_slot
+end
+
+-- Set the selected slot index
+function StorageSystem.set_selected_slot(self, slot)
+    if slot >= 1 and slot <= self.size then
+        self.selected_slot = slot
+    end
+end
+
+-- Get the stack in the currently selected slot
+function StorageSystem.get_selected(self)
+    return self.slots[self.selected_slot]
+end
+
+-- Remove items from the currently selected slot
+-- Returns the number actually removed
+function StorageSystem.remove_from_selected(self, count)
+    count = count or 1
+    local slot = self.slots[self.selected_slot]
+    
+    if not slot then
+        return 0
+    end
+    
+    local removed = slot:remove(count)
+    
+    -- Clear slot if empty
+    if slot:is_empty() then
+        self.slots[self.selected_slot] = nil
+    end
+    
+    return removed
+end
+
+-- Check if storage has at least the given stack (same type/id and count)
 -- @param stack: StackComponent to check for
--- @return true if inventory contains at least this many items
-function InventoryComponent.has(self, stack)
+-- @return true if storage contains at least this many items
+function StorageSystem.has(self, stack)
     if stack == nil or stack:is_empty() then
         return true
     end
@@ -46,17 +85,17 @@ function InventoryComponent.has(self, stack)
     return false
 end
 
--- Check if can output (remove) the given stack from inventory
+-- Check if can output (remove) the given stack from storage
 -- @param stack: StackComponent to remove
 -- @return true if can remove all items
-function InventoryComponent.can_output(self, stack)
+function StorageSystem.can_output(self, stack)
     return self:has(stack)
 end
 
--- Check if can input (add) the given stack to inventory
+-- Check if can input (add) the given stack to storage
 -- @param stack: StackComponent to add
 -- @return true if can add all items
-function InventoryComponent.can_input(self, stack)
+function StorageSystem.can_input(self, stack)
     if stack == nil or stack:is_empty() then
         return true
     end
@@ -87,10 +126,10 @@ function InventoryComponent.can_input(self, stack)
     return remaining <= 0
 end
 
--- Input (add) a stack to inventory
+-- Input (add) a stack to storage
 -- @param stack: StackComponent to add
 -- @return true if all items were added, false if some couldn't fit
-function InventoryComponent.input(self, stack)
+function StorageSystem.input(self, stack)
     if stack == nil or stack:is_empty() then
         return true
     end
@@ -124,10 +163,10 @@ function InventoryComponent.input(self, stack)
     return remaining <= 0
 end
 
--- Output (remove) a stack from inventory
+-- Output (remove) a stack from storage
 -- @param stack: StackComponent describing what to remove
 -- @return true if all items were removed, false if not enough items
-function InventoryComponent.output(self, stack)
+function StorageSystem.output(self, stack)
     if stack == nil or stack:is_empty() then
         return true
     end
@@ -161,7 +200,7 @@ function InventoryComponent.output(self, stack)
 end
 
 -- Get the stack at a specific slot index
-function InventoryComponent.get_slot(self, index)
+function StorageSystem.get_slot(self, index)
     if index < 1 or index > self.size then
         return nil
     end
@@ -169,7 +208,7 @@ function InventoryComponent.get_slot(self, index)
 end
 
 -- Set a stack at a specific slot index
-function InventoryComponent.set_slot(self, index, stack)
+function StorageSystem.set_slot(self, index, stack)
     if index < 1 or index > self.size then
         return false
     end
@@ -178,12 +217,12 @@ function InventoryComponent.set_slot(self, index, stack)
 end
 
 -- Clear a slot
-function InventoryComponent.clear_slot(self, index)
+function StorageSystem.clear_slot(self, index)
     return self:set_slot(index, nil)
 end
 
 -- Get total count of a specific item/block across all slots
-function InventoryComponent.count(self, id, id_type)
+function StorageSystem.count(self, id, id_type)
     local total = 0
     for i = 1, self.size do
         local slot = self.slots[i]
@@ -200,8 +239,8 @@ function InventoryComponent.count(self, id, id_type)
     return total
 end
 
--- Check if inventory is empty
-function InventoryComponent.is_empty(self)
+-- Check if storage is empty
+function StorageSystem.is_empty(self)
     for i = 1, self.size do
         if self.slots[i] ~= nil then
             return false
@@ -210,8 +249,8 @@ function InventoryComponent.is_empty(self)
     return true
 end
 
--- Check if inventory is full (no empty slots and all stacks full)
-function InventoryComponent.is_full(self)
+-- Check if storage is full (no empty slots and all stacks full)
+function StorageSystem.is_full(self)
     for i = 1, self.size do
         local slot = self.slots[i]
         if slot == nil or not slot:is_full() then
@@ -222,7 +261,7 @@ function InventoryComponent.is_full(self)
 end
 
 -- Get number of empty slots
-function InventoryComponent.empty_slots(self)
+function StorageSystem.empty_slots(self)
     local count = 0
     for i = 1, self.size do
         if self.slots[i] == nil then
@@ -232,5 +271,4 @@ function InventoryComponent.empty_slots(self)
     return count
 end
 
-return InventoryComponent
-
+return StorageSystem

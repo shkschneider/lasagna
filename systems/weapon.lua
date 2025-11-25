@@ -28,7 +28,7 @@ end
 
 function WeaponSystem.try_shoot(self)
     -- Get selected item from hotbar
-    local slot = G.player.hotbar:get_slot(G.inventory.selected_slot)
+    local slot = G.player.hotbar:get_selected()
 
     if not slot then
         return

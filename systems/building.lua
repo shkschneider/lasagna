@@ -13,7 +13,7 @@ function BuildingSystem.mousepressed(self, x, y, button)
     end
 
     -- Check if player has a weapon item selected
-    local slot = G.player.hotbar:get_slot(G.inventory.selected_slot)
+    local slot = G.player.hotbar:get_selected()
     if slot and slot.item_id then
         -- Player has an item selected, not building
         return

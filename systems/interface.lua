@@ -51,7 +51,7 @@ function InterfaceSystem.draw(self)
         love.graphics.rectangle("fill", x, hotbar_y, slot_size - 2, slot_size - 2)
 
         -- Slot border
-        if i == G.inventory.selected_slot then
+        if i == hotbar.selected_slot then
             love.graphics.setColor(1, 1, 0, 0.5) -- Yellow for selected
         else
             love.graphics.setColor(0.3, 0.3, 0.3, 0.8)
@@ -92,7 +92,7 @@ function InterfaceSystem.draw(self)
     end
 
     -- Selected item name above hotbar
-    local selected_slot = hotbar:get_slot(G.inventory.selected_slot)
+    local selected_slot = hotbar:get_selected()
     if selected_slot then
         local proto = nil
 

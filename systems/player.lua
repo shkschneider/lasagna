@@ -1,8 +1,7 @@
 local Object = require "core.object"
 local VectorComponent = require "components.vector"
-local LayerComponent = require "components.layer"
-local InventoryComponent = require "components.inventory"
 local StackComponent = require "components.stack"
+local StorageSystem = require "systems.storage"
 local OmnitoolComponent = require "components.omnitool"
 local StanceComponent = require "components.stance"
 local HealthComponent = require "components.health"
@@ -33,6 +32,7 @@ function PlayerSystem.load(self)
     local x, y, z = G.world:find_spawn_position(LAYER_DEFAULT)
 
     -- Initialize player as an entity with position and velocity
+    -- position.z is used as the layer
     self.position = VectorComponent.new(x, y, z)
     self.velocity = VectorComponent.new(0, 0)
     -- Disable automatic velocity application for player (uses custom collision handling)
@@ -45,10 +45,9 @@ function PlayerSystem.load(self)
     self.height = BLOCK_SIZE * 2
     -- Visual properties for rendering
     self.color = { 1, 1, 1, 1 }
-    self.layer = LayerComponent.new(layer)
-    -- Player inventories: hotbar (9 slots) and backpack (3x9 = 27 slots)
-    self.hotbar = InventoryComponent.new(HOTBAR_SIZE)
-    self.backpack = InventoryComponent.new(BACKPACK_SIZE)
+    -- Player storage: hotbar (9 slots) and backpack (3x9 = 27 slots)
+    self.hotbar = StorageSystem.new(HOTBAR_SIZE)
+    self.backpack = StorageSystem.new(BACKPACK_SIZE)
     self.omnitool = OmnitoolComponent.new()
     self.stance = StanceComponent.new(StanceComponent.STANDING)
     self.stance.crouched = false
@@ -233,25 +232,11 @@ function PlayerSystem.add_item_to_inventory(self, item_id, count)
 end
 
 function PlayerSystem.remove_from_selected(self, count)
-    count = count or 1
-    local slot = self.hotbar:get_slot(G.inventory.selected_slot)
-    
-    if not slot then
-        return 0
-    end
-    
-    local removed = slot:remove(count)
-    
-    -- Clear slot if empty
-    if slot:is_empty() then
-        self.hotbar:clear_slot(G.inventory.selected_slot)
-    end
-    
-    return removed
+    return self.hotbar:remove_from_selected(count)
 end
 
 function PlayerSystem.get_selected_block_id(self)
-    local slot = self.hotbar:get_slot(G.inventory.selected_slot)
+    local slot = self.hotbar:get_selected()
     if slot then
         return slot.block_id
     end
