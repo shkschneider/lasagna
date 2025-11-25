@@ -1,5 +1,6 @@
 -- EntitySystem: Unified entity manager
 -- All entities have position and velocity components
+-- Note: Requires global uuid() from libraries.luax (loaded at game startup)
 
 local Object = require "core.object"
 local VectorComponent = require "components.vector"
@@ -22,12 +23,12 @@ EntitySystem.TYPE_DROP = "drop"
 -- Default entity settings
 local BULLET_DAMAGE = 10
 local BULLET_LIFETIME = 5
-local BULLET_FRICTION = 1.0  -- No friction for bullets
+local BULLET_FRICTION = 1.0  -- Friction multiplier: 1.0 = no friction (velocity maintained)
 
 local DROP_LIFETIME = 300
 local DROP_PICKUP_DELAY = 0.5
 local DROP_GRAVITY = 400
-local DROP_FRICTION = 0.8
+local DROP_FRICTION = 0.8  -- Friction multiplier: <1.0 = friction applied (slows down)
 
 local PICKUP_RANGE = nil  -- Initialized on first use (BLOCK_SIZE)
 local MERGE_RANGE = nil
