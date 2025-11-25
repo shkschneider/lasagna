@@ -24,13 +24,26 @@
 
 local Object = require "core.object"
 local binser = require "libraries.binser"
+local StackComponent = require "components.stack"
 
 local SaveSystem = Object.new {
     id = "save",
     priority = 200,  -- Low priority, runs after game logic
     SAVE_DIR = "",   -- Empty string means LÖVE's save directory
     SAVE_FILENAME = "world.sav",
+    -- Cache for save info to avoid repeated parsing
+    _cached_info = nil,
+    _cached_info_modtime = nil,
 }
+
+-- Helper function to ensure table keys are numbers
+-- Binser preserves numeric keys, but this is a safety measure for robust loading
+local function ensure_numeric_key(key)
+    if type(key) == "string" then
+        return tonumber(key)
+    end
+    return key
+end
 
 -- Get the full save file path
 function SaveSystem.get_save_path(self)
@@ -64,8 +77,6 @@ end
 -- Deserialize inventory storage from saved format
 local function deserialize_storage(storage, saved_data)
     if not storage or not saved_data then return end
-
-    local StackComponent = require "components.stack"
 
     storage.selected_slot = saved_data.selected_slot or 1
 
@@ -171,19 +182,19 @@ function SaveSystem.apply_save_data(self, save_data)
         local world_columns = G.world.worlddata.columns
 
         for z, cols in pairs(save_data.changes) do
-            z = tonumber(z)  -- Ensure z is a number (binser may serialize as string)
+            z = ensure_numeric_key(z)
             if z then
                 if not world_changes[z] then world_changes[z] = {} end
                 if not world_columns[z] then world_columns[z] = {} end
 
                 for col, rows in pairs(cols) do
-                    col = tonumber(col)
+                    col = ensure_numeric_key(col)
                     if col then
                         if not world_changes[z][col] then world_changes[z][col] = {} end
                         if not world_columns[z][col] then world_columns[z][col] = {} end
 
                         for row, block_id in pairs(rows) do
-                            row = tonumber(row)
+                            row = ensure_numeric_key(row)
                             if row then
                                 world_changes[z][col][row] = block_id
                                 world_columns[z][col][row] = block_id
@@ -252,6 +263,9 @@ function SaveSystem.save(self)
 
     if success then
         Log.info("SaveSystem", "Game saved to " .. path)
+        -- Invalidate cache when save file changes
+        self._cached_info = nil
+        self._cached_info_modtime = nil
         return true
     else
         Log.error("SaveSystem", "Failed to save: " .. tostring(message))
@@ -306,6 +320,9 @@ function SaveSystem.delete(self)
         local success = love.filesystem.remove(path)
         if success then
             Log.info("SaveSystem", "Save file deleted: " .. path)
+            -- Clear cache when save is deleted
+            self._cached_info = nil
+            self._cached_info_modtime = nil
         else
             Log.error("SaveSystem", "Failed to delete save file: " .. path)
         end
@@ -315,30 +332,45 @@ function SaveSystem.delete(self)
 end
 
 -- Get save file info (for displaying save info)
+-- Uses caching to avoid repeated parsing of the save file
 function SaveSystem.get_info(self)
     local path = self:get_save_path()
     local info = love.filesystem.getInfo(path)
     if not info then
+        self._cached_info = nil
+        self._cached_info_modtime = nil
         return nil
     end
 
-    -- Try to load and parse just the header info
+    -- Check if we have a valid cached result
+    if self._cached_info and self._cached_info_modtime == info.modtime then
+        return self._cached_info
+    end
+
+    -- Load and parse the save file (needed for version/seed info)
     local save_data = self:load()
+    local result
     if not save_data then
-        return {
+        result = {
             path = path,
             size = info.size,
             modtime = info.modtime,
         }
+    else
+        result = {
+            path = path,
+            size = info.size,
+            modtime = info.modtime,
+            version = save_data.version,
+            seed = save_data.seed,
+        }
     end
 
-    return {
-        path = path,
-        size = info.size,
-        modtime = info.modtime,
-        version = save_data.version,
-        seed = save_data.seed,
-    }
+    -- Cache the result
+    self._cached_info = result
+    self._cached_info_modtime = info.modtime
+
+    return result
 end
 
 return SaveSystem
