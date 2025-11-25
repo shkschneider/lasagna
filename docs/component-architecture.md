@@ -47,12 +47,12 @@ return ComponentName
 
 Components update/draw in priority order (lowest to highest):
 
-- **Priority 10**: Physics component (gravity application)
 - **Priority 15**: Physics system (collision detection and physics coordination)
-- **Priority 20**: Velocity (position updates)
+- **Priority 20**: Velocity (position updates for non-entity objects)
 - **Priority 30**: Bullet, Drop (lifetime, behavior)
 - **Priority 50**: Health (regeneration, health bar UI)
 - **Priority 51**: Stamina (regeneration, stamina bar UI)
+- **Priority 60**: EntitySystem (manages all entities, applies gravity and movement)
 
 ## Component Types
 
@@ -68,14 +68,15 @@ Some components are pure data containers without update/draw logic:
 Components with update() methods that modify entity state:
 - **Health**: Health regeneration over time
 - **Stamina**: Stamina regeneration over time
-- **Physics**: Applies gravity to velocity
-- **Velocity**: Applies velocity to position
 - **Bullet**: Lifetime countdown and death marking
 - **Drop**: Pickup delay and lifetime countdown
 
-### Systems with Physics Logic
+### Physics via PhysicsSystem
 
-The physics system (`systems/physics.lua`) provides centralized collision detection and physics coordination:
+The PhysicsSystem (`systems/physics.lua`) provides centralized physics and collision detection:
+- **DEFAULT_GRAVITY**: Default gravity constant (800)
+- **DEFAULT_FRICTION**: Default friction constant (0.95)
+- **apply_gravity**: Apply gravity to entity velocity
 - **check_collision**: AABB collision with world blocks
 - **is_on_ground**: Check if entity is on solid ground
 - **can_stand_up**: Check clearance for standing
@@ -133,49 +134,53 @@ local bullet = EntitySystem:newBullet(x, y, layer, vx, vy, width, height, color,
 -- Spawn a drop
 local drop = EntitySystem:newDrop(x, y, layer, block_id, count)
 
--- All entities have required components:
+-- All entities have required components/properties:
 -- - position: VectorComponent (x, y, z)
 -- - velocity: VectorComponent (vx, vy)
--- - physics: PhysicsComponent (gravity, friction)
+-- - gravity: number (applied via PhysicsSystem)
+-- - friction: number (applied when on ground)
 -- - type-specific component (bullet or drop)
 ```
 
-Entity components update in priority order:
-1. **Physics** (priority 10): Applies gravity to velocity
-2. **Velocity** (priority 20): Applies velocity to position  
-3. **Behavior** (priority 30): Type-specific logic (lifetime, etc.)
+Entity update order:
+1. **Physics**: PhysicsSystem applies gravity to velocity
+2. **Movement**: EntitySystem applies velocity to position  
+3. **Behavior**: Type-specific logic (lifetime, collision, etc.)
 
 ```lua
 local bullet_entity = {
     position = VectorComponent.new(x, y, layer),
     velocity = VectorComponent.new(vx, vy),
-    physics = PhysicsComponent.new(gravity, friction),
+    gravity = 0,       -- Bullets typically have no gravity
+    friction = 1.0,    -- No friction
     bullet = Bullet.new(damage, lifetime, width, height, color),
 }
 
--- In system update:
-Object.update(bullet_entity, dt)  -- Recursively calls all component updates
-
--- In system draw:
-bullet_entity.bullet:draw(bullet_entity, camera_x, camera_y)
+-- In EntitySystem.update:
+PhysicsSystem.apply_gravity(ent.velocity, ent.gravity, dt)  -- Apply gravity
+ent.position.x = ent.position.x + ent.velocity.x * dt       -- Apply velocity
+ent.position.y = ent.position.y + ent.velocity.y * dt
+Object.update(ent, dt)  -- Call component updates (lifetime, etc.)
 ```
 
 ### Complex Entities (Selective Component Usage)
 
-Player uses selective component updates and delegates physics to the physics system:
+Player is a special entity that uses custom collision handling via the PhysicsSystem:
 
 ```lua
 -- In PlayerSystem.load:
-self.velocity.enabled = false  -- Disable automatic velocity application
-self.physics.enabled = false   -- Disable automatic physics (handled by physics system)
-self.width = BLOCK_SIZE        -- Player dimensions for collision and rendering
+self.position = VectorComponent.new(x, y, z)  -- Required: position
+self.velocity = VectorComponent.new(0, 0)     -- Required: velocity
+self.velocity.enabled = false                  -- Disable automatic velocity (custom handling)
+self.gravity = PhysicsSystem.DEFAULT_GRAVITY   -- Physics properties
+self.friction = PhysicsSystem.DEFAULT_FRICTION
+self.width = BLOCK_SIZE                        -- Player dimensions
 self.height = BLOCK_SIZE * 2
-self.color = { 1, 1, 1, 1 }    -- Rendering color
 
 -- In PlayerSystem.update:
-Object.update(self, dt)  -- Still calls stamina/health regen
--- Physics system handles collision detection and physics:
-PhysicsSystem.apply_gravity(vel, phys.gravity, dt)
+Object.update(self, dt)  -- Calls stamina/health regen
+-- Player handles physics manually for collision detection:
+PhysicsSystem.apply_gravity(vel, self.gravity, dt)
 PhysicsSystem.apply_horizontal_movement(G.world, pos, vel, self.width, self.height, dt)
 PhysicsSystem.apply_vertical_movement(G.world, pos, vel, self.width, self.height, modifier, dt)
 ```
@@ -276,11 +281,11 @@ Object_call automatically:
 
 ### Enable/Disable Components
 
-All components support runtime toggling:
+Components that support runtime toggling:
 
 ```lua
-entity.physics.enabled = false  -- Disable physics
-entity.visual.enabled = false   -- Disable rendering
+entity.velocity.enabled = false  -- Disable automatic velocity updates
+entity.visual.enabled = false    -- Disable rendering
 ```
 
 ### Priority Ordering

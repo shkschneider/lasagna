@@ -1,5 +1,6 @@
 -- Physics system
 -- Coordinates physics calculations and collision detection
+-- Provides gravity and movement for all entities
 
 local Object = require "core.object"
 
@@ -7,6 +8,10 @@ local PhysicsSystem = Object.new {
     id = "physics",
     priority = 15,  -- Run before player system (priority 20)
 }
+
+-- Default physics constants
+PhysicsSystem.DEFAULT_GRAVITY = 800
+PhysicsSystem.DEFAULT_FRICTION = 0.95
 
 -- Check AABB collision with world blocks
 -- Returns true if collision occurs, false otherwise

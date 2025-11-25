@@ -1,6 +1,5 @@
 local Object = require "core.object"
 local VectorComponent = require "components.vector"
-local PhysicsComponent = require "components.physics"
 local LayerComponent = require "components.layer"
 local InventoryComponent = require "components.inventory"
 local OmnitoolComponent = require "components.omnitool"
@@ -28,14 +27,14 @@ local PlayerSystem = Object.new {
 function PlayerSystem.load(self)
     local x, y, z = G.world:find_spawn_position(LAYER_DEFAULT)
 
-    -- Initialize player components
+    -- Initialize player as an entity with position and velocity
     self.position = VectorComponent.new(x, y, z)
     self.velocity = VectorComponent.new(0, 0)
-    -- Disable automatic velocity application for player (complex collision handling)
+    -- Disable automatic velocity application for player (uses custom collision handling)
     self.velocity.enabled = false
-    self.physics = PhysicsComponent.new(800, 0.95)
-    -- Disable automatic physics for player (complex collision handling)
-    self.physics.enabled = false
+    -- Physics properties (gravity and friction) - player handles these manually via PhysicsSystem
+    self.gravity = PhysicsSystem.DEFAULT_GRAVITY
+    self.friction = PhysicsSystem.DEFAULT_FRICTION
     -- Player dimensions (width and height for collision and rendering)
     self.width = BLOCK_SIZE
     self.height = BLOCK_SIZE * 2
@@ -79,7 +78,6 @@ end
 function PlayerSystem.update(self, dt)
     local pos = self.position
     local vel = self.velocity
-    local phys = self.physics
     local stance = self.stance
 
     -- Call component updates via Object recursion
@@ -101,8 +99,8 @@ function PlayerSystem.update(self, dt)
         end
     end
 
-    -- Apply gravity (using physics system)
-    PhysicsSystem.apply_gravity(vel, phys.gravity, dt)
+    -- Apply gravity (using physics system with player's gravity)
+    PhysicsSystem.apply_gravity(vel, self.gravity, dt)
 
     -- Apply horizontal velocity with collision (using physics system)
     local hit_wall, new_x = PhysicsSystem.apply_horizontal_movement(

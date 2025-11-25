@@ -1,10 +1,13 @@
 -- EntitySystem: Unified entity manager
--- All entities have position and velocity components
+-- An entity is defined as an Object with at least:
+--   - position: VectorComponent (x, y, z)
+--   - velocity: VectorComponent (vx, vy)
+-- Gravity applies to all entities via PhysicsSystem
 -- Note: Requires global uuid() from libraries.luax (loaded at game startup)
 
 local Object = require "core.object"
 local VectorComponent = require "components.vector"
-local PhysicsComponent = require "components.physics"
+local PhysicsSystem = require "systems.physics"
 local ProjectileComponent = require "components.projectile"
 local ItemDropComponent = require "components.itemdrop"
 local Registry = require "registries"
@@ -23,6 +26,7 @@ EntitySystem.TYPE_DROP = "drop"
 -- Default entity settings
 local BULLET_DAMAGE = 10
 local BULLET_LIFETIME = 5
+local BULLET_GRAVITY = 0  -- Bullets typically have no gravity (or low gravity)
 local BULLET_FRICTION = 1.0  -- Friction multiplier: 1.0 = no friction (velocity maintained)
 
 local DROP_LIFETIME = 300
@@ -43,22 +47,23 @@ function EntitySystem.load(self)
 end
 
 -- Create a new entity with required components (position and velocity)
-function EntitySystem.newEntity(self, x, y, layer, vx, vy, entity_type)
+-- All entities have position and velocity VectorComponents
+function EntitySystem.newEntity(self, x, y, layer, vx, vy, entity_type, gravity, friction)
     local entity = {
         id = uuid(),
         type = entity_type,
         position = VectorComponent.new(x, y, layer),
         velocity = VectorComponent.new(vx or 0, vy or 0),
+        -- Physics properties (gravity and friction)
+        gravity = gravity or PhysicsSystem.DEFAULT_GRAVITY,
+        friction = friction or PhysicsSystem.DEFAULT_FRICTION,
     }
     return entity
 end
 
 -- Spawn a bullet entity
 function EntitySystem.newBullet(self, x, y, layer, vx, vy, width, height, color, gravity, destroys_blocks)
-    local entity = self:newEntity(x, y, layer, vx, vy, EntitySystem.TYPE_BULLET)
-    
-    -- Add physics component
-    entity.physics = PhysicsComponent.new(gravity, BULLET_FRICTION)
+    local entity = self:newEntity(x, y, layer, vx, vy, EntitySystem.TYPE_BULLET, gravity or BULLET_GRAVITY, BULLET_FRICTION)
     
     -- Add projectile component
     entity.bullet = ProjectileComponent.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color, destroys_blocks)
@@ -73,10 +78,7 @@ function EntitySystem.newDrop(self, x, y, layer, block_id, count)
     local vx = (math.random() - 0.5) * 50
     local vy = -50
     
-    local entity = self:newEntity(x, y, layer, vx, vy, EntitySystem.TYPE_DROP)
-    
-    -- Add physics component
-    entity.physics = PhysicsComponent.new(DROP_GRAVITY, DROP_FRICTION)
+    local entity = self:newEntity(x, y, layer, vx, vy, EntitySystem.TYPE_DROP, DROP_GRAVITY, DROP_FRICTION)
     
     -- Add drop component
     entity.drop = ItemDropComponent.new(block_id, count, DROP_LIFETIME, DROP_PICKUP_DELAY)
@@ -114,8 +116,15 @@ function EntitySystem.update(self, dt)
     for i = #self.entities, 1, -1 do
         local ent = self.entities[i]
         
+        -- Apply gravity to velocity (all entities have gravity)
+        PhysicsSystem.apply_gravity(ent.velocity, ent.gravity, dt)
+        
+        -- Apply velocity to position
+        ent.position.x = ent.position.x + ent.velocity.x * dt
+        ent.position.y = ent.position.y + ent.velocity.y * dt
+        
         -- Call component updates via Object recursion
-        -- This handles physics (gravity), velocity (position update), and entity-specific logic
+        -- This handles entity-specific logic (lifetime, etc.)
         Object.update(ent, dt)
         
         -- Type-specific system coordination
@@ -191,7 +200,7 @@ function EntitySystem.updateDrop(self, ent, index, player_x, player_y, player_z)
     
     -- Apply friction only when on ground
     if on_ground then
-        ent.velocity.x = ent.velocity.x * ent.physics.friction
+        ent.velocity.x = ent.velocity.x * ent.friction
     end
     
     -- Merge with nearby drops (if enabled)
