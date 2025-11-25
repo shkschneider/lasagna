@@ -1,8 +1,8 @@
 -- Save System
 -- Handles saving and loading game state to/from .sav files
--- Uses binser for binary serialization
+-- Uses serializer for binary serialization
 --
--- Save file format (binary serialized via binser):
+-- Save file format (binary serialized via serializer):
 -- {
 --     version = {major, minor, patch},  -- Game version for compatibility
 --     seed = number,                     -- World seed for terrain regeneration
@@ -23,13 +23,13 @@
 -- }
 
 local Object = require "core.object"
-local binser = require "libraries.binser"
+local serializer = require "libraries.bakpakin.binser"
 local StackComponent = require "components.stack"
 
 local SaveSystem = Object.new {
     id = "save",
     priority = 200,  -- Low priority, runs after game logic
-    SAVE_DIR = "",   -- Empty string means LÖVE's save directory
+    SAVE_DIR = ".",  -- Empty string means LÖVE's save directory
     SAVE_FILENAME = "world.sav",
     -- Cache for save info to avoid repeated parsing
     _cached_info = nil,
@@ -256,7 +256,7 @@ end
 -- Save game state to file
 function SaveSystem.save(self)
     local save_data = self:create_save_data()
-    local serialized = binser.serialize(save_data)
+    local serialized = serializer.serialize(save_data)
 
     local path = self:get_save_path()
     local success, message = love.filesystem.write(path, serialized)
@@ -291,7 +291,7 @@ function SaveSystem.load(self)
     end
 
     -- Deserialize save data
-    local success, results = pcall(binser.deserialize, content)
+    local success, results = pcall(serializer.deserialize, content)
     if not success then
         Log.error("SaveSystem", "Failed to deserialize save: " .. tostring(results))
         return nil

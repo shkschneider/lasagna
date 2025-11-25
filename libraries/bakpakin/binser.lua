@@ -1,4 +1,4 @@
--- binser.lua
+-- https://github.com/bakpakin/binser/binser.lua
 
 --[[
 Copyright (c) 2016-2019 Calvin Rose
