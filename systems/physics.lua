@@ -4,7 +4,7 @@
 local Object = require "core.object"
 
 local Physics = Object.new {
-    id = "physics_system",
+    id = "physics",
     priority = 15,  -- Run before player system (priority 20)
 }
 
@@ -48,24 +48,6 @@ function Physics.is_on_ground(world, pos, width, height)
     end
 
     return false
-end
-
--- Check if there's space above for standing
-function Physics.can_stand_up(world, pos, width)
-    local target_y = pos.y - BLOCK_SIZE / 2  -- Position after standing
-    local top_y = target_y - BLOCK_SIZE  -- Top of standing height
-    local left_col = math.floor((pos.x - width / 2) / BLOCK_SIZE)
-    local right_col = math.floor((pos.x + width / 2 - math.eps) / BLOCK_SIZE)
-    local top_row = math.floor(top_y / BLOCK_SIZE)
-
-    for c = left_col, right_col do
-        local block_def = world:get_block_def(pos.z, c, top_row)
-        if block_def and block_def.solid then
-            return false
-        end
-    end
-
-    return true
 end
 
 -- Apply gravity to velocity
@@ -163,13 +145,13 @@ end
 
 -- Update player physics (called by player system)
 -- This handles the full physics update for the player entity
-function Physics.update_player(self, player, dt)
-    local pos = player.position
-    local vel = player.velocity
-    local phys = player.physics
-    local width = player.width or BLOCK_SIZE
-    local height = player.height or BLOCK_SIZE * 2
-    local stance = player.stance
+function Physics.update(self, dt)
+    local pos = self.position
+    local vel = self.velocity
+    local phys = self.physics
+    local width = self.width or BLOCK_SIZE
+    local height = self.height or BLOCK_SIZE
+    local stance = self.stance
 
     -- Apply gravity
     Physics.apply_gravity(vel, phys.gravity, dt)

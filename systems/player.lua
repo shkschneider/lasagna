@@ -358,7 +358,21 @@ function Player.is_on_ground(self)
 end
 
 function Player.can_stand_up(self)
-    return PhysicsSystem.can_stand_up(G.world, self.position, self.width)
+    local pos = self.position
+    local target_y = pos.y - BLOCK_SIZE / 2  -- Position after standing
+    local top_y = target_y - BLOCK_SIZE  -- Top of standing height
+    local left_col = math.floor((pos.x - self.width / 2) / BLOCK_SIZE)
+    local right_col = math.floor((pos.x + self.width / 2 - math.eps) / BLOCK_SIZE)
+    local top_row = math.floor(top_y / BLOCK_SIZE)
+
+    for c = left_col, right_col do
+        local block_def = G.world:get_block_def(pos.z, c, top_row)
+        if block_def and block_def.solid then
+            return false
+        end
+    end
+
+    return true
 end
 
 function Player.hit(self, damage)
