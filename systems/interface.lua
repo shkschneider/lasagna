@@ -15,6 +15,9 @@ function InterfaceSystem.draw(self)
     local inv = G.player.inventory
     local omnitool = G.player.omnitool
 
+    -- Draw cursor highlight
+    self:draw_cursor_highlight(camera_x, camera_y, pos.z)
+
     -- Layer indicator
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print(string.format("Layer: %d", pos.z), 10, 10)
@@ -104,6 +107,41 @@ function InterfaceSystem.draw(self)
             local text = proto.name
             local text_width = love.graphics.getFont():getWidth(text)
             love.graphics.print(text, (screen_width - text_width) / 2, hotbar_y - 40)
+        end
+    end
+end
+
+-- Draw cursor highlight for block under cursor
+function InterfaceSystem.draw_cursor_highlight(self, camera_x, camera_y, player_z)
+    -- Get mouse position
+    local mouse_x, mouse_y = love.mouse.getPosition()
+    local world_x = mouse_x + camera_x
+    local world_y = mouse_y + camera_y
+
+    -- Convert to block coordinates
+    local col, row = G.world:world_to_block(world_x, world_y)
+
+    -- Get block at cursor position
+    local block_id = G.world:get_block_id(player_z, col, row)
+    local proto = Registry.Blocks:get(block_id)
+
+    -- Calculate screen position
+    local screen_x = col * BLOCK_SIZE - camera_x
+    local screen_y = row * BLOCK_SIZE - camera_y
+
+    -- Check if block exists (solid block)
+    if proto and proto.solid then
+        -- Draw white 1px border for existing blocks
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.setLineWidth(1)
+        love.graphics.rectangle("line", screen_x, screen_y, BLOCK_SIZE, BLOCK_SIZE)
+    else
+        -- Block is air, check if it's a valid building location
+        if G.world:is_valid_building_location(col, row, player_z) then
+            -- Draw black 1px border for valid building locations
+            love.graphics.setColor(0, 0, 0, 1)
+            love.graphics.setLineWidth(1)
+            love.graphics.rectangle("line", screen_x, screen_y, BLOCK_SIZE, BLOCK_SIZE)
         end
     end
 end

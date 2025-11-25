@@ -4,7 +4,29 @@ local StanceComponent = require "components.stance"
 local ControlSystem = Object.new {
     id = "control",
     priority = 19, -- Run before player system (priority 20)
+    -- Stamina constants
+    STAMINA_RUN_COST = 2.5,  -- per second
+    STAMINA_JUMP_COST = 5,   -- per jump
 }
+
+-- Check if player has enough stamina
+function ControlSystem.has_stamina(self, amount)
+    return G.player.stamina and G.player.stamina.current >= amount
+end
+
+-- Consume stamina from player
+function ControlSystem.consume_stamina(self, amount)
+    if not G.player.stamina then
+        return false
+    end
+
+    if G.player.stamina.current >= amount then
+        G.player.stamina.current = math.max(0, G.player.stamina.current - amount)
+        return true
+    end
+
+    return false
+end
 
 function ControlSystem.update(self, dt)
     if G.chat.in_input_mode then
@@ -56,7 +78,7 @@ function ControlSystem.update(self, dt)
         if stance.crouched then
             -- Crouching slows movement by half
             vel.x = vel.x / 2
-        elseif on_ground and is_shift_pressed and G.player:has_stamina(G.player.STAMINA_RUN_COST * dt) then
+        elseif on_ground and is_shift_pressed and self:has_stamina(ControlSystem.STAMINA_RUN_COST * dt) then
             -- Running doubles speed (only when on ground and not crouched)
             vel.x = vel.x * 2
             is_running = true
@@ -65,7 +87,7 @@ function ControlSystem.update(self, dt)
 
     -- Consume stamina while running
     if is_running then
-        G.player:consume_stamina(G.player.STAMINA_RUN_COST * dt)
+        self:consume_stamina(ControlSystem.STAMINA_RUN_COST * dt)
     end
 
     -- Jump handling - only when on ground
@@ -75,11 +97,11 @@ function ControlSystem.update(self, dt)
             -- Crouched jump: reduced height, no stamina cost
             vel.y = -G.player.JUMP_FORCE -- FIXME / 2
             stance.current = StanceComponent.JUMPING
-        elseif G.player:has_stamina(G.player.STAMINA_JUMP_COST) then
+        elseif self:has_stamina(ControlSystem.STAMINA_JUMP_COST) then
             -- Full jump: requires and consumes stamina
             vel.y = -G.player.JUMP_FORCE
             stance.current = StanceComponent.JUMPING
-            G.player:consume_stamina(G.player.STAMINA_JUMP_COST)
+            self:consume_stamina(ControlSystem.STAMINA_JUMP_COST)
         else
             -- Low stamina fallback: crouched-height jump, no stamina cost
             vel.y = -G.player.JUMP_FORCE -- FIXME / 2
