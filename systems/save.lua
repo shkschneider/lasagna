@@ -29,7 +29,7 @@ local StackComponent = require "components.stack"
 local SaveSystem = Object.new {
     id = "save",
     priority = 200,  -- Low priority, runs after game logic
-    SAVE_DIR = "",  -- Empty string means LÖVE's save directory
+    SAVE_DIR = "",  -- Prefix for save path (love.filesystem uses save directory by default)
     SAVE_FILENAME = "world.sav",
     -- Cache for save info to avoid repeated parsing
     _cached_info = nil,
