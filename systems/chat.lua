@@ -108,6 +108,15 @@ function ChatSystem.keypressed(self, key)
             self.message_timer = self.message_display_duration
         end
         return
+    elseif key == "/" then
+        if not self.in_input_mode then
+            local was_open = self.open
+            self.open = true
+            self.in_input_mode = true
+            self.message_timer = 0
+            self.input = was_open and "/" or ""
+            love.keyboard.setTextInput(true)
+        end
     end
 
     if not self.in_input_mode then
