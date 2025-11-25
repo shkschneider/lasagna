@@ -27,9 +27,8 @@ function WeaponSystem.update(self, dt)
 end
 
 function WeaponSystem.try_shoot(self)
-    -- Get selected item
-    local inv = G.player.inventory
-    local slot = inv.slots[inv.selected_slot]
+    -- Get selected item from hotbar
+    local slot = G.player.hotbar:get_slot(G.inventory.selected_slot)
 
     if not slot then
         return

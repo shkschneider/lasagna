@@ -10,6 +10,7 @@ local Game = {
     control = require("systems.control"),
     camera = require("systems.camera"),
     player = require("systems.player"),
+    inventory = require("systems.inventory"),  -- Inventory management system
     mining = require("systems.mining"),
     building = require("systems.building"),
     weapon = require("systems.weapon"),

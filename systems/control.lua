@@ -117,8 +117,8 @@ function ControlSystem.keypressed(self, key)
 
     -- Hotbar selection
     local num = tonumber(key)
-    if num and num >= 1 and num <= G.player.inventory.hotbar_size then
-        G.player.inventory.selected_slot = num
+    if num and num >= 1 and num <= G.player.hotbar.size then
+        G.inventory.selected_slot = num
     end
 
     -- Layer switching

@@ -67,15 +67,15 @@ function HealthComponent.draw(self)
     -- Get screen dimensions
     local screen_width, screen_height = love.graphics.getDimensions()
 
-    -- Get inventory to position health bar relative to hotbar
-    if not G.player or not G.player.inventory then return end
-    local inv = G.player.inventory
+    -- Get hotbar to position health bar relative to it
+    if not G.player or not G.player.hotbar then return end
+    local hotbar = G.player.hotbar
 
     -- Calculate hotbar position
     local slot_size = 60
     local hotbar_y = screen_height - 80
-    local hotbar_x = (screen_width - (inv.hotbar_size * slot_size)) / 2
-    local hotbar_width = inv.hotbar_size * slot_size
+    local hotbar_x = (screen_width - (hotbar.size * slot_size)) / 2
+    local hotbar_width = hotbar.size * slot_size
 
     -- Health bar dimensions and position
     local health_bar_height = BLOCK_SIZE / 4  -- 1/4 BLOCK_SIZE high
