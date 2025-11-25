@@ -152,8 +152,7 @@ function ChatSystem.process_input(self, input)
                 table.insert(args, command_parts[i])
             end
 
-            local debug = s.get("debug")
-            if debug and debug.enabled then
+            if G.debug and G.debug.enabled then
                 -- Add input to history
                 self:add_message("> " .. input)
                 -- Execute command
