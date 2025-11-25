@@ -126,9 +126,9 @@ function Player.update(self, dt)
         G.world, pos, vel, self.width, self.height, velocity_modifier, dt
     )
 
-    if not landed then
-        pos.y = new_y
-    end
+    -- Always update position - apply_vertical_movement returns the correct y position
+    -- whether on ground (snapped to ground) or in air (new_y from movement)
+    pos.y = new_y
 
     on_ground = landed
 
