@@ -26,9 +26,9 @@ function VectorComponent.update(self, dt, entity)
     if not self.enabled then
         return
     end
-    -- Apply velocity to position component if it exists
-    -- self is the velocity component (entity.velocity)
-    if entity and entity.position then
+    -- Only apply velocity if this component IS the velocity component
+    -- This prevents position component from incorrectly moving itself
+    if entity and entity.velocity == self and entity.position then
         entity.position.x = entity.position.x + self.x * dt
         entity.position.y = entity.position.y + self.y * dt
     end
