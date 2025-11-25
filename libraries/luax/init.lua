@@ -1,7 +1,9 @@
 -- Lua eXtended
 
-require "libraries.luax.id"
-require "libraries.luax.math"
-require "libraries.luax.random"
-require "libraries.luax.string"
-require "libraries.luax.table"
+local here = (...):gsub("%.init$", "") .. "."
+-- independant of folder structure
+require(here .. "id")
+require(here .. "math")
+require(here .. "random")
+require(here .. "string")
+require(here .. "table")
