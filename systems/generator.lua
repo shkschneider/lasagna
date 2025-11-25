@@ -1,11 +1,12 @@
 local noise = require "core.noise"
 local generator = require "core.generator"
+local Love = require "core.love"
 local Object = require "core.object"
 
 -- GeneratorSystem handles asynchronous world column generation
 -- using coroutines with priority queues for visible vs background columns
 
-local GeneratorSystem = Object.new {
+local GeneratorSystem = Object {
     id = "generator",
     priority = 5,  -- Run before WorldSystem (priority 10)
     -- Coroutine-based column generation
@@ -26,7 +27,7 @@ function GeneratorSystem.load(self, seed, _)
     self.queued_columns = {}
     self.active_coroutines = {}
 
-    Object.load(self)
+    Love.load(self)
 end
 
 function GeneratorSystem.update(self, dt)
@@ -104,7 +105,7 @@ function GeneratorSystem.update(self, dt)
         end
     end
 
-    Object.update(self, dt)
+    Love.update(self, dt)
 end
 
 -- Generate a single column immediately without yielding (for initial spawn area)

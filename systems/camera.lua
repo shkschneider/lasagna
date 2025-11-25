@@ -1,7 +1,8 @@
+local Love = require "core.love"
 local Object = require "core.object"
 local VectorComponent = require "components.vector"
 
-local CameraSystem = Object.new {
+local CameraSystem = Object {
     id = "camera",
     priority = 90,
 }
@@ -11,6 +12,7 @@ function CameraSystem.load(self)
     self.position = VectorComponent.new(x, y, nil)
     self.target = VectorComponent.new(0, 0, nil)
     self.smoothness = 5
+    Love.load(self)
 end
 
 function CameraSystem.update(self, dt)
@@ -32,6 +34,8 @@ function CameraSystem.update(self, dt)
 
     self.position.x = self.position.x + dx * alpha
     self.position.y = self.position.y + dy * alpha
+
+    Love.update(self, dt)
 end
 
 function CameraSystem.get_offset(self)

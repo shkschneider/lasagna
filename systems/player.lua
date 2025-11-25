@@ -1,3 +1,4 @@
+local Love = require "core.love"
 local Object = require "core.object"
 local VectorComponent = require "components.vector"
 local StackComponent = require "components.stack"
@@ -15,7 +16,7 @@ local ITEMS = Registry.items()
 local HOTBAR_SIZE = 9
 local BACKPACK_SIZE = 27  -- 3 rows of 9
 
-local PlayerSystem = Object.new {
+local PlayerSystem = Object {
     id = "player",
     priority = 20,
     -- Movement constants TODO control?
@@ -73,7 +74,7 @@ function PlayerSystem.load(self)
         self.hotbar:set_slot(3, StackComponent.new(ITEMS.ROCKET_LAUNCHER, 1, "item"))
     end
 
-    Object.load(self)
+    Love.load(self)
 end
 
 function PlayerSystem.update(self, dt)
@@ -83,12 +84,7 @@ function PlayerSystem.update(self, dt)
 
     -- Call component updates via Object recursion
     -- This handles stamina regen, health regen (if enabled), and damage_timer
-    Object.update(self, dt)
-
-    -- Delegate to control system for take handling
-    if self.control then
-        self.control:update(dt)
-    end
+    Love.update(self, dt)
 
     -- Check if on ground first (using physics system)
     local on_ground = PhysicsSystem.is_on_ground(G.world, pos, self.width, self.height)
@@ -185,7 +181,7 @@ function PlayerSystem.draw(self)
             self.height)
     end
 
-    Object.draw(self)
+    Love.draw(self)
 end
 
 function PlayerSystem.can_switch_layer(self, target_layer)

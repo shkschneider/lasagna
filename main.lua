@@ -22,7 +22,7 @@ STACK_SIZE = 64
 
 -- love2d
 
-local Object = require "core.object"
+local Love = require "core.love"
 local GameStateComponent = require "components.gamestate"
 
 function love.load()
@@ -46,7 +46,7 @@ function love.update(dt)
     if G.time.paused then return end
     if G.player and G.player:is_dead() then return end
     dt = dt * G.time.scale
-    Object.update(G, dt)
+    Love.update(G, dt)
 end
 
 function love.draw()
@@ -59,7 +59,7 @@ function love.draw()
     end
 
     -- In other states, draw game world
-    Object.draw(G)
+    Love.draw(G)
 
     -- In PAUSE state, overlay the menu on top
     if state == GameStateComponent.PAUSE then
@@ -94,7 +94,7 @@ function love.keypressed(key)
         return
     end
 
-    Object.keypressed(G, key)
+    Love.keypressed(G, key)
 end
 
 function love.keyreleased(key)
@@ -102,7 +102,7 @@ function love.keyreleased(key)
     if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
         return
     end
-    Object.keyreleased(G, key)
+    Love.keyreleased(G, key)
 end
 
 function love.mousepressed(x, y, button)
@@ -110,7 +110,7 @@ function love.mousepressed(x, y, button)
     if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
         return
     end
-    Object.mousepressed(G, x, y, button)
+    Love.mousepressed(G, x, y, button)
 end
 
 function love.mousereleased(x, y, button)
@@ -118,7 +118,7 @@ function love.mousereleased(x, y, button)
     if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
         return
     end
-    Object.mousereleased(G, x, y, button)
+    Love.mousereleased(G, x, y, button)
 end
 
 function love.mousemoved(x, y, dx, dy)
@@ -126,7 +126,7 @@ function love.mousemoved(x, y, dx, dy)
     if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
         return
     end
-    Object.mousemoved(G, x, y, dx, dy)
+    Love.mousemoved(G, x, y, dx, dy)
 end
 
 function love.wheelmoved(x, y)
@@ -134,7 +134,7 @@ function love.wheelmoved(x, y)
     if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
         return
     end
-    Object.wheelmoved(G, x, y)
+    Love.wheelmoved(G, x, y)
 end
 
 function love.textinput(text)
@@ -142,17 +142,17 @@ function love.textinput(text)
     if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
         return
     end
-    Object.textinput(G, text)
+    Love.textinput(G, text)
 end
 
 function love.resize(width, height)
-    Object.resize(G, width, height)
+    Love.resize(G, width, height)
 end
 
 function love.focus(focused)
-    Object.focus(G, focused)
+    Love.focus(G, focused)
 end
 
 function love.quit()
-    Object.quit(G)
+    Love.quit(G)
 end

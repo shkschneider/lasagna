@@ -1,7 +1,8 @@
+local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
 
-local InterfaceSystem = Object.new {
+local InterfaceSystem = Object {
     id = "ui",
     priority = 110,
 }
@@ -109,6 +110,8 @@ function InterfaceSystem.draw(self)
             love.graphics.print(text, (screen_width - text_width) / 2, hotbar_y - 40)
         end
     end
+
+    Love.draw(self)
 end
 
 -- Draw cursor highlight for block under cursor

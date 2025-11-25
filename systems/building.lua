@@ -1,8 +1,9 @@
+local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 
-local BuildingSystem = Object.new {
+local BuildingSystem = Object {
     id = "building",
     priority = 61,
 }
@@ -27,6 +28,8 @@ function BuildingSystem.mousepressed(self, x, y, button)
 
     -- Right click: place block
     self:place_block(col, row)
+
+    Love.mousepressed(self, x, y, button)
 end
 
 function BuildingSystem.has_adjacent_block(self, col, row, layer)

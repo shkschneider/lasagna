@@ -26,7 +26,7 @@ local Object = require "core.object"
 local serializer = require "libraries.bakpakin.binser"
 local StackComponent = require "components.stack"
 
-local SaveSystem = Object.new {
+local SaveSystem = Object {
     id = "save",
     priority = 200,  -- Low priority, runs after game logic
     SAVE_DIR = "",  -- Prefix for save path (love.filesystem uses save directory by default)

@@ -1,9 +1,10 @@
+local Love = require "core.love"
 local Object = require "core.object"
 local WorldDataComponent = require "components.worlddata"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 
-local WorldSystem = Object.new {
+local WorldSystem = Object {
     id = "world",
     priority = 10,
     HEIGHT = 512,
@@ -16,20 +17,12 @@ function WorldSystem.load(self, seed, _)
     Log.info("World:", self.worlddata.seed)
     self.generator = require("systems.generator")
 
-    -- Load the generator first (seeds the noise, resets queues)
-    -- This must happen before pregenerate_spawn_area
-    self.generator:load(seed, nil)
-
     -- Create canvases for layer rendering
     self:create_canvases()
 
-    -- Pre-generate spawn area columns (32 to left and right of spawn)
-    -- This ensures player doesn't spawn in the air waiting for terrain
-    self.generator:pregenerate_spawn_area()
 
-    -- Note: We don't call Object.load(self) here because we already loaded
-    -- the generator manually above. Object.load would try to load it again
-    -- with the same parameters, which is safe but redundant.
+    Love.load(self)
+    self.generator:pregenerate_spawn_area()
 end
 
 function WorldSystem.create_canvases(self)
@@ -42,7 +35,7 @@ function WorldSystem.create_canvases(self)
 end
 
 function WorldSystem.update(self, dt)
-    Object.update(self, dt)
+    Love.update(self, dt)
 end
 
 function WorldSystem.draw(self)
@@ -165,7 +158,7 @@ function WorldSystem.draw(self)
     -- Reset blend mode to default
     love.graphics.setBlendMode("alpha")
 
-    Object.draw(self)
+    Love.draw(self)
 end
 
 -- Check if a location is valid for building
@@ -299,7 +292,7 @@ end
 
 function WorldSystem.resize(self, width, height)
     self:create_canvases()
-    Object.resize(self, width, height)
+    Love.resize(self, width, height)
 end
 
 return WorldSystem

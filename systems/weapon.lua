@@ -1,8 +1,9 @@
+local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
 local ITEMS = Registry.items()
 
-local WeaponSystem = Object.new {
+local WeaponSystem = Object {
     id = "weapon",
     priority = 62,
     cooldown = 0,
@@ -12,6 +13,7 @@ local WeaponSystem = Object.new {
 function WeaponSystem.load(self)
     self.cooldown = 0
     self.mouse_held = false
+    Love.load(self)
 end
 
 function WeaponSystem.update(self, dt)
@@ -24,6 +26,8 @@ function WeaponSystem.update(self, dt)
     if self.mouse_held and self.cooldown <= 0 then
         self:try_shoot()
     end
+
+    Love.update(self, dt)
 end
 
 function WeaponSystem.try_shoot(self)
@@ -89,12 +93,14 @@ function WeaponSystem.mousepressed(self, x, y, button)
             self:try_shoot()
         end
     end
+    Love.mousepressed(self, x, y, button)
 end
 
 function WeaponSystem.mousereleased(self, x, y, button)
     if button == 1 then
         self.mouse_held = false
     end
+    Love.mousereleased(self, x, y, button)
 end
 
 return WeaponSystem

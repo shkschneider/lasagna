@@ -1,8 +1,9 @@
+local Love = require "core.love"
 local Object = require "core.object"
 local TimeComponent = require "components.time"
 local GameStateComponent = require "components.gamestate"
 
-local Game = {
+local Game = Object {
     priority = 0,
     state = GameStateComponent.new(GameStateComponent.BOOT),
     time = TimeComponent.new(1),
@@ -33,7 +34,7 @@ function Game.load(self, seed, debug)
         G.debug.enabled = debug
     end
     self:switch(GameStateComponent.LOAD)
-    Object.load(self, seed, debug)
+    Love.load(self, seed, debug)
     self:switch(GameStateComponent.PLAY)
 end
 
@@ -42,7 +43,7 @@ function Game.reload(self)
     local debug = G.debug.enabled or false
     self = require "core.game"
     self:switch(GameStateComponent.LOAD)
-    Object.load(self, seed, debug)
+    Love.load(self, seed, debug)
     self:switch(GameStateComponent.PLAY)
 end
 

@@ -1,9 +1,4 @@
--- EntitySystem: Unified entity manager
--- An entity is defined as an Object with at least:
---   - position: VectorComponent (x, y, z)
---   - velocity: VectorComponent (vx, vy)
--- Gravity applies to all entities via PhysicsSystem
-
+local Love = require "core.love"
 local Object = require "core.object"
 local VectorComponent = require "components.vector"
 local PhysicsSystem = require "systems.physics"
@@ -12,7 +7,7 @@ local ItemDropComponent = require "components.itemdrop"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 
-local EntitySystem = Object.new {
+local EntitySystem = Object {
     id = "entity",
     priority = 60,  -- After player (20), before interface
     entities = {},
@@ -43,6 +38,7 @@ function EntitySystem.load(self)
     -- Initialize constants that depend on globals
     PICKUP_RANGE = BLOCK_SIZE
     MERGE_RANGE = BLOCK_SIZE
+    Love.load(self)
 end
 
 -- Create a new entity with required components (position and velocity)
@@ -124,7 +120,7 @@ function EntitySystem.update(self, dt)
 
         -- Call component updates via Object recursion
         -- This handles entity-specific logic (lifetime, etc.)
-        Object.update(ent, dt)
+        Love.update(ent, dt)
 
         -- Type-specific system coordination
         if ent.type == EntitySystem.TYPE_BULLET then
@@ -133,6 +129,7 @@ function EntitySystem.update(self, dt)
             self:updateDrop(ent, i, player_x, player_y, player_z)
         end
     end
+    -- Do NOT Love.update
 end
 
 -- Bullet-specific update logic (system coordination)
@@ -272,6 +269,7 @@ function EntitySystem.draw(self)
         elseif ent.type == EntitySystem.TYPE_DROP and ent.drop then
             ent.drop:draw(ent, camera_x, camera_y)
         end
+        Love.draw(ent)
     end
 
     -- Reset color

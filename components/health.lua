@@ -3,7 +3,7 @@
 
 local Object = require "core.object"
 
-local HealthComponent = Object.new {}
+local HealthComponent = {}
 
 -- Constants
 HealthComponent.DAMAGE_DISPLAY_DURATION = 0.5

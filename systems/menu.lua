@@ -12,10 +12,11 @@
 --   3 Load Game (only if save exists)
 --   4 Quit
 
+local Love = require "core.love"
 local Object = require "core.object"
 local GameStateComponent = require "components.gamestate"
 
-local MenuSystem = Object.new {
+local MenuSystem = Object {
     id = "menu",
     priority = 150,  -- High priority, draws on top of everything
 }
@@ -29,8 +30,8 @@ function MenuSystem.get_main_menu_items(self)
     -- Continue (only if save exists)
     local save_exists = G.save:exists()
     table.insert(items, {
-        keys = { "1", "c" },
-        label = "Continue",
+        key = "c",
+        label = "[C] ontinue",
         enabled = save_exists,
         action = function()
             -- Load save data first to get the seed
@@ -47,8 +48,8 @@ function MenuSystem.get_main_menu_items(self)
 
     -- New Game
     table.insert(items, {
-        keys = { "2", "n" },
-        label = "New Game",
+        key = "n",
+        label = "[N] ew Game",
         enabled = true,
         action = function()
             -- Start new game with random seed
@@ -60,8 +61,8 @@ function MenuSystem.get_main_menu_items(self)
 
     -- Quit
     table.insert(items, {
-        keys = { "3", "q" },
-        label = "Quit",
+        key = "q",
+        label = "[Q] uit",
         enabled = true,
         action = function()
             G:switch(GameStateComponent.QUIT)
@@ -78,8 +79,8 @@ function MenuSystem.get_pause_menu_items(self)
 
     -- Continue
     table.insert(items, {
-        keys = { "1", "c" },
-        label = "Continue",
+        key = "c",
+        label = "[C] ontinue",
         enabled = true,
         action = function()
             G:switch(GameStateComponent.PLAY)
@@ -88,8 +89,8 @@ function MenuSystem.get_pause_menu_items(self)
 
     -- Save Game
     table.insert(items, {
-        keys = { "2", "s" },
-        label = "Save Game",
+        key = "s",
+        label = "[S] ave Game",
         enabled = true,
         action = function()
             G.save:save()
@@ -100,8 +101,8 @@ function MenuSystem.get_pause_menu_items(self)
     -- Load Game (only if save exists)
     local save_exists = G.save:exists()
     table.insert(items, {
-        keys = { "3", "l" },
-        label = "Load Game",
+        key = "l",
+        label = "[L] oad Game",
         enabled = save_exists,
         action = function()
             local save_data = G.save:load()
@@ -117,8 +118,8 @@ function MenuSystem.get_pause_menu_items(self)
 
     -- Quit
     table.insert(items, {
-        keys = { "4", "q" },
-        label = "Quit",
+        key = "q",
+        label = "[Q] uit",
         enabled = true,
         action = function()
             -- TODO save
@@ -175,7 +176,7 @@ function MenuSystem.draw(self)
     -- Draw menu items
     for i, item in ipairs(items) do
         local y = start_y + i * line_height
-        local text = table.concat(item.keys) .. " " .. item.label
+        local text = item.label
 
         if item.enabled then
             love.graphics.setColor(1, 1, 1, 1)
@@ -186,6 +187,8 @@ function MenuSystem.draw(self)
         local text_width = font:getWidth(text)
         love.graphics.print(text, (screen_width - text_width) / 2, y)
     end
+
+    Love.draw(self)
 end
 
 -- Handle keyboard input for menu
@@ -207,11 +210,13 @@ function MenuSystem.keypressed(self, key)
 
     -- Find matching item
     for _, item in ipairs(items) do
-        if table.has_value(item.keys, key) and item.enabled and item.action then
+        if item.key == key and item.enabled and item.action then
             item.action()
             return
         end
     end
+
+    Love.keypressed(self, key)
 end
 
 return MenuSystem
