@@ -3,7 +3,6 @@
 --   - position: VectorComponent (x, y, z)
 --   - velocity: VectorComponent (vx, vy)
 -- Gravity applies to all entities via PhysicsSystem
--- Note: Requires global uuid() from libraries.luax (loaded at game startup)
 
 local Object = require "core.object"
 local VectorComponent = require "components.vector"
@@ -50,7 +49,7 @@ end
 -- All entities have position and velocity VectorComponents
 function EntitySystem.newEntity(self, x, y, layer, vx, vy, entity_type, gravity, friction)
     local entity = {
-        id = uuid(),
+        id = id(),
         type = entity_type,
         position = VectorComponent.new(x, y, layer),
         velocity = VectorComponent.new(vx or 0, vy or 0),

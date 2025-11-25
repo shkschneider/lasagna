@@ -68,7 +68,7 @@ An **entity** is an Object with at minimum:
 
 ```lua
 local entity = {
-    id = uuid(),
+    id = id(),
     position = VectorComponent.new(100, 200, 0),
     velocity = VectorComponent.new(0, 0),
     gravity = PhysicsSystem.DEFAULT_GRAVITY,

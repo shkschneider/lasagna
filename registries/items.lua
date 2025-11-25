@@ -5,7 +5,7 @@ local ItemsRegistry = {}
 
 -- Register a new block type
 function ItemsRegistry.register(self, definition)
-    definition.id = definition.id or uuid()
+    definition.id = definition.id or id()
     assert(not self:exists(definition.id))
     self[definition.id] = definition
     return definition.id

@@ -95,6 +95,7 @@ table.unique({1, 2, 2, 3, 3})   -- {1, 2, 3}
 Identifier generation:
 
 ```lua
+id()    -- Generate a 7-hex short string
 uuid()  -- Generate a UUID v4 string
 ```
 

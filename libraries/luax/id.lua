@@ -1,5 +1,20 @@
 -- Lua eXtended -- id
 
+if not id then
+    function id()
+        local template = 'xxxxxxx'
+        return string.gsub(template, 'x', function (c)
+            return string.format('%x', math.random(0, 0xf))
+        end)
+    end
+end
+-- Benchmark:
+-- local t1 = love.timer.getTime()
+-- for n = 1, 420000 do
+--     id()
+-- end
+-- print(string.format("%f", love.timer.getTime() - t1))
+
 -- good-enough identifiers
 if not uuid then
     function uuid()
@@ -11,8 +26,8 @@ if not uuid then
     end
 end
 -- Benchmark:
--- local t1 = love.timer.getTime()
+-- local t2 = love.timer.getTime()
 -- for n = 1, 420000 do
 --     uuid()
 -- end
--- print(string.format("%f", love.timer.getTime() - t1))
+-- print(string.format("%f", love.timer.getTime() - t2))
