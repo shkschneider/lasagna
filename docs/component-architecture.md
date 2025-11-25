@@ -56,10 +56,25 @@ Components update/draw in priority order (lowest to highest):
 
 ## Component Types
 
+### VectorComponent (Position and Velocity)
+
+VectorComponent is used for both position and velocity vectors:
+- **Position**: Uses `x`, `y`, `z` fields for world coordinates
+- **Velocity**: Uses `x`, `y` fields for horizontal and vertical velocity (z not used)
+
+```lua
+-- Position vector
+position = VectorComponent.new(world_x, world_y, layer)
+
+-- Velocity vector
+velocity = VectorComponent.new()  -- x=0, y=0
+velocity.x = 100  -- horizontal velocity
+velocity.y = -50  -- vertical velocity (negative = upward)
+```
+
 ### State Components (Data-only)
 
 Some components are pure data containers without update/draw logic:
-- Position: World coordinates (x, y, z)
 - Layer: Current layer information
 - Inventory: Item storage
 
@@ -68,10 +83,10 @@ Some components are pure data containers without update/draw logic:
 Components with update() methods that modify entity state:
 - **Health**: Health regeneration over time
 - **Stamina**: Stamina regeneration over time
-- **Physics**: Applies gravity to velocity
-- **Velocity**: Applies velocity to position
-- **Bullet**: Lifetime countdown and death marking
-- **Drop**: Pickup delay and lifetime countdown
+- **Physics**: Applies gravity to velocity (modifies velocity.y)
+- **Velocity (VectorComponent)**: Applies velocity to position
+- **Bullet (ProjectileComponent)**: Lifetime countdown and death marking
+- **Drop (ItemDropComponent)**: Pickup delay and lifetime countdown
 
 ### Systems with Physics Logic
 
@@ -121,21 +136,32 @@ This pattern keeps UI rendering logic with the data it displays, while still all
 
 ### Simple Entities (Full Component-based)
 
-Bullets and drops use full component-based updates:
+Bullets and drops are managed by the unified EntitySystem and use full component-based updates:
 
 ```lua
-local bullet_entity = {
-    position = Position.new(x, y, layer),
-    velocity = Velocity.new(vx, vy),
-    physics = Physics.new(gravity, friction),
-    bullet = Bullet.new(damage, lifetime, width, height, color),
+-- Entity creation via EntitySystem
+local drop = G.entity:newDrop(x, y, layer, block_id, count)
+local bullet = G.entity:newBullet(x, y, layer, vx, vy, width, height, color, gravity, destroys_blocks)
+
+-- Internally, entities are composed of:
+local entity = {
+    type = EntitySystem.TYPE_DROP,  -- or TYPE_BULLET
+    position = VectorComponent.new(x, y, layer),
+    velocity = VectorComponent.new(),  -- x/y velocity fields
+    physics = PhysicsComponent.new(gravity, friction),
+    drop = ItemDropComponent.new(block_id, count, lifetime, pickup_delay),
+    -- or: bullet = ProjectileComponent.new(damage, lifetime, width, height, color, destroys_blocks),
+    width = BLOCK_SIZE / 2,
+    height = BLOCK_SIZE / 2,
 }
 
 -- In system update:
-Object.update(bullet_entity, dt)  -- Recursively calls all component updates
+Object.update(entity, dt)  -- Recursively calls all component updates
+EntitySystem:update_entity_physics(entity, dt)  -- Shared physics handling
 
 -- In system draw:
-bullet_entity.bullet:draw(bullet_entity, camera_x, camera_y)
+entity.drop:draw(entity, camera_x, camera_y)
+-- or: entity.bullet:draw(entity, camera_x, camera_y)
 ```
 
 ### Complex Entities (Selective Component Usage)
@@ -173,31 +199,35 @@ Systems do NOT:
 - Implement per-entity rendering (moved to components)
 - Implement per-entity behavior (moved to components)
 
-### Example: BulletSystem
+### Example: EntitySystem
+
+The EntitySystem is a unified system that manages all non-player entities (drops, bullets, etc.).
+It replaces the separate DropSystem and BulletSystem with shared entity management logic.
 
 ```lua
-function BulletSystem.update(self, dt)
+function EntitySystem.update(self, dt)
     for i = #self.entities, 1, -1 do
         local ent = self.entities[i]
 
-        -- Component updates (physics, velocity, bullet lifetime)
+        -- Component updates (physics, velocity, type-specific lifetime)
         Object.update(ent, dt)
 
-        -- System coordination: collision detection
-        local col, row = G.world:world_to_block(ent.position.x, ent.position.y)
-        local block_def = G.world:get_block_def(ent.position.z, col, row)
+        -- Physics-based collision using PhysicsSystem utilities
+        self:update_entity_physics(ent, dt)
 
-        if block_def and block_def.solid then
-            -- System coordination: handle collision effects
-            -- (block destruction, drop spawning, etc.)
-            table.remove(self.entities, i)
-        elseif ent.bullet.dead then
-            -- Remove if marked dead by component
-            table.remove(self.entities, i)
+        -- Type-specific coordination
+        if ent.type == EntitySystem.TYPE_DROP then
+            -- Handle drop pickup and merging
+        elseif ent.type == EntitySystem.TYPE_BULLET then
+            -- Handle bullet collision and block destruction
         end
     end
 end
 ```
+
+Entities are created with a type field that determines their behavior:
+- `EntitySystem.TYPE_DROP`: Item drops with pickup and merging logic
+- `EntitySystem.TYPE_BULLET`: Projectiles with block collision and destruction
 
 ## Object System
 
