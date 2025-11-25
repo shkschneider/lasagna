@@ -3,6 +3,7 @@ GameStateComponent.__index = GameStateComponent
 
 GameStateComponent.BOOT = "boot"
 GameStateComponent.LOAD = "load"
+GameStateComponent.MENU = "menu"
 GameStateComponent.PLAY = "play"
 GameStateComponent.PAUSE = "pause"
 GameStateComponent.DEAD = "dead"

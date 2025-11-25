@@ -28,13 +28,21 @@ local GameStateComponent = require "components.gamestate"
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     local debug = os.getenv("DEBUG") and (os.getenv("DEBUG") == "true") or (G.VERSION.major < 1)
-    local seed = tonumber(os.getenv("SEED") or os.time())
     Log.level = debug and "debug" or "warn"
     Log.info(G.NAME, G.VERSION:tostring())
-    G:load(seed, debug)
+    G.debug.enabled = debug
+    -- Start in MENU state - game systems not loaded yet
+    G:switch(GameStateComponent.MENU)
 end
 
 function love.update(dt)
+    local state = G.state.current
+
+    -- Don't update game systems in MENU or PAUSE state
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+        return
+    end
+
     if G.time.paused then return end
     if G.player and G.player:is_dead() then return end
     dt = dt * G.time.scale
@@ -42,39 +50,98 @@ function love.update(dt)
 end
 
 function love.draw()
+    local state = G.state.current
+
+    -- In MENU state, only draw menu (black background with options)
+    if state == GameStateComponent.MENU then
+        G.menu:draw()
+        return
+    end
+
+    -- In other states, draw game world
     Object.draw(G)
+
+    -- In PAUSE state, overlay the menu on top
+    if state == GameStateComponent.PAUSE then
+        G.menu:draw()
+    end
 end
 
 function love.keypressed(key)
+    local state = G.state.current
+
+    -- Handle escape key for pause toggle
     if key == "escape" then
-        G:switch(GameStateComponent.QUIT)
-        love.event.quit()
+        if state == GameStateComponent.PLAY then
+            -- Pause the game
+            G:switch(GameStateComponent.PAUSE)
+            return
+        elseif state == GameStateComponent.PAUSE then
+            -- Resume the game
+            G:switch(GameStateComponent.PLAY)
+            return
+        elseif state == GameStateComponent.MENU then
+            -- In main menu, quit
+            G:switch(GameStateComponent.QUIT)
+            love.event.quit()
+            return
+        end
+    end
+
+    -- Handle menu input
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+        G.menu:keypressed(key)
         return
     end
+
     Object.keypressed(G, key)
 end
 
 function love.keyreleased(key)
+    local state = G.state.current
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+        return
+    end
     Object.keyreleased(G, key)
 end
 
 function love.mousepressed(x, y, button)
+    local state = G.state.current
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+        return
+    end
     Object.mousepressed(G, x, y, button)
 end
 
 function love.mousereleased(x, y, button)
+    local state = G.state.current
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+        return
+    end
     Object.mousereleased(G, x, y, button)
 end
 
 function love.mousemoved(x, y, dx, dy)
+    local state = G.state.current
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+        return
+    end
     Object.mousemoved(G, x, y, dx, dy)
 end
 
 function love.wheelmoved(x, y)
+    local state = G.state.current
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+        return
+    end
     Object.wheelmoved(G, x, y)
 end
 
 function love.textinput(text)
+    local state = G.state.current
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+        return
+    end
     Object.textinput(G, text)
 end
 
