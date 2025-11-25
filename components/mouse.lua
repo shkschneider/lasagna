@@ -1,9 +1,9 @@
 -- MouseState component
 -- Mouse input state
 
-local Mouse = {}
+local MouseComponent = {}
 
-function Mouse.new()
+function MouseComponent.new()
     return {
         id = "mouse",
         x = 0,
@@ -15,4 +15,4 @@ function Mouse.new()
     }
 end
 
-return Mouse
+return MouseComponent

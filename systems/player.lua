@@ -1,18 +1,18 @@
 local Object = require "core.object"
 local VectorComponent = require "components.vector"
 local PhysicsComponent = require "components.physics"
-local Layer = require "components.layer"
-local Inventory = require "components.inventory"
-local Omnitool = require "components.omnitool"
-local Stance = require "components.stance"
-local Health = require "components.health"
-local Stamina = require "components.stamina"
+local LayerComponent = require "components.layer"
+local InventoryComponent = require "components.inventory"
+local OmnitoolComponent = require "components.omnitool"
+local StanceComponent = require "components.stance"
+local HealthComponent = require "components.health"
+local StaminaComponent = require "components.stamina"
 local PhysicsSystem = require "systems.physics"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
-local Player = Object.new {
+local PlayerSystem = Object.new {
     id = "player",
     priority = 20,
     -- Movement constants TODO control?
@@ -28,7 +28,7 @@ local Player = Object.new {
     STAMINA_JUMP_COST = 5,   -- per jump
 }
 
-function Player.load(self)
+function PlayerSystem.load(self)
     local x, y, z = G.world:find_spawn_position(LAYER_DEFAULT)
 
     -- Initialize player components
@@ -43,14 +43,14 @@ function Player.load(self)
     self.height = BLOCK_SIZE * 2
     -- Visual properties for rendering
     self.color = { 1, 1, 1, 1 }
-    self.layer = Layer.new(layer)
-    self.inventory = Inventory.new()
-    self.omnitool = Omnitool.new()
-    self.stance = Stance.new(Stance.STANDING)
+    self.layer = LayerComponent.new(layer)
+    self.inventory = InventoryComponent.new()
+    self.omnitool = OmnitoolComponent.new()
+    self.stance = StanceComponent.new(StanceComponent.STANDING)
     self.stance.crouched = false
-    self.health = Health.new(100, 100)
+    self.health = HealthComponent.new(100, 100)
     -- Health regen disabled by default (0 regen_rate)
-    self.stamina = Stamina.new(100, 100, Player.STAMINA_REGEN_RATE)
+    self.stamina = StaminaComponent.new(100, 100, PlayerSystem.STAMINA_REGEN_RATE)
 
     -- Fall damage tracking
     self.fall_start_y = nil
@@ -79,7 +79,7 @@ function Player.load(self)
     Object.load(self)
 end
 
-function Player.update(self, dt)
+function PlayerSystem.update(self, dt)
     local pos = self.position
     local vel = self.velocity
     local phys = self.physics
@@ -141,9 +141,9 @@ function Player.update(self, dt)
             local fall_distance = pos.y - self.fall_start_y
             local fall_blocks = fall_distance / BLOCK_SIZE
             -- Safe fall is 4 blocks (2x player height, since player is 2 blocks tall)
-            if fall_blocks > Player.SAFE_FALL_BLOCKS then
-                local excess_blocks = fall_blocks - Player.SAFE_FALL_BLOCKS
-                local damage = math.floor(excess_blocks * Player.FALL_DAMAGE_PER_BLOCK)
+            if fall_blocks > PlayerSystem.SAFE_FALL_BLOCKS then
+                local excess_blocks = fall_blocks - PlayerSystem.SAFE_FALL_BLOCKS
+                local damage = math.floor(excess_blocks * PlayerSystem.FALL_DAMAGE_PER_BLOCK)
                 if damage > 0 then
                     self:hit(damage)
                 end
@@ -151,22 +151,22 @@ function Player.update(self, dt)
             self.fall_start_y = nil
         end
 
-        if stance.current == Stance.JUMPING or stance.current == Stance.FALLING then
-            stance.current = Stance.STANDING
+        if stance.current == StanceComponent.JUMPING or stance.current == StanceComponent.FALLING then
+            stance.current = StanceComponent.STANDING
         end
     else
         -- In air - update based on vertical velocity
         if vel.y > 0 then
             -- Moving downward - falling
-            if stance.current == Stance.JUMPING or stance.current == Stance.STANDING then
-                stance.current = Stance.FALLING
+            if stance.current == StanceComponent.JUMPING or stance.current == StanceComponent.STANDING then
+                stance.current = StanceComponent.FALLING
             end
         end
         -- Keep JUMPING stance while moving upward (vel.y < 0)
     end
 end
 
-function Player.draw(self)
+function PlayerSystem.draw(self)
     local pos = self.position
 
     local camera_x, camera_y = G.camera:get_offset()
@@ -193,7 +193,7 @@ function Player.draw(self)
     Object.draw(self)
 end
 
-function Player.can_switch_layer(self, target_layer)
+function PlayerSystem.can_switch_layer(self, target_layer)
     if target_layer < -1 or target_layer > 1 then -- TODO constants for MIN and MAX layers
         return false
     end
@@ -202,7 +202,7 @@ function Player.can_switch_layer(self, target_layer)
 end
 
 -- Inventory management
-function Player.add_to_inventory(self, block_id, count)
+function PlayerSystem.add_to_inventory(self, block_id, count)
     local inv = self.inventory
     count = count or 1
 
@@ -252,7 +252,7 @@ function Player.add_to_inventory(self, block_id, count)
     return true
 end
 
-function Player.add_item_to_inventory(self, item_id, count)
+function PlayerSystem.add_item_to_inventory(self, item_id, count)
     local inv = self.inventory
     count = count or 1
 
@@ -302,7 +302,7 @@ function Player.add_item_to_inventory(self, item_id, count)
     return true
 end
 
-function Player.remove_from_selected(self, count)
+function PlayerSystem.remove_from_selected(self, count)
     local inv = self.inventory
     count = count or 1
     local slot = inv.slots[inv.selected_slot]
@@ -321,7 +321,7 @@ function Player.remove_from_selected(self, count)
     return removed
 end
 
-function Player.get_selected_block_id(self)
+function PlayerSystem.get_selected_block_id(self)
     local inv = self.inventory
     local slot = inv.slots[inv.selected_slot]
     if slot then
@@ -330,7 +330,7 @@ function Player.get_selected_block_id(self)
     return nil
 end
 
-function Player.upgrade(self, upOrDown)
+function PlayerSystem.upgrade(self, upOrDown)
     assert(type(upOrDown) == "number")
     if upOrDown > 0 then
         self.omnitool.tier = math.min(self.omnitool.tier + 1, self.omnitool.max)
@@ -343,19 +343,19 @@ function Player.upgrade(self, upOrDown)
     end
 end
 
-function Player.get_position(self)
+function PlayerSystem.get_position(self)
     return self.position.x, self.position.y, self.position.z
 end
 
-function Player.get_omnitool_tier(self)
+function PlayerSystem.get_omnitool_tier(self)
     return self.omnitool.tier
 end
 
-function Player.is_on_ground(self)
+function PlayerSystem.is_on_ground(self)
     return PhysicsSystem.is_on_ground(G.world, self.position, self.width, self.height)
 end
 
-function Player.can_stand_up(self)
+function PlayerSystem.can_stand_up(self)
     local pos = self.position
     local target_y = pos.y - BLOCK_SIZE / 2  -- Position after standing
     local top_y = target_y - BLOCK_SIZE  -- Top of standing height
@@ -373,7 +373,7 @@ function Player.can_stand_up(self)
     return true
 end
 
-function Player.hit(self, damage)
+function PlayerSystem.hit(self, damage)
     if not self.health then
         return
     end
@@ -382,14 +382,14 @@ function Player.hit(self, damage)
     self.health.current = math.max(0, self.health.current - damage)
 
     -- Set damage timer for visual effect
-    self.damage_timer = Player.DAMAGE_DISPLAY_DURATION
+    self.damage_timer = PlayerSystem.DAMAGE_DISPLAY_DURATION
 end
 
-function Player.is_dead(self)
+function PlayerSystem.is_dead(self)
     return self.health and self.health.current <= 0
 end
 
-function Player.consume_stamina(self, amount)
+function PlayerSystem.consume_stamina(self, amount)
     if not self.stamina then
         return false
     end
@@ -402,8 +402,8 @@ function Player.consume_stamina(self, amount)
     return false
 end
 
-function Player.has_stamina(self, amount)
+function PlayerSystem.has_stamina(self, amount)
     return self.stamina and self.stamina.current >= amount
 end
 
-return Player
+return PlayerSystem

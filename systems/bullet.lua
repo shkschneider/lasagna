@@ -1,7 +1,7 @@
 local Object = require "core.object"
 local VectorComponent = require "components.vector"
-local Physics = require "components.physics"
-local Projectile = require "components.projectile"
+local PhysicsComponent = require "components.physics"
+local ProjectileComponent = require "components.projectile"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 
@@ -9,29 +9,29 @@ local BULLET_DAMAGE = 10
 local BULLET_LIFETIME = 5
 local BULLET_FRICTION = 1.0  -- No friction for bullets (they maintain velocity)
 
-local Bullet = Object.new {
+local BulletSystem = Object.new {
     id = "bullet",
     priority = 65,
     entities = {},
 }
 
-function Bullet.newBullet(self, x, y, layer, vx, vy, width, height, color, gravity, destroys_blocks)
+function BulletSystem.newBullet(self, x, y, layer, vx, vy, width, height, color, gravity, destroys_blocks)
     local entity = {
         id = uuid(),
-        position = Vector.new(x, y, layer),
-        velocity = Vector.new(vx, vy),
-        physics = Physics.new(gravity, BULLET_FRICTION),
-        bullet = Projectile.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color, destroys_blocks),
+        position = VectorComponent.new(x, y, layer),
+        velocity = VectorComponent.new(vx, vy),
+        physics = PhysicsComponent.new(gravity, BULLET_FRICTION),
+        bullet = ProjectileComponent.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color, destroys_blocks),
     }
     table.insert(self.entities, entity)
     return entity
 end
 
-function Bullet.load(self)
+function BulletSystem.load(self)
     self.entities = {}
 end
 
-function Bullet.update(self, dt)
+function BulletSystem.update(self, dt)
     for i = #self.entities, 1, -1 do
         local ent = self.entities[i]
 
@@ -80,7 +80,7 @@ function Bullet.update(self, dt)
     end
 end
 
-function Bullet.draw(self)
+function BulletSystem.draw(self)
     local camera_x, camera_y = G.camera:get_offset()
 
     for _, ent in ipairs(self.entities) do
@@ -92,4 +92,4 @@ function Bullet.draw(self)
     love.graphics.setColor(1, 1, 1, 1)
 end
 
-return Bullet
+return BulletSystem

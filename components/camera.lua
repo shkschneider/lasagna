@@ -1,9 +1,9 @@
 -- Camera component
 -- Camera state
 
-local Camera = {}
+local CameraComponent = {}
 
-function Camera.new(x, y, target_x, target_y, smoothness)
+function CameraComponent.new(x, y, target_x, target_y, smoothness)
     return {
         id = "camera",
         x = x or 0,
@@ -17,4 +17,4 @@ function Camera.new(x, y, target_x, target_y, smoothness)
     }
 end
 
-return Camera
+return CameraComponent

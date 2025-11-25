@@ -3,9 +3,9 @@
 
 local Object = require "core.object"
 
-local Health = Object.new {}
+local HealthComponent = Object.new {}
 
-function Health.new(current, max)
+function HealthComponent.new(current, max)
     local instance = {
         id = "health",
         priority = 50,  -- Components update in priority order
@@ -19,14 +19,14 @@ function Health.new(current, max)
     }
 
     -- Assign update and draw methods to instance
-    instance.update = Health.update
-    instance.draw = Health.draw
+    instance.update = HealthComponent.update
+    instance.draw = HealthComponent.draw
 
     return instance
 end
 
 -- Component update method - called automatically by Object recursion
-function Health.update(self, dt)
+function HealthComponent.update(self, dt)
     -- Health regeneration (if enabled)
     if self.regen_rate > 0 and self.current < self.max then
         self.current = math.min(self.max, self.current + self.regen_rate * dt)
@@ -34,7 +34,7 @@ function Health.update(self, dt)
 end
 
 -- Component draw method - draws health bar UI
-function Health.draw(self)
+function HealthComponent.draw(self)
     -- Get screen dimensions
     local screen_width, screen_height = love.graphics.getDimensions()
 
@@ -73,4 +73,4 @@ function Health.draw(self)
     love.graphics.rectangle("fill", health_bar_x, health_bar_y, health_fill_width, health_bar_height)
 end
 
-return Health
+return HealthComponent

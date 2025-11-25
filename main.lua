@@ -23,7 +23,7 @@ STACK_SIZE = 64
 -- love2d
 
 local Object = require "core.object"
-local GameState = require "components.gamestate"
+local GameStateComponent = require "components.gamestate"
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
@@ -47,7 +47,7 @@ end
 
 function love.keypressed(key)
     if key == "escape" then
-        G:switch(GameState.QUIT)
+        G:switch(GameStateComponent.QUIT)
         love.event.quit()
         return
     end

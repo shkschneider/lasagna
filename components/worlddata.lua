@@ -2,9 +2,9 @@
 -- World dimensions and storage
 -- World is infinite horizontally with column-based storage and generation
 
-local WorldData = {}
+local WorldDataComponent = {}
 
-function WorldData.new(seed, height)
+function WorldDataComponent.new(seed, height)
     return {
         id = "worlddata",
         seed = seed or math.floor(love.math.random() * math.inf),
@@ -21,4 +21,4 @@ function WorldData.new(seed, height)
     }
 end
 
-return WorldData
+return WorldDataComponent

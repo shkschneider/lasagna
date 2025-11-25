@@ -1,12 +1,12 @@
 local Object = require "core.object"
 local Registry = require "registries"
 
-local Chat = Object.new {
+local ChatSystem = Object.new {
     id = "chat",
     priority = 120, -- After UI (110)
 }
 
-function Chat.load(self)
+function ChatSystem.load(self)
     self.open = false
     self.input = ""
     self.history = {} -- Chat message history
@@ -16,7 +16,7 @@ function Chat.load(self)
     self.in_input_mode = false -- Whether user is typing
 end
 
-function Chat.update(self, dt)
+function ChatSystem.update(self, dt)
     -- Update message visibility timer
     if self.message_timer > 0 then
         self.message_timer = self.message_timer - dt
@@ -30,7 +30,7 @@ function Chat.update(self, dt)
     end
 end
 
-function Chat.draw(self)
+function ChatSystem.draw(self)
     if not self.open then
         return
     end
@@ -88,7 +88,7 @@ function Chat.draw(self)
     end
 end
 
-function Chat.keypressed(self, key)
+function ChatSystem.keypressed(self, key)
     -- Check if we should toggle chat
     if key == "return" then
         if not self.in_input_mode then
@@ -131,13 +131,13 @@ function Chat.keypressed(self, key)
     end
 end
 
-function Chat.textinput(self, text)
+function ChatSystem.textinput(self, text)
     if self.in_input_mode then
         self.input = self.input .. text
     end
 end
 
-function Chat.process_input(self, input)
+function ChatSystem.process_input(self, input)
     -- Check if it's a command (starts with /)
     if input:sub(1, 1) == "/" then
         local command_parts = {}
@@ -171,7 +171,7 @@ function Chat.process_input(self, input)
     end
 end
 
-function Chat.add_message(self, message)
+function ChatSystem.add_message(self, message)
     table.insert(self.history, string.format("%f: %s", love.timer.getTime(), message))
 
     -- Keep history limited
@@ -186,4 +186,4 @@ function Chat.add_message(self, message)
     end
 end
 
-return Chat
+return ChatSystem

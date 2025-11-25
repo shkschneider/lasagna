@@ -1,9 +1,9 @@
 -- Inventory component
 -- Item storage data
 
-local Inventory = {}
+local InventoryComponent = {}
 
-function Inventory.new(hotbar_size, max_stack)
+function InventoryComponent.new(hotbar_size, max_stack)
     return {
         id = "inventory",
         slots = {},
@@ -13,4 +13,4 @@ function Inventory.new(hotbar_size, max_stack)
     }
 end
 
-return Inventory
+return InventoryComponent

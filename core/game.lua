@@ -1,11 +1,11 @@
 local Object = require "core.object"
-local Time = require "components.time"
-local GameState = require "components.gamestate"
+local TimeComponent = require "components.time"
+local GameStateComponent = require "components.gamestate"
 
 local Game = {
     priority = 0,
-    state = GameState.new(GameState.BOOT),
-    time = Time.new(1),
+    state = GameStateComponent.new(GameStateComponent.BOOT),
+    time = TimeComponent.new(1),
     world = require("systems.world"),
     control = require("systems.control"),
     camera = require("systems.camera"),
@@ -23,24 +23,24 @@ local Game = {
 
 function Game.switch(self, gamestate)
     assert(gamestate)
-    self.state = GameState.new(gamestate)
+    self.state = GameStateComponent.new(gamestate)
     Log.debug(string.format("%f", love.timer.getTime()), "Game", string.upper(self.state:tostring()))
 end
 
 function Game.load(self, ...)
     G.debug.enabled = true
-    self:switch(GameState.LOAD)
+    self:switch(GameStateComponent.LOAD)
     Object.load(self, ...)
-    self:switch(GameState.PLAY)
+    self:switch(GameStateComponent.PLAY)
 end
 
 function Game.reload(self)
     local seed = G.world.worlddata.seed
     local debug = G.debug.enabled or false
     self = require "core.game"
-    self:switch(GameState.LOAD)
+    self:switch(GameStateComponent.LOAD)
     Object.load(self, seed, debug)
-    self:switch(GameState.PLAY)
+    self:switch(GameStateComponent.PLAY)
 end
 
 return Game

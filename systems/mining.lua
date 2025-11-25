@@ -6,7 +6,7 @@ local ITEMS = Registry.items()
 -- Visual constants for mining overlay
 local MINING_OVERLAY_COLOR = {0, 0, 0, 0.5} -- Black with 80% opacity
 
-local Mining = Object.new {
+local MiningSystem = Object.new {
     id = "mining",
     priority = 60,
     -- Mining state
@@ -14,7 +14,7 @@ local Mining = Object.new {
 }
 
 -- Calculate mining delay for a block based on its tier and name
-function Mining.get_mining_delay(self, omnitool_tier, proto)
+function MiningSystem.get_mining_delay(self, omnitool_tier, proto)
     local BASE = 0.25 / omnitool_tier
     if not proto or not proto.solid then
         return 0
@@ -22,11 +22,11 @@ function Mining.get_mining_delay(self, omnitool_tier, proto)
     return (proto.tier + 1) * BASE
 end
 
-function Mining.load(self)
+function MiningSystem.load(self)
     self.target = nil
 end
 
-function Mining.update(self, dt)
+function MiningSystem.update(self, dt)
     local inv = G.player.inventory
     if not love.mouse.isDown(1) or inv.slots[inv.selected_slot].item_id ~= ITEMS.OMNITOOL then
         -- TODO or mouse moved to another target
@@ -58,7 +58,7 @@ function Mining.update(self, dt)
     end
 end
 
-function Mining.start_mining(self, col, row)
+function MiningSystem.start_mining(self, col, row)
     local player_x, player_y, player_z = G.player:get_position()
     local block_id = G.world:get_block_id(player_z, col, row)
     local proto = Registry.Blocks:get(block_id)
@@ -96,11 +96,11 @@ function Mining.start_mining(self, col, row)
     }
 end
 
-function Mining.cancel_mining(self)
+function MiningSystem.cancel_mining(self)
     self.target = nil
 end
 
-function Mining.complete_mining(self)
+function MiningSystem.complete_mining(self)
     if not self.target then
         return
     end
@@ -133,7 +133,7 @@ function Mining.complete_mining(self)
 end
 
 -- Draw mining progress overlay
-function Mining.draw(self)
+function MiningSystem.draw(self)
     if not self.target then
         return
     end
@@ -165,4 +165,4 @@ function Mining.draw(self)
     love.graphics.setColor(1, 1, 1, 1)
 end
 
-return Mining
+return MiningSystem

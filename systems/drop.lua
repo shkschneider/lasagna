@@ -1,35 +1,35 @@
 local Object = require "core.object"
 local VectorComponent = require "components.vector"
-local Physics = require "components.physics"
-local ItemDrop = require "components.itemdrop"
+local PhysicsComponent = require "components.physics"
+local ItemDropComponent = require "components.itemdrop"
 local Registry = require "registries"
 
 local MERGING_ENABLED = false
 
-local Drop = Object.new {
+local DropSystem = Object.new {
     id = "drop",
     priority = 70,
     entities = {},
     -- TODO component: drop
 }
 
-function Drop.newDrop(self, x, y, layer, block_id, count)
+function DropSystem.newDrop(self, x, y, layer, block_id, count)
     local entity = {
         id = uuid(),
         position = VectorComponent.new(x, y, layer),
         velocity = VectorComponent.new((math.random() - 0.5) * 50, -50),
-        physics = Physics.new(400, 0.8),  -- gravity: 400, friction: 0.8 (more friction for drops)
-        drop = ItemDrop.new(block_id, count, 300, 0.5),
+        physics = PhysicsComponent.new(400, 0.8),  -- gravity: 400, friction: 0.8 (more friction for drops)
+        drop = ItemDropComponent.new(block_id, count, 300, 0.5),
     }
     table.insert(self.entities, entity)
     return entity
 end
 
-function Drop.load(self)
+function DropSystem.load(self)
     self.entities = {}
 end
 
-function Drop.update(self, dt)
+function DropSystem.update(self, dt)
     local PICKUP_RANGE = BLOCK_SIZE
     local MERGE_RANGE = BLOCK_SIZE
     local player_x, player_y, player_z = G.player:get_position()
@@ -117,7 +117,7 @@ function Drop.update(self, dt)
     end
 end
 
-function Drop.draw(self)
+function DropSystem.draw(self)
     local camera_x, camera_y = G.camera:get_offset()
 
     for _, ent in ipairs(self.entities) do
@@ -129,4 +129,4 @@ function Drop.draw(self)
     love.graphics.setColor(1, 1, 1, 1)
 end
 
-return Drop
+return DropSystem

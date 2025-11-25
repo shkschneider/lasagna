@@ -1,12 +1,12 @@
 local Object = require "core.object"
 local Registry = require "registries"
 
-local Interface = Object.new {
+local InterfaceSystem = Object.new {
     id = "ui",
     priority = 110,
 }
 
-function Interface.draw(self)
+function InterfaceSystem.draw(self)
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
 
@@ -108,4 +108,4 @@ function Interface.draw(self)
     end
 end
 
-return Interface
+return InterfaceSystem

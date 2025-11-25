@@ -1,6 +1,6 @@
-local Projectile = {}
+local ProjectileComponent = {}
 
-function Projectile.new(damage, lifetime, width, height, color, destroys_blocks)
+function ProjectileComponent.new(damage, lifetime, width, height, color, destroys_blocks)
     local instance = {
         id = "bullet",
         priority = 30,  -- Projectiles update after velocity
@@ -14,14 +14,14 @@ function Projectile.new(damage, lifetime, width, height, color, destroys_blocks)
     }
 
     -- Assign update and draw methods to instance
-    instance.update = Projectile.update
-    instance.draw = Projectile.draw
+    instance.update = ProjectileComponent.update
+    instance.draw = ProjectileComponent.draw
 
     return instance
 end
 
 -- Component update method - handles bullet lifetime and collision
-function Projectile.update(self, dt, entity)
+function ProjectileComponent.update(self, dt, entity)
     -- Decrease lifetime
     self.lifetime = self.lifetime - dt
     if self.lifetime <= 0 then
@@ -30,7 +30,7 @@ function Projectile.update(self, dt, entity)
 end
 
 -- Component draw method - renders bullet
-function Projectile.draw(self, entity, camera_x, camera_y)
+function ProjectileComponent.draw(self, entity, camera_x, camera_y)
     if entity and entity.position then
         local x = entity.position.x - (camera_x or 0) - self.width / 2
         local y = entity.position.y - (camera_y or 0) - self.height / 2
@@ -40,4 +40,4 @@ function Projectile.draw(self, entity, camera_x, camera_y)
     end
 end
 
-return Projectile
+return ProjectileComponent

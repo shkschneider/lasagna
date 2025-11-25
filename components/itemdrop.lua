@@ -1,6 +1,6 @@
-local ItemDrop = {}
+local ItemDropComponent = {}
 
-function ItemDrop.new(block_id, count, lifetime, pickup_delay)
+function ItemDropComponent.new(block_id, count, lifetime, pickup_delay)
     local instance = {
         id = "itemdrop",
         priority = 30,  -- ItemDrops update after velocity
@@ -12,14 +12,14 @@ function ItemDrop.new(block_id, count, lifetime, pickup_delay)
     }
 
     -- Assign update and draw methods to instance
-    instance.update = ItemDrop.update
-    instance.draw = ItemDrop.draw
+    instance.update = ItemDropComponent.update
+    instance.draw = ItemDropComponent.draw
 
     return instance
 end
 
 -- Component update method - handles drop lifetime and pickup delay
-function ItemDrop.update(self, dt, entity)
+function ItemDropComponent.update(self, dt, entity)
     -- Decrease pickup delay
     if self.pickup_delay > 0 then
         self.pickup_delay = self.pickup_delay - dt
@@ -33,7 +33,7 @@ function ItemDrop.update(self, dt, entity)
 end
 
 -- Component draw method - renders drop
-function ItemDrop.draw(self, entity, camera_x, camera_y)
+function ItemDropComponent.draw(self, entity, camera_x, camera_y)
     if entity and entity.position then
         local Registry = require "registries"
         local proto = Registry.Blocks:get(self.block_id)
@@ -64,4 +64,4 @@ function ItemDrop.draw(self, entity, camera_x, camera_y)
     end
 end
 
-return ItemDrop
+return ItemDropComponent

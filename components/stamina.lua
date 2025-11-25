@@ -3,9 +3,9 @@
 
 local Object = require "core.object"
 
-local Stamina = Object.new {}
+local StaminaComponent = Object.new {}
 
-function Stamina.new(current, max, regen_rate)
+function StaminaComponent.new(current, max, regen_rate)
     local instance = {
         id = "stamina",
         priority = 51,  -- Components update in priority order
@@ -18,14 +18,14 @@ function Stamina.new(current, max, regen_rate)
     }
 
     -- Assign update and draw methods to instance
-    instance.update = Stamina.update
-    instance.draw = Stamina.draw
+    instance.update = StaminaComponent.update
+    instance.draw = StaminaComponent.draw
 
     return instance
 end
 
 -- Component update method - called automatically by Object recursion
-function Stamina.update(self, dt)
+function StaminaComponent.update(self, dt)
     -- Stamina regeneration
     if self.current < self.max then
         self.current = math.min(self.max, self.current + self.regen_rate * dt)
@@ -33,7 +33,7 @@ function Stamina.update(self, dt)
 end
 
 -- Component draw method - draws stamina bar UI
-function Stamina.draw(self)
+function StaminaComponent.draw(self)
     -- Get screen dimensions
     local screen_width, screen_height = love.graphics.getDimensions()
 
@@ -66,4 +66,4 @@ function Stamina.draw(self)
     love.graphics.rectangle("fill", stamina_bar_x, stamina_bar_y, stamina_fill_width, stamina_bar_height)
 end
 
-return Stamina
+return StaminaComponent

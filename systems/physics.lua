@@ -3,14 +3,14 @@
 
 local Object = require "core.object"
 
-local Physics = Object.new {
+local PhysicsSystem = Object.new {
     id = "physics",
     priority = 15,  -- Run before player system (priority 20)
 }
 
 -- Check AABB collision with world blocks
 -- Returns true if collision occurs, false otherwise
-function Physics.check_collision(world, x, y, layer, width, height)
+function PhysicsSystem.check_collision(world, x, y, layer, width, height)
     local left = x - width / 2
     local right = x + width / 2
     local top = y - height / 2
@@ -34,7 +34,7 @@ function Physics.check_collision(world, x, y, layer, width, height)
 end
 
 -- Check if an entity is on the ground
-function Physics.is_on_ground(world, pos, width, height)
+function PhysicsSystem.is_on_ground(world, pos, width, height)
     local bottom_y = pos.y + height / 2
     local left_col = math.floor((pos.x - width / 2) / BLOCK_SIZE)
     local right_col = math.floor((pos.x + width / 2 - math.eps) / BLOCK_SIZE)
@@ -51,13 +51,13 @@ function Physics.is_on_ground(world, pos, width, height)
 end
 
 -- Apply gravity to velocity
-function Physics.apply_gravity(vel, gravity, dt)
+function PhysicsSystem.apply_gravity(vel, gravity, dt)
     vel.y = vel.y + gravity * dt
 end
 
 -- Apply horizontal movement with collision detection
 -- Returns whether a wall was hit and the new x position
-function Physics.apply_horizontal_movement(world, pos, vel, width, height, dt)
+function PhysicsSystem.apply_horizontal_movement(world, pos, vel, width, height, dt)
     local new_x = pos.x + vel.x * dt
     local hit_wall = false
 
@@ -91,7 +91,7 @@ end
 
 -- Apply vertical movement with collision detection
 -- Returns on_ground status, whether ceiling was hit, and the new y position
-function Physics.apply_vertical_movement(world, pos, vel, width, height, velocity_modifier, dt)
+function PhysicsSystem.apply_vertical_movement(world, pos, vel, width, height, velocity_modifier, dt)
     local new_y = pos.y + (vel.y * velocity_modifier) * dt
     local on_ground = false
     local hit_ceiling = false
@@ -130,7 +130,7 @@ function Physics.apply_vertical_movement(world, pos, vel, width, height, velocit
 end
 
 -- Clamp entity to world bounds
-function Physics.clamp_to_world(world, pos, vel, height)
+function PhysicsSystem.clamp_to_world(world, pos, vel, height)
     local max_y = world.HEIGHT * BLOCK_SIZE
     local on_ground = false
 
@@ -145,7 +145,7 @@ end
 
 -- Update player physics (called by player system)
 -- This handles the full physics update for the player entity
-function Physics.update(self, dt)
+function PhysicsSystem.update(self, dt)
     local pos = self.position
     local vel = self.velocity
     local phys = self.physics
@@ -178,4 +178,4 @@ function Physics.update(self, dt)
     return on_ground or clamped_to_ground
 end
 
-return Physics
+return PhysicsSystem

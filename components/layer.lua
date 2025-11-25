@@ -1,13 +1,13 @@
 -- Layer component
 -- Layer state information
 
-local Layer = {}
+local LayerComponent = {}
 
-function Layer.new(current_layer)
+function LayerComponent.new(current_layer)
     return {
         id = "layer",
         current_layer = current_layer or 0,
     }
 end
 
-return Layer
+return LayerComponent

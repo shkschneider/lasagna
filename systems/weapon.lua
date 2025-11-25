@@ -2,19 +2,19 @@ local Object = require "core.object"
 local Registry = require "registries"
 local ITEMS = Registry.items()
 
-local Weapon = Object.new {
+local WeaponSystem = Object.new {
     id = "weapon",
     priority = 62,
     cooldown = 0,
     mouse_held = false,
 }
 
-function Weapon.load(self)
+function WeaponSystem.load(self)
     self.cooldown = 0
     self.mouse_held = false
 end
 
-function Weapon.update(self, dt)
+function WeaponSystem.update(self, dt)
     -- Decrease cooldown
     if self.cooldown > 0 then
         self.cooldown = self.cooldown - dt
@@ -26,7 +26,7 @@ function Weapon.update(self, dt)
     end
 end
 
-function Weapon.try_shoot(self)
+function WeaponSystem.try_shoot(self)
     -- Get selected item
     local inv = G.player.inventory
     local slot = inv.slots[inv.selected_slot]
@@ -82,7 +82,7 @@ function Weapon.try_shoot(self)
     self.cooldown = item_proto.weapon.cooldown or 0.2
 end
 
-function Weapon.mousepressed(self, x, y, button)
+function WeaponSystem.mousepressed(self, x, y, button)
     if button == 1 then
         self.mouse_held = true
         -- Try to shoot immediately
@@ -92,10 +92,10 @@ function Weapon.mousepressed(self, x, y, button)
     end
 end
 
-function Weapon.mousereleased(self, x, y, button)
+function WeaponSystem.mousereleased(self, x, y, button)
     if button == 1 then
         self.mouse_held = false
     end
 end
 
-return Weapon
+return WeaponSystem

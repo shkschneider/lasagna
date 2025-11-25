@@ -1,13 +1,13 @@
 local Object = require "core.object"
-local Stance = require "components.stance"
+local StanceComponent = require "components.stance"
 
-local Control = Object.new {
+local ControlSystem = Object.new {
     id = "control",
     priority = 19, -- Run before player system (priority 20)
     jump_pressed_last_frame = false,  -- Track jump input for edge detection
 }
 
-function Control.update(self, dt)
+function ControlSystem.update(self, dt)
     if G.chat.in_input_mode then
         return
     end
@@ -24,7 +24,7 @@ function Control.update(self, dt)
 
     if is_crouching and not stance.crouched then
         -- Switch to crouching (only when on ground)
-        stance.current = Stance.STANDING
+        stance.current = StanceComponent.STANDING
         stance.crouched = true
         G.player.height = BLOCK_SIZE * 1
         -- Adjust position to keep bottom aligned
@@ -32,7 +32,7 @@ function Control.update(self, dt)
     elseif not is_crouching and stance.crouched then
         -- Try to stand up - check clearance
         if G.player:can_stand_up() then
-            stance.current = Stance.STANDING
+            stance.current = StanceComponent.STANDING
             stance.crouched = false
             G.player.height = BLOCK_SIZE * 2
             -- Adjust position to keep bottom aligned
@@ -75,7 +75,7 @@ function Control.update(self, dt)
         -- Check if player has enough stamina to jump
         if G.player:has_stamina(G.player.STAMINA_JUMP_COST) then
             vel.y = -G.player.JUMP_FORCE
-            stance.current = Stance.JUMPING
+            stance.current = StanceComponent.JUMPING
             -- Consume stamina for jumping
             G.player:consume_stamina(G.player.STAMINA_JUMP_COST)
         end
@@ -83,7 +83,7 @@ function Control.update(self, dt)
     self.jump_pressed_last_frame = jump_pressed
 end
 
-function Control.keypressed(self, key)
+function ControlSystem.keypressed(self, key)
     if G.chat.in_input_mode then
         return
     end
@@ -110,4 +110,4 @@ function Control.keypressed(self, key)
     end
 end
 
-return Control
+return ControlSystem

@@ -2,12 +2,12 @@ local Object = require "core.object"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 
-local Building = Object.new {
+local BuildingSystem = Object.new {
     id = "building",
     priority = 61,
 }
 
-function Building.mousepressed(self, x, y, button)
+function BuildingSystem.mousepressed(self, x, y, button)
     if button ~= 2 then
         return
     end
@@ -30,7 +30,7 @@ function Building.mousepressed(self, x, y, button)
     self:place_block(col, row)
 end
 
-function Building.has_adjacent_block(self, col, row, layer)
+function BuildingSystem.has_adjacent_block(self, col, row, layer)
     -- Check all 8 surrounding positions for solid blocks in the same layer
     local offsets = {
         {-1, -1}, {0, -1}, {1, -1},  -- top row
@@ -50,7 +50,7 @@ function Building.has_adjacent_block(self, col, row, layer)
     return false
 end
 
-function Building.has_adjacent_layer_block(self, col, row, layer)
+function BuildingSystem.has_adjacent_layer_block(self, col, row, layer)
     -- Check for solid blocks at the same position in layers above and below
 
     -- Check layer below (if not already at bottom layer)
@@ -72,7 +72,7 @@ function Building.has_adjacent_layer_block(self, col, row, layer)
     return false
 end
 
-function Building.place_block(self, col, row)
+function BuildingSystem.place_block(self, col, row)
     local player_x, player_y, player_z = player:get_position()
     local block_id = player:get_selected_block_id()
 
@@ -105,4 +105,4 @@ function Building.place_block(self, col, row)
     end
 end
 
-return Building
+return BuildingSystem

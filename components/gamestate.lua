@@ -1,14 +1,14 @@
-local GameState = {}
-GameState.__index = GameState
+local GameStateComponent = {}
+GameStateComponent.__index = GameStateComponent
 
-GameState.BOOT = "boot"
-GameState.LOAD = "load"
-GameState.PLAY = "play"
-GameState.PAUSE = "pause"
-GameState.DEAD = "dead"
-GameState.QUIT = "quit"
+GameStateComponent.BOOT = "boot"
+GameStateComponent.LOAD = "load"
+GameStateComponent.PLAY = "play"
+GameStateComponent.PAUSE = "pause"
+GameStateComponent.DEAD = "dead"
+GameStateComponent.QUIT = "quit"
 
-function GameState.new(state)
+function GameStateComponent.new(state)
     return {
         id = "state",
         current = state,
@@ -18,4 +18,4 @@ function GameState.new(state)
     }
 end
 
-return GameState
+return GameStateComponent

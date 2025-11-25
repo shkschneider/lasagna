@@ -3,16 +3,16 @@ local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
-local Debug = Object.new {
+local DebugSystem = Object.new {
     id = "debug",
     enabled = false,
 }
 
-function Debug.load(self, _, debug)
+function DebugSystem.load(self, _, debug)
     self.enabled = debug or false
 end
 
-function Debug.keypressed(self, key)
+function DebugSystem.keypressed(self, key)
     if G.chat.in_input_mode then
         return
     end
@@ -36,7 +36,7 @@ function Debug.keypressed(self, key)
     end
 end
 
-function Debug.draw(self)
+function DebugSystem.draw(self)
     if not self.enabled then
         return
     end
@@ -49,4 +49,4 @@ function Debug.draw(self)
     love.graphics.print(string.format("Stamina: %s", G.player.stamina:tostring()), 10, 200)
 end
 
-return Debug
+return DebugSystem

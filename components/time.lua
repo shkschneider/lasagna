@@ -1,9 +1,9 @@
 -- TimeScale component
 -- Time manipulation
 
-local Time = {}
+local TimeComponent = {}
 
-function Time.new(scale)
+function TimeComponent.new(scale)
     return {
         id = "timescale",
         scale = scale or 1,
@@ -14,4 +14,4 @@ function Time.new(scale)
     }
 end
 
-return Time
+return TimeComponent

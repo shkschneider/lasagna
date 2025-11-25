@@ -1,12 +1,12 @@
 -- Omnitool component
 -- Mining tier
 
-local Omnitool = {}
+local OmnitoolComponent = {}
 
 local TIER_MIN = 1
 local TIER_MAX = 4
 
-function Omnitool.new(tier)
+function OmnitoolComponent.new(tier)
     tier = tier or 1
     assert(type(tier) == "number")
     assert(tier >= TIER_MIN and tier <= TIER_MAX)
@@ -22,4 +22,4 @@ function Omnitool.new(tier)
     }
 end
 
-return Omnitool
+return OmnitoolComponent
