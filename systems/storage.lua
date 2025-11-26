@@ -7,10 +7,12 @@ local Love = require "core.love"
 local Object = require "core.object"
 local StackComponent = require "components.stack"
 
-local StorageSystem = Object {}
+local StorageSystem = Object {
+    id = "storage",
+}
 
 -- Create a new storage with a given number of slots
-function StorageSystem.new(size)
+function StorageSystem.new(size) -- TODO remove?
     local instance = {
         id = "storage",
         slots = {},

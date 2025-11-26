@@ -16,7 +16,7 @@ local Love = require "core.love"
 local Object = require "core.object"
 local GameStateComponent = require "components.gamestate"
 
-local MenuSystem = Object {
+local MenuSystem = Object { -- TODO split file in systems|src menu/main + menu/paused
     id = "menu",
     priority = 150,  -- High priority, draws on top of everything
 }
@@ -37,8 +37,8 @@ function MenuSystem.get_main_menu_items(self)
             -- Load save data first to get the seed
             local save_data = G.save:load()
             if save_data then
-                -- Initialize game with the saved seed
-                G:load(save_data.seed, G.debug.enabled)
+                -- Initialize game with the saved seed TODO FIXME
+                G:load()
                 -- Apply save data (restores player position, inventory, etc.)
                 G.save:apply_save_data(save_data)
                 -- State is already PLAY from G:load
@@ -52,10 +52,7 @@ function MenuSystem.get_main_menu_items(self)
         label = "[N] ew Game",
         enabled = true,
         action = function()
-            -- Start new game with random seed
-            local seed = os.time()
-            G:load(seed, G.debug.enabled)
-            -- State is already PLAY from G:load
+            G:load() -- FIXME seed and stuff
         end
     })
 
@@ -107,8 +104,8 @@ function MenuSystem.get_pause_menu_items(self)
         action = function()
             local save_data = G.save:load()
             if save_data then
-                -- Reload game with saved seed
-                G:load(save_data.seed, G.debug.enabled)
+                -- Reload game with saved seed FIXME
+                G:load()
                 -- Apply save data
                 G.save:apply_save_data(save_data)
                 -- State is already PLAY from G:load

@@ -1,4 +1,5 @@
 local GameStateComponent = {}
+-- TODO not a component
 GameStateComponent.__index = GameStateComponent
 
 GameStateComponent.BOOT = "boot"

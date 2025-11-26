@@ -19,9 +19,6 @@ local function Love_call(self, name, ...)
     for _, object in ipairs(self.__objects) do
         local f = object[name]
         if type(f) == "function" then
-            if name == "load" and Log then
-                Log.debug("Loading", string.upper(object.id))
-            end
             -- Pass parent entity as second parameter for component methods
             f(object, ...)
         end
@@ -30,16 +27,17 @@ local function Love_call(self, name, ...)
 end
 
 function Love.load(self, ...)
+    self.__objects = nil -- invalidates
     Love_call(self, "load", ...)
 end
 
 function Love.update(self, dt)
     assert(type(dt) == "number")
-    Love_call(self, "update", dt, self)
+    Love_call(self, "update", dt)
 end
 
 function Love.draw(self)
-    Love_call(self, "draw", self)
+    Love_call(self, "draw")
 end
 
 function Love.keypressed(self, key)

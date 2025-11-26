@@ -1,28 +1,24 @@
 local Love = require "core.love"
 local Object = require "core.object"
-local WorldDataComponent = require "components.worlddata"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 
 local WorldSystem = Object {
+    HEIGHT = 512,
     id = "world",
     priority = 10,
-    HEIGHT = 512,
     canvases = {},
+    generator = require("systems.generator"),
 }
 
-function WorldSystem.load(self, seed, _)
+function WorldSystem.load(self)
     -- Initialize components
-    self.worlddata = WorldDataComponent.new(seed, self.HEIGHT)
-    Log.info("World:", self.worlddata.seed)
-    self.generator = require("systems.generator")
+    Log.info("World:", self.generator.data.seed)
 
     -- Create canvases for layer rendering
     self:create_canvases()
 
-
     Love.load(self)
-    self.generator:pregenerate_spawn_area()
 end
 
 function WorldSystem.create_canvases(self)
@@ -205,14 +201,14 @@ end
 
 -- Get block at position
 function WorldSystem.get_block_id(self, z, col, row)
-    if row < 0 or row >= self.worlddata.height then
+    if row < 0 or row >= self.HEIGHT then
         return BLOCKS.AIR
     end
 
     -- Request column generation with high priority (visible column)
     self.generator:generate_column(z, col, true)
 
-    local data = self.worlddata
+    local data = self.generator.data
     if data.columns[z] and
        data.columns[z][col] and
        data.columns[z][col][row] then
@@ -230,14 +226,13 @@ end
 
 -- Set block at position
 function WorldSystem.set_block(self, z, col, row, block_id)
-    if row < 0 or row >= self.worlddata.height then
+    local data = self.generator.data
+    if row < 0 or row >= data.height then
         return false
     end
 
     -- Request column generation with high priority (user action)
     self.generator:generate_column(z, col, true)
-
-    local data = self.worlddata
 
     -- Ensure the column structure exists
     if not data.columns[z] then
@@ -275,7 +270,7 @@ function WorldSystem.find_spawn_position(self, z)
     z = z or 0
     -- Find the surface by searching for the first solid block from top
     local col = BLOCK_SIZE
-    for row = 0, self.worlddata.height - 1 do
+    for row = 0, self.HEIGHT - 1 do
         local block_def = self.get_block_def(self, z, col, row)
         if block_def and block_def.solid then
             -- Spawn in the last air block (just above the ground)

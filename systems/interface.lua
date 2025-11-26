@@ -3,7 +3,7 @@ local Object = require "core.object"
 local Registry = require "registries"
 
 local InterfaceSystem = Object {
-    id = "ui",
+    id = "interface",
     priority = 110,
 }
 

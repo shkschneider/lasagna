@@ -2,13 +2,15 @@ local noise = require "core.noise"
 local generator = require "core.generator"
 local Love = require "core.love"
 local Object = require "core.object"
+local WorldData = require "components.worlddata"
 
 -- GeneratorSystem handles asynchronous world column generation
 -- using coroutines with priority queues for visible vs background columns
 
-local GeneratorSystem = Object {
+local GeneratorSystem = Object { -- TODO move to src?
     id = "generator",
-    priority = 5,  -- Run before WorldSystem (priority 10)
+    priority = 10,
+    data = WorldData.new(42, 512), -- FIXME
     -- Coroutine-based column generation
     generation_queue_high = {},  -- High priority queue (visible columns)
     generation_queue_low = {},   -- Low priority queue (background columns)
@@ -17,15 +19,18 @@ local GeneratorSystem = Object {
     max_coroutines = 8,          -- Maximum concurrent column generations
 }
 
-function GeneratorSystem.load(self, seed, _)
+function GeneratorSystem.load(self)
     -- Seed the noise library
-    noise.seed(seed)
+    assert(self.data.seed)
+    noise.seed(self.data.seed)
 
     -- Initialize generation queues
     self.generation_queue_high = {}
     self.generation_queue_low = {}
     self.queued_columns = {}
     self.active_coroutines = {}
+
+    self:pregenerate_spawn_area()
 
     Love.load(self)
 end
@@ -78,7 +83,7 @@ function GeneratorSystem.update(self, dt)
 
         -- Check if not already generating or generated
         local data = G.world.worlddata
-        local already_done = (data.generated_columns[key] == true) or (data.generating_columns[key] == true)
+        local already_done = (self.data.generated_columns[key] == true) or (self.data.generating_columns[key] == true)
 
         if not self.active_coroutines[key] and not already_done then
             -- Remove from tracking only when we actually start generating
@@ -110,27 +115,26 @@ end
 
 -- Generate a single column immediately without yielding (for initial spawn area)
 function GeneratorSystem.generate_column_immediate(self, z, col)
-    local data = G.world.worlddata
     local key = string.format("%d_%d", z, col)
 
     -- Check if already generated
-    if data.generated_columns[key] then
+    if self.data.generated_columns[key] then
         return
     end
 
     -- Ensure column structure exists
-    if not data.columns[z] then
-        data.columns[z] = {}
+    if not self.data.columns[z] then
+        self.data.columns[z] = {}
     end
-    if not data.columns[z][col] then
-        data.columns[z][col] = {}
+    if not self.data.columns[z][col] then
+        self.data.columns[z][col] = {}
     end
 
     -- Generate terrain for this column
-    generator(data.columns[z][col], col, z, data.height)
+    generator(self.data.columns[z][col], col, z, self.data.height)
 
     -- Mark as generated immediately (no coroutine yield)
-    data.generated_columns[key] = true
+    self.data.generated_columns[key] = true
 end
 
 -- Pre-generate columns around spawn area (32 to left and right)
@@ -149,49 +153,47 @@ end
 
 -- Generate a single column (function executed by coroutines)
 function GeneratorSystem.generate_column_sync(self, z, col)
-    local data = G.world.worlddata
     local key = string.format("%d_%d", z, col)
 
     -- Check if already generated
-    if data.generated_columns[key] then
+    if self.data.generated_columns[key] then
         return
     end
 
     -- Mark as generating to prevent duplicate generation
-    data.generating_columns[key] = true
+    self.data.generating_columns[key] = true
 
     -- Ensure column structure exists
-    if not data.columns[z] then
-        data.columns[z] = {}
+    if not self.data.columns[z] then
+        self.data.columns[z] = {}
     end
-    if not data.columns[z][col] then
-        data.columns[z][col] = {}
+    if not self.data.columns[z][col] then
+        self.data.columns[z][col] = {}
     end
 
     -- Generate terrain for this column
-    generator(data.columns[z][col], col, z, data.height)
+    generator(self.data.columns[z][col], col, z, self.data.height)
 
     -- Yield to prevent frame drops - allows other work to process before next column
     coroutine.yield()
 
     -- Column generation complete - mark as generated and no longer generating
-    data.generating_columns[key] = nil
-    data.generated_columns[key] = true
+    self.data.generating_columns[key] = nil
+    self.data.generated_columns[key] = true
 end
 
 -- Queue a column for generation (non-blocking)
 -- priority: true for high-priority queue (visible columns), false for low-priority queue (background)
 function GeneratorSystem.generate_column(self, z, col, priority)
-    local data = G.world.worlddata
     local key = string.format("%d_%d", z, col)
 
     -- Check if already generated
-    if data.generated_columns[key] then
+    if self.data.generated_columns[key] then
         return true  -- Already generated
     end
 
     -- Check if currently generating
-    if data.generating_columns[key] then
+    if self.data.generating_columns[key] then
         return false  -- Currently generating
     end
 

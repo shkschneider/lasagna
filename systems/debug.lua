@@ -6,11 +6,9 @@ local ITEMS = Registry.items()
 
 local DebugSystem = Object {
     id = "debug",
-    enabled = false,
 }
 
-function DebugSystem.load(self, _, debug)
-    self.enabled = debug or false
+function DebugSystem.load(self)
     Love.load(self)
 end
 
@@ -18,16 +16,9 @@ function DebugSystem.keypressed(self, key)
     if G.chat.in_input_mode then
         return
     end
-    -- Debug
-    if key == "backspace" then
-        self.enabled = not self.enabled
-    end
-    if not self.enabled then
-        return
-    end
     -- Reset
     if key == "delete" then -- FIXME
-        G:reload()
+        G:load()
         return
     end
     -- Adjust omnitool tier
@@ -41,9 +32,6 @@ function DebugSystem.keypressed(self, key)
 end
 
 function DebugSystem.draw(self)
-    if not self.enabled then
-        return
-    end
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
     love.graphics.print(string.format("State: %s", G.state:tostring()), 10, 120)

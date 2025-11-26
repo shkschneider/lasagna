@@ -129,7 +129,7 @@ function EntitySystem.update(self, dt)
             self:updateDrop(ent, i, player_x, player_y, player_z)
         end
     end
-    -- Do NOT Love.update
+    -- Do NOT Love.update(self, dt)
 end
 
 -- Bullet-specific update logic (system coordination)

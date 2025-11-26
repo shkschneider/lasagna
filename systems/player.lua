@@ -66,7 +66,7 @@ function PlayerSystem.load(self)
     self.control = require "systems.control"
     -- TODO control?
 
-    if G.debug.enabled then
+    if G.debug then
         local px, py = G.world:world_to_block(self.position.x, self.position.y)
         Log.debug("Player:", px, py)
         -- Add weapon items to hotbar slots 2 and 3

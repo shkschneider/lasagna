@@ -2,7 +2,7 @@ require "core"
 
 -- Global: game
 
-G = require "core.game"
+G = require("core.game")
 G.NAME = "Lasagna"
 G.VERSION = { major = 0, minor = 1, patch = nil, tostring = function(self)
     return string.format("%d.%d.%s", self.major, self.minor, tostring(self.patch or "x"))
@@ -30,20 +30,19 @@ function love.load()
     local debug = os.getenv("DEBUG") and (os.getenv("DEBUG") == "true") or (G.VERSION.major < 1)
     Log.level = debug and "debug" or "warn"
     Log.info(G.NAME, G.VERSION:tostring())
-    G.debug.enabled = debug
-    -- Start in MENU state - game systems not loaded yet
+    if debug then
+        G.debug = require("systems.debug")
+    end
+    -- Do NOT load()
+    -- TODO G.seed = os.time()
     G:switch(GameStateComponent.MENU)
 end
 
 function love.update(dt)
     local state = G.state.current
-
-    -- Don't update game systems in MENU or PAUSE state
     if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
         return
     end
-
-    if G.time.paused then return end
     if G.player and G.player:is_dead() then return end
     dt = dt * G.time.scale
     Love.update(G, dt)
@@ -51,50 +50,34 @@ end
 
 function love.draw()
     local state = G.state.current
-
-    -- In MENU state, only draw menu (black background with options)
-    if state == GameStateComponent.MENU then
-        G.menu:draw()
-        return
-    end
-
-    -- In other states, draw game world
-    Love.draw(G)
-
-    -- In PAUSE state, overlay the menu on top
-    if state == GameStateComponent.PAUSE then
-        G.menu:draw()
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+        G.menu:draw() -- FIXME draws alone not on top of world (if pause)
+    else
+        Love.draw(G)
     end
 end
 
 function love.keypressed(key)
     local state = G.state.current
-
-    -- Handle escape key for pause toggle
     if key == "escape" then
         if state == GameStateComponent.PLAY then
-            -- Pause the game
             G:switch(GameStateComponent.PAUSE)
             return
         elseif state == GameStateComponent.PAUSE then
-            -- Resume the game
             G:switch(GameStateComponent.PLAY)
             return
         elseif state == GameStateComponent.MENU then
-            -- In main menu, quit
             G:switch(GameStateComponent.QUIT)
             love.event.quit()
             return
         end
     end
-
-    -- Handle menu input
     if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
         G.menu:keypressed(key)
         return
+    else
+        Love.keypressed(G, key)
     end
-
-    Love.keypressed(G, key)
 end
 
 function love.keyreleased(key)
