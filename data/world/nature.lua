@@ -3,7 +3,7 @@ local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 
 -- Tree generation constants
-local TREE_CLUSTER_THRESHOLD = 0.6  -- Higher = fewer tree clusters
+local TREE_CLUSTER_THRESHOLD = 0.1  -- Higher = fewer tree clusters
 local TREE_MIN_HEIGHT = 4
 local TREE_MAX_HEIGHT = 6
 local MIN_SPACE_BETWEEN_CLUSTERS = 30  -- Space between tree clusters
@@ -36,7 +36,7 @@ local function generate_tree(column_data, world_col, z, base_height)
     local normalized_noise = math.max(0, math.min(1, (height_noise + 1) / 2))
     local tree_height = TREE_MIN_HEIGHT + math.floor(normalized_noise * (TREE_MAX_HEIGHT - TREE_MIN_HEIGHT + 0.99))
     tree_height = math.max(TREE_MIN_HEIGHT, math.min(tree_height, TREE_MAX_HEIGHT))
-    
+
     -- Place wood trunk (going upward from surface)
     local trunk_start = base_height - 1  -- One block above ground
     for row = trunk_start, trunk_start - tree_height + 1, -1 do
@@ -44,7 +44,7 @@ local function generate_tree(column_data, world_col, z, base_height)
             column_data[row] = BLOCKS.WOOD
         end
     end
-    
+
     -- Place leaves at top of trunk (simple 2D canopy)
     local canopy_center = trunk_start - tree_height + 1
     -- Place leaves above and around the trunk top
@@ -60,7 +60,7 @@ local function should_start_cluster(world_col, z, data)
     if (world_col - data.last_cluster_col) < MIN_SPACE_BETWEEN_CLUSTERS then
         return false
     end
-    
+
     -- Use noise to determine if a cluster should start here
     local cluster_noise = noise.perlin2d(world_col * 0.05 + 1000, z * 0.05 + 1000)
     return cluster_noise > TREE_CLUSTER_THRESHOLD
@@ -82,7 +82,7 @@ local function should_place_tree_in_cluster(world_col, z, data)
     if world_col > data.cluster_end_col then
         return false
     end
-    
+
     -- Use noise to add some spacing variation within cluster
     local tree_noise = noise.perlin2d(world_col * 0.4 + 3000, z * 0.4 + 3000)
     return tree_noise > 0.3  -- Trees spaced within cluster
@@ -93,9 +93,9 @@ return function(column_data, world_col, z, base_height, world_height)
     if not (base_height > 0 and base_height < world_height and column_data[base_height] == BLOCKS.GRASS) then
         return
     end
-    
+
     local data = init_cluster_data(z)
-    
+
     -- Check if we should start a new cluster
     if data.trees_in_cluster >= data.target_trees or world_col > data.cluster_end_col then
         if should_start_cluster(world_col, z, data) then
@@ -107,7 +107,7 @@ return function(column_data, world_col, z, base_height, world_height)
             return
         end
     end
-    
+
     -- Try to place a tree in the current cluster
     if should_place_tree_in_cluster(world_col, z, data) then
         generate_tree(column_data, world_col, z, base_height)
