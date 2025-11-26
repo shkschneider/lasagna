@@ -1,7 +1,7 @@
 local noise = require "core.noise"
 local Love = require "core.love"
 local Object = require "core.object"
-local WorldGenerator = require "data.world"
+local WorldGenerator = require "systems.world.generators"
 local WorldData = require "components.worlddata"
 
 local GeneratorSystem = Object {
