@@ -31,7 +31,8 @@ function GeneratorSystem.load(self)
     self.queued_columns = {}
     self.active_coroutines = {}
 
-    self:pregenerate_spawn_area()
+    local range = G.debug and BLOCK_SIZE or ((BLOCK_SIZE * BLOCK_SIZE) / 4)
+    self:pregenerate_spawn_area(range)
 end
 
 function GeneratorSystem.update(self, dt)
@@ -138,15 +139,14 @@ end
 
 -- Pre-generate columns around spawn area (32 to left and right)
 -- Updates G.loader progress and yields if loader is active
-function GeneratorSystem.pregenerate_spawn_area(self)
+function GeneratorSystem.pregenerate_spawn_area(self, range)
     local spawn_col = BLOCK_SIZE  -- Same as used in find_spawn_position
-    local range = BLOCK_SIZE  -- Generate initial columns to each side
 
     -- Calculate total columns to generate (for progress tracking)
     local num_layers = LAYER_MAX - LAYER_MIN + 1
     local total_columns = num_layers * (range * 2 + 1)
     local current_column = 0
-    
+
     -- Check if loader is active (we're in loading coroutine)
     local loader_active = G.loader and G.loader:is_active()
 
@@ -156,7 +156,6 @@ function GeneratorSystem.pregenerate_spawn_area(self)
             local col = spawn_col + offset
             self:generate_column_immediate(z, col)
             current_column = current_column + 1
-            
             -- Update loader progress and yield every num_layers columns
             -- This yields once per unique x-position (after generating all 3 layers for that column)
             if loader_active and current_column % num_layers == 0 then
