@@ -1,18 +1,5 @@
 require "core"
 
--- Global: game
-
-G = require("systems.game")
-G.NAME = "Lasagna"
-G.VERSION = { major = 0, minor = 1, patch = nil, tostring = function(self)
-    return string.format("%d.%d.%s", self.major, self.minor, tostring(self.patch or "x"))
-end }
-
--- Global: libraries
-
-Log = require "libraries.rxi.log"
-Fonts = require "data.fonts"
-
 -- Global: constants
 
 LAYER_MIN = -1
@@ -20,6 +7,19 @@ LAYER_DEFAULT = 0
 LAYER_MAX = 1
 BLOCK_SIZE = 16
 STACK_SIZE = 64
+
+-- Global: libraries
+
+Log = require "libraries.rxi.log"
+Fonts = require "data.fonts"
+
+-- Global: game
+
+G = require("systems.game")
+G.NAME = "Lasagna"
+G.VERSION = { major = 0, minor = 1, patch = nil, tostring = function(self)
+    return string.format("%d.%d.%s", self.major, self.minor, tostring(self.patch or "x"))
+end }
 
 -- love2d
 
