@@ -79,8 +79,8 @@ local function place_feature(column_data, col, z, surface_row, feature, world_he
     local shape_height = #shape
     -- Calculate shape width by counting elements in first row (handles "air" placeholders)
     local shape_width = 0
-    for _ in pairs(shape[1]) do
-        shape_width = shape_width + 1
+    for _, s in pairs(shape) do
+        shape_width = math.max(shape_width, #s)
     end
     local anchor_col = math.ceil(shape_width / 2)
 
