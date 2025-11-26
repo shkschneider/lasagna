@@ -1,33 +1,19 @@
+-- Terrain generation module
+-- Loads configuration from data/world/terrain.json
+
 local noise = require "core.noise"
+local json = require "core.json"
 local Registry = require "registries"
-local BlocksRegistry = require "registries.blocks"
 local BLOCKS = Registry.blocks()
 
-local Generator = {}
+-- Load configuration from JSON
+local config = json.load("data/world/terrain.json")
 
-function Generator.seed(seed)
-    assert(type(seed) == "number")
-    noise.seed(seed)
-end
-
--- Get ore blocks for generation (cached after first call)
--- NOTE: This assumes all blocks are registered during initialization
--- before any world generation occurs (which is currently the case)
--- Ore blocks are returned sorted by ID for deterministic ordering
-local ore_blocks_cache = nil
-local function get_ore_blocks()
-    if not ore_blocks_cache then
-        ore_blocks_cache = BlocksRegistry:get_ore_blocks()
-    end
-    return ore_blocks_cache
-end
-
--- Constants
-local SURFACE_HEIGHT_RATIO = 0.75
-local BASE_FREQUENCY = 0.02
-local BASE_AMPLITUDE = 15
-local DIRT_MIN_DEPTH = 5
-local DIRT_MAX_DEPTH = 15
+-- Configuration from JSON
+local DIRT_MIN_DEPTH = config.dirt_min_depth
+local DIRT_MAX_DEPTH = config.dirt_max_depth
+local DIRT_NOISE_FREQUENCY = config.dirt_noise_frequency
+local DIRT_LAYER_OFFSET = config.dirt_layer_offset
 
 
 local function air_stone_bedrock(column_data, world_col, base_height, world_height)
@@ -44,9 +30,9 @@ local function air_stone_bedrock(column_data, world_col, base_height, world_heig
     column_data[world_height - 1] = BLOCKS.BEDROCK
 end
 
-function dirt_and_grass(column_data, world_col, z, base_height, world_height)
+local function dirt_and_grass(column_data, world_col, z, base_height, world_height)
     local dirt_depth = DIRT_MIN_DEPTH + math.floor((DIRT_MAX_DEPTH - DIRT_MIN_DEPTH) *
-        (noise.perlin2d(world_col * 0.05, z * 0.1) + 1) / 2)
+        (noise.perlin2d(world_col * DIRT_NOISE_FREQUENCY, z * DIRT_LAYER_OFFSET) + 1) / 2)
     for row = base_height, math.min(base_height + dirt_depth - 1, world_height - 1) do
         if column_data[row] == BLOCKS.STONE then
             column_data[row] = BLOCKS.DIRT

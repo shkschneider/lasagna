@@ -1,31 +1,24 @@
+-- World generation orchestrator
+-- Loads configuration from data/world/*.json and orchestrates terrain/ore generation
+
 local noise = require "core.noise"
-local Registry = require "registries"
-local BlocksRegistry = require "registries.blocks"
-local BLOCKS = Registry.blocks()
+local json = require "core.json"
 
-local WorldGenerator = {}
+-- Load configuration from JSON
+local config = json.load("data/world/config.json")
 
-function WorldGenerator.seed(seed)
-    assert(type(seed) == "number")
-    noise.seed(seed)
-end
-
--- Constants
-local SURFACE_HEIGHT_RATIO = 0.75
-local BASE_FREQUENCY = 0.02
-local BASE_AMPLITUDE = 15
-local DIRT_MIN_DEPTH = 5
-local DIRT_MAX_DEPTH = 15
+-- Configuration from JSON
+local SURFACE_HEIGHT_RATIO = config.surface_height_ratio
+local BASE_FREQUENCY = config.base_frequency
+local BASE_AMPLITUDE = config.base_amplitude
+local LAYER_HEIGHT_ADJUSTMENTS = config.layer_height_adjustments
 
 local function calculate_surface_height(col, z, world_height)
     local noise_val = noise.octave_perlin2d(col * BASE_FREQUENCY, z * 0.1, 4, 0.5, 2.0)
     local base_height = math.floor(world_height * SURFACE_HEIGHT_RATIO + noise_val * BASE_AMPLITUDE)
-    -- Layer-specific height adjustments
-    if z == 1 then
-        base_height = base_height + 5
-    elseif z == -1 then
-        base_height = base_height - 5
-    end
+    -- Layer-specific height adjustments from config
+    local adjustment = LAYER_HEIGHT_ADJUSTMENTS[tostring(z)] or 0
+    base_height = base_height + adjustment
     return base_height
 end
 

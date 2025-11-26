@@ -1,0 +1,10 @@
+{
+    "surface_height_ratio": 0.75,
+    "base_frequency": 0.02,
+    "base_amplitude": 15,
+    "layer_height_adjustments": {
+        "-1": -5,
+        "0": 0,
+        "1": 5
+    }
+}

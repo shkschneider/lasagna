@@ -1,3 +1,6 @@
+-- Ore generation module
+-- Ore definitions are in the blocks registry (data/blocks/ores.lua)
+
 local noise = require "core.noise"
 local Registry = require "registries"
 local BlocksRegistry = require "registries.blocks"
@@ -15,7 +18,7 @@ local function get_ore_blocks()
     return ore_blocks_cache
 end
 
-function ore_veins(column_data, world_col, z, base_height, world_height)
+local function ore_veins(column_data, world_col, z, base_height, world_height)
     local ore_blocks = get_ore_blocks()
 
     for row = base_height, world_height - 3 do -- Stop before bedrock

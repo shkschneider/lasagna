@@ -1,0 +1,6 @@
+{
+    "dirt_min_depth": 5,
+    "dirt_max_depth": 15,
+    "dirt_noise_frequency": 0.05,
+    "dirt_layer_offset": 0.1
+}
