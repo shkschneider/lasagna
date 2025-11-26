@@ -137,15 +137,31 @@ function GeneratorSystem.generate_column_immediate(self, z, col)
 end
 
 -- Pre-generate columns around spawn area (32 to left and right)
+-- Updates G.loader progress and yields if loader is active
 function GeneratorSystem.pregenerate_spawn_area(self)
     local spawn_col = BLOCK_SIZE  -- Same as used in find_spawn_position
     local range = BLOCK_SIZE  -- Generate initial columns to each side
+
+    -- Calculate total columns to generate
+    local total_columns = (LAYER_MAX - LAYER_MIN + 1) * (range * 2 + 1)
+    local current_column = 0
+    
+    -- Check if loader is active (we're in loading coroutine)
+    local loader_active = G.loader and G.loader:is_active()
 
     -- Generate for all layers
     for z = LAYER_MIN, LAYER_MAX do
         for offset = -range, range do
             local col = spawn_col + offset
             self:generate_column_immediate(z, col)
+            current_column = current_column + 1
+            
+            -- Update loader progress and yield if loader is active
+            if loader_active then
+                -- Map column progress to 10%-90% range
+                G.loader:set_progress(0.1 + (current_column / total_columns) * 0.8)
+                coroutine.yield()
+            end
         end
     end
 end

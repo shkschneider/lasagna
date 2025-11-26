@@ -18,13 +18,17 @@ function LoaderSystem.start(self)
     self._done = false
     self._progress = 0
     self._coroutine = coroutine.create(function()
-        self._progress = 0.1
+        self._progress = 0.05
         G.menu:load()
         coroutine.yield() -- yield after menu load to update display
-        self._progress = 0.3
+        
+        self._progress = 0.1
         Love.load(G)
-        coroutine.yield() -- yield after game systems load
-        self._progress = 0.8
+        -- Generator updates progress from 10% to 90% during pregenerate_spawn_area
+        
+        self._progress = 0.95
+        coroutine.yield()
+        
         -- Apply save data if we were loading a saved game
         if G.pending_save_data then
             G.save:apply_save_data(G.pending_save_data)
@@ -32,6 +36,11 @@ function LoaderSystem.start(self)
         end
         self._progress = 1.0
     end)
+end
+
+-- Set progress directly (can be called by other systems like generator)
+function LoaderSystem.set_progress(self, progress)
+    self._progress = progress
 end
 
 -- Reset loader state
