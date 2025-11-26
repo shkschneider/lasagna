@@ -16,11 +16,6 @@ function DebugSystem.keypressed(self, key)
     if G.chat.in_input_mode then
         return
     end
-    -- Reset
-    if key == "delete" then
-        G:load()
-        return
-    end
     -- Adjust omnitool tier
     if key == "=" or key == "+" then
         G.player:upgrade(1)

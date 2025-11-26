@@ -36,11 +36,4 @@ function Game.load(self)
     self:switch(GameStateComponent.PLAY)
 end
 
--- function Game.keypressed(self, key)
---     if key == "backspace" and not self.debug then
---         self.debug = require("systems.debug")
---         self.debug:load()
---     end
--- end
-
 return Game
