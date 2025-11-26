@@ -15,6 +15,21 @@ local GeneratorSystem = Object {
     max_coroutines = 8,          -- Maximum concurrent column generations
 }
 
+-- Private helper: ensure column data structure exists
+local function ensure_column_structure(data, z, col)
+    if not data.columns[z] then
+        data.columns[z] = {}
+    end
+    if not data.columns[z][col] then
+        data.columns[z][col] = {}
+    end
+end
+
+-- Private helper: run terrain generator for a column
+local function run_generator(self, z, col)
+    self.generator(self.data.columns[z][col], col, z, self.data.height)
+end
+
 function GeneratorSystem.load(self)
     self.generator = WorldGenerator
     self.data = WorldData.new(G.debug and os.getenv("SEED") or (os.time() + love.timer.getTime())),
@@ -88,7 +103,7 @@ function GeneratorSystem.update(self, dt)
             self.queued_columns[key] = nil
 
             local co = coroutine.create(function()
-                self:generate_column_sync(col_info.z, col_info.col)
+                self:generate_column_async(col_info.z, col_info.col)
             end)
             self.active_coroutines[key] = co
             active_count = active_count + 1
@@ -120,18 +135,8 @@ function GeneratorSystem.generate_column_immediate(self, z, col)
         return
     end
 
-    -- Ensure column structure exists
-    if not self.data.columns[z] then
-        self.data.columns[z] = {}
-    end
-    if not self.data.columns[z][col] then
-        self.data.columns[z][col] = {}
-    end
-
-    -- Generate terrain for this column
-    self.generator(self.data.columns[z][col], col, z, self.data.height)
-
-    -- Mark as generated immediately (no coroutine yield)
+    ensure_column_structure(self.data, z, col)
+    run_generator(self, z, col)
     self.data.generated_columns[key] = true
 end
 
@@ -165,8 +170,8 @@ function GeneratorSystem.pregenerate_spawn_area(self, range)
     end
 end
 
--- Generate a single column (function executed by coroutines)
-function GeneratorSystem.generate_column_sync(self, z, col)
+-- Generate a single column (coroutine body - yields once during generation)
+function GeneratorSystem.generate_column_async(self, z, col)
     local key = string.format("%d_%d", z, col)
 
     -- Check if already generated
@@ -177,16 +182,8 @@ function GeneratorSystem.generate_column_sync(self, z, col)
     -- Mark as generating to prevent duplicate generation
     self.data.generating_columns[key] = true
 
-    -- Ensure column structure exists
-    if not self.data.columns[z] then
-        self.data.columns[z] = {}
-    end
-    if not self.data.columns[z][col] then
-        self.data.columns[z][col] = {}
-    end
-
-    -- Generate terrain for this column
-    self.generator(self.data.columns[z][col], col, z, self.data.height)
+    ensure_column_structure(self.data, z, col)
+    run_generator(self, z, col)
 
     -- Yield to prevent frame drops - allows other work to process before next column
     coroutine.yield()
