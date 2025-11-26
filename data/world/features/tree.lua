@@ -6,7 +6,7 @@ local WorldRegistry = require "registries.world"
 WorldRegistry:register({
     id = "tree",
     -- Probability of spawning on a valid surface block (0.0 to 1.0)
-    probability = 0.02,
+    probability = 0.05,
     -- Layers where this feature can spawn (-1, 0, 1)
     layers = { -1, 0 },
     -- Surface blocks on which this feature can spawn (by block name)

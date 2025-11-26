@@ -54,7 +54,9 @@ local function should_spawn(col, z, feature)
     for i = 1, #feature.id do
         id_hash = id_hash + string.byte(feature.id, i) * i
     end
-    local noise_val = noise.perlin2d(col * 0.1 + id_hash, z * 0.1)
+    -- Use a higher frequency noise to get more variation per column
+    -- The id_hash is used as a z-offset to differentiate feature types
+    local noise_val = noise.perlin2d(col * 0.5, z + id_hash * 0.01)
     -- Map noise from [-1, 1] to [0, 1]
     local normalized = (noise_val + 1) / 2
     return normalized < probability
