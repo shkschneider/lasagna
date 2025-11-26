@@ -1,8 +1,61 @@
 local noise = require "core.noise"
 local Love = require "core.love"
 local Object = require "core.object"
-local WorldGenerator = require "data.world"
+local Registry = require "registries"
+local BLOCKS = Registry.blocks()
 local WorldData = require "components.worlddata"
+
+-- Load generators (features)
+local generators = require "data.world"
+
+-- Constants for terrain generation
+local SURFACE_HEIGHT_RATIO = 0.75
+local BASE_FREQUENCY = 0.02
+local BASE_AMPLITUDE = 15
+local DIRT_MIN_DEPTH = 5
+local DIRT_MAX_DEPTH = 15
+
+-- Calculate surface height for a given column and layer
+local function calculate_surface_height(col, z, world_height)
+    local noise_val = noise.octave_perlin2d(col * BASE_FREQUENCY, z * 0.1, 4, 0.5, 2.0)
+    local base_height = math.floor(world_height * SURFACE_HEIGHT_RATIO + noise_val * BASE_AMPLITUDE)
+    if z == 1 then
+        base_height = base_height + 5
+    elseif z == -1 then
+        base_height = base_height - 5
+    end
+    return base_height
+end
+
+-- Generate base terrain (air, stone, bedrock)
+local function generate_air_stone_bedrock(column_data, world_col, base_height, world_height)
+    for row = 0, world_height - 1 do
+        if row >= base_height then
+            column_data[row] = BLOCKS.STONE
+        else
+            column_data[row] = BLOCKS.AIR
+        end
+    end
+    column_data[world_height - 2] = BLOCKS.BEDROCK
+    column_data[world_height - 1] = BLOCKS.BEDROCK
+end
+
+-- Generate dirt and grass layers
+local function generate_dirt_and_grass(column_data, world_col, z, base_height, world_height)
+    local dirt_depth = DIRT_MIN_DEPTH + math.floor((DIRT_MAX_DEPTH - DIRT_MIN_DEPTH) *
+        (noise.perlin2d(world_col * 0.05, z * 0.1) + 1) / 2)
+    for row = base_height, math.min(base_height + dirt_depth - 1, world_height - 1) do
+        if column_data[row] == BLOCKS.STONE then
+            column_data[row] = BLOCKS.DIRT
+        end
+    end
+    if base_height > 0 and base_height < world_height then
+        if column_data[base_height] == BLOCKS.DIRT and
+           column_data[base_height - 1] == BLOCKS.AIR then
+            column_data[base_height] = BLOCKS.GRASS
+        end
+    end
+end
 
 local GeneratorSystem = Object {
     id = "generator",
@@ -25,13 +78,21 @@ local function ensure_column_structure(data, z, col)
     end
 end
 
--- Private helper: run terrain generator for a column
+-- Private helper: run generators for a column
 local function run_generator(self, z, col)
-    self.generator(self.data.columns[z][col], col, z, self.data.height)
+    local column_data = self.data.columns[z][col]
+    local world_height = self.data.height
+    local base_height = calculate_surface_height(col, z, world_height)
+
+    -- Base terrain generation
+    generate_air_stone_bedrock(column_data, col, base_height, world_height)
+    generate_dirt_and_grass(column_data, col, z, base_height, world_height)
+
+    -- Features (from data/world/)
+    generators(column_data, col, z, base_height, world_height)
 end
 
 function GeneratorSystem.load(self)
-    self.generator = WorldGenerator
     self.data = WorldData.new(G.debug and os.getenv("SEED") or (os.time() + love.timer.getTime())),
     Love.load(self)
     -- Seed the noise library
@@ -95,7 +156,7 @@ function GeneratorSystem.update(self, dt)
         local key = string.format("%d_%d", col_info.z, col_info.col)
 
         -- Check if not already generating or generated
-        local data = G.world.worlddata
+        local data = G.world.generator.data
         local already_done = (self.data.generated_columns[key] == true) or (self.data.generating_columns[key] == true)
 
         if not self.active_coroutines[key] and not already_done then
