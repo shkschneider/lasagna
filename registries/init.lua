@@ -2,6 +2,7 @@ local Registry = {
     Blocks = require("registries.blocks"),
     Items = require("registries.items"),
     Commands = require("registries.commands"),
+    World = require("registries.world"),
 }
 
 -- Blocks

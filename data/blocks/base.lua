@@ -69,3 +69,13 @@ BlocksRegistry:register({
     tier = math.inf, -- Effectively unbreakable
     drops = function() return nil, 0 end, -- No drops
 })
+
+-- Register Leaves
+BlocksRegistry:register({
+    id = BlockRef.LEAVES,
+    name = "Leaves",
+    solid = true,
+    color = {0.2, 0.6, 0.2, 1},
+    tier = 0,
+    drops = function() return nil, 0 end, -- No drops (could add saplings later)
+})
