@@ -6,7 +6,7 @@ local BLOCKS = Registry.blocks()
 local WorldData = require "components.worlddata"
 
 -- Load generators (features)
-local ores_generator = require "systems.world.generators.ores"
+local generators = require "data.world"
 
 -- Constants for terrain generation
 local SURFACE_HEIGHT_RATIO = 0.75
@@ -88,8 +88,8 @@ local function run_generator(self, z, col)
     generate_air_stone_bedrock(column_data, col, base_height, world_height)
     generate_dirt_and_grass(column_data, col, z, base_height, world_height)
 
-    -- Features (from systems/world/generators/)
-    ores_generator(column_data, col, z, base_height, world_height)
+    -- Features (from data/world/)
+    generators(column_data, col, z, base_height, world_height)
 end
 
 function GeneratorSystem.load(self)
