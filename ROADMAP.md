@@ -9,11 +9,6 @@ Notes
 
 ---
 
-v0.1 — Core playable loop (MVP)
-- ...
-
----
-
 v0.2 — Crafting and Ages (basic progression)
 - Goals
   - Hand crafting and Workbench recipes (simple recipes only).

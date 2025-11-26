@@ -1,11 +1,8 @@
 local noise = require "core.noise"
-local generator = require "core.generator"
 local Love = require "core.love"
 local Object = require "core.object"
+local WorldGenerator = require "data.world"
 local WorldData = require "components.worlddata"
-
--- GeneratorSystem handles asynchronous world column generation
--- using coroutines with priority queues for visible vs background columns
 
 local GeneratorSystem = Object {
     id = "generator",
@@ -19,9 +16,10 @@ local GeneratorSystem = Object {
 }
 
 function GeneratorSystem.load(self)
-    -- Seed the noise library
+    self.generator = WorldGenerator
     self.data = WorldData.new(G.debug and os.getenv("SEED") or (os.time() + love.timer.getTime())),
     Love.load(self)
+    -- Seed the noise library
     assert(self.data.seed)
     noise.seed(self.data.seed)
 
@@ -131,7 +129,7 @@ function GeneratorSystem.generate_column_immediate(self, z, col)
     end
 
     -- Generate terrain for this column
-    generator(self.data.columns[z][col], col, z, self.data.height)
+    self.generator(self.data.columns[z][col], col, z, self.data.height)
 
     -- Mark as generated immediately (no coroutine yield)
     self.data.generated_columns[key] = true
@@ -188,7 +186,7 @@ function GeneratorSystem.generate_column_sync(self, z, col)
     end
 
     -- Generate terrain for this column
-    generator(self.data.columns[z][col], col, z, self.data.height)
+    self.generator(self.data.columns[z][col], col, z, self.data.height)
 
     -- Yield to prevent frame drops - allows other work to process before next column
     coroutine.yield()
