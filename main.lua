@@ -11,7 +11,6 @@ end }
 -- Global: libraries
 
 Log = require "libraries.rxi.log"
-Timer = require "libraries.shard.timer"
 
 -- Global: constants
 
@@ -26,7 +25,7 @@ STACK_SIZE = 64
 local Love = require "core.love"
 local GameStateComponent = require "components.gamestate"
 local async = require "libraries.luax.async"
-local timer
+local Timer, timer = require "libraries.shard.timer", nil
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")

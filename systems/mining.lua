@@ -31,7 +31,6 @@ end
 function MiningSystem.update(self, dt)
     local slot = G.player.hotbar:get_selected()
     if not love.mouse.isDown(1) or not slot or slot.item_id ~= ITEMS.OMNITOOL then
-        -- TODO or mouse moved to another target
         self:cancel_mining()
         return
     end

@@ -68,7 +68,6 @@ end
 if not table.keys then table.keys = table_keys end
 
 local function table_unique(self)
-    -- TODO check value if array but check key if table
 	local seen = {}
 	local uniques = {}
 	for _, value in ipairs(self) do
