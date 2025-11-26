@@ -87,12 +87,15 @@ local function place_feature(column_data, col, z, surface_row, feature, world_he
         if block_name and block_name ~= "air" then
             local block_id = get_block_id_by_name(block_name)
             if block_id then
-                -- Calculate world row: anchor is at surface_row - 1 (just above surface)
-                -- row_idx = shape_height is the bottom (anchor)
+                -- Calculate world row position
+                -- Anchor is at surface_row - 1 (first air block above surface)
+                -- This places the feature base ON TOP of the surface block
+                -- row_idx = shape_height is the anchor (bottom of shape)
                 local offset_from_anchor = shape_height - row_idx
                 local world_row = surface_row - 1 - offset_from_anchor
 
-                -- Only place if within bounds and in air
+                -- Only place if within bounds and currently air
+                -- This prevents overwriting existing solid blocks
                 if world_row >= 0 and world_row < world_height then
                     if column_data[world_row] == BLOCKS.AIR then
                         column_data[world_row] = block_id
@@ -110,6 +113,9 @@ return function(column_data, col, z, base_height, world_height)
         -- Check if feature can spawn on this layer
         if is_valid_layer(z, feature.layers) then
             -- Find surface block (first non-air from top)
+            -- Note: This simple approach finds the topmost surface, which works well
+            -- for initial terrain. In caves or overhangs, features would only spawn
+            -- on the topmost surface, not inside caves.
             local surface_row = nil
             for row = 0, world_height - 1 do
                 if column_data[row] ~= BLOCKS.AIR then

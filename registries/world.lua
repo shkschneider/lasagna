@@ -19,8 +19,15 @@ function WorldRegistry.get(self, id)
 end
 
 -- Get all registered features
+-- Returns a shallow copy to prevent external modification
 function WorldRegistry.get_all(self)
-    return self
+    local copy = {}
+    for id, feature in pairs(self) do
+        if type(feature) == "table" and type(id) == "string" then
+            copy[id] = feature
+        end
+    end
+    return copy
 end
 
 -- Iterate over all features
