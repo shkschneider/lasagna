@@ -17,7 +17,7 @@ function DebugSystem.keypressed(self, key)
         return
     end
     -- Reset
-    if key == "delete" then -- FIXME
+    if key == "delete" then
         G:load()
         return
     end
