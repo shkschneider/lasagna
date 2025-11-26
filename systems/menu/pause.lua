@@ -25,11 +25,10 @@ return function()
             label = "[L] oad Game",
             enabled = save_exists,
             action = function()
-                local save_data = G.save:load()
-                if save_data then
-                    G:load()
-                    G.save:apply_save_data(save_data)
-                end
+                -- Store save data for loading phase
+                G.pending_save_data = G.save:load()
+                -- Transition to LOADING state
+                G:switch(GameStateComponent.LOADING)
             end
         },
         {

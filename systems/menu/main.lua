@@ -8,12 +8,10 @@ return function()
             label = "[C] ontinue",
             enabled = save_exists,
             action = function()
-                -- Load save data first to get the seed
-                local save_data = G.save:load()
-                if save_data then
-                    G:load()
-                    G.save:apply_save_data(save_data)
-                end
+                -- Store save data for loading phase
+                G.pending_save_data = G.save:load()
+                -- Transition to LOADING state
+                G:switch(GameStateComponent.LOADING)
             end
         },
         {
@@ -21,7 +19,10 @@ return function()
             label = "[N] ew Game",
             enabled = true,
             action = function()
-                G:load()
+                -- Clear any pending save data
+                G.pending_save_data = nil
+                -- Transition to LOADING state
+                G:switch(GameStateComponent.LOADING)
             end
         },
         {

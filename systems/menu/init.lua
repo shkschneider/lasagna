@@ -17,6 +17,9 @@ function MenuSystem.load(self)
     elseif state == GameStateComponent.PAUSE then
         self.title = "Paused"
         self.items = require("systems.menu.pause")()
+    elseif state == GameStateComponent.LOADING then
+        self.title = "Loading..."
+        self.items = require("systems.menu.loading")()
     end
     Love.load(self)
 end
@@ -25,8 +28,8 @@ end
 function MenuSystem.draw(self)
     local state = G.state.current
 
-    -- Only draw in MENU or PAUSE states
-    if state ~= GameStateComponent.MENU and state ~= GameStateComponent.PAUSE then
+    -- Only draw in MENU, PAUSE, or LOADING states
+    if state ~= GameStateComponent.MENU and state ~= GameStateComponent.PAUSE and state ~= GameStateComponent.LOADING then
         return
     end
 
@@ -37,7 +40,7 @@ function MenuSystem.draw(self)
         love.graphics.setColor(0, 0, 0, 0.5)
         love.graphics.rectangle("fill", 0, 0, screen_width, screen_height)
     else
-        -- For MENU, draw solid black background
+        -- For MENU and LOADING, draw solid black background
         love.graphics.setColor(0, 0, 0, 1)
         love.graphics.rectangle("fill", 0, 0, screen_width, screen_height)
     end
@@ -75,7 +78,7 @@ end
 function MenuSystem.keypressed(self, key)
     local state = G.state.current
 
-    -- Only handle input in MENU or PAUSE states
+    -- Only handle input in MENU or PAUSE states (not LOADING)
     if state ~= GameStateComponent.MENU and state ~= GameStateComponent.PAUSE then
         return
     end

@@ -40,6 +40,20 @@ end
 
 function love.update(dt)
     local state = G.state.current
+
+    -- Handle LOADING state - perform world generation and player spawn
+    if state == GameStateComponent.LOADING then
+        -- Perform the actual game loading (world generation, player spawn)
+        G:load()
+        -- Apply save data if we were loading a saved game
+        if G.pending_save_data then
+            G.save:apply_save_data(G.pending_save_data)
+            G.pending_save_data = nil
+        end
+        -- State is now PLAY (set by G:load)
+        return
+    end
+
     if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
         return
     end
@@ -50,8 +64,8 @@ end
 
 function love.draw()
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
-        G.menu:draw() -- FIXME draws alone not on top of world (if pause)
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOADING then
+        G.menu:draw()
     else
         Love.draw(G)
     end
@@ -75,6 +89,8 @@ function love.keypressed(key)
     if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
         G.menu:keypressed(key)
         return
+    elseif state == GameStateComponent.LOADING then
+        return  -- No input during loading
     else
         Love.keypressed(G, key)
     end
@@ -82,7 +98,7 @@ end
 
 function love.keyreleased(key)
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOADING then
         return
     end
     Love.keyreleased(G, key)
@@ -90,7 +106,7 @@ end
 
 function love.mousepressed(x, y, button)
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOADING then
         return
     end
     Love.mousepressed(G, x, y, button)
@@ -98,7 +114,7 @@ end
 
 function love.mousereleased(x, y, button)
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOADING then
         return
     end
     Love.mousereleased(G, x, y, button)
@@ -106,7 +122,7 @@ end
 
 function love.mousemoved(x, y, dx, dy)
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOADING then
         return
     end
     Love.mousemoved(G, x, y, dx, dy)
@@ -114,7 +130,7 @@ end
 
 function love.wheelmoved(x, y)
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOADING then
         return
     end
     Love.wheelmoved(G, x, y)
@@ -122,7 +138,7 @@ end
 
 function love.textinput(text)
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOADING then
         return
     end
     Love.textinput(G, text)
