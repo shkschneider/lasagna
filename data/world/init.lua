@@ -34,4 +34,5 @@ return function(column_data, world_col, z, world_height)
     local base_height = calculate_surface_height(world_col, z, world_height)
     require(here .. "terrain")(column_data, world_col, z, base_height, world_height)
     require(here .. "ores")(column_data, world_col, z, base_height, world_height)
+    require(here .. "nature")(column_data, world_col, z, base_height, world_height)
 end

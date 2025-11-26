@@ -13,4 +13,5 @@ return {
     COBALT_ORE = 11,
     SAND = 12,
     BEDROCK = 13,
+    LEAVES = 14,
 }
