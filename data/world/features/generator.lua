@@ -39,7 +39,7 @@ end
 -- Check if layer is valid for feature
 local function is_valid_layer(z, feature_layers)
     for _, layer in ipairs(feature_layers) do
-        if layer == z then
+        if tonumber(layer) == z then
             return true
         end
     end
