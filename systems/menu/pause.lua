@@ -1,7 +1,7 @@
 local GameStateComponent = require "components.gamestate"
 
 return function()
-    local save_exists = G.save:exists()
+    local save_exists = G.world.save:exists()
     return {
         {
             key = "c",
@@ -16,7 +16,7 @@ return function()
             label = "[S] ave Game",
             enabled = true,
             action = function()
-                G.save:save()
+                G.world.save:save()
                 G:switch(GameStateComponent.PLAY)
             end
         },
@@ -25,7 +25,7 @@ return function()
             label = "[L] oad Game",
             enabled = save_exists,
             action = function()
-                G.pending_save_data = G.save:load()
+                G.pending_save_data = G.world.save:load()
                 G:switch(GameStateComponent.LOAD)
             end
         },

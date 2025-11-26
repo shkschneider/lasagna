@@ -8,7 +8,8 @@ local WorldSystem = Object {
     id = "world",
     priority = 10,
     canvases = {},
-    generator = require("systems.generator"),
+    generator = require("systems.world.generator"),
+    save = require("systems.world.save"),
 }
 
 function WorldSystem.load(self)

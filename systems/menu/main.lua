@@ -1,7 +1,7 @@
 local GameStateComponent = require "components.gamestate"
 
 return function()
-    local save_exists = G.save:exists()
+    local save_exists = G.world.save:exists()
     return {
         {
             key = "c",
@@ -9,7 +9,7 @@ return function()
             enabled = save_exists,
             action = function()
                 -- Store save data for loading phase
-                G.pending_save_data = G.save:load()
+                G.pending_save_data = G.world.save:load()
                 -- Transition to LOAD state
                 G:switch(GameStateComponent.LOAD)
             end

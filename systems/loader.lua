@@ -31,7 +31,7 @@ function LoaderSystem.start(self)
 
         -- Apply save data if we were loading a saved game
         if G.pending_save_data then
-            G.save:apply_save_data(G.pending_save_data)
+            G.world.save:apply_save_data(G.pending_save_data)
             G.pending_save_data = nil
         end
         self._progress = 1.0

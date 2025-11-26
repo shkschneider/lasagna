@@ -18,7 +18,6 @@ local Game = Object {
     ui = require("systems.interface"),
     chat = require("systems.chat"),
     lore = require("systems.lore"),
-    save = require("systems.save"),
     menu = require("systems.menu"),
     loader = require("systems.loader"),
 }
