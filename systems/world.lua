@@ -266,14 +266,15 @@ function WorldSystem.find_spawn_position(self, z)
     z = z or 0
     -- Find the surface by searching for the first solid block from top
     local col = BLOCK_SIZE
+    local player_height = BLOCK_SIZE * 2  -- Player is 2 blocks tall
     for row = 0, self.HEIGHT - 1 do
         local block_def = self.get_block_def(self, z, col, row)
         if block_def and block_def.solid then
             -- Spawn above the ground
             -- Player is 2 blocks tall and position is at center
-            -- So we need player center to be 1 block above the ground surface
+            -- Subtract player height to ensure player is fully above ground
             local spawn_x = col * BLOCK_SIZE + BLOCK_SIZE / 2
-            local spawn_y = (row - 1) * BLOCK_SIZE  -- Center of player, 1 block above ground
+            local spawn_y = (row - 1) * BLOCK_SIZE - player_height
             return spawn_x, spawn_y, z
         end
     end

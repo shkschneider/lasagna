@@ -24,6 +24,12 @@ STACK_SIZE = 64
 
 local Love = require "core.love"
 local GameStateComponent = require "components.gamestate"
+local async = require "libraries.luax.async"
+
+-- Loading state tracking
+local loading_task = nil
+local loading_start_time = nil
+local LOADING_MIN_DURATION = 1  -- Minimum loading screen duration in seconds
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
@@ -43,14 +49,35 @@ function love.update(dt)
 
     -- Handle LOADING state - perform world generation and player spawn
     if state == GameStateComponent.LOADING then
-        -- Perform the actual game loading (world generation, player spawn)
-        G:load()
-        -- Apply save data if we were loading a saved game
-        if G.pending_save_data then
-            G.save:apply_save_data(G.pending_save_data)
-            G.pending_save_data = nil
+        -- Start loading task if not already started
+        if not loading_task then
+            loading_start_time = love.timer.getTime()
+            loading_task = async.spawn(function(task)
+                -- Perform the actual game loading (world generation, player spawn)
+                G:load()
+                -- Apply save data if we were loading a saved game
+                if G.pending_save_data then
+                    G.save:apply_save_data(G.pending_save_data)
+                    G.pending_save_data = nil
+                end
+                -- Wait for minimum loading duration
+                local elapsed = love.timer.getTime() - loading_start_time
+                local remaining = LOADING_MIN_DURATION - elapsed
+                if remaining > 0 then
+                    task:sleep(remaining)
+                end
+            end)
         end
-        -- State is now PLAY (set by G:load)
+
+        -- Update async scheduler
+        async.update(dt)
+
+        -- Check if loading is complete
+        if loading_task and loading_task.result then
+            loading_task = nil
+            loading_start_time = nil
+            -- State is now PLAY (set by G:load)
+        end
         return
     end
 
