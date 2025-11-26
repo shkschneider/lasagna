@@ -54,9 +54,9 @@ function love.update(dt)
             loading_done = false
             loading_coroutine = coroutine.create(function()
                 G.menu:load()
-                coroutine.yield() -- yield to allow frame update
+                coroutine.yield() -- yield after menu load to update display
                 Love.load(G)
-                coroutine.yield() -- yield to allow frame update
+                coroutine.yield() -- yield after game systems load
                 -- Apply save data if we were loading a saved game
                 if G.pending_save_data then
                     G.save:apply_save_data(G.pending_save_data)
@@ -69,15 +69,13 @@ function love.update(dt)
         loading_elapsed = loading_elapsed + dt
 
         -- Resume loading coroutine if not done
-        if not loading_done and coroutine.status(loading_coroutine) ~= "dead" then
+        if not loading_done then
             local ok, err = coroutine.resume(loading_coroutine)
             if not ok then
                 Log.error("Loading error:", err)
             end
-            -- Check if loading finished
-            if coroutine.status(loading_coroutine) == "dead" then
-                loading_done = true
-            end
+            -- Mark loading as done when coroutine completes
+            loading_done = coroutine.status(loading_coroutine) == "dead"
         end
 
         -- Transition to PLAY when loading is done AND minimum time has elapsed
