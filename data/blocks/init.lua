@@ -1,7 +1,9 @@
 -- Default block definitions
 -- Blocks register themselves with the BlocksRegistry
 
-require "data.blocks.base"
-require "data.blocks.ores"
+local here = (...):gsub("%.init$", "") .. "."
 
-return require "data.blocks.ids"
+require(here .. "base")
+require(here .. "ores")
+
+return require(here .. "ids")

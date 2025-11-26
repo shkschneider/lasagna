@@ -1,25 +1,26 @@
 -- Omnitool component
 -- Mining tier
 
-local OmnitoolComponent = {}
-
-local TIER_MIN = 1
-local TIER_MAX = 4
+local OmnitoolComponent = {
+    TIER_MIN = 1,
+    TIER_MAX = 4,
+}
 
 function OmnitoolComponent.new(tier)
     tier = tier or 1
     assert(type(tier) == "number")
-    assert(tier >= TIER_MIN and tier <= TIER_MAX)
-    return {
+    assert(tier >= OmnitoolComponent.TIER_MIN and tier <= OmnitoolComponent.TIER_MAX)
+    local omnitool = {
         id = "omnitool",
         name = "OmniTool",
         tier = tier,
-        min = TIER_MIN,
-        max = TIER_MAX,
+        min = OmnitoolComponent.TIER_MIN,
+        max = OmnitoolComponent.TIER_MAX,
         tostring = function(self)
-            return string.format("%d/%d", self.tier, TIER_MAX)
+            return string.format("%d/%d", self.tier, OmnitoolComponent.TIER_MAX)
         end
     }
+    return setmetatable(omnitool, { __index = OmnitoolComponent })
 end
 
 return OmnitoolComponent

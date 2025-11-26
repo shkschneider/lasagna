@@ -1,7 +1,7 @@
 local ItemDropComponent = {}
 
 function ItemDropComponent.new(block_id, count, lifetime, pickup_delay)
-    local instance = {
+    local drop = {
         id = "itemdrop",
         priority = 30,  -- ItemDrops update after velocity
         block_id = block_id,
@@ -10,12 +10,7 @@ function ItemDropComponent.new(block_id, count, lifetime, pickup_delay)
         pickup_delay = pickup_delay or 0.5,
         dead = false,  -- Mark for removal
     }
-
-    -- Assign update and draw methods to instance
-    instance.update = ItemDropComponent.update
-    instance.draw = ItemDropComponent.draw
-
-    return instance
+    return setmetatable(drop, { __index = ItemDropComponent })
 end
 
 -- Component update method - handles drop lifetime and pickup delay

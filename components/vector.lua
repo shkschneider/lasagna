@@ -1,7 +1,7 @@
 local VectorComponent = {}
 
 function VectorComponent.new(x, y, z)
-    local instance = {
+    local vector = {
         id = "vector",
         priority = 20,  -- after physics
         enabled = true,  -- Can be disabled for custom movement handling (e.g., player)
@@ -12,11 +12,7 @@ function VectorComponent.new(x, y, z)
             return string.format("%d,%d,%d", self.x, self.y, self.z)
         end
     }
-
-    -- Assign update method to instance
-    instance.update = VectorComponent.update
-
-    return instance
+    return setmetatable(vector, { __index = VectorComponent })
 end
 
 -- Component update method - applies velocity to position

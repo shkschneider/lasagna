@@ -4,7 +4,7 @@
 local CameraComponent = {}
 
 function CameraComponent.new(x, y, target_x, target_y, smoothness)
-    return {
+    local camera = {
         id = "camera",
         x = x or 0,
         y = y or 0,
@@ -15,6 +15,7 @@ function CameraComponent.new(x, y, target_x, target_y, smoothness)
             return string.format("%d,%d", self.x, self.y)
         end
     }
+    return setmetatable(camera, { __index = CameraComponent })
 end
 
 return CameraComponent

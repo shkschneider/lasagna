@@ -1,7 +1,9 @@
 -- Item definitions
 -- Items register themselves with the ItemsRegistry
 
-require "data.items.omnitool"
-require "data.items.weapons"
+local here = (...):gsub("%.init$", "") .. "."
 
-return require "data.items.ids"
+require(here .. "omnitool")
+require(here .. "weapons")
+
+return require(here .. "ids")

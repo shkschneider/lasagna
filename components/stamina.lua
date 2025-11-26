@@ -6,7 +6,7 @@ local Object = require "core.object"
 local StaminaComponent = {}
 
 function StaminaComponent.new(current, max, regen_rate)
-    local instance = {
+    local stamina = {
         id = "stamina",
         priority = 51,  -- Components update in priority order
         current = current or 100,
@@ -16,12 +16,7 @@ function StaminaComponent.new(current, max, regen_rate)
             return string.format("%d%%", math.floor(self.current))
         end
     }
-
-    -- Assign update and draw methods to instance
-    instance.update = StaminaComponent.update
-    instance.draw = StaminaComponent.draw
-
-    return instance
+    return setmetatable(stamina, { __index = StaminaComponent })
 end
 
 -- Component update method - called automatically by Object recursion

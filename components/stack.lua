@@ -1,34 +1,28 @@
 -- Stack component
 -- Represents a stack of items (max 64)
 
-local StackComponent = {}
-
--- Maximum stack size
-StackComponent.MAX_SIZE = STACK_SIZE or 64
+local StackComponent = {
+    -- Maximum stack size
+    MAX_SIZE = STACK_SIZE or 64,
+}
 
 -- Create a new stack
--- @param id: block_id or item_id
--- @param count: number of items (default 1)
--- @param id_type: "block" or "item" (default "block")
-function StackComponent.new(id, count, id_type)
-    local instance = {
+function StackComponent.new(id, count, id_type) -- TODO without id_type
+    local stack = {
         id = "stack",
         item_id = nil,
         block_id = nil,
         count = count or 1,
     }
-
     -- Set the appropriate id field based on type
     if id_type == "item" then
-        instance.item_id = id
+        stack.item_id = id
     else
-        instance.block_id = id
+        stack.block_id = id
     end
-
     -- Clamp count to valid range
-    instance.count = math.max(0, math.min(instance.count, StackComponent.MAX_SIZE))
-
-    return setmetatable(instance, { __index = StackComponent })
+    stack.count = math.max(0, math.min(stack.count, StackComponent.MAX_SIZE))
+    return setmetatable(stack, { __index = StackComponent })
 end
 
 -- Create an empty stack

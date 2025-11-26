@@ -2,13 +2,15 @@
 -- World dimensions and storage
 -- World is infinite horizontally with column-based storage and generation
 
-local WorldDataComponent = {}
+local WorldDataComponent = {
+    HEIGHT = 512,
+}
 
 function WorldDataComponent.new(seed, height)
-    return {
+    local worlddata = {
         id = "worlddata",
         seed = seed or math.random(),
-        height = height or 512,
+        height = height or WorldDataComponent.HEIGHT,
         -- Column-based storage: columns[z][col] contains rows
         -- No horizontal width limit - columns are generated on demand
         columns = {
@@ -26,6 +28,7 @@ function WorldDataComponent.new(seed, height)
             [1] = {},
         },
     }
+    return setmetatable(worlddata, { __index = WorldDataComponent })
 end
 
 return WorldDataComponent

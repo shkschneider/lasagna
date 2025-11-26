@@ -1,7 +1,7 @@
 local ProjectileComponent = {}
 
 function ProjectileComponent.new(damage, lifetime, width, height, color, destroys_blocks)
-    local instance = {
+    local projectile = {
         id = "bullet",
         priority = 30,  -- Projectiles update after velocity
         damage = damage or 10,
@@ -12,12 +12,7 @@ function ProjectileComponent.new(damage, lifetime, width, height, color, destroy
         destroys_blocks = destroys_blocks or false,  -- whether bullet destroys blocks on impact
         dead = false,  -- Mark for removal
     }
-
-    -- Assign update and draw methods to instance
-    instance.update = ProjectileComponent.update
-    instance.draw = ProjectileComponent.draw
-
-    return instance
+    return setmetatable(projectile, { __index = ProjectileComponent })
 end
 
 -- Component update method - handles bullet lifetime and collision

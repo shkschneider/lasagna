@@ -1,6 +1,8 @@
 local Lore = {}
 
-Lore.Ages = require "data.lore.ages"
-Lore.Messages = require "data.lore.messages"
+local here = (...):gsub("%.init$", "") .. "."
+
+Lore.Ages = require(here .. "ages")
+Lore.Messages = require(here .. "messages")
 
 return Lore
