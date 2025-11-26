@@ -5,6 +5,7 @@ local StanceComponent = require "components.stance"
 local ControlSystem = Object {
     id = "control",
     priority = 19, -- Run before player system (priority 20)
+    sprinting = false,
     -- Stamina constants
     STAMINA_RUN_COST = 2.5,  -- per second
     STAMINA_JUMP_COST = 5,   -- per jump
@@ -38,8 +39,9 @@ function ControlSystem.update(self, dt)
     local vel = G.player.velocity
     local stance = G.player.stance
 
-    -- Check if on ground first
-    local on_ground = G.player:is_on_ground()
+    -- Use cached ground state from previous frame's physics resolution
+    -- This ensures consistent on_ground detection since ControlSystem runs before PlayerSystem
+    local on_ground = G.player.on_ground
 
     -- Handle crouching toggle (only when on ground)
     local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
@@ -64,14 +66,13 @@ function ControlSystem.update(self, dt)
 
     -- Horizontal movement
     vel.x = 0
-    local is_running = false
-    local is_shift_pressed = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
+    self.sprinting = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
 
     if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
-        vel.x = -G.player.MOVE_SPEED
+        vel.x = -G.player.MOVE_SPEED * (self.sprinting and 1.5 or 1)
     end
     if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-        vel.x = G.player.MOVE_SPEED
+        vel.x = G.player.MOVE_SPEED * (self.sprinting and 1.5 or 1)
     end
 
     -- Apply movement modifiers
@@ -79,10 +80,10 @@ function ControlSystem.update(self, dt)
         if stance.crouched then
             -- Crouching slows movement by half
             vel.x = vel.x / 2
-        elseif on_ground and is_shift_pressed and self:has_stamina(ControlSystem.STAMINA_RUN_COST * dt) then
+        elseif on_ground and is_running and self:has_stamina(ControlSystem.STAMINA_RUN_COST * dt) then
             -- Running doubles speed (only when on ground and not crouched)
-            vel.x = vel.x * 2
-            is_running = true
+            vel.x = vel.x * 1.5
+            self.sprinting = true
         end
     end
 
@@ -91,22 +92,15 @@ function ControlSystem.update(self, dt)
         self:consume_stamina(ControlSystem.STAMINA_RUN_COST * dt)
     end
 
-    -- Jump handling - only when on ground
+    -- Jump handling - only when on ground and not already jumping
     local jump_pressed = love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")
-    if jump_pressed and not stance.current ~= StanceComponent.JUMPING and on_ground then
-        if stance.crouched then
-            -- Crouched jump: reduced height, no stamina cost
-            vel.y = -G.player.JUMP_FORCE / 2
-            stance.current = StanceComponent.JUMPING
-        elseif self:has_stamina(ControlSystem.STAMINA_JUMP_COST) then
-            -- Full jump: requires and consumes stamina
-            vel.y = -G.player.JUMP_FORCE
-            stance.current = StanceComponent.JUMPING
+    if jump_pressed and stance.current ~= StanceComponent.JUMPING and on_ground then
+        vel.y = -G.player.JUMP_FORCE
+        stance.current = StanceComponent.JUMPING
+        -- Sprint jump: 1.5x horizontal velocity, consumes stamina
+        if self.sprinting and self:has_stamina(ControlSystem.STAMINA_JUMP_COST) then
+            vel.x = vel.x * 1.5
             self:consume_stamina(ControlSystem.STAMINA_JUMP_COST)
-        else
-            -- Low stamina fallback: crouched-height jump, no stamina cost
-            vel.y = -G.player.JUMP_FORCE / 2
-            stance.current = StanceComponent.JUMPING
         end
     end
 
