@@ -32,8 +32,10 @@ end
 local function generate_tree(column_data, world_col, z, base_height)
     -- Determine tree height using noise
     local height_noise = noise.perlin2d(world_col * 0.3, z * 0.3)
-    local tree_height = TREE_MIN_HEIGHT + math.floor((height_noise + 1) / 2 * (TREE_MAX_HEIGHT - TREE_MIN_HEIGHT))
-    tree_height = math.min(tree_height, TREE_MAX_HEIGHT)
+    -- Clamp noise to [-1, 1] range and map to [TREE_MIN_HEIGHT, TREE_MAX_HEIGHT]
+    local normalized_noise = math.max(0, math.min(1, (height_noise + 1) / 2))
+    local tree_height = TREE_MIN_HEIGHT + math.floor(normalized_noise * (TREE_MAX_HEIGHT - TREE_MIN_HEIGHT + 0.99))
+    tree_height = math.max(TREE_MIN_HEIGHT, math.min(tree_height, TREE_MAX_HEIGHT))
     
     -- Place wood trunk (going upward from surface)
     local trunk_start = base_height - 1  -- One block above ground
@@ -67,8 +69,9 @@ end
 local function determine_tree_count(world_col, z)
     -- Use noise to determine 1-3 trees in this cluster
     local count_noise = noise.perlin2d(world_col * 0.2 + 2000, z * 0.2 + 2000)
-    -- Map noise from [-1, 1] to [1, 3]
-    return math.min(3, 1 + math.floor((count_noise + 1) / 2 * 3))
+    -- Clamp noise to [-1, 1] range and map to [1, 3]
+    local normalized_noise = math.max(0, math.min(1, (count_noise + 1) / 2))
+    return math.max(1, math.min(3, 1 + math.floor(normalized_noise * 2.99)))
 end
 
 local function should_place_tree_in_cluster(world_col, z, data)
