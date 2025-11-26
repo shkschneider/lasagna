@@ -11,6 +11,7 @@ end }
 -- Global: libraries
 
 Log = require "libraries.rxi.log"
+Fonts = require "data.fonts"
 
 -- Global: constants
 
@@ -27,6 +28,8 @@ local GameStateComponent = require "components.gamestate"
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
+    Fonts:load()
+    Fonts:set(Fonts.Regular)
     local debug = os.getenv("DEBUG") and (os.getenv("DEBUG") == "true") or (G.VERSION.major < 1)
     Log.level = debug and "debug" or "warn"
     Log.info(G.NAME, G.VERSION:tostring())
