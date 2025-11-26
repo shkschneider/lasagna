@@ -65,8 +65,7 @@ function ControlSystem.update(self, dt)
 
     -- Horizontal movement
     vel.x = 0
-    local is_running = false
-    local is_shift_pressed = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
+    local is_running = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
 
     if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
         vel.x = -G.player.MOVE_SPEED
@@ -80,9 +79,9 @@ function ControlSystem.update(self, dt)
         if stance.crouched then
             -- Crouching slows movement by half
             vel.x = vel.x / 2
-        elseif on_ground and is_shift_pressed and self:has_stamina(ControlSystem.STAMINA_RUN_COST * dt) then
+        elseif on_ground and is_running and self:has_stamina(ControlSystem.STAMINA_RUN_COST * dt) then
             -- Running doubles speed (only when on ground and not crouched)
-            vel.x = vel.x * 2
+            vel.x = vel.x * 1.5
             is_running = true
         end
     end
