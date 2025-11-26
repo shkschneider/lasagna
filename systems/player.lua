@@ -62,6 +62,9 @@ function PlayerSystem.load(self)
     -- Cached ground state (updated after physics resolution each frame)
     -- Initialize based on actual spawn position
     self.on_ground = PhysicsSystem.is_on_ground(G.world, self.position, self.width, self.height)
+    if not self.on_ground then
+        Log.warn("Player not on ground!")
+    end
 
     -- Add omnitool to hotbar slot 1
     self.hotbar:set_slot(1, StackComponent.new(ITEMS.OMNITOOL, 1, "item"))
