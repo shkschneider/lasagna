@@ -20,7 +20,7 @@ local GeneratorSystem = Object {
 
 function GeneratorSystem.load(self)
     -- Seed the noise library
-    self.data = WorldData.new(G.debug and os.getenv("SEED") or (os.time() + love.timer.getTime())), -- FIXME
+    self.data = WorldData.new(G.debug and os.getenv("SEED") or (os.time() + love.timer.getTime())),
     Love.load(self)
     assert(self.data.seed)
     noise.seed(self.data.seed)

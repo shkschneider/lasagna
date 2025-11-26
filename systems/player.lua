@@ -71,7 +71,6 @@ function PlayerSystem.load(self)
 
     -- Initialize control system
     self.control = require "systems.control"
-    -- TODO control?
 
     if G.debug then
         local px, py = G.world:world_to_block(self.position.x, self.position.y)

@@ -25,9 +25,7 @@ return function()
             label = "[L] oad Game",
             enabled = save_exists,
             action = function()
-                -- Store save data for loading phase
                 G.pending_save_data = G.save:load()
-                -- Transition to LOAD state
                 G:switch(GameStateComponent.LOAD)
             end
         },
@@ -36,7 +34,6 @@ return function()
             label = "[Q] uit",
             enabled = true,
             action = function()
-                -- TODO save
                 G:switch(GameStateComponent.MENU)
             end
         },
