@@ -2,20 +2,23 @@ require "core"
 
 local Love = {}
 
+local function Love_cache(self)
+    self.__objects = {}
+    for id, object in pairs(self) do
+        -- all tables are considered potential sub-objects
+        if type(object) == "table" then
+            table.insert(self.__objects, object)
+        end
+    end
+    table.sort(self.__objects, function(a, b)
+        return (a.priority or math.inf) < (b.priority or math.inf)
+    end)
+end
+
 local function Love_call(self, name, ...)
     if not self.__objects then
-        self.__objects = {}
-        for id, object in pairs(self) do
-            -- all tables are considered potential sub-objects
-            if type(object) == "table" then
-                table.insert(self.__objects, object)
-            end
-        end
-        table.sort(self.__objects, function(a, b)
-            return (a.priority or math.inf) < (b.priority or math.inf)
-        end)
+        Love_cache(self)
     end
-    -- Profile: local start = love.timer.getTime()
     for _, object in ipairs(self.__objects) do
         local f = object[name]
         if type(f) == "function" then
@@ -23,7 +26,6 @@ local function Love_call(self, name, ...)
             f(object, ...)
         end
     end
-    -- Profile: print(string.format("%s %s: %fs", string.upper(name), self.id or "?", (love.timer.getTime() - start)))
 end
 
 function Love.load(self, ...)

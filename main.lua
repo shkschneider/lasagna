@@ -24,8 +24,6 @@ STACK_SIZE = 64
 
 local Love = require "core.love"
 local GameStateComponent = require "components.gamestate"
-local async = require "libraries.luax.async"
-local Timer, timer = require "libraries.shard.timer", nil
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
@@ -44,19 +42,17 @@ function love.update(dt)
     local state = G.state.current
 
     if state == GameStateComponent.LOAD then
-        if not timer then
-            timer = Timer:new(1, function() -- TODO minimal time
-                G.menu:load()
-                G:load()
-                -- Apply save data if we were loading a saved game
-                if G.pending_save_data then
-                    G.save:apply_save_data(G.pending_save_data)
-                    G.pending_save_data = nil
-                end
-            end)
-        else
-            timer:update(dt)
+        -- Start loader on first frame of LOAD state
+        if not G.loader:is_active() then
+            G.loader:start()
         end
+
+        -- Update loader and transition to PLAY when ready
+        if G.loader:update(dt) then
+            G.loader:reset()
+            G:switch(GameStateComponent.PLAY)
+        end
+
         return
     end
 
@@ -70,7 +66,11 @@ end
 
 function love.draw()
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
+    if state == GameStateComponent.PAUSE then
+        -- Draw the frozen world first, then menu overlay on top
+        Love.draw(G)
+        G.menu:draw()
+    elseif state == GameStateComponent.MENU or state == GameStateComponent.LOAD then
         G.menu:draw()
     else
         Love.draw(G)

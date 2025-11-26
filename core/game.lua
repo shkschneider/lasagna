@@ -20,6 +20,7 @@ local Game = Object {
     lore = require("systems.lore"),
     save = require("systems.save"),
     menu = require("systems.menu"),
+    loader = require("systems.loader"),
 }
 
 function Game.switch(self, gamestate)

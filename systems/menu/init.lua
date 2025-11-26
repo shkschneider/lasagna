@@ -56,6 +56,28 @@ function MenuSystem.draw(self)
     local title_width = font:getWidth(self.title)
     love.graphics.print(self.title, (screen_width - title_width) / 2, start_y)
 
+    -- Draw loading bar for LOAD state
+    if state == GameStateComponent.LOAD and G.loader then
+        local progress = G.loader:get_progress()
+        local bar_width = 200
+        local bar_height = 10
+        local bar_x = (screen_width - bar_width) / 2
+        local bar_y = start_y + line_height + 20
+
+        -- Draw bar background (dark gray)
+        love.graphics.setColor(0.3, 0.3, 0.3, 1)
+        love.graphics.rectangle("fill", bar_x, bar_y, bar_width, bar_height)
+
+        -- Draw progress fill (white)
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.rectangle("fill", bar_x, bar_y, bar_width * progress, bar_height)
+
+        -- Draw percentage text
+        local percent_text = string.format("%d%%", math.floor(progress * 100))
+        local percent_width = font:getWidth(percent_text)
+        love.graphics.print(percent_text, (screen_width - percent_width) / 2, bar_y + bar_height + 10)
+    end
+
     -- Draw menu items
     for i, item in ipairs(self.items) do
         local y = start_y + i * line_height
