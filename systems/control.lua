@@ -95,15 +95,12 @@ function ControlSystem.update(self, dt)
     -- Jump handling - only when on ground and not already jumping
     local jump_pressed = love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")
     if jump_pressed and stance.current ~= StanceComponent.JUMPING and on_ground then
-        if not stance.crouched and self:has_stamina(ControlSystem.STAMINA_JUMP_COST) then
-            -- Full jump: requires and consumes stamina
-            vel.y = -G.player.JUMP_FORCE
-            stance.current = StanceComponent.JUMPING
+        vel.y = -G.player.JUMP_FORCE
+        stance.current = StanceComponent.JUMPING
+        -- Sprint jump: 1.5x horizontal velocity, consumes stamina
+        if is_running and self:has_stamina(ControlSystem.STAMINA_JUMP_COST) then
+            vel.x = vel.x * 1.5
             self:consume_stamina(ControlSystem.STAMINA_JUMP_COST)
-        else
-            -- Low stamina fallback: crouched-height jump (~1.5 blocks), no stamina cost
-            vel.y = -G.player.JUMP_FORCE
-            stance.current = StanceComponent.JUMPING
         end
     end
 
