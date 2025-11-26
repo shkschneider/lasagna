@@ -38,8 +38,9 @@ function ControlSystem.update(self, dt)
     local vel = G.player.velocity
     local stance = G.player.stance
 
-    -- Check if on ground first
-    local on_ground = G.player:is_on_ground()
+    -- Use cached ground state from previous frame's physics resolution
+    -- This ensures consistent on_ground detection since ControlSystem runs before PlayerSystem
+    local on_ground = G.player.on_ground
 
     -- Handle crouching toggle (only when on ground)
     local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")

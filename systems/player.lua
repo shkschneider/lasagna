@@ -59,6 +59,9 @@ function PlayerSystem.load(self)
     -- Fall damage tracking
     self.fall_start_y = nil
 
+    -- Cached ground state (updated after physics resolution each frame)
+    self.on_ground = true
+
     -- Add omnitool to hotbar slot 1
     self.hotbar:set_slot(1, StackComponent.new(ITEMS.OMNITOOL, 1, "item"))
 
@@ -151,6 +154,9 @@ function PlayerSystem.update(self, dt)
         end
         -- Keep JUMPING stance while moving upward (vel.y < 0)
     end
+
+    -- Cache ground state for next frame (used by ControlSystem)
+    self.on_ground = on_ground
 end
 
 function PlayerSystem.draw(self)
