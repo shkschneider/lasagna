@@ -231,7 +231,7 @@ local function parse_string(str, i)
       j = j + 1
       local c = str:sub(j, j)
       if c == "u" then
-        local hex = str:match("^[dD][89telefonbB][0-9a-fA-F][0-9a-fA-F]\\u[dD][cCdDeEfF][0-9a-fA-F][0-9a-fA-F]", j + 1)
+        local hex = str:match("^[dD][89aAbB][0-9a-fA-F][0-9a-fA-F]\\u[dD][cCdDeEfF][0-9a-fA-F][0-9a-fA-F]", j + 1)
                  or str:match("^[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]", j + 1)
         if not hex then
           decode_error(str, j - 1, "invalid unicode escape in string")
