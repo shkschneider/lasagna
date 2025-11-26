@@ -1,7 +1,8 @@
+local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
 
-local ChatSystem = Object.new {
+local ChatSystem = Object {
     id = "chat",
     priority = 120, -- After UI (110)
 }
@@ -14,6 +15,7 @@ function ChatSystem.load(self)
     self.message_timer = 0 -- Timer for message visibility
     self.message_display_duration = 5 -- Seconds to show messages
     self.in_input_mode = false -- Whether user is typing
+    Love.load(self)
 end
 
 function ChatSystem.update(self, dt)
@@ -28,6 +30,7 @@ function ChatSystem.update(self, dt)
             end
         end
     end
+    Love.update(self, dt)
 end
 
 function ChatSystem.draw(self)
@@ -86,6 +89,8 @@ function ChatSystem.draw(self)
         local input_text = "> " .. self.input .. "_"
         love.graphics.print(input_text, chat_x + chat_padding, history_y)
     end
+
+    Love.draw(self)
 end
 
 function ChatSystem.keypressed(self, key)
@@ -138,12 +143,15 @@ function ChatSystem.keypressed(self, key)
         self.message_timer = 0
         love.keyboard.setTextInput(false)
     end
+
+    Love.keypressed(self, key)
 end
 
 function ChatSystem.textinput(self, text)
     if self.in_input_mode then
         self.input = self.input .. text
     end
+    Love.textinput(self, text)
 end
 
 function ChatSystem.process_input(self, input)
@@ -161,7 +169,7 @@ function ChatSystem.process_input(self, input)
                 table.insert(args, command_parts[i])
             end
 
-            if G.debug and G.debug.enabled then
+            if G.debug then
                 -- Add input to history
                 self:add_message("> " .. input)
                 -- Execute command

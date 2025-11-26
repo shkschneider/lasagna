@@ -1,3 +1,4 @@
+local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
@@ -6,7 +7,7 @@ local ITEMS = Registry.items()
 -- Visual constants for mining overlay
 local MINING_OVERLAY_COLOR = {0, 0, 0, 0.5} -- Black with 80% opacity
 
-local MiningSystem = Object.new {
+local MiningSystem = Object {
     id = "mining",
     priority = 60,
     -- Mining state
@@ -24,6 +25,7 @@ end
 
 function MiningSystem.load(self)
     self.target = nil
+    Love.load(self)
 end
 
 function MiningSystem.update(self, dt)
@@ -56,6 +58,7 @@ function MiningSystem.update(self, dt)
             self:complete_mining()
         end
     end
+    Love.update(self, dt)
 end
 
 function MiningSystem.start_mining(self, col, row)
@@ -160,6 +163,8 @@ function MiningSystem.draw(self)
         current_size,
         current_size
     )
+
+    Love.draw(self)
 
     -- Reset color
     love.graphics.setColor(1, 1, 1, 1)

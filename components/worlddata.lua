@@ -18,6 +18,13 @@ function WorldDataComponent.new(seed, height)
         },
         generating_columns = {},  -- Columns currently being generated
         generated_columns = {},   -- Columns that have completed generation
+        -- Block changes: tracks modifications from procedurally generated terrain
+        -- Format: changes[z][col][row] = block_id (nil means no change from generated)
+        changes = {
+            [-1] = {},
+            [0] = {},
+            [1] = {},
+        },
     }
 end
 

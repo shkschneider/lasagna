@@ -103,3 +103,25 @@ local function table_get(self, i)
     return self[i]
 end
 if not table.get then table.get = table_get end
+
+local function table_has_key(self, key)
+    if type(self) ~= "table" then return false end
+    for k, _ in pairs(self) do
+        if k == key then
+            return true
+        end
+    end
+    return false
+end
+if not table.has_key then table.has_key = table_has_key end
+
+local function table_has_value(self, value)
+    if type(self) ~= "table" then return false end
+    for _, v in pairs(self) do
+        if v == value then
+            return true
+        end
+    end
+    return false
+end
+if not table.has_value then table.has_value = table_has_value end

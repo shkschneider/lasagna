@@ -1,7 +1,6 @@
 # TODO
 
 - mechanics
-- inventory
 - communications (WIP)
 - ages (WIP)
 

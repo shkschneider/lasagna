@@ -1,8 +1,10 @@
+local Love = require "core.love"
 local Object = require "core.object"
 local TimeComponent = require "components.time"
 local GameStateComponent = require "components.gamestate"
 
-local Game = {
+local Game = Object {
+    id = "game",
     priority = 0,
     state = GameStateComponent.new(GameStateComponent.BOOT),
     time = TimeComponent.new(1),
@@ -13,33 +15,32 @@ local Game = {
     mining = require("systems.mining"),
     building = require("systems.building"),
     weapon = require("systems.weapon"),
-    entity = require("systems.entity"),  -- Unified entity manager (replaces bullet and drop)
+    entity = require("systems.entity"),
     ui = require("systems.interface"),
     chat = require("systems.chat"),
     lore = require("systems.lore"),
-    debug = require("systems.debug"),
+    save = require("systems.save"),
+    menu = require("systems.menu"),
 }
 
 function Game.switch(self, gamestate)
     assert(gamestate)
     self.state = GameStateComponent.new(gamestate)
     Log.debug(string.format("%f", love.timer.getTime()), "Game", string.upper(self.state:tostring()))
+    G.menu:load()
 end
 
-function Game.load(self, ...)
-    G.debug.enabled = true
+function Game.load(self)
     self:switch(GameStateComponent.LOAD)
-    Object.load(self, ...)
+    Love.load(self)
     self:switch(GameStateComponent.PLAY)
 end
 
-function Game.reload(self)
-    local seed = G.world.worlddata.seed
-    local debug = G.debug.enabled or false
-    self = require "core.game"
-    self:switch(GameStateComponent.LOAD)
-    Object.load(self, seed, debug)
-    self:switch(GameStateComponent.PLAY)
-end
+-- function Game.keypressed(self, key)
+--     if key == "backspace" and not self.debug then
+--         self.debug = require("systems.debug")
+--         self.debug:load()
+--     end
+-- end
 
 return Game

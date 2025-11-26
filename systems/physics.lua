@@ -2,9 +2,10 @@
 -- Coordinates physics calculations and collision detection
 -- Provides gravity and movement for all entities
 
+local Love = require "core.love"
 local Object = require "core.object"
 
-local PhysicsSystem = Object.new {
+local PhysicsSystem = Object {
     id = "physics",
     priority = 15,  -- Run before player system (priority 20)
 }
@@ -179,6 +180,8 @@ function PhysicsSystem.update(self, dt)
 
     -- Clamp to world bounds
     local clamped_to_ground = Physics.clamp_to_world(G.world, pos, vel, height)
+
+    Love.update(self, dt)
 
     return on_ground or clamped_to_ground
 end

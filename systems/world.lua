@@ -1,30 +1,20 @@
+local Love = require "core.love"
 local Object = require "core.object"
-local GeneratorSystem = require "systems.generator"
-local WorldDataComponent = require "components.worlddata"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 
-local WorldSystem = Object.new {
+local WorldSystem = Object {
+    HEIGHT = 512,
     id = "world",
     priority = 10,
-    HEIGHT = 512,
     canvases = {},
+    generator = require("systems.generator"),
 }
 
-function WorldSystem.load(self, seed, _)
-    -- Initialize components
-    self.worlddata = WorldDataComponent.new(seed, self.HEIGHT)
-    Log.info("World:", self.worlddata.seed)
-    self.generator = require("systems.generator")
-
-    -- Create canvases for layer rendering
+function WorldSystem.load(self)
     self:create_canvases()
-
-    -- Pre-generate spawn area columns (32 to left and right of spawn)
-    -- This ensures player doesn't spawn in the air waiting for terrain
-    self.generator:pregenerate_spawn_area()
-
-    Object.load(self)
+    Love.load(self)
+    Log.info("World:", self.generator.data.seed)
 end
 
 function WorldSystem.create_canvases(self)
@@ -37,7 +27,7 @@ function WorldSystem.create_canvases(self)
 end
 
 function WorldSystem.update(self, dt)
-    Object.update(self, dt)
+    Love.update(self, dt)
 end
 
 function WorldSystem.draw(self)
@@ -160,7 +150,7 @@ function WorldSystem.draw(self)
     -- Reset blend mode to default
     love.graphics.setBlendMode("alpha")
 
-    Object.draw(self)
+    Love.draw(self)
 end
 
 -- Check if a location is valid for building
@@ -207,14 +197,14 @@ end
 
 -- Get block at position
 function WorldSystem.get_block_id(self, z, col, row)
-    if row < 0 or row >= self.worlddata.height then
+    if row < 0 or row >= self.HEIGHT then
         return BLOCKS.AIR
     end
 
     -- Request column generation with high priority (visible column)
     self.generator:generate_column(z, col, true)
 
-    local data = self.worlddata
+    local data = self.generator.data
     if data.columns[z] and
        data.columns[z][col] and
        data.columns[z][col][row] then
@@ -232,14 +222,13 @@ end
 
 -- Set block at position
 function WorldSystem.set_block(self, z, col, row, block_id)
-    if row < 0 or row >= self.worlddata.height then
+    local data = self.generator.data
+    if row < 0 or row >= data.height then
         return false
     end
 
     -- Request column generation with high priority (user action)
     self.generator:generate_column(z, col, true)
-
-    local data = self.worlddata
 
     -- Ensure the column structure exists
     if not data.columns[z] then
@@ -248,6 +237,15 @@ function WorldSystem.set_block(self, z, col, row, block_id)
     if not data.columns[z][col] then
         data.columns[z][col] = {}
     end
+
+    -- Track change from generated terrain
+    if not data.changes[z] then
+        data.changes[z] = {}
+    end
+    if not data.changes[z][col] then
+        data.changes[z][col] = {}
+    end
+    data.changes[z][col][row] = block_id
 
     data.columns[z][col][row] = block_id
     return true
@@ -268,13 +266,15 @@ function WorldSystem.find_spawn_position(self, z)
     z = z or 0
     -- Find the surface by searching for the first solid block from top
     local col = BLOCK_SIZE
-    for row = 0, self.worlddata.height - 1 do
+    local player_height = BLOCK_SIZE * 2  -- Player is 2 blocks tall
+    for row = 0, self.HEIGHT - 1 do
         local block_def = self.get_block_def(self, z, col, row)
         if block_def and block_def.solid then
-            -- Spawn in the last air block (just above the ground)
-            -- This ensures the player spawns on the surface, not inside it
+            -- Spawn above the ground
+            -- Player is 2 blocks tall and position is at center
+            -- Subtract player height to ensure player is fully above ground
             local spawn_x = col * BLOCK_SIZE + BLOCK_SIZE / 2
-            local spawn_y = (row - 1) * BLOCK_SIZE + BLOCK_SIZE / 2
+            local spawn_y = (row - 1) * BLOCK_SIZE - player_height
             return spawn_x, spawn_y, z
         end
     end
@@ -285,7 +285,7 @@ end
 
 function WorldSystem.resize(self, width, height)
     self:create_canvases()
-    Object.resize(self, width, height)
+    Love.resize(self, width, height)
 end
 
 return WorldSystem

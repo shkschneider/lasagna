@@ -3,14 +3,17 @@
 -- Used for hotbar, backpack, chests, etc.
 -- Simple API: has(), can_give(), can_take(), take(), give()
 
+local Love = require "core.love"
 local Object = require "core.object"
 local StackComponent = require "components.stack"
 
-local StorageSystem = {}
+local StorageSystem = Object {
+    id = "storage",
+}
 
 -- Create a new storage with a given number of slots
-function StorageSystem.new(size)
-    local instance = Object.new {
+function StorageSystem.new(size) -- TODO remove?
+    local instance = {
         id = "storage",
         slots = {},
         size = size or 9,

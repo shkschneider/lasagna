@@ -3,13 +3,13 @@
 
 local Object = require "core.object"
 
-local HealthComponent = Object.new {}
+local HealthComponent = {}
 
 -- Constants
 HealthComponent.DAMAGE_DISPLAY_DURATION = 0.5
 
 function HealthComponent.new(current, max)
-    local instance = {
+    local health = {
         id = "health",
         priority = 50,  -- Components update in priority order
         current = current or 100,
@@ -21,14 +21,7 @@ function HealthComponent.new(current, max)
             return string.format("%d%%:%s", self.current, tostring(self.invincible))
         end
     }
-
-    -- Assign update and draw methods to instance
-    instance.update = HealthComponent.update
-    instance.draw = HealthComponent.draw
-    instance.hit = HealthComponent.hit
-    instance.is_recently_damaged = HealthComponent.is_recently_damaged
-
-    return instance
+    return setmetatable(health, { __index = HealthComponent })
 end
 
 -- Apply damage to health

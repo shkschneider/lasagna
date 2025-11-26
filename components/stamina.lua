@@ -3,7 +3,7 @@
 
 local Object = require "core.object"
 
-local StaminaComponent = Object.new {}
+local StaminaComponent = {}
 
 function StaminaComponent.new(current, max, regen_rate)
     local instance = {

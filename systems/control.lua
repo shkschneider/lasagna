@@ -1,7 +1,8 @@
+local Love = require "core.love"
 local Object = require "core.object"
 local StanceComponent = require "components.stance"
 
-local ControlSystem = Object.new {
+local ControlSystem = Object {
     id = "control",
     priority = 19, -- Run before player system (priority 20)
     -- Stamina constants
@@ -108,6 +109,8 @@ function ControlSystem.update(self, dt)
             stance.current = StanceComponent.JUMPING
         end
     end
+
+    Love.update(self, dt)
 end
 
 function ControlSystem.keypressed(self, key)
@@ -133,6 +136,8 @@ function ControlSystem.keypressed(self, key)
             G.player.position.z = target_layer
         end
     end
+
+    Love.keypressed(self, key)
 end
 
 return ControlSystem
