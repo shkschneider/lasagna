@@ -95,7 +95,7 @@ function GeneratorSystem.update(self, dt)
         local key = string.format("%d_%d", col_info.z, col_info.col)
 
         -- Check if not already generating or generated
-        local data = G.world.worlddata
+        local data = G.world.generator.data
         local already_done = (self.data.generated_columns[key] == true) or (self.data.generating_columns[key] == true)
 
         if not self.active_coroutines[key] and not already_done then

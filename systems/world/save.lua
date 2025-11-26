@@ -102,7 +102,7 @@ function SaveSystem.create_save_data(self)
             patch = G.VERSION.patch,
         },
         -- World seed for terrain regeneration
-        seed = G.world.worlddata.seed,
+        seed = G.world.generator.data.seed,
         -- Block changes from generated terrain
         changes = {},
         -- Player state
@@ -110,7 +110,7 @@ function SaveSystem.create_save_data(self)
     }
 
     -- Copy block changes (only non-nil values)
-    local world_changes = G.world.worlddata.changes
+    local world_changes = G.world.generator.data.changes
     for z = LAYER_MIN, LAYER_MAX do
         if world_changes[z] then
             save_data.changes[z] = {}
@@ -178,8 +178,8 @@ function SaveSystem.apply_save_data(self, save_data)
 
     -- Apply block changes to world
     if save_data.changes then
-        local world_changes = G.world.worlddata.changes
-        local world_columns = G.world.worlddata.columns
+        local world_changes = G.world.generator.data.changes
+        local world_columns = G.world.generator.data.columns
 
         for z, cols in pairs(save_data.changes) do
             z = ensure_numeric_key(z)
