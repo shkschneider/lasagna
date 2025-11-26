@@ -45,7 +45,6 @@ function love.update(dt)
     local state = G.state.current
 
     if state == GameStateComponent.LOAD then
-        -- TODO defer to menu/loading
         if not timer then
             timer = Timer:new(1, function() -- TODO minimal time
                 G.menu:load()

@@ -261,6 +261,14 @@ function WorldSystem.block_to_world(self, col, row)
     return col * BLOCK_SIZE, row * BLOCK_SIZE
 end
 
+function WorldSystem.can_switch_layer(self, target_layer)
+    if target_layer < LAYER_MIN or target_layer > LAYER_MIN then
+        return false
+    end
+    return true
+end
+
+
 -- Find spawn position (simplified)
 function WorldSystem.find_spawn_position(self, z)
     z = z or 0

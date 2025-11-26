@@ -2,14 +2,21 @@ local Love = require "core.love"
 local Object = require "core.object"
 local StanceComponent = require "components.stance"
 
-local ControlSystem = Object {
-    id = "control",
-    priority = 19, -- Run before player system (priority 20)
-    sprinting = false,
-    -- Stamina constants
+local ControlSystem = {
+    MOVE_SPEED = 150, -- unit?
+    JUMP_FORCE = 300, -- unit?
     STAMINA_RUN_COST = 2.5,  -- per second
     STAMINA_JUMP_COST = 5,   -- per jump
 }
+
+function ControlSystem.new()
+    local control = Object {
+        id = "control",
+        priority = 19, -- Run before player system (priority 20)
+        sprinting = false,
+    }
+    return setmetatable(control, { __index = ControlSystem })
+end
 
 -- Check if player has enough stamina
 function ControlSystem.has_stamina(self, amount)
@@ -69,10 +76,10 @@ function ControlSystem.update(self, dt)
     self.sprinting = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
 
     if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
-        vel.x = -G.player.MOVE_SPEED * (self.sprinting and 1.5 or 1)
+        vel.x = -self.MOVE_SPEED * (self.sprinting and 1.5 or 1)
     end
     if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-        vel.x = G.player.MOVE_SPEED * (self.sprinting and 1.5 or 1)
+        vel.x = self.MOVE_SPEED * (self.sprinting and 1.5 or 1)
     end
 
     -- Apply movement modifiers
@@ -80,7 +87,7 @@ function ControlSystem.update(self, dt)
         if stance.crouched then
             -- Crouching slows movement by half
             vel.x = vel.x / 2
-        elseif on_ground and is_running and self:has_stamina(ControlSystem.STAMINA_RUN_COST * dt) then
+        elseif on_ground and is_running and self:has_stamina(self.STAMINA_RUN_COST * dt) then
             -- Running doubles speed (only when on ground and not crouched)
             vel.x = vel.x * 1.5
             self.sprinting = true
@@ -89,18 +96,18 @@ function ControlSystem.update(self, dt)
 
     -- Consume stamina while running
     if is_running then
-        self:consume_stamina(ControlSystem.STAMINA_RUN_COST * dt)
+        self:consume_stamina(self.STAMINA_RUN_COST * dt)
     end
 
     -- Jump handling - only when on ground and not already jumping
     local jump_pressed = love.keyboard.isDown("w") or love.keyboard.isDown("space") or love.keyboard.isDown("up")
     if jump_pressed and stance.current ~= StanceComponent.JUMPING and on_ground then
-        vel.y = -G.player.JUMP_FORCE
+        vel.y = -self.JUMP_FORCE
         stance.current = StanceComponent.JUMPING
         -- Sprint jump: 1.5x horizontal velocity, consumes stamina
-        if self.sprinting and self:has_stamina(ControlSystem.STAMINA_JUMP_COST) then
+        if self.sprinting and self:has_stamina(self.STAMINA_JUMP_COST) then
             vel.x = vel.x * 1.5
-            self:consume_stamina(ControlSystem.STAMINA_JUMP_COST)
+            self:consume_stamina(self.STAMINA_JUMP_COST)
         end
     end
 

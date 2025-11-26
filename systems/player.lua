@@ -1,13 +1,14 @@
 local Love = require "core.love"
 local Object = require "core.object"
+local ControlSystem = require "systems.control"
+local PhysicsSystem = require "systems.physics"
+local InventorySystem = require "systems.inventory"
 local VectorComponent = require "components.vector"
 local StackComponent = require "components.stack"
-local StorageSystem = require "systems.storage"
 local OmnitoolComponent = require "components.omnitool"
 local StanceComponent = require "components.stance"
 local HealthComponent = require "components.health"
 local StaminaComponent = require "components.stamina"
-local PhysicsSystem = require "systems.physics"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
@@ -19,41 +20,33 @@ local BACKPACK_SIZE = 27  -- 3 rows of 9
 local PlayerSystem = Object {
     id = "player",
     priority = 20,
-    -- Movement constants TODO control?
-    MOVE_SPEED = 150,
-    JUMP_FORCE = 300,
-    -- Fall damage constants TODO gravity?
+    -- Constants
     SAFE_FALL_BLOCKS = 4,  -- 2x player height
     FALL_DAMAGE_PER_BLOCK = 5,
-    -- Stamina constants TODO move
     STAMINA_REGEN_RATE = 1,  -- per second
 }
 
 function PlayerSystem.load(self)
-    local x, y, z = G.world:find_spawn_position(LAYER_DEFAULT)
-
-    -- Initialize player as an entity with position and velocity
-    -- position.z is used as the layer
-    self.position = VectorComponent.new(x, y, z)
-    self.velocity = VectorComponent.new(0, 0)
-    -- Disable automatic velocity application for player (uses custom collision handling)
-    self.velocity.enabled = false
-    -- Physics properties (gravity and friction) - player handles these manually via PhysicsSystem
-    self.gravity = PhysicsSystem.DEFAULT_GRAVITY
-    self.friction = PhysicsSystem.DEFAULT_FRICTION
-    -- Player dimensions (width and height for collision and rendering)
     self.width = BLOCK_SIZE
     self.height = BLOCK_SIZE * 2
-    -- Visual properties for rendering
     self.color = { 1, 1, 1, 1 }
-    -- Player storage: hotbar (9 slots) and backpack (3x9 = 27 slots)
-    self.hotbar = StorageSystem.new(HOTBAR_SIZE)
-    self.backpack = StorageSystem.new(BACKPACK_SIZE)
+
+    -- Sytems
+    self.hotbar = InventorySystem.new(HOTBAR_SIZE)
+    self.backpack = InventorySystem.new(BACKPACK_SIZE)
+    self.control = ControlSystem.new()
+
+    -- Components
+    local x, y, z = G.world:find_spawn_position(LAYER_DEFAULT)
+    self.position = VectorComponent.new(x, y, z)
+    self.velocity = VectorComponent.new(0, 0)
+    self.velocity.enabled = false
+    self.gravity = PhysicsSystem.DEFAULT_GRAVITY
+    self.friction = PhysicsSystem.DEFAULT_FRICTION
     self.omnitool = OmnitoolComponent.new()
     self.stance = StanceComponent.new(StanceComponent.STANDING)
     self.stance.crouched = false
     self.health = HealthComponent.new(100, 100)
-    -- Health regen disabled by default (0 regen_rate)
     self.stamina = StaminaComponent.new(100, 100, PlayerSystem.STAMINA_REGEN_RATE)
 
     -- Fall damage tracking
@@ -191,11 +184,8 @@ function PlayerSystem.draw(self)
 end
 
 function PlayerSystem.can_switch_layer(self, target_layer)
-    if target_layer < -1 or target_layer > 1 then -- TODO constants for MIN and MAX layers
-        return false
-    end
-
-    return not PhysicsSystem.check_collision(G.world, self.position.x, self.position.y, target_layer, self.width, self.height)
+    return G.world:can_switch_layer(target_layer)
+        and not PhysicsSystem.check_collision(G.world, self.position.x, self.position.y, target_layer, self.width, self.height)
 end
 
 -- Inventory management - delegates to InventorySystem

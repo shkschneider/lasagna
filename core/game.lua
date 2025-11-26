@@ -9,7 +9,6 @@ local Game = Object {
     state = GameStateComponent.new(GameStateComponent.BOOT),
     time = TimeComponent.new(1),
     world = require("systems.world"),
-    control = require("systems.control"),
     camera = require("systems.camera"),
     player = require("systems.player"),
     mining = require("systems.mining"),
