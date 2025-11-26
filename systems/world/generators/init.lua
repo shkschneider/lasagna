@@ -8,13 +8,6 @@
 
 local noise = require "core.noise"
 
-local WorldGenerator = {}
-
-function WorldGenerator.seed(seed)
-    assert(type(seed) == "number")
-    noise.seed(seed)
-end
-
 -- Constants for surface height calculation
 local SURFACE_HEIGHT_RATIO = 0.75
 local BASE_FREQUENCY = 0.02
