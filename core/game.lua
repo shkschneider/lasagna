@@ -9,17 +9,17 @@ local Game = Object {
     state = GameStateComponent.new(GameStateComponent.BOOT),
     time = TimeComponent.new(1),
     world = require("systems.world"),
-    camera = require("systems.camera"),
-    player = require("systems.player"),
+    camera = require("systems.ui.camera"),
+    player = require("systems.entities.player"),
     mining = require("systems.mining"),
     building = require("systems.building"),
     weapon = require("systems.weapon"),
-    entity = require("systems.entity"),
-    ui = require("systems.interface"),
+    entity = require("systems.entities"),
+    ui = require("systems.ui"),
     chat = require("systems.chat"),
     lore = require("systems.lore"),
     menu = require("systems.menu"),
-    loader = require("systems.loader"),
+    loader = require("systems.ui.loader"),
 }
 
 function Game.switch(self, gamestate)
