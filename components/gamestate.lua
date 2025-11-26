@@ -4,7 +4,6 @@ GameStateComponent.__index = GameStateComponent
 
 GameStateComponent.BOOT = "boot"
 GameStateComponent.LOAD = "load"
-GameStateComponent.LOADING = "loading"  -- World generation and player spawn
 GameStateComponent.MENU = "menu"
 GameStateComponent.PLAY = "play"
 GameStateComponent.PAUSE = "pause"

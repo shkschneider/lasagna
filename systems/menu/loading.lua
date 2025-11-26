@@ -1,5 +1,5 @@
 -- Loading screen menu items
--- Displayed during GameState.LOADING while world generates and player spawns
+-- Displayed during GameState.LOAD while world generates and player spawns
 
 return function()
     return {

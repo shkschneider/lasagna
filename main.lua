@@ -8,9 +8,10 @@ G.VERSION = { major = 0, minor = 1, patch = nil, tostring = function(self)
     return string.format("%d.%d.%s", self.major, self.minor, tostring(self.patch or "x"))
 end }
 
--- Global: log
+-- Global: libraries
 
 Log = require "libraries.rxi.log"
+Timer = require "libraries.shard.timer"
 
 -- Global: constants
 
@@ -25,11 +26,7 @@ STACK_SIZE = 64
 local Love = require "core.love"
 local GameStateComponent = require "components.gamestate"
 local async = require "libraries.luax.async"
-
--- Loading state tracking
-local loading_task = nil
-local loading_start_time = nil
-local LOADING_MIN_DURATION = 1  -- Minimum loading screen duration in seconds
+local timer
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
@@ -47,36 +44,20 @@ end
 function love.update(dt)
     local state = G.state.current
 
-    -- Handle LOADING state - perform world generation and player spawn
-    if state == GameStateComponent.LOADING then
-        -- Start loading task if not already started
-        if not loading_task then
-            loading_start_time = love.timer.getTime()
-            loading_task = async.spawn(function(task)
-                -- Perform the actual game loading (world generation, player spawn)
+    if state == GameStateComponent.LOAD then
+        -- TODO defer to menu/loading
+        if not timer then
+            timer = Timer:new(1, function() -- TODO minimal time
+                G.menu:load()
                 G:load()
                 -- Apply save data if we were loading a saved game
                 if G.pending_save_data then
                     G.save:apply_save_data(G.pending_save_data)
                     G.pending_save_data = nil
                 end
-                -- Wait for minimum loading duration
-                local elapsed = love.timer.getTime() - loading_start_time
-                local remaining = LOADING_MIN_DURATION - elapsed
-                if remaining > 0 then
-                    task:sleep(remaining)
-                end
             end)
-        end
-
-        -- Update async scheduler
-        async.update(dt)
-
-        -- Check if loading is complete
-        if loading_task and loading_task.result then
-            loading_task = nil
-            loading_start_time = nil
-            -- State is now PLAY (set by G:load)
+        else
+            timer:update(dt)
         end
         return
     end
@@ -91,7 +72,7 @@ end
 
 function love.draw()
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOADING then
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
         G.menu:draw()
     else
         Love.draw(G)
@@ -116,7 +97,7 @@ function love.keypressed(key)
     if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
         G.menu:keypressed(key)
         return
-    elseif state == GameStateComponent.LOADING then
+    elseif state == GameStateComponent.LOAD then
         return  -- No input during loading
     else
         Love.keypressed(G, key)
@@ -125,7 +106,7 @@ end
 
 function love.keyreleased(key)
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOADING then
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
         return
     end
     Love.keyreleased(G, key)
@@ -133,7 +114,7 @@ end
 
 function love.mousepressed(x, y, button)
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOADING then
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
         return
     end
     Love.mousepressed(G, x, y, button)
@@ -141,7 +122,7 @@ end
 
 function love.mousereleased(x, y, button)
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOADING then
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
         return
     end
     Love.mousereleased(G, x, y, button)
@@ -149,7 +130,7 @@ end
 
 function love.mousemoved(x, y, dx, dy)
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOADING then
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
         return
     end
     Love.mousemoved(G, x, y, dx, dy)
@@ -157,7 +138,7 @@ end
 
 function love.wheelmoved(x, y)
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOADING then
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
         return
     end
     Love.wheelmoved(G, x, y)
@@ -165,7 +146,7 @@ end
 
 function love.textinput(text)
     local state = G.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOADING then
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
         return
     end
     Love.textinput(G, text)

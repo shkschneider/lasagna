@@ -27,8 +27,8 @@ return function()
             action = function()
                 -- Store save data for loading phase
                 G.pending_save_data = G.save:load()
-                -- Transition to LOADING state
-                G:switch(GameStateComponent.LOADING)
+                -- Transition to LOAD state
+                G:switch(GameStateComponent.LOAD)
             end
         },
         {
