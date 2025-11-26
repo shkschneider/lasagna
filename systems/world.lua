@@ -12,13 +12,9 @@ local WorldSystem = Object {
 }
 
 function WorldSystem.load(self)
-    -- Initialize components
-    Log.info("World:", self.generator.data.seed)
-
-    -- Create canvases for layer rendering
     self:create_canvases()
-
     Love.load(self)
+    Log.info("World:", self.generator.data.seed)
 end
 
 function WorldSystem.create_canvases(self)

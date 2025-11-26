@@ -7,10 +7,9 @@ local WorldData = require "components.worlddata"
 -- GeneratorSystem handles asynchronous world column generation
 -- using coroutines with priority queues for visible vs background columns
 
-local GeneratorSystem = Object { -- TODO move to src?
+local GeneratorSystem = Object {
     id = "generator",
     priority = 10,
-    data = WorldData.new(42, 512), -- FIXME
     -- Coroutine-based column generation
     generation_queue_high = {},  -- High priority queue (visible columns)
     generation_queue_low = {},   -- Low priority queue (background columns)
@@ -21,6 +20,8 @@ local GeneratorSystem = Object { -- TODO move to src?
 
 function GeneratorSystem.load(self)
     -- Seed the noise library
+    self.data = WorldData.new(42, 512), -- FIXME
+    Love.load(self)
     assert(self.data.seed)
     noise.seed(self.data.seed)
 
@@ -31,8 +32,6 @@ function GeneratorSystem.load(self)
     self.active_coroutines = {}
 
     self:pregenerate_spawn_area()
-
-    Love.load(self)
 end
 
 function GeneratorSystem.update(self, dt)

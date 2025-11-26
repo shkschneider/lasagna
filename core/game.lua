@@ -5,8 +5,6 @@ local GameStateComponent = require "components.gamestate"
 
 local Game = Object {
     id = "game",
-    seed = 42, -- FIXME
-    debug = true, -- FIXME
     priority = 0,
     state = GameStateComponent.new(GameStateComponent.BOOT),
     time = TimeComponent.new(1),
@@ -32,9 +30,7 @@ function Game.switch(self, gamestate)
 end
 
 function Game.load(self)
-    print("game.load")
     self:switch(GameStateComponent.LOAD)
-    print("player.load", self.player, "in game.load")
     Love.load(self)
     self:switch(GameStateComponent.PLAY)
 end

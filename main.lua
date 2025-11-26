@@ -34,7 +34,6 @@ function love.load()
         G.debug = require("systems.debug")
     end
     -- Do NOT load()
-    -- TODO G.seed = os.time()
     G:switch(GameStateComponent.MENU)
 end
 
