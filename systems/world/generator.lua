@@ -1,8 +1,93 @@
 local noise = require "core.noise"
 local Love = require "core.love"
 local Object = require "core.object"
-local WorldGenerator = require "systems.world.generators"
+local Registry = require "registries"
+local BlocksRegistry = require "registries.blocks"
+local BLOCKS = Registry.blocks()
 local WorldData = require "components.worlddata"
+
+-- Constants for terrain generation
+local SURFACE_HEIGHT_RATIO = 0.75
+local BASE_FREQUENCY = 0.02
+local BASE_AMPLITUDE = 15
+local DIRT_MIN_DEPTH = 5
+local DIRT_MAX_DEPTH = 15
+
+-- Get ore blocks for generation (cached after first call)
+local ore_blocks_cache = nil
+local function get_ore_blocks()
+    if not ore_blocks_cache then
+        ore_blocks_cache = BlocksRegistry:get_ore_blocks()
+    end
+    return ore_blocks_cache
+end
+
+-- Calculate surface height for a given column and layer
+local function calculate_surface_height(col, z, world_height)
+    local noise_val = noise.octave_perlin2d(col * BASE_FREQUENCY, z * 0.1, 4, 0.5, 2.0)
+    local base_height = math.floor(world_height * SURFACE_HEIGHT_RATIO + noise_val * BASE_AMPLITUDE)
+    if z == 1 then
+        base_height = base_height + 5
+    elseif z == -1 then
+        base_height = base_height - 5
+    end
+    return base_height
+end
+
+-- Generate base terrain (air, stone, bedrock)
+local function generate_air_stone_bedrock(column_data, world_col, base_height, world_height)
+    for row = 0, world_height - 1 do
+        if row >= base_height then
+            column_data[row] = BLOCKS.STONE
+        else
+            column_data[row] = BLOCKS.AIR
+        end
+    end
+    column_data[world_height - 2] = BLOCKS.BEDROCK
+    column_data[world_height - 1] = BLOCKS.BEDROCK
+end
+
+-- Generate dirt and grass layers
+local function generate_dirt_and_grass(column_data, world_col, z, base_height, world_height)
+    local dirt_depth = DIRT_MIN_DEPTH + math.floor((DIRT_MAX_DEPTH - DIRT_MIN_DEPTH) *
+        (noise.perlin2d(world_col * 0.05, z * 0.1) + 1) / 2)
+    for row = base_height, math.min(base_height + dirt_depth - 1, world_height - 1) do
+        if column_data[row] == BLOCKS.STONE then
+            column_data[row] = BLOCKS.DIRT
+        end
+    end
+    if base_height > 0 and base_height < world_height then
+        if column_data[base_height] == BLOCKS.DIRT and
+           column_data[base_height - 1] == BLOCKS.AIR then
+            column_data[base_height] = BLOCKS.GRASS
+        end
+    end
+end
+
+-- Generate ore veins
+local function generate_ore_veins(column_data, world_col, z, base_height, world_height)
+    local ore_blocks = get_ore_blocks()
+    for row = base_height, world_height - 3 do
+        if column_data[row] == BLOCKS.STONE then
+            local depth_from_surface = row - base_height
+            for _, ore_block in ipairs(ore_blocks) do
+                local gen = ore_block.ore_gen
+                local in_range = depth_from_surface >= gen.min_depth and
+                                 (gen.max_depth == math.huge or depth_from_surface <= gen.max_depth)
+                if in_range then
+                    local ore_noise = noise.perlin3d(
+                        world_col * gen.frequency,
+                        row * gen.frequency,
+                        z * gen.frequency + gen.offset
+                    )
+                    if ore_noise > gen.threshold then
+                        column_data[row] = ore_block.id
+                    end
+                end
+            end
+        end
+    end
+end
 
 local GeneratorSystem = Object {
     id = "generator",
@@ -27,11 +112,22 @@ end
 
 -- Private helper: run terrain generator for a column
 local function run_generator(self, z, col)
-    self.generator(self.data.columns[z][col], col, z, self.data.height)
+    local column_data = self.data.columns[z][col]
+    local world_height = self.data.height
+    local base_height = calculate_surface_height(col, z, world_height)
+
+    -- Pass 1: Base terrain (air, stone, bedrock, dirt, grass)
+    generate_air_stone_bedrock(column_data, col, base_height, world_height)
+    generate_dirt_and_grass(column_data, col, z, base_height, world_height)
+
+    -- Pass 2: Ore placement
+    generate_ore_veins(column_data, col, z, base_height, world_height)
+
+    -- Pass 3: Features (loaded from systems/world/generators/)
+    -- Features can be added here by requiring and calling feature generators
 end
 
 function GeneratorSystem.load(self)
-    self.generator = WorldGenerator
     self.data = WorldData.new(G.debug and os.getenv("SEED") or (os.time() + love.timer.getTime())),
     Love.load(self)
     -- Seed the noise library
