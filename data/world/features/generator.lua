@@ -77,7 +77,11 @@ local function place_feature(column_data, col, z, surface_row, feature, world_he
 
     -- Shape is [row][col] where row 1 is top, and anchor is bottom-center
     local shape_height = #shape
-    local shape_width = #shape[1]
+    -- Calculate shape width by counting elements in first row (handles "air" placeholders)
+    local shape_width = 0
+    for _ in pairs(shape[1]) do
+        shape_width = shape_width + 1
+    end
     local anchor_col = math.ceil(shape_width / 2)
 
     -- Place blocks from the shape into the column

@@ -15,14 +15,14 @@ WorldRegistry:register({
     -- Each shape is a 2D grid: shapes[shape_index][row][col]
     -- Row 1 is the top, increasing row goes downward
     -- Spawn point (anchor) is at the bottom-center of the shape
-    -- Block names: "air" = don't modify, nil = skip, others = block name
+    -- Block names: "air" = don't modify, others = block name to place
     shapes = {
         {
-            { nil, "leaves", nil },
+            { "air", "leaves", "air" },
             { "leaves", "leaves", "leaves" },
             { "leaves", "wood", "leaves" },
-            { nil, "wood", nil },
-            { nil, "wood", nil },
+            { "air", "wood", "air" },
+            { "air", "wood", "air" },
         },
     },
 })
