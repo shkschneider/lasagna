@@ -69,9 +69,6 @@ function PlayerSystem.load(self)
     -- Add omnitool to hotbar slot 1
     self.hotbar:set_slot(1, StackComponent.new(ITEMS.OMNITOOL, 1, "item"))
 
-    -- Initialize control system
-    self.control = require "systems.control"
-
     if G.debug then
         local px, py = G.world:world_to_block(self.position.x, self.position.y)
         Log.debug("Player:", px, py)
