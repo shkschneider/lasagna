@@ -26,8 +26,10 @@ local function calculate_surface_height(col, z, world_height)
     return base_height
 end
 
--- Load generator passes
+-- Load generator passes (cached at module load time)
 local here = (...):gsub("%.init$", "") .. "."
+local terrain_generator = require(here .. "terrain")
+local ores_generator = require(here .. "ores")
 
 -- Main generation function
 -- Called for each column to generate blocks
@@ -35,13 +37,13 @@ return function(column_data, world_col, z, world_height)
     local base_height = calculate_surface_height(world_col, z, world_height)
 
     -- Pass 1: Base terrain
-    require(here .. "terrain")(column_data, world_col, z, base_height, world_height)
+    terrain_generator(column_data, world_col, z, base_height, world_height)
 
     -- Pass 2: Ore placement
-    require(here .. "ores")(column_data, world_col, z, base_height, world_height)
+    ores_generator(column_data, world_col, z, base_height, world_height)
 
     -- Pass 3: Features (future expansion point)
-    -- Features can be added here as additional require calls:
-    -- require(here .. "features.trees")(column_data, world_col, z, base_height, world_height)
-    -- require(here .. "features.caves")(column_data, world_col, z, base_height, world_height)
+    -- Features can be added here by loading and calling additional generators:
+    -- local trees_generator = require(here .. "features.trees")
+    -- trees_generator(column_data, world_col, z, base_height, world_height)
 end
