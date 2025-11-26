@@ -24,8 +24,12 @@ STACK_SIZE = 64
 
 local Love = require "core.love"
 local GameStateComponent = require "components.gamestate"
-local async = require "libraries.luax.async"
-local Timer, timer = require "libraries.shard.timer", nil
+
+-- Loading state variables
+local loading_coroutine = nil
+local loading_elapsed = 0
+local loading_done = false
+local LOADING_MIN_TIME = 1 -- minimum loading screen time in seconds
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
@@ -44,19 +48,46 @@ function love.update(dt)
     local state = G.state.current
 
     if state == GameStateComponent.LOAD then
-        if not timer then
-            timer = Timer:new(1, function() -- TODO minimal time
+        -- Initialize loading coroutine on first frame
+        if not loading_coroutine then
+            loading_elapsed = 0
+            loading_done = false
+            loading_coroutine = coroutine.create(function()
                 G.menu:load()
-                G:load()
+                coroutine.yield() -- yield to allow frame update
+                Love.load(G)
+                coroutine.yield() -- yield to allow frame update
                 -- Apply save data if we were loading a saved game
                 if G.pending_save_data then
                     G.save:apply_save_data(G.pending_save_data)
                     G.pending_save_data = nil
                 end
             end)
-        else
-            timer:update(dt)
         end
+
+        -- Update elapsed time
+        loading_elapsed = loading_elapsed + dt
+
+        -- Resume loading coroutine if not done
+        if not loading_done and coroutine.status(loading_coroutine) ~= "dead" then
+            local ok, err = coroutine.resume(loading_coroutine)
+            if not ok then
+                Log.error("Loading error:", err)
+            end
+            -- Check if loading finished
+            if coroutine.status(loading_coroutine) == "dead" then
+                loading_done = true
+            end
+        end
+
+        -- Transition to PLAY when loading is done AND minimum time has elapsed
+        if loading_done and loading_elapsed >= LOADING_MIN_TIME then
+            loading_coroutine = nil
+            loading_elapsed = 0
+            loading_done = false
+            G:switch(GameStateComponent.PLAY)
+        end
+
         return
     end
 
