@@ -9,22 +9,28 @@ local LoaderSystem = Object {
     _coroutine = nil,
     _elapsed = 0,
     _done = false,
+    _progress = 0, -- Loading progress 0.0 to 1.0
 }
 
 -- Start loading process
 function LoaderSystem.start(self)
     self._elapsed = 0
     self._done = false
+    self._progress = 0
     self._coroutine = coroutine.create(function()
+        self._progress = 0.1
         G.menu:load()
         coroutine.yield() -- yield after menu load to update display
+        self._progress = 0.3
         Love.load(G)
         coroutine.yield() -- yield after game systems load
+        self._progress = 0.8
         -- Apply save data if we were loading a saved game
         if G.pending_save_data then
             G.save:apply_save_data(G.pending_save_data)
             G.pending_save_data = nil
         end
+        self._progress = 1.0
     end)
 end
 
@@ -33,6 +39,7 @@ function LoaderSystem.reset(self)
     self._coroutine = nil
     self._elapsed = 0
     self._done = false
+    self._progress = 0
 end
 
 -- Update loading process, returns true when loading is complete and ready to transition
@@ -61,6 +68,11 @@ end
 -- Check if loader is active
 function LoaderSystem.is_active(self)
     return self._coroutine ~= nil
+end
+
+-- Get current loading progress (0.0 to 1.0)
+function LoaderSystem.get_progress(self)
+    return self._progress
 end
 
 return LoaderSystem
