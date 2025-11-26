@@ -10,19 +10,7 @@ Notes
 ---
 
 v0.1 — Core playable loop (MVP)
-- Goals (the essential MVP)
-- Non-goals
-  - Crafting, Ages, machines, enemies, snapshot/death.
-- Acceptance criteria
-  - Player can move around and switch layers.
-  - World is generated and visible across three layers with visual dim/alpha rules and parallax.
-  - Player can mine blocks (respecting Omnitool tier rules) and get drops in the world.
-  - Player can place blocks from inventory/hotbar on the active layer.
-  - Picked-up drops merge into inventory respecting stack sizes.
-  - The basic UI shows hotbar, selected item, and item counts.
-v0.1+ - Menu
-- New/Continue
-- Load/Save
+- ...
 
 ---
 
