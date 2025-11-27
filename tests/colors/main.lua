@@ -4,10 +4,10 @@
 local Colors = require "libraries.colors"
 
 local TONE_SIZE = 32
-local PADDING = 8
+local PADDING = TONE_SIZE / 4
 local LABEL_HEIGHT = 20
-local MIN_WINDOW_WIDTH = 600
-local MIN_WINDOW_HEIGHT = 400
+local MIN_WINDOW_WIDTH = 480
+local MIN_WINDOW_HEIGHT = 320
 
 local colorGroups = {}
 
@@ -67,7 +67,7 @@ function love.draw()
         love.graphics.print(group.name, x, y)
 
         -- Draw tone squares (dark to light, left to right)
-        for j, tone in ipairs(group.tones) do
+        for j, tone in pairs(group.tones) do
             local toneX = x + (j - 1) * TONE_SIZE
             local toneY = y + LABEL_HEIGHT
 
@@ -79,6 +79,12 @@ function love.draw()
             -- Draw border
             love.graphics.setColor(1, 1, 1, 0.3)
             love.graphics.rectangle("line", toneX, toneY, TONE_SIZE, TONE_SIZE)
+
+            -- Draw tone
+            love.graphics.setColor(0, 0, 0, 0.5)
+            love.graphics.print(j == 1 and "d" or j == 3 and "l" or "", toneX + PADDING, toneY + PADDING)
+            love.graphics.setColor(1, 1, 1, 0.5)
+            love.graphics.print(j == 1 and "d" or j == 3 and "l" or "", toneX + PADDING, toneY + PADDING)
         end
 
         c = c + #group.tones
@@ -90,7 +96,7 @@ function love.draw()
 end
 
 function love.keypressed(key)
-    if key == "escape" then
+    if key == "escape" or key =="q" then
         love.event.quit()
     end
 end

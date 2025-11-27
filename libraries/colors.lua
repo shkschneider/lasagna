@@ -1,5 +1,4 @@
 -- https://lospec.com/palette-list/resurrect-64
--- Organized with base16-inspired color names
 
 local Colors = {}
 
@@ -9,8 +8,6 @@ function Colors.hex2rgb(hex)
         tonumber("0x" .. hex:sub(3, 4)) / 255,
         tonumber("0x" .. hex:sub(5, 6)) / 255
 end
-
--- Base colors grouped by 3 tones (dark, normal, light)
 
 -- Neutrals
 Colors.black = {
