@@ -38,8 +38,7 @@ function love.load()
         G.debug = require("systems.debug")
     end
     -- Do NOT Love.load()
-    G.state = GameStateComponent.new(GameStateComponent.MENU)
-    G.menu:load()
+    G:preload()
 end
 
 function love.update(dt)
