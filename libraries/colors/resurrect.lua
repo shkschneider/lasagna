@@ -1,3 +1,5 @@
+-- https://lospec.com/palette-list/resurrect-64
+
 local Colors = {}
 
 function Colors.hex2rgb(hex)
