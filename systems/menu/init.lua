@@ -35,6 +35,10 @@ function MenuSystem.draw(self)
 
     local screen_width, screen_height = love.graphics.getDimensions()
 
+    -- Draw menu to dedicated canvas
+    love.graphics.setCanvas(G.canvases.menu)
+    love.graphics.clear(0, 0, 0, 0)
+
     -- For PAUSE, draw semi-transparent overlay over the game
     if state == GameStateComponent.PAUSE then
         love.graphics.setColor(0, 0, 0, 0.5)
@@ -92,6 +96,12 @@ function MenuSystem.draw(self)
         local text_width = font:getWidth(text)
         love.graphics.print(text, (screen_width - text_width) / 2, y)
     end
+
+    love.graphics.setCanvas()
+
+    -- Draw menu canvas to screen
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.draw(G.canvases.menu, 0, 0)
 
     Love.draw(self)
 end

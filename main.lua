@@ -37,6 +37,8 @@ function love.load()
     if debug then
         G.debug = require("systems.debug")
     end
+    -- Initialize canvases before any system tries to use them
+    G.canvases:load()
     -- Do NOT load()
     G.state = GameStateComponent.new(GameStateComponent.MENU)
     G.menu:load()

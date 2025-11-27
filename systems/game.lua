@@ -8,6 +8,7 @@ local Game = Object {
     priority = 0,
     state = GameStateComponent.new(GameStateComponent.BOOT),
     time = TimeComponent.new(1),
+    canvases = require("systems.ui.canvases"),
     world = require("systems.world"),
     camera = require("systems.ui.camera"),
     player = require("systems.entities.player"),

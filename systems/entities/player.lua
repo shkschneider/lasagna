@@ -167,6 +167,10 @@ function PlayerSystem.draw(self)
 
     local camera_x, camera_y = G.camera:get_offset()
 
+    -- Draw player to its dedicated canvas
+    love.graphics.setCanvas(G.canvases.player)
+    love.graphics.clear(0, 0, 0, 0)
+
     -- Draw player using direct properties
     if self:is_dead() then
         love.graphics.setColor(1, 0, 0, 1) -- red
@@ -189,6 +193,12 @@ function PlayerSystem.draw(self)
             self.width,
             self.height)
     end
+
+    love.graphics.setCanvas()
+
+    -- Draw player canvas to screen
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.draw(G.canvases.player, 0, 0)
 
     Love.draw(self)
 end

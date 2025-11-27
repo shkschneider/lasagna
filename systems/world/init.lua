@@ -7,24 +7,13 @@ local WorldSystem = Object {
     HEIGHT = 512,
     id = "world",
     priority = 10,
-    canvases = {},
     generator = require("systems.world.generator"),
     save = require("systems.world.save"),
 }
 
 function WorldSystem.load(self)
-    self:create_canvases()
     Love.load(self)
     Log.info("World:", self.generator.data.seed)
-end
-
-function WorldSystem.create_canvases(self)
-    local screen_width, screen_height = love.graphics.getDimensions()
-
-    -- Create canvases for each layer
-    self.canvases[-1] = love.graphics.newCanvas(screen_width, screen_height)
-    self.canvases[0] = love.graphics.newCanvas(screen_width, screen_height)
-    self.canvases[1] = love.graphics.newCanvas(screen_width, screen_height)
 end
 
 function WorldSystem.update(self, dt)
@@ -56,7 +45,7 @@ function WorldSystem.draw(self)
 
     -- Draw each layer to its canvas
     for layer = LAYER_MIN, max_layer do
-        local canvas = self.canvases[layer]
+        local canvas = G.canvases.layers[layer]
         if canvas then
             love.graphics.setCanvas(canvas)
             love.graphics.clear(0, 0, 0, 0)
@@ -132,7 +121,7 @@ function WorldSystem.draw(self)
 
     -- Draw each layer from LAYER_MIN to max_layer
     for layer = LAYER_MIN, max_layer do
-        local canvas = self.canvases[layer]
+        local canvas = G.canvases.layers[layer]
         if canvas then
             if layer == player_z then
                 -- Full color: player is on this layer
@@ -292,7 +281,6 @@ function WorldSystem.find_spawn_position(self, z)
 end
 
 function WorldSystem.resize(self, width, height)
-    self:create_canvases()
     Love.resize(self, width, height)
 end
 

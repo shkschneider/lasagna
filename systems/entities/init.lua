@@ -263,6 +263,10 @@ end
 function EntitySystem.draw(self)
     local camera_x, camera_y = G.camera:get_offset()
 
+    -- Draw entities to dedicated canvas
+    love.graphics.setCanvas(G.canvases.entities)
+    love.graphics.clear(0, 0, 0, 0)
+
     for _, ent in ipairs(self.entities) do
         if ent.type == EntitySystem.TYPE_BULLET and ent.bullet then
             ent.bullet:draw(ent, camera_x, camera_y)
@@ -272,8 +276,11 @@ function EntitySystem.draw(self)
         Love.draw(ent)
     end
 
-    -- Reset color
+    love.graphics.setCanvas()
+
+    -- Draw entities canvas to screen
     love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.draw(G.canvases.entities, 0, 0)
 end
 
 return EntitySystem
