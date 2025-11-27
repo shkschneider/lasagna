@@ -187,7 +187,7 @@ function WorldSystem.block_to_world(self, col, row)
 end
 
 function WorldSystem.can_switch_layer(self, target_layer)
-    if target_layer < LAYER_MIN or target_layer > LAYER_MIN then
+    if target_layer < LAYER_MIN or target_layer > LAYER_MAX then
         return false
     end
     return true
