@@ -42,7 +42,9 @@ local function render(canvas, ...)
     canvas:renderTo(function()
         love.graphics.clear(0, 0, 0, 0)
         for _, c in ipairs(objects) do
-            if type(c.draw) == "function" then
+            if type(c) == "function" then
+                c()
+            elseif type(c) == "table" and type(c.draw) == "function" then
                 c:draw()
             end
         end
@@ -53,10 +55,12 @@ end
 
 function Game.draw(self)
     if not self.canvases then
-        local width, height = love.graphics.getDimensions()
         self.canvases = {
-            world = love.graphics.newCanvas(width, height),
-            things = love.graphics.newCanvas(width, height),
+            world1 = love.graphics.newCanvas(width, height),
+            world2 = love.graphics.newCanvas(width, height),
+            world3 = love.graphics.newCanvas(width, height),
+            player = love.graphics.newCanvas(width, height),
+            entities = love.graphics.newCanvas(width, height),
             overlay = love.graphics.newCanvas(width, height),
         }
     end
@@ -65,8 +69,19 @@ function Game.draw(self)
         render(self.canvases.overlay, self.menu)
     else
         love.graphics.clear(0.4, 0.6, 0.9, 1)
-        render(self.canvases.world, self.world)
-        render(self.canvases.things, self.entity, self.player)
+        love.graphics.setShader(Shaders.sepia)
+        render(self.canvases.world1, function() self.world:draw_layer(-1) end)
+        love.graphics.setShader()
+        render(self.canvases.world2, function() self.world:draw_layer(0) end)
+        love.graphics.setShader(Shaders.greyscale)
+        render(self.canvases.world3, function() self.world:draw_layer(1) end)
+        love.graphics.setShader()
+        render(self.canvases.entities, self.entity)
+        love.graphics.setShader(Shaders.whiteout)
+        local cx, cy = self.camera:get_offset()
+        Shaders.light:send("position", {self.player.position.x - cx, self.player.position.y - cy})
+        render(self.canvases.player, self.player)
+        love.graphics.setShader()
         render(self.canvases.overlay, self.ui, self.chat, self.state.current == GameStateComponent.PAUSE and self.menu or nil)
     end
 end
