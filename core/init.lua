@@ -1,5 +1,3 @@
-require "libraries.luax"
-
 -- macro-like
 function DEBUG(level)
     -- +1 to account for this function's own stack frame

@@ -10,6 +10,7 @@ STACK_SIZE = 64
 
 -- Global: libraries
 
+require "libraries.luax"
 Log = require "libraries.rxi.log"
 Fonts = require "data.fonts"
 

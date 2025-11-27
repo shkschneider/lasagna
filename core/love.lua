@@ -1,5 +1,3 @@
-require "core"
-
 local Love = {}
 
 local function Love_cache(self)
@@ -11,7 +9,7 @@ local function Love_cache(self)
         end
     end
     table.sort(self.__objects, function(a, b)
-        return (a.priority or math.inf) < (b.priority or math.inf)
+        return (a.priority or math.huge) < (b.priority or math.huge)
     end)
 end
 
