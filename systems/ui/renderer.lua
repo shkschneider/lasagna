@@ -6,12 +6,9 @@ local Renderer = Object {
     canvases = nil,
 }
 
-function Renderer.preload(self)
+function Renderer.load(self)
     love.graphics.setDefaultFilter("nearest", "nearest")
     require("data.fonts"):load(function(fonts) fonts:set(fonts.Regular) end)
-end
-
-function Renderer.load(self)
     self:resize(love.graphics.getDimensions())
 end
 

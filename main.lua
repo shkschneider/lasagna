@@ -28,29 +28,25 @@ local GameStateComponent = require "components.gamestate"
 
 function love.load()
     G.debug = require("systems.debug").get()
+    if G.debug then Log.level = 0 end
     Log.info(G.NAME, G.VERSION:tostring())
-    -- Do NOT Love.load()
-    G:preload()
+    G:load() -- NOT Love.load()
 end
 
 function love.update(dt)
     local state = G.state.current
-
     if state == GameStateComponent.LOAD then
         -- Start loader on first frame of LOAD state
         if not G.loader:is_active() then
             G.loader:start()
         end
-
         -- Update loader and transition to PLAY when ready
         if G.loader:update(dt) then
             G.loader:reset()
             G:switch(GameStateComponent.PLAY)
         end
-
         return
     end
-
     if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
         return
     end
@@ -60,8 +56,7 @@ function love.update(dt)
 end
 
 function love.draw()
-    -- Do NOT Love.draw
-    G:draw()
+    G:draw() -- NOT Love.draw
 end
 
 function love.keypressed(key)

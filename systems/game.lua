@@ -6,7 +6,7 @@ local GameStateComponent = require "components.gamestate"
 local Game = Object {
     id = "game",
     priority = 0,
-    state = GameStateComponent.new(GameStateComponent.BOOT),
+    state = nil,
     time = TimeComponent.new(1),
     world = require("systems.world"),
     camera = require("systems.ui.camera"),
@@ -25,27 +25,30 @@ local Game = Object {
 
 function Game.switch(self, gamestate)
     assert(gamestate)
+    Log.debug(string.upper(gamestate))
     self.state = GameStateComponent.new(gamestate)
-    Log.debug(string.upper(self.state:tostring()))
     G.menu:load()
 end
 
-function Game.preload(self)
-    self.state = GameStateComponent.new(GameStateComponent.MENU)
-    self.renderer:preload()
+function Game.load(self)
+    self.state = GameStateComponent.new(GameStateComponent.BOOT)
     self.renderer:load()
+    self.state = GameStateComponent.new(GameStateComponent.MENU)
     self.menu:load()
 end
 
-function Game.load(self)
-    self:switch(GameStateComponent.LOAD)
-    Love.load(self)
-    self:switch(GameStateComponent.PLAY)
+function Game.update(self, dt)
+    if self.state.current == GameStateComponent.BOOT then
+        return -- wait
+    elseif self.state.current == GameStateComponent.LOAD then
+        self.menu:update(dt) -- progress
+    else
+        Love.update(self, dt)
+    end
 end
 
 function Game.draw(self)
-    self.renderer:draw()
-    -- Do NOT Love.draw
+    self.renderer:draw() -- NOT Love.draw
 end
 
 return Game

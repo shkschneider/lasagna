@@ -92,16 +92,10 @@ local function run_generator(self, z, col)
     generators(column_data, col, z, base_height, world_height)
 end
 
-function GeneratorSystem.preload(self, seed)
-    self.data = WorldData.new(G.debug and os.getenv("SEED") or math.round(os.time() + (love.timer.getTime() * 9 ^ 9)))
-end
-
 function GeneratorSystem.load(self)
     local t = love.timer.getTime()
 
-    if not self.data then
-        self:preload()
-    end
+    self.data = WorldData.new(G.debug and os.getenv("SEED") or math.round(os.time() + (love.timer.getTime() * 9 ^ 9)))
     assert(self.data.seed)
     Log.info(self.data.seed)
     Love.load(self)
