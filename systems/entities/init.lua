@@ -271,9 +271,6 @@ function EntitySystem.draw(self)
         end
         Love.draw(ent)
     end
-
-    -- Reset color
-    love.graphics.setColor(1, 1, 1, 1)
 end
 
 return EntitySystem

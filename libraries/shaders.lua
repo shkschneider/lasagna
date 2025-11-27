@@ -3,12 +3,7 @@ local shaders = {}
 shaders.whiteout = love.graphics.newShader[[
     vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
         vec4 pixel = Texel(texture, texture_coords);
-
-        if (screen_coords.x < 400.0) {
-            return vec4(0, 0, 1, pixel.a);
-        }
-
-        return pixel * color;
+        return vec4(1, 1, 1, pixel.a);
     }
 ]]
 
@@ -43,12 +38,12 @@ shaders.sepia = love.graphics.newShader[[
 ]]
 
 shaders.light = love.graphics.newShader[[
-    extern vec2 playerPosition;
+    extern vec2 position;
 
     vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
         vec4 pixel = Texel(texture, texture_coords);
 
-        float distance = length(screen_coords - playerPosition);
+        float distance = length(screen_coords - position);
         float fade = clamp(distance / 250, 0.0, 1.0);
 
         pixel.a = pixel.a * fade;

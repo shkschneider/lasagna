@@ -20,6 +20,7 @@ local Game = Object {
     lore = require("systems.lore"),
     menu = require("systems.menu"),
     loader = require("systems.ui.loader"),
+    renderer = require("systems.ui.renderer"),
 }
 
 function Game.switch(self, gamestate)
@@ -29,10 +30,21 @@ function Game.switch(self, gamestate)
     G.menu:load()
 end
 
+function Game.preload(self)
+    self.state = GameStateComponent.new(GameStateComponent.MENU)
+    self.renderer:load()
+    self.menu:load()
+end
+
 function Game.load(self)
     self:switch(GameStateComponent.LOAD)
     Love.load(self)
     self:switch(GameStateComponent.PLAY)
+end
+
+function Game.draw(self)
+    self.renderer:draw()
+    -- Do NOT Love.draw
 end
 
 return Game
