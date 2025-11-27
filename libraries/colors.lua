@@ -1,4 +1,5 @@
 -- https://lospec.com/palette-list/resurrect-64
+-- Organized with base16-inspired color names
 
 local Colors = {}
 
@@ -9,7 +10,9 @@ function Colors.hex2rgb(hex)
         tonumber("0x" .. hex:sub(5, 6)) / 255
 end
 
--- Palette colors grouped by 3 tones (dark, normal, light)
+-- Base colors grouped by 3 tones (dark, normal, light)
+
+-- Neutrals
 Colors.black = {
     dark = {Colors.hex2rgb("#2e222f")},
     normal = {Colors.hex2rgb("#3e3546")},
@@ -17,7 +20,7 @@ Colors.black = {
 }
 
 Colors.gray = {
-    dark = {Colors.hex2rgb("#313638")},
+    dark = {Colors.hex2rgb("#694f62")},
     normal = {Colors.hex2rgb("#7f708a")},
     light = {Colors.hex2rgb("#9babb2")}
 }
@@ -28,105 +31,53 @@ Colors.white = {
     light = {Colors.hex2rgb("#ffffff")}
 }
 
-Colors.brown = {
-    dark = {Colors.hex2rgb("#4c3e24")},
-    normal = {Colors.hex2rgb("#966c6c")},
-    light = {Colors.hex2rgb("#ab947a")}
-}
-
-Colors.maroon = {
-    dark = {Colors.hex2rgb("#6e2727")},
-    normal = {Colors.hex2rgb("#b33831")},
-    light = {Colors.hex2rgb("#ea4f36")}
-}
-
+-- Warm colors
 Colors.red = {
-    dark = {Colors.hex2rgb("#ae2334")},
+    dark = {Colors.hex2rgb("#6e2727")},
     normal = {Colors.hex2rgb("#e83b3b")},
-    light = {Colors.hex2rgb("#f57d4a")}
+    light = {Colors.hex2rgb("#f68181")}
 }
 
 Colors.orange = {
-    dark = {Colors.hex2rgb("#fb6b1d")},
-    normal = {Colors.hex2rgb("#f79617")},
-    light = {Colors.hex2rgb("#f9c22b")}
-}
-
-Colors.peach = {
     dark = {Colors.hex2rgb("#9e4539")},
-    normal = {Colors.hex2rgb("#cd683d")},
-    light = {Colors.hex2rgb("#e6904e")}
-}
-
-Colors.tan = {
-    dark = {Colors.hex2rgb("#7a3045")},
-    normal = {Colors.hex2rgb("#fbb954")},
-    light = {Colors.hex2rgb("#fdcbb0")}
-}
-
-Colors.olive = {
-    dark = {Colors.hex2rgb("#676633")},
-    normal = {Colors.hex2rgb("#a2a947")},
-    light = {Colors.hex2rgb("#d5e04b")}
+    normal = {Colors.hex2rgb("#fb6b1d")},
+    light = {Colors.hex2rgb("#f57d4a")}
 }
 
 Colors.yellow = {
-    dark = {Colors.hex2rgb("#a2a947")},
-    normal = {Colors.hex2rgb("#d5e04b")},
+    dark = {Colors.hex2rgb("#676633")},
+    normal = {Colors.hex2rgb("#f9c22b")},
     light = {Colors.hex2rgb("#fbff86")}
 }
 
-Colors.lime = {
-    dark = {Colors.hex2rgb("#547e64")},
-    normal = {Colors.hex2rgb("#92a984")},
-    light = {Colors.hex2rgb("#b2ba90")}
+Colors.brown = {
+    dark = {Colors.hex2rgb("#4c3e24")},
+    normal = {Colors.hex2rgb("#ab947a")},
+    light = {Colors.hex2rgb("#fdcbb0")}
 }
 
+-- Cool colors
 Colors.green = {
     dark = {Colors.hex2rgb("#165a4c")},
-    normal = {Colors.hex2rgb("#239063")},
-    light = {Colors.hex2rgb("#1ebc73")}
-}
-
-Colors.mint = {
-    dark = {Colors.hex2rgb("#91db69")},
-    normal = {Colors.hex2rgb("#cddf6c")},
-    light = {Colors.hex2rgb("#8ff8e2")}
-}
-
-Colors.teal = {
-    dark = {Colors.hex2rgb("#0b5e65")},
-    normal = {Colors.hex2rgb("#0b8a8f")},
-    light = {Colors.hex2rgb("#0eaf9b")}
+    normal = {Colors.hex2rgb("#1ebc73")},
+    light = {Colors.hex2rgb("#91db69")}
 }
 
 Colors.cyan = {
-    dark = {Colors.hex2rgb("#374e4a")},
-    normal = {Colors.hex2rgb("#30e1b9")},
+    dark = {Colors.hex2rgb("#0b5e65")},
+    normal = {Colors.hex2rgb("#0eaf9b")},
     light = {Colors.hex2rgb("#8ff8e2")}
 }
 
-Colors.navy = {
-    dark = {Colors.hex2rgb("#323353")},
-    normal = {Colors.hex2rgb("#484a77")},
-    light = {Colors.hex2rgb("#4d65b4")}
-}
-
 Colors.blue = {
-    dark = {Colors.hex2rgb("#4d65b4")},
+    dark = {Colors.hex2rgb("#323353")},
     normal = {Colors.hex2rgb("#4d9be6")},
     light = {Colors.hex2rgb("#8fd3ff")}
 }
 
-Colors.indigo = {
-    dark = {Colors.hex2rgb("#45293f")},
-    normal = {Colors.hex2rgb("#6b3e75")},
-    light = {Colors.hex2rgb("#905ea9")}
-}
-
 Colors.purple = {
-    dark = {Colors.hex2rgb("#694f62")},
-    normal = {Colors.hex2rgb("#a884f3")},
+    dark = {Colors.hex2rgb("#6b3e75")},
+    normal = {Colors.hex2rgb("#905ea9")},
     light = {Colors.hex2rgb("#eaaded")}
 }
 
@@ -138,13 +89,7 @@ Colors.magenta = {
 
 Colors.pink = {
     dark = {Colors.hex2rgb("#753c54")},
-    normal = {Colors.hex2rgb("#a24b6f")},
-    light = {Colors.hex2rgb("#cf657f")}
-}
-
-Colors.rose = {
-    dark = {Colors.hex2rgb("#ed8099")},
-    normal = {Colors.hex2rgb("#f68181")},
+    normal = {Colors.hex2rgb("#cf657f")},
     light = {Colors.hex2rgb("#fca790")}
 }
 
