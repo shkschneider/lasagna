@@ -2,6 +2,7 @@ local Love = require "core.love"
 local Object = require "core.object"
 local TimeComponent = require "components.time"
 local GameStateComponent = require "components.gamestate"
+local Shaders = require "libraries.shaders"
 
 local Game = Object {
     id = "game",
@@ -50,16 +51,30 @@ function Game.draw(self)
     love.graphics.clear(0.4, 0.6, 0.9, 1)
 
     -- 1. Terrain layers
-    local max_layer = math.min(self.player.position.z + 1, LAYER_MAX)
+    local player_z = self.player.position.z
+    local max_layer = math.min(player_z + 1, LAYER_MAX)
     love.graphics.setBlendMode("alpha", "premultiplied")
     for layer = LAYER_MIN, max_layer do
+        -- Apply greyscale shader to back layer (-1)
+        if layer == -1 then
+            love.graphics.setShader(Shaders.greyscale)
+        end
         love.graphics.draw(self.canvases.layers[layer], 0, 0)
+        if layer == -1 then
+            love.graphics.setShader()
+        end
     end
     love.graphics.setBlendMode("alpha")
 
-    -- 2. Player canvas
+    -- 2. Player canvas with light shader
+    local camera_x, camera_y = self.camera:get_offset()
+    local player_screen_x = self.player.position.x - camera_x
+    local player_screen_y = self.player.position.y - camera_y
+    Shaders.light:send("playerPosition", {player_screen_x, player_screen_y})
+    love.graphics.setShader(Shaders.light)
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.draw(self.canvases.player, 0, 0)
+    love.graphics.setShader()
 
     -- 3. Entities canvas
     love.graphics.setColor(1, 1, 1, 1)
