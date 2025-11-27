@@ -21,6 +21,12 @@ function WorldSystem.update(self, dt)
 end
 
 function WorldSystem.draw(self)
+    -- World drawing is handled by Game.draw() using draw_layer()
+    Love.draw(self)
+end
+
+-- Draw a specific layer (called by Game.draw via canvas:renderTo)
+function WorldSystem.draw_layer(self, layer)
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
 
@@ -37,82 +43,66 @@ function WorldSystem.draw(self)
     start_row = math.max(0, start_row)
     end_row = math.min(self.HEIGHT - 1, end_row)
 
-    -- Calculate max layer to render (from LAYER_MIN up to player_z + 1, clamped to LAYER_MAX)
-    local max_layer = math.min(player_z + 1, LAYER_MAX)
+    -- Check if this is the layer above the player
+    local is_layer_above = (layer == player_z + 1)
 
-    -- Draw each layer to its canvas
-    for layer = LAYER_MIN, max_layer do
-        local canvas = G.canvases.layers[layer]
-        if canvas then
-            love.graphics.setCanvas(canvas)
-            love.graphics.clear(0, 0, 0, 0)
-
-            -- Check if this is the layer above the player
-            local is_layer_above = (layer == player_z + 1)
-
-            -- Set graphics state for outline drawing if this is the layer above
-            if is_layer_above then
-                love.graphics.setColor(1, 1, 1, 0.5)
-                love.graphics.setLineWidth(1)
-            end
-
-            -- Draw blocks
-            for col = start_col, end_col do
-                for row = start_row, end_row do
-                    local block_id = self:get_block_id(layer, col, row)
-                    local proto = Registry.Blocks:get(block_id)
-
-                    if proto and proto.solid then
-                        local x = col * BLOCK_SIZE - camera_x
-                        local y = row * BLOCK_SIZE - camera_y
-
-                        if is_layer_above then
-                            -- Draw only outlines for layer above player
-                            -- Check each direction to see if there's air (draw edge if so)
-
-                            -- Check top
-                            local top_block = self:get_block_id(layer, col, row - 1)
-                            local top_proto = Registry.Blocks:get(top_block)
-                            if not (top_proto and top_proto.solid) then
-                                love.graphics.line(x, y, x + BLOCK_SIZE, y)
-                            end
-
-                            -- Check bottom
-                            local bottom_block = self:get_block_id(layer, col, row + 1)
-                            local bottom_proto = Registry.Blocks:get(bottom_block)
-                            if not (bottom_proto and bottom_proto.solid) then
-                                love.graphics.line(x, y + BLOCK_SIZE, x + BLOCK_SIZE, y + BLOCK_SIZE)
-                            end
-
-                            -- Check left
-                            local left_block = self:get_block_id(layer, col - 1, row)
-                            local left_proto = Registry.Blocks:get(left_block)
-                            if not (left_proto and left_proto.solid) then
-                                love.graphics.line(x, y, x, y + BLOCK_SIZE)
-                            end
-
-                            -- Check right
-                            local right_block = self:get_block_id(layer, col + 1, row)
-                            local right_proto = Registry.Blocks:get(right_block)
-                            if not (right_proto and right_proto.solid) then
-                                love.graphics.line(x + BLOCK_SIZE, y, x + BLOCK_SIZE, y + BLOCK_SIZE)
-                            end
-                        else
-                            -- Normal filled blocks for other layers
-                            -- Ensure blocks are drawn with full opacity (alpha=1) to properly cover layers below
-                            local r, g, b = proto.color[1] or 1, proto.color[2] or 1, proto.color[3] or 1
-                            love.graphics.setColor(r, g, b, 1)
-                            love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
-                        end
-                    end
-                end
-            end
-
-            love.graphics.setCanvas()
-        end
+    -- Set graphics state for outline drawing if this is the layer above
+    if is_layer_above then
+        love.graphics.setColor(1, 1, 1, 0.5)
+        love.graphics.setLineWidth(1)
     end
 
-    Love.draw(self)
+    -- Draw blocks
+    for col = start_col, end_col do
+        for row = start_row, end_row do
+            local block_id = self:get_block_id(layer, col, row)
+            local proto = Registry.Blocks:get(block_id)
+
+            if proto and proto.solid then
+                local x = col * BLOCK_SIZE - camera_x
+                local y = row * BLOCK_SIZE - camera_y
+
+                if is_layer_above then
+                    -- Draw only outlines for layer above player
+                    -- Check each direction to see if there's air (draw edge if so)
+
+                    -- Check top
+                    local top_block = self:get_block_id(layer, col, row - 1)
+                    local top_proto = Registry.Blocks:get(top_block)
+                    if not (top_proto and top_proto.solid) then
+                        love.graphics.line(x, y, x + BLOCK_SIZE, y)
+                    end
+
+                    -- Check bottom
+                    local bottom_block = self:get_block_id(layer, col, row + 1)
+                    local bottom_proto = Registry.Blocks:get(bottom_block)
+                    if not (bottom_proto and bottom_proto.solid) then
+                        love.graphics.line(x, y + BLOCK_SIZE, x + BLOCK_SIZE, y + BLOCK_SIZE)
+                    end
+
+                    -- Check left
+                    local left_block = self:get_block_id(layer, col - 1, row)
+                    local left_proto = Registry.Blocks:get(left_block)
+                    if not (left_proto and left_proto.solid) then
+                        love.graphics.line(x, y, x, y + BLOCK_SIZE)
+                    end
+
+                    -- Check right
+                    local right_block = self:get_block_id(layer, col + 1, row)
+                    local right_proto = Registry.Blocks:get(right_block)
+                    if not (right_proto and right_proto.solid) then
+                        love.graphics.line(x + BLOCK_SIZE, y, x + BLOCK_SIZE, y + BLOCK_SIZE)
+                    end
+                else
+                    -- Normal filled blocks for other layers
+                    -- Ensure blocks are drawn with full opacity (alpha=1) to properly cover layers below
+                    local r, g, b = proto.color[1] or 1, proto.color[2] or 1, proto.color[3] or 1
+                    love.graphics.setColor(r, g, b, 1)
+                    love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
+                end
+            end
+        end
+    end
 end
 
 -- Check if a location is valid for building

@@ -16,10 +16,6 @@ function InterfaceSystem.draw(self)
     local hotbar = G.player.hotbar
     local omnitool = G.player.omnitool
 
-    -- Draw UI to dedicated canvas
-    love.graphics.setCanvas(G.canvases.ui)
-    love.graphics.clear(0, 0, 0, 0)
-
     -- Draw cursor highlight
     self:draw_cursor_highlight(camera_x, camera_y, pos.z)
 
@@ -114,8 +110,6 @@ function InterfaceSystem.draw(self)
             love.graphics.print(text, (screen_width - text_width) / 2, hotbar_y - 40)
         end
     end
-
-    love.graphics.setCanvas()
 
     Love.draw(self)
 end

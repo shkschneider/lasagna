@@ -40,19 +40,32 @@ end
 -- Draw all canvases to screen (called from love.draw)
 function Game.draw(self)
     local state = self.state.current
+
+    -- Menu/Load state: only draw menu
     if state == GameStateComponent.MENU or state == GameStateComponent.LOAD then
-        self.menu:draw()
+        self.canvases.menu:renderTo(function()
+            love.graphics.clear(0, 0, 0, 0)
+            self.menu:draw()
+        end)
         love.graphics.setColor(1, 1, 1, 1)
         love.graphics.draw(self.canvases.menu, 0, 0)
         return
     end
 
-    Love.draw(self)
     love.graphics.clear(0.4, 0.6, 0.9, 1)
 
     -- 1. Terrain layers
     local player_z = self.player.position.z
     local max_layer = math.min(player_z + 1, LAYER_MAX)
+
+    for layer = LAYER_MIN, max_layer do
+        self.canvases.layers[layer]:renderTo(function()
+            love.graphics.clear(0, 0, 0, 0)
+            self.world:draw_layer(layer)
+        end)
+    end
+
+    -- Composite terrain layers to screen
     love.graphics.setBlendMode("alpha", "premultiplied")
     for layer = LAYER_MIN, max_layer do
         -- Apply greyscale shader to back layer (-1)
@@ -67,6 +80,11 @@ function Game.draw(self)
     love.graphics.setBlendMode("alpha")
 
     -- 2. Player canvas with light shader
+    self.canvases.player:renderTo(function()
+        love.graphics.clear(0, 0, 0, 0)
+        self.player:draw()
+    end)
+
     local camera_x, camera_y = self.camera:get_offset()
     local player_screen_x = self.player.position.x - camera_x
     local player_screen_y = self.player.position.y - camera_y
@@ -77,15 +95,27 @@ function Game.draw(self)
     love.graphics.setShader()
 
     -- 3. Entities canvas
+    self.canvases.entities:renderTo(function()
+        love.graphics.clear(0, 0, 0, 0)
+        self.entity:draw()
+    end)
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.draw(self.canvases.entities, 0, 0)
 
     -- 4. UI canvas
+    self.canvases.ui:renderTo(function()
+        love.graphics.clear(0, 0, 0, 0)
+        self.ui:draw()
+    end)
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.draw(self.canvases.ui, 0, 0)
 
     -- 5. Menu canvas (for PAUSE state)
     if state == GameStateComponent.PAUSE then
+        self.canvases.menu:renderTo(function()
+            love.graphics.clear(0, 0, 0, 0)
+            self.menu:draw()
+        end)
         love.graphics.setColor(1, 1, 1, 1)
         love.graphics.draw(self.canvases.menu, 0, 0)
     end
