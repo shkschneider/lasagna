@@ -3,7 +3,7 @@ local Object = require "core.object"
 
 local CanvasSystem = Object {
     id = "canvases",
-    priority = 0,  -- Lowest priority - initialized first
+    priority = 0,
 }
 
 -- Initialize all canvases
