@@ -21,11 +21,11 @@ function WorldSystem.update(self, dt)
 end
 
 function WorldSystem.draw(self)
-    -- World drawing is handled by Game.draw() using draw_layer()
-    Love.draw(self)
+    for z = LAYER_MIN, LAYER_MAX do
+        self:draw_layer(z)
+    end
 end
 
--- Draw a specific layer (called by Game.draw via canvas:renderTo)
 function WorldSystem.draw_layer(self, layer)
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
@@ -44,7 +44,7 @@ function WorldSystem.draw_layer(self, layer)
     end_row = math.min(self.HEIGHT - 1, end_row)
 
     -- Check if this is the layer above the player
-    local is_layer_above = (layer == player_z + 1)
+    local is_layer_above = (layer >= player_z + 1)
 
     -- Set graphics state for outline drawing if this is the layer above
     if is_layer_above then
