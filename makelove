@@ -337,6 +337,15 @@ local function clean()
     log("Clean complete")
 end
 
+local function check()
+    log("Checking...")
+    if not run("find . -type f -name '*.lua' | xargs luacheck --no-global") then
+        log("ERROR: Failed to luacheck")
+        return false
+    end
+    return true
+end
+
 -- Print usage
 local function print_usage()
     print("Usage: lua makelove [target]")
@@ -356,6 +365,11 @@ local function main(args)
 
     if target == "help" or target == "-h" or target == "--help" then
         print_usage()
+        return 0
+    end
+
+    if target == "check" then
+        check()
         return 0
     end
 
