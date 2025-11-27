@@ -12,7 +12,6 @@ STACK_SIZE = 64
 
 require "libraries.luax"
 Log = require "libraries.log"
-Fonts = require "data.fonts"
 
 -- Global: game
 
@@ -28,15 +27,7 @@ local Love = require "core.love"
 local GameStateComponent = require "components.gamestate"
 
 function love.load()
-    love.graphics.setDefaultFilter("nearest", "nearest")
-    Fonts:load()
-    Fonts:set(Fonts.Regular)
-    local debug = os.getenv("DEBUG") and (os.getenv("DEBUG") == "true") or (G.VERSION.major < 1)
-    if debug then
-        G.debug = require("systems.debug")
-    else
-        Log.level = 3
-    end
+    G.debug = require("systems.debug").get()
     Log.info(G.NAME, G.VERSION:tostring())
     -- Do NOT Love.load()
     G:preload()
@@ -71,6 +62,10 @@ end
 function love.draw()
     -- Do NOT Love.draw
     G:draw()
+end
+
+function love.keypressed(key)
+    G:keypressed(key)
 end
 
 function love.keypressed(key)

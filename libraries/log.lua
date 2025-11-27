@@ -11,7 +11,9 @@ Log.levels = {
     { name = "warning", color = "\27[0;33m" }, -- yellow
     { name = "error",   color = "\27[1;31m" }, -- red (bold)
 }
-Log.level = 0 -- all
+-- Log.level = 0 -- all
+-- Log.level = 1 -- debug
+Log.level = 3 -- release
 
 local function caller()
     if not debug or not debug.getinfo then return "?" end

@@ -8,12 +8,24 @@ local DebugSystem = Object {
     id = "debug",
 }
 
+function DebugSystem.get()
+    if not G.debug and ((os.getenv("DEBUG") and (os.getenv("DEBUG") == "true")) or (G.VERSION.major < 1)) then
+        return DebugSystem
+    else
+        return nil
+    end
+end
+
 function DebugSystem.load(self)
     Love.load(self)
 end
 
 function DebugSystem.keypressed(self, key)
     if G.chat.in_input_mode then
+        return
+    end
+    if key == "backspace" then
+        G.debug = require("systems.debug").get()
         return
     end
     -- Adjust omnitool tier

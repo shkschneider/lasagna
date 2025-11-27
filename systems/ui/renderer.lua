@@ -6,6 +6,11 @@ local Renderer = Object {
     canvases = nil,
 }
 
+function Renderer.preload(self)
+    love.graphics.setDefaultFilter("nearest", "nearest")
+    require("data.fonts"):load(function(fonts) fonts:set(fonts.Regular) end)
+end
+
 function Renderer.load(self)
     self:resize(love.graphics.getDimensions())
 end
@@ -56,7 +61,7 @@ function Renderer.draw(self)
         end)
         love.graphics.setShader()
         render(self.canvases.things, G.mining, G.building, G.weapon, G.lore)
-        render(self.canvases.overlay, G.ui, G.chat, G.debug, G.menu)
+        render(self.canvases.overlay, G.ui, G.chat, G.debug or G.menu, G.debug and G.menu or nil)
     end
 end
 

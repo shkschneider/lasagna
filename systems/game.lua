@@ -32,6 +32,7 @@ end
 
 function Game.preload(self)
     self.state = GameStateComponent.new(GameStateComponent.MENU)
+    self.renderer:preload()
     self.renderer:load()
     self.menu:load()
 end
