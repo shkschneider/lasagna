@@ -1,9 +1,9 @@
 #!/usr/bin/env lua
 --[[
     makelove - Standalone build script for LÖVE 2D games
-    
+
     Usage: lua makelove [windows|mac|linux]
-    
+
     If no arguments are provided, builds for all platforms.
     Executables are created at the root of the repository.
 --]]
@@ -66,12 +66,12 @@ end
 local function create_love_file()
     local love_file = GAME_NAME .. ".love"
     log("Creating " .. love_file .. "...")
-    
+
     -- Remove old .love file if it exists
     if file_exists(love_file) then
         os.remove(love_file)
     end
-    
+
     -- Create zip with all project files, excluding unwanted files
     -- We use a temporary file list to handle exclusions
     local cmd = "zip -9 -r " .. love_file .. " . "
@@ -80,18 +80,18 @@ local function create_love_file()
         "README.md", "ROADMAP.md", "makelove",
         GAME_NAME .. ".love",
         GAME_NAME .. "-windows.zip",
-        GAME_NAME .. "-mac.zip", 
+        GAME_NAME .. "-mac.zip",
         GAME_NAME .. "-linux.tar.gz",
         "build/*", ".love-cache/*"
     }) do
         cmd = cmd .. "-x '" .. pattern .. "' "
     end
-    
+
     if not run(cmd) then
         log("ERROR: Failed to create .love file")
         return false
     end
-    
+
     log("Created " .. love_file)
     return true
 end
@@ -100,20 +100,20 @@ end
 local function download_love(platform)
     local cache_dir = ".love-cache"
     mkdir(cache_dir)
-    
+
     local url = LOVE_URLS[platform]
     if not url then
         log("ERROR: Unknown platform: " .. platform)
         return nil
     end
-    
+
     local filename
     if platform == "linux" then
         filename = cache_dir .. "/love-" .. LOVE_VERSION .. "-x86_64.AppImage"
     else
         filename = cache_dir .. "/love-" .. LOVE_VERSION .. "-" .. platform .. ".zip"
     end
-    
+
     if not file_exists(filename) then
         log("Downloading LÖVE " .. LOVE_VERSION .. " for " .. platform .. "...")
         local cmd = "curl -L -o " .. filename .. " " .. url
@@ -124,72 +124,72 @@ local function download_love(platform)
     else
         log("Using cached LÖVE for " .. platform)
     end
-    
+
     return filename
 end
 
 -- Build for Windows
 local function build_windows()
     log("Building for Windows...")
-    
+
     local love_file = GAME_NAME .. ".love"
     if not file_exists(love_file) then
         log("ERROR: " .. love_file .. " not found. Run create_love_file first.")
         return false
     end
-    
+
     -- Download LÖVE for Windows
     local love_zip = download_love("windows")
     if not love_zip then return false end
-    
+
     local build_dir = "build/windows"
     rmdir(build_dir)
     mkdir(build_dir)
-    
+
     -- Extract LÖVE
     log("Extracting LÖVE for Windows...")
     if not run("unzip -q " .. love_zip .. " -d build/") then
         log("ERROR: Failed to extract LÖVE")
         return false
     end
-    
+
     -- Find the extracted directory
     local love_dir = "build/love-" .. LOVE_VERSION .. "-win64"
     if not dir_exists(love_dir) then
         log("ERROR: Expected directory not found: " .. love_dir)
         return false
     end
-    
+
     -- Move contents to build/windows
     run("mv " .. love_dir .. "/* " .. build_dir .. "/")
     rmdir(love_dir)
-    
+
     -- Combine love.exe with the .love file
     log("Creating Windows executable...")
     if not run("cat " .. build_dir .. "/love.exe " .. love_file .. " > " .. build_dir .. "/" .. GAME_NAME .. ".exe") then
         log("ERROR: Failed to create Windows executable")
         return false
     end
-    
+
     -- Remove the original love.exe
     os.remove(build_dir .. "/love.exe")
     os.remove(build_dir .. "/lovec.exe")
-    
+
     -- Create the final zip
     local output_file = GAME_NAME .. "-windows.zip"
     if file_exists(output_file) then
         os.remove(output_file)
     end
-    
+
     log("Creating " .. output_file .. "...")
     if not run("cd build && zip -9 -r ../" .. output_file .. " windows/") then
         log("ERROR: Failed to create Windows zip")
         return false
     end
-    
+
     -- Cleanup
     rmdir("build/windows")
-    
+
     log("Created " .. output_file)
     return true
 end
@@ -197,40 +197,40 @@ end
 -- Build for macOS
 local function build_mac()
     log("Building for macOS...")
-    
+
     local love_file = GAME_NAME .. ".love"
     if not file_exists(love_file) then
         log("ERROR: " .. love_file .. " not found. Run create_love_file first.")
         return false
     end
-    
+
     -- Download LÖVE for macOS
     local love_zip = download_love("mac")
     if not love_zip then return false end
-    
+
     local build_dir = "build/mac"
     rmdir(build_dir)
     mkdir(build_dir)
-    
+
     -- Extract LÖVE
     log("Extracting LÖVE for macOS...")
     if not run("unzip -q " .. love_zip .. " -d " .. build_dir .. "/") then
         log("ERROR: Failed to extract LÖVE")
         return false
     end
-    
+
     -- The macOS version extracts to love.app
     local app_path = build_dir .. "/love.app"
     local new_app_path = build_dir .. "/" .. GAME_NAME .. ".app"
-    
+
     if not dir_exists(app_path) then
         log("ERROR: love.app not found in extracted archive")
         return false
     end
-    
+
     -- Rename the app
     run("mv " .. app_path .. " " .. new_app_path)
-    
+
     -- Copy the .love file into the app bundle
     log("Creating macOS app bundle...")
     local resources_dir = new_app_path .. "/Contents/Resources"
@@ -238,22 +238,22 @@ local function build_mac()
         log("ERROR: Failed to copy .love file into app bundle")
         return false
     end
-    
+
     -- Create the final zip
     local output_file = GAME_NAME .. "-mac.zip"
     if file_exists(output_file) then
         os.remove(output_file)
     end
-    
+
     log("Creating " .. output_file .. "...")
     if not run("cd " .. build_dir .. " && zip -9 -r -y ../../" .. output_file .. " " .. GAME_NAME .. ".app") then
         log("ERROR: Failed to create macOS zip")
         return false
     end
-    
+
     -- Cleanup
     rmdir(build_dir)
-    
+
     log("Created " .. output_file)
     return true
 end
@@ -261,21 +261,21 @@ end
 -- Build for Linux
 local function build_linux()
     log("Building for Linux...")
-    
+
     local love_file = GAME_NAME .. ".love"
     if not file_exists(love_file) then
         log("ERROR: " .. love_file .. " not found. Run create_love_file first.")
         return false
     end
-    
+
     -- Download LÖVE AppImage for Linux
     local love_appimage = download_love("linux")
     if not love_appimage then return false end
-    
+
     local build_dir = "build/linux"
     rmdir(build_dir)
     mkdir(build_dir)
-    
+
     -- Copy the AppImage and make it executable
     local appimage_dest = build_dir .. "/love"
     if not run("cp " .. love_appimage .. " " .. appimage_dest) then
@@ -283,10 +283,10 @@ local function build_linux()
         return false
     end
     run("chmod +x " .. appimage_dest)
-    
+
     -- Copy the .love file
     run("cp " .. love_file .. " " .. build_dir .. "/" .. GAME_NAME .. ".love")
-    
+
     -- Create a launcher script
     local launcher_script = build_dir .. "/" .. GAME_NAME
     local f = io.open(launcher_script, "w")
@@ -297,22 +297,22 @@ local function build_linux()
         f:close()
         run("chmod +x " .. launcher_script)
     end
-    
+
     -- Create the final tar.gz
     local output_file = GAME_NAME .. "-linux.tar.gz"
     if file_exists(output_file) then
         os.remove(output_file)
     end
-    
+
     log("Creating " .. output_file .. "...")
     if not run("cd build && tar -czf ../" .. output_file .. " linux/") then
         log("ERROR: Failed to create Linux tar.gz")
         return false
     end
-    
+
     -- Cleanup
     rmdir(build_dir)
-    
+
     log("Created " .. output_file)
     return true
 end
@@ -353,26 +353,26 @@ end
 -- Main entry point
 local function main(args)
     local target = args[1]
-    
+
     if target == "help" or target == "-h" or target == "--help" then
         print_usage()
         return 0
     end
-    
+
     if target == "clean" then
         clean()
         return 0
     end
-    
+
     -- Create the .love file first (always needed)
     if not create_love_file() then
         return 1
     end
-    
+
     mkdir("build")
-    
+
     local success = true
-    
+
     if target == nil then
         -- Build all targets
         success = build_windows() and success
@@ -389,10 +389,10 @@ local function main(args)
         print_usage()
         return 1
     end
-    
+
     -- Cleanup build directory
     rmdir("build")
-    
+
     if success then
         log("Build complete!")
         return 0
