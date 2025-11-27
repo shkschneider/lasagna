@@ -1,8 +1,7 @@
 -- Standalone Love2D app to display color palette
 -- Run with: love tests/colors
--- Change the require path to test different color palettes
 
-local Colors = require "libraries.colors.init"  -- Change to "libraries.colors.resurrect" or "libraries.colors.jehkoba"
+local Colors = require "libraries.colors"
 
 local TONE_SIZE = 32
 local PADDING = 8
@@ -55,6 +54,7 @@ function love.draw()
     local cols = math.floor((love.graphics.getWidth() - PADDING) / groupWidth)
     if cols < 1 then cols = 1 end
 
+    local c = 0
     for i, group in ipairs(colorGroups) do
         local col = (i - 1) % cols
         local row = math.floor((i - 1) / cols)
@@ -80,11 +80,13 @@ function love.draw()
             love.graphics.setColor(1, 1, 1, 0.3)
             love.graphics.rectangle("line", toneX, toneY, TONE_SIZE, TONE_SIZE)
         end
+
+        c = c + #group.tones
     end
 
     -- Draw info
     love.graphics.setColor(1, 1, 1)
-    love.graphics.print("Color groups: " .. #colorGroups, 10, love.graphics.getHeight() - 20)
+    love.graphics.print(string.format("%d colors in %d groups (~%d)", c, #colorGroups, math.floor(c / #colorGroups)), 10, love.graphics.getHeight() - 20)
 end
 
 function love.keypressed(key)
