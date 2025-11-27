@@ -99,6 +99,16 @@ function PlayerSystem.update(self, dt)
     local hit_wall, new_x = PhysicsSystem.apply_horizontal_movement(
         G.world, pos, vel, self.width, self.height, dt
     )
+
+    -- When crouched and on ground, prevent falling off edges
+    -- Only apply the new position if there would be ground beneath it
+    if stance.crouched and on_ground then
+        if not PhysicsSystem.would_have_ground(G.world, new_x, pos.y, pos.z, self.width, self.height) then
+            -- Would fall off edge - don't move horizontally
+            new_x = pos.x
+        end
+    end
+
     pos.x = new_x
 
     -- Apply vertical velocity with collision (using physics system)
