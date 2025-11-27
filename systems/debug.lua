@@ -1,6 +1,7 @@
 local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
+local Canvases = require "systems.ui.canvases"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
@@ -27,6 +28,9 @@ function DebugSystem.keypressed(self, key)
 end
 
 function DebugSystem.draw(self)
+    -- Draw to UI canvas
+    love.graphics.setCanvas(Canvases.ui)
+
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
     love.graphics.print(string.format("State: %s", G.state:tostring()), 10, 120)
@@ -34,6 +38,9 @@ function DebugSystem.draw(self)
     love.graphics.print(string.format("Stance: %s", G.player.stance:tostring()), 10, 160)
     love.graphics.print(string.format("Health: %s", G.player.health:tostring()), 10, 180)
     love.graphics.print(string.format("Stamina: %s", G.player.stamina:tostring()), 10, 200)
+
+    love.graphics.setCanvas()
+
     Love.draw(self)
 end
 

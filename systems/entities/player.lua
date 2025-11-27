@@ -3,6 +3,7 @@ local Object = require "core.object"
 local ControlSystem = require "systems.control"
 local PhysicsSystem = require "systems.physics"
 local InventorySystem = require "systems.inventory"
+local Canvases = require "systems.ui.canvases"
 local VectorComponent = require "components.vector"
 local StackComponent = require "components.stack"
 local OmnitoolComponent = require "components.omnitool"
@@ -157,6 +158,10 @@ function PlayerSystem.draw(self)
 
     local camera_x, camera_y = G.camera:get_offset()
 
+    -- Draw to player canvas
+    love.graphics.setCanvas(Canvases.player)
+    love.graphics.clear(0, 0, 0, 0)
+
     -- Draw player using direct properties
     if self:is_dead() then
         love.graphics.setColor(1, 0, 0, 1) -- red
@@ -179,6 +184,8 @@ function PlayerSystem.draw(self)
             self.width,
             self.height)
     end
+
+    love.graphics.setCanvas()
 
     Love.draw(self)
 end

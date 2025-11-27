@@ -2,6 +2,7 @@ local Love = require "core.love"
 local Object = require "core.object"
 local VectorComponent = require "components.vector"
 local PhysicsSystem = require "systems.physics"
+local Canvases = require "systems.ui.canvases"
 local ProjectileComponent = require "components.projectile"
 local ItemDropComponent = require "components.itemdrop"
 local Registry = require "registries"
@@ -263,6 +264,10 @@ end
 function EntitySystem.draw(self)
     local camera_x, camera_y = G.camera:get_offset()
 
+    -- Draw to entities canvas
+    love.graphics.setCanvas(Canvases.entities)
+    love.graphics.clear(0, 0, 0, 0)
+
     for _, ent in ipairs(self.entities) do
         if ent.type == EntitySystem.TYPE_BULLET and ent.bullet then
             ent.bullet:draw(ent, camera_x, camera_y)
@@ -274,6 +279,8 @@ function EntitySystem.draw(self)
 
     -- Reset color
     love.graphics.setColor(1, 1, 1, 1)
+
+    love.graphics.setCanvas()
 end
 
 return EntitySystem

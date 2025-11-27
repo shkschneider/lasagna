@@ -1,30 +1,21 @@
 local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
+local Canvases = require "systems.ui.canvases"
 local BLOCKS = Registry.blocks()
 
 local WorldSystem = Object {
     HEIGHT = 512,
     id = "world",
     priority = 10,
-    canvases = {},
     generator = require("systems.world.generator"),
     save = require("systems.world.save"),
 }
 
 function WorldSystem.load(self)
-    self:create_canvases()
+    Canvases:create()
     Love.load(self)
     Log.info("World:", self.generator.data.seed)
-end
-
-function WorldSystem.create_canvases(self)
-    local screen_width, screen_height = love.graphics.getDimensions()
-
-    -- Create canvases for each layer
-    self.canvases[-1] = love.graphics.newCanvas(screen_width, screen_height)
-    self.canvases[0] = love.graphics.newCanvas(screen_width, screen_height)
-    self.canvases[1] = love.graphics.newCanvas(screen_width, screen_height)
 end
 
 function WorldSystem.update(self, dt)
@@ -37,9 +28,6 @@ function WorldSystem.draw(self)
 
     local camera_x, camera_y = G.camera:get_offset()
     local player_x, player_y, player_z = G.player:get_position()
-
-    -- Clear screen with sky blue background
-    love.graphics.clear(0.4, 0.6, 0.9, 1)
 
     -- Calculate visible area
     local start_col = math.floor(camera_x / BLOCK_SIZE) - 1
@@ -56,7 +44,7 @@ function WorldSystem.draw(self)
 
     -- Draw each layer to its canvas
     for layer = LAYER_MIN, max_layer do
-        local canvas = self.canvases[layer]
+        local canvas = Canvases.terrain[layer]
         if canvas then
             love.graphics.setCanvas(canvas)
             love.graphics.clear(0, 0, 0, 0)
@@ -125,31 +113,6 @@ function WorldSystem.draw(self)
             love.graphics.setCanvas()
         end
     end
-
-    -- Composite layers to screen (only the layers we rendered: LAYER_MIN to player_z + 1)
-    -- Set blend mode to ensure proper layering (solid blocks should completely cover layers below)
-    love.graphics.setBlendMode("alpha", "premultiplied")
-
-    -- Draw each layer from LAYER_MIN to max_layer
-    for layer = LAYER_MIN, max_layer do
-        local canvas = self.canvases[layer]
-        if canvas then
-            if layer == player_z then
-                -- Full color: player is on this layer
-                love.graphics.setColor(1, 1, 1, 1)
-            elseif layer == player_z + 1 then
-                -- Full color: this is the layer above player (outlines already have alpha)
-                love.graphics.setColor(1, 1, 1, 1)
-            else
-                -- Dimmed: layers below player
-                love.graphics.setColor(0.5, 0.5, 0.5, 0.5)
-            end
-            love.graphics.draw(canvas, 0, 0)
-        end
-    end
-
-    -- Reset blend mode to default
-    love.graphics.setBlendMode("alpha")
 
     Love.draw(self)
 end
@@ -292,7 +255,7 @@ function WorldSystem.find_spawn_position(self, z)
 end
 
 function WorldSystem.resize(self, width, height)
-    self:create_canvases()
+    Canvases:create()
     Love.resize(self, width, height)
 end
 

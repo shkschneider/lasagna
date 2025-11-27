@@ -1,6 +1,7 @@
 local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
+local Canvases = require "systems.ui.canvases"
 
 local ChatSystem = Object {
     id = "chat",
@@ -67,6 +68,9 @@ function ChatSystem.draw(self)
         text_opacity = fade_factor
     end
 
+    -- Draw to UI canvas (don't clear, just append to what UI has drawn)
+    love.graphics.setCanvas(Canvases.ui)
+
     -- Draw dimmed background
     love.graphics.setColor(0, 0, 0, background_opacity)
     love.graphics.rectangle("fill", chat_x, chat_y, chat_width, chat_height)
@@ -89,6 +93,8 @@ function ChatSystem.draw(self)
         local input_text = "> " .. self.input .. "_"
         love.graphics.print(input_text, chat_x + chat_padding, history_y)
     end
+
+    love.graphics.setCanvas()
 
     Love.draw(self)
 end

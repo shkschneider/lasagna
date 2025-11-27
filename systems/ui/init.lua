@@ -1,6 +1,7 @@
 local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
+local Canvases = require "systems.ui.canvases"
 
 local InterfaceSystem = Object {
     id = "interface",
@@ -15,6 +16,10 @@ function InterfaceSystem.draw(self)
     local pos = G.player.position
     local hotbar = G.player.hotbar
     local omnitool = G.player.omnitool
+
+    -- Draw to UI canvas
+    love.graphics.setCanvas(Canvases.ui)
+    love.graphics.clear(0, 0, 0, 0)
 
     -- Draw cursor highlight
     self:draw_cursor_highlight(camera_x, camera_y, pos.z)
@@ -110,6 +115,8 @@ function InterfaceSystem.draw(self)
             love.graphics.print(text, (screen_width - text_width) / 2, hotbar_y - 40)
         end
     end
+
+    love.graphics.setCanvas()
 
     Love.draw(self)
 end

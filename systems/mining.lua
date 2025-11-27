@@ -1,6 +1,7 @@
 local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
+local Canvases = require "systems.ui.canvases"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
@@ -155,6 +156,9 @@ function MiningSystem.draw(self)
     local current_size = max_size * progress
     local offset = (max_size - current_size) / 2
 
+    -- Draw to entities canvas (mining overlay is a world element)
+    love.graphics.setCanvas(Canvases.entities)
+
     love.graphics.setColor(MINING_OVERLAY_COLOR)
     love.graphics.rectangle("fill",
         screen_x + offset,
@@ -162,6 +166,8 @@ function MiningSystem.draw(self)
         current_size,
         current_size
     )
+
+    love.graphics.setCanvas()
 
     Love.draw(self)
 
