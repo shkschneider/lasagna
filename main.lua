@@ -71,16 +71,7 @@ function love.update(dt)
 end
 
 function love.draw()
-    local state = G.state.current
-    if state == GameStateComponent.PAUSE then
-        -- Draw the frozen world first, then menu overlay on top
-        Love.draw(G)
-        G.menu:draw()
-    elseif state == GameStateComponent.MENU or state == GameStateComponent.LOAD then
-        G.menu:draw()
-    else
-        Love.draw(G)
-    end
+    G:draw()
 end
 
 function love.keypressed(key)

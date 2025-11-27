@@ -99,10 +99,6 @@ function MenuSystem.draw(self)
 
     love.graphics.setCanvas()
 
-    -- Draw menu canvas to screen
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.draw(G.canvases.menu, 0, 0)
-
     Love.draw(self)
 end
 

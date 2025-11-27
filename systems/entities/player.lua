@@ -196,10 +196,6 @@ function PlayerSystem.draw(self)
 
     love.graphics.setCanvas()
 
-    -- Draw player canvas to screen
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.draw(G.canvases.player, 0, 0)
-
     Love.draw(self)
 end
 

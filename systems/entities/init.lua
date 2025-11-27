@@ -277,10 +277,6 @@ function EntitySystem.draw(self)
     end
 
     love.graphics.setCanvas()
-
-    -- Draw entities canvas to screen and reset color
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.draw(G.canvases.entities, 0, 0)
 end
 
 return EntitySystem

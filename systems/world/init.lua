@@ -27,9 +27,6 @@ function WorldSystem.draw(self)
     local camera_x, camera_y = G.camera:get_offset()
     local player_x, player_y, player_z = G.player:get_position()
 
-    -- Clear screen with sky blue background
-    love.graphics.clear(0.4, 0.6, 0.9, 1)
-
     -- Calculate visible area
     local start_col = math.floor(camera_x / BLOCK_SIZE) - 1
     local end_col = math.ceil((camera_x + screen_width) / BLOCK_SIZE) + 1
@@ -114,31 +111,6 @@ function WorldSystem.draw(self)
             love.graphics.setCanvas()
         end
     end
-
-    -- Composite layers to screen (only the layers we rendered: LAYER_MIN to player_z + 1)
-    -- Set blend mode to ensure proper layering (solid blocks should completely cover layers below)
-    love.graphics.setBlendMode("alpha", "premultiplied")
-
-    -- Draw each layer from LAYER_MIN to max_layer
-    for layer = LAYER_MIN, max_layer do
-        local canvas = G.canvases.layers[layer]
-        if canvas then
-            if layer == player_z then
-                -- Full color: player is on this layer
-                love.graphics.setColor(1, 1, 1, 1)
-            elseif layer == player_z + 1 then
-                -- Full color: this is the layer above player (outlines already have alpha)
-                love.graphics.setColor(1, 1, 1, 1)
-            else
-                -- Dimmed: layers below player
-                love.graphics.setColor(0.5, 0.5, 0.5, 0.5)
-            end
-            love.graphics.draw(canvas, 0, 0)
-        end
-    end
-
-    -- Reset blend mode to default
-    love.graphics.setBlendMode("alpha")
 
     Love.draw(self)
 end
