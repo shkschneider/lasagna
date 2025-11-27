@@ -56,6 +56,21 @@ function PhysicsSystem.is_on_ground(world, pos, width, height)
     return false
 end
 
+-- Check if there would be ground at a given position (center check only)
+-- Used to detect edges when crouching - allows player's center to reach edge
+function PhysicsSystem.would_have_ground(world, x, y, z, width, height)
+    local bottom_y = y + height / 2
+    local center_col = math.floor(x / BLOCK_SIZE)
+    local bottom_row = math.floor(bottom_y / BLOCK_SIZE)
+
+    local block_def = world:get_block_def(z, center_col, bottom_row)
+    if block_def and block_def.solid then
+        return true
+    end
+
+    return false
+end
+
 -- Apply gravity to velocity
 function PhysicsSystem.apply_gravity(vel, gravity, dt)
     vel.y = vel.y + gravity * dt
