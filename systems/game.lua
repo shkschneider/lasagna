@@ -39,42 +39,21 @@ end
 -- Draw all canvases to screen (called from love.draw)
 function Game.draw(self)
     local state = self.state.current
-
-    -- Clear screen with sky blue background
-    love.graphics.clear(0.4, 0.6, 0.9, 1)
-
-    -- In MENU or LOAD state before game starts, only draw menu
     if state == GameStateComponent.MENU or state == GameStateComponent.LOAD then
-        -- Have menu draw to its canvas
         self.menu:draw()
-
-        -- Draw menu canvas to screen
         love.graphics.setColor(1, 1, 1, 1)
         love.graphics.draw(self.canvases.menu, 0, 0)
         return
     end
 
-    -- Have each system draw to their canvas
     Love.draw(self)
-
-    -- Composite all canvases to screen in correct order
-    local player_z = self.player.position.z
+    love.graphics.clear(0.4, 0.6, 0.9, 1)
 
     -- 1. Terrain layers
-    local max_layer = math.min(player_z + 1, LAYER_MAX)
+    local max_layer = math.min(self.player.position.z + 1, LAYER_MAX)
     love.graphics.setBlendMode("alpha", "premultiplied")
     for layer = LAYER_MIN, max_layer do
-        local canvas = self.canvases.layers[layer]
-        if canvas then
-            if layer == player_z then
-                love.graphics.setColor(1, 1, 1, 1)
-            elseif layer == player_z + 1 then
-                love.graphics.setColor(1, 1, 1, 1)
-            else
-                love.graphics.setColor(0.5, 0.5, 0.5, 0.5)
-            end
-            love.graphics.draw(canvas, 0, 0)
-        end
+        love.graphics.draw(self.canvases.layers[layer], 0, 0)
     end
     love.graphics.setBlendMode("alpha")
 
