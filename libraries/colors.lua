@@ -1,3 +1,5 @@
+-- https://lospec.com/palette-list/resurrect-64
+
 local Colors = {}
 
 function Colors.hex2rgb(hex)
@@ -7,21 +9,85 @@ function Colors.hex2rgb(hex)
         tonumber("0x" .. hex:sub(5, 6)) / 255
 end
 
-Colors.Aqua = {Colors.hex2rgb("#00ffff")}
-Colors.Black = {Colors.hex2rgb("#000000")}
-Colors.Blue = {Colors.hex2rgb("#0000ff")}
-Colors.Fuchsia = {Colors.hex2rgb("#ff00ff")}
-Colors.Gray = {Colors.hex2rgb("#808080")}
-Colors.Green = {Colors.hex2rgb("#009900")}
-Colors.Lime = {Colors.hex2rgb("#00ff00")}
-Colors.Maroon = {Colors.hex2rgb("#990000")}
-Colors.Navy = {Colors.hex2rgb("#000080")}
-Colors.Olive = {Colors.hex2rgb("#808000")}
-Colors.Purple = {Colors.hex2rgb("#800080")}
-Colors.Red = {Colors.hex2rgb("#ff0000")}
-Colors.Silver = {Colors.hex2rgb("#c0c0c0")}
-Colors.Teal = {Colors.hex2rgb("#006666")}
-Colors.White = {Colors.hex2rgb("#ffffff")}
-Colors.Yellow = {Colors.hex2rgb("#ffff00")}
+-- Neutrals
+Colors.black = {
+    dark = {Colors.hex2rgb("#2e222f")},
+    normal = {Colors.hex2rgb("#3e3546")},
+    light = {Colors.hex2rgb("#625565")}
+}
+
+Colors.gray = {
+    dark = {Colors.hex2rgb("#694f62")},
+    normal = {Colors.hex2rgb("#7f708a")},
+    light = {Colors.hex2rgb("#9babb2")}
+}
+
+Colors.white = {
+    dark = {Colors.hex2rgb("#c7dcd0")},
+    normal = {Colors.hex2rgb("#ffffff")},
+    light = {Colors.hex2rgb("#ffffff")}
+}
+
+-- Warm colors
+Colors.red = {
+    dark = {Colors.hex2rgb("#6e2727")},
+    normal = {Colors.hex2rgb("#e83b3b")},
+    light = {Colors.hex2rgb("#f68181")}
+}
+
+Colors.orange = {
+    dark = {Colors.hex2rgb("#9e4539")},
+    normal = {Colors.hex2rgb("#fb6b1d")},
+    light = {Colors.hex2rgb("#f57d4a")}
+}
+
+Colors.yellow = {
+    dark = {Colors.hex2rgb("#676633")},
+    normal = {Colors.hex2rgb("#f9c22b")},
+    light = {Colors.hex2rgb("#fbff86")}
+}
+
+Colors.brown = {
+    dark = {Colors.hex2rgb("#4c3e24")},
+    normal = {Colors.hex2rgb("#ab947a")},
+    light = {Colors.hex2rgb("#fdcbb0")}
+}
+
+-- Cool colors
+Colors.green = {
+    dark = {Colors.hex2rgb("#165a4c")},
+    normal = {Colors.hex2rgb("#1ebc73")},
+    light = {Colors.hex2rgb("#91db69")}
+}
+
+Colors.cyan = {
+    dark = {Colors.hex2rgb("#0b5e65")},
+    normal = {Colors.hex2rgb("#0eaf9b")},
+    light = {Colors.hex2rgb("#8ff8e2")}
+}
+
+Colors.blue = {
+    dark = {Colors.hex2rgb("#323353")},
+    normal = {Colors.hex2rgb("#4d9be6")},
+    light = {Colors.hex2rgb("#8fd3ff")}
+}
+
+Colors.purple = {
+    dark = {Colors.hex2rgb("#6b3e75")},
+    normal = {Colors.hex2rgb("#905ea9")},
+    light = {Colors.hex2rgb("#eaaded")}
+}
+
+Colors.magenta = {
+    dark = {Colors.hex2rgb("#831c5d")},
+    normal = {Colors.hex2rgb("#c32454")},
+    light = {Colors.hex2rgb("#f04f78")}
+}
+
+Colors.pink = {
+    dark = {Colors.hex2rgb("#753c54")},
+    normal = {Colors.hex2rgb("#cf657f")},
+    light = {Colors.hex2rgb("#fca790")}
+}
 
 return Colors
