@@ -26,7 +26,7 @@ local Game = Object {
 function Game.switch(self, gamestate)
     assert(gamestate)
     self.state = GameStateComponent.new(gamestate)
-    Log.debug(string.format("%f", love.timer.getTime()), "Game", string.upper(self.state:tostring()))
+    Log.debug(string.upper(self.state:tostring()))
     G.menu:load()
 end
 

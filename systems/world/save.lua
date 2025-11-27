@@ -279,27 +279,27 @@ function SaveSystem.load(self)
 
     -- Check if save file exists
     if not love.filesystem.getInfo(path) then
-        Log.info("SaveSystem", "No save file found at " .. path)
+        Log.verbose("No save file found at " .. path)
         return nil
     end
 
     -- Read save file
     local content, message = love.filesystem.read(path)
     if not content then
-        Log.error("SaveSystem", "Failed to read save: " .. tostring(message))
+        Log.error("Failed to read save: " .. tostring(message))
         return nil
     end
 
     -- Deserialize save data
     local success, results = pcall(serializer.deserialize, content)
     if not success then
-        Log.error("SaveSystem", "Failed to deserialize save: " .. tostring(results))
+        Log.error("Failed to deserialize save: " .. tostring(results))
         return nil
     end
 
     local save_data = results[1]
     if not save_data then
-        Log.error("SaveSystem", "Save file is empty or invalid")
+        Log.error("Save file is empty or invalid")
         return nil
     end
 
@@ -319,12 +319,12 @@ function SaveSystem.delete(self)
     if love.filesystem.getInfo(path) then
         local success = love.filesystem.remove(path)
         if success then
-            Log.info("SaveSystem", "Save file deleted: " .. path)
+            Log.info("Save file deleted: " .. path)
             -- Clear cache when save is deleted
             self._cached_info = nil
             self._cached_info_modtime = nil
         else
-            Log.error("SaveSystem", "Failed to delete save file: " .. path)
+            Log.error("Failed to delete save file: " .. path)
         end
         return success
     end

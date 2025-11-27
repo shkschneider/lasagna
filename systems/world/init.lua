@@ -13,7 +13,6 @@ local WorldSystem = Object {
 
 function WorldSystem.load(self)
     Love.load(self)
-    Log.info("World:", self.generator.data.seed)
 end
 
 function WorldSystem.update(self, dt)

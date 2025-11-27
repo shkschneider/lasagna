@@ -11,7 +11,7 @@ STACK_SIZE = 64
 -- Global: libraries
 
 require "libraries.luax"
-Log = require "libraries.rxi.log"
+Log = require "libraries.log"
 Fonts = require "data.fonts"
 
 -- Global: game
@@ -32,11 +32,12 @@ function love.load()
     Fonts:load()
     Fonts:set(Fonts.Regular)
     local debug = os.getenv("DEBUG") and (os.getenv("DEBUG") == "true") or (G.VERSION.major < 1)
-    Log.level = debug and "debug" or "warn"
-    Log.info(G.NAME, G.VERSION:tostring())
     if debug then
         G.debug = require("systems.debug")
+    else
+        Log.level = 3
     end
+    Log.info(G.NAME, G.VERSION:tostring())
     -- Do NOT Love.load()
     G:preload()
 end

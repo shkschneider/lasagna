@@ -92,11 +92,20 @@ local function run_generator(self, z, col)
     generators(column_data, col, z, base_height, world_height)
 end
 
+function GeneratorSystem.preload(self, seed)
+    self.data = WorldData.new(G.debug and os.getenv("SEED") or math.round(os.time() + (love.timer.getTime() * 9 ^ 9)))
+end
+
 function GeneratorSystem.load(self)
-    self.data = WorldData.new(G.debug and os.getenv("SEED") or (os.time() + love.timer.getTime())),
+    local t = love.timer.getTime()
+
+    if not self.data then
+        self:preload()
+    end
+    assert(self.data.seed)
+    Log.info(self.data.seed)
     Love.load(self)
     -- Seed the noise library
-    assert(self.data.seed)
     noise.seed(self.data.seed)
 
     -- Initialize generation queues
@@ -107,6 +116,8 @@ function GeneratorSystem.load(self)
 
     local range = G.debug and BLOCK_SIZE or ((BLOCK_SIZE * BLOCK_SIZE) / 4)
     self:pregenerate_spawn_area(range)
+
+    Log.verbose(string.format("Took %fs", love.timer.getTime() - t))
 end
 
 function GeneratorSystem.update(self, dt)
