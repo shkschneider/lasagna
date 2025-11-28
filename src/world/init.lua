@@ -17,7 +17,7 @@ local biome_seed_offset = 0
 
 -- Block mapping for noise value ranges (value * 10 = index)
 -- Maps noise values to actual terrain block types
--- NOTE: Grass and Dirt are NOT included here - they only appear as surface blocks
+-- NOTE: Grass, Dirt, Sand, and Sandstone are NOT included here - they only appear as surface/biome blocks
 local VALUE_TO_BLOCK = {
     BlockRef.MUD,        -- 0.1-0.2: Mud (wet areas, caves)
     BlockRef.GRAVEL,     -- 0.2-0.3: Gravel

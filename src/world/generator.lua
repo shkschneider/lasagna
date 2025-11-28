@@ -11,6 +11,7 @@ local BlockRef = require "data.blocks.ids"
 -- Step 1: 2D Noise Ground
 --   - Uses 2D simplex noise to determine terrain density
 --   - Creates the basic underground structure with varying block types
+--   - Sand and sandstone are excluded (reserved for biome-specific placement)
 --
 -- Step 2: Surface Cut
 --   - Uses 1D multi-octave noise to create organic surface line
@@ -20,7 +21,15 @@ local BlockRef = require "data.blocks.ids"
 --   - Adds grass on top and dirt below the surface cut
 --   - Creates the recognizable surface layer
 --
--- Step 4: Biomes (future expansion)
+-- Step 4: Cleanup Pass
+--   - Removes floating dirt/grass blocks above cave openings
+--   - Ensures surface blocks have solid ground support
+--
+-- Step 5: Bedrock Layer
+--   - Places bedrock at the bottom of each column
+--   - Creates an unbreakable world floor
+--
+-- Step 6: Biomes (future expansion)
 --   - Uses 2D simplex noise sampled in 64x64 zones
 --   - 10 biome types based on noise rounded to 0.1 precision
 --   - Will affect block types, vegetation, and terrain features
@@ -186,6 +195,25 @@ local function generate_column_terrain(column_data, col, z, world_height)
             column_data[grass_row] = BlockRef.GRASS
         end
     end
+
+    -- Third pass: clean up floating surface blocks
+    -- Remove dirt/grass that has an air gap below it (falls into cave openings)
+    for row = 0, world_height - 2 do
+        local block = column_data[row]
+        -- Check if this is a dirt or grass block
+        if block == BlockRef.DIRT or block == BlockRef.GRASS then
+            -- Check if the block immediately below is air
+            local below = column_data[row + 1]
+            if below == BlockRef.AIR then
+                -- This block is floating over air - remove it
+                column_data[row] = BlockRef.AIR
+            end
+        end
+    end
+
+    -- Fourth pass: place bedrock at the bottom of the column
+    -- Creates an unbreakable world floor
+    column_data[world_height - 1] = BlockRef.BEDROCK
 end
 
 local Generator = Object {
