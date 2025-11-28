@@ -27,7 +27,7 @@ function Game.switch(self, gamestate)
     assert(gamestate)
     Log.debug(string.upper(gamestate))
     self.state = GameStateComponent.new(gamestate)
-    G.menu:load()
+    self.menu:load()
 end
 
 function Game.load(self)
@@ -38,17 +38,115 @@ function Game.load(self)
 end
 
 function Game.update(self, dt)
-    if self.state.current == GameStateComponent.BOOT then
+    local state = self.state.current
+    if state == GameStateComponent.BOOT then
         return -- wait
-    elseif self.state.current == GameStateComponent.LOAD then
-        self.menu:update(dt) -- progress
-    else
-        Love.update(self, dt)
+    elseif state == GameStateComponent.LOAD then
+        -- Start loader on first frame of LOAD state
+        if not self.loader:is_active() then
+            self.loader:start()
+        end
+        -- Update loader and transition to PLAY when ready
+        if self.loader:update(dt) then
+            self.loader:reset()
+            self:switch(GameStateComponent.PLAY)
+        end
+        return
+    elseif state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+        return
     end
+    if self.player and self.player:is_dead() then return end
+    dt = dt * self.time.scale
+    Love.update(self, dt)
 end
 
 function Game.draw(self)
     self.renderer:draw() -- NOT Love.draw
+end
+
+function Game.keypressed(self, key)
+    local state = self.state.current
+    if key == "escape" then
+        if state == GameStateComponent.PLAY then
+            self:switch(GameStateComponent.PAUSE)
+            return
+        elseif state == GameStateComponent.PAUSE then
+            self:switch(GameStateComponent.PLAY)
+            return
+        elseif state == GameStateComponent.MENU then
+            self:switch(GameStateComponent.QUIT)
+            love.event.quit()
+            return
+        end
+    end
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
+        self.menu:keypressed(key)
+        return
+    elseif state == GameStateComponent.LOAD then
+        return  -- No input during loading
+    else
+        Love.keypressed(self, key)
+    end
+end
+
+function Game.keyreleased(self, key)
+    local state = self.state.current
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
+        return
+    end
+    Love.keyreleased(self, key)
+end
+
+function Game.mousepressed(self, x, y, button)
+    local state = self.state.current
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
+        return
+    end
+    Love.mousepressed(self, x, y, button)
+end
+
+function Game.mousereleased(self, x, y, button)
+    local state = self.state.current
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
+        return
+    end
+    Love.mousereleased(self, x, y, button)
+end
+
+function Game.mousemoved(self, x, y, dx, dy)
+    local state = self.state.current
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
+        return
+    end
+    Love.mousemoved(self, x, y, dx, dy)
+end
+
+function Game.wheelmoved(self, x, y)
+    local state = self.state.current
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
+        return
+    end
+    Love.wheelmoved(self, x, y)
+end
+
+function Game.textinput(self, text)
+    local state = self.state.current
+    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
+        return
+    end
+    Love.textinput(self, text)
+end
+
+function Game.resize(self, width, height)
+    Love.resize(self, width, height)
+end
+
+function Game.focus(self, focused)
+    Love.focus(self, focused)
+end
+
+function Game.quit(self)
+    Love.quit(self)
 end
 
 return Game
