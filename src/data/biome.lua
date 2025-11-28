@@ -42,19 +42,19 @@ Biome.HUMIDITY = {
 -- Organized by temperature (cold/hot) and humidity (dry/wet)
 Biome.BIOMES = {
     -- Cold + Dry quadrant
-    [0] = { id = 0, name = "Tundra",      temperature = Biome.TEMPERATURE.FREEZING, humidity = Biome.HUMIDITY.ARID },
-    [1] = { id = 1, name = "Taiga",       temperature = Biome.TEMPERATURE.COLD,     humidity = Biome.HUMIDITY.DRY },
-    [2] = { id = 2, name = "Snowy Hills", temperature = Biome.TEMPERATURE.COLD,     humidity = Biome.HUMIDITY.NORMAL },
+    { id = 0, name = "Tundra",      temperature = Biome.TEMPERATURE.FREEZING, humidity = Biome.HUMIDITY.ARID },
+    { id = 1, name = "Taiga",       temperature = Biome.TEMPERATURE.COLD,     humidity = Biome.HUMIDITY.DRY },
+    { id = 2, name = "Snowy Hills", temperature = Biome.TEMPERATURE.COLD,     humidity = Biome.HUMIDITY.NORMAL },
     -- Cold + Wet quadrant
-    [3] = { id = 3, name = "Forest",      temperature = Biome.TEMPERATURE.NORMAL,   humidity = Biome.HUMIDITY.WET },
-    [4] = { id = 4, name = "Plains",      temperature = Biome.TEMPERATURE.NORMAL,   humidity = Biome.HUMIDITY.NORMAL },
+    { id = 3, name = "Forest",      temperature = Biome.TEMPERATURE.NORMAL,   humidity = Biome.HUMIDITY.WET },
+    { id = 4, name = "Plains",      temperature = Biome.TEMPERATURE.NORMAL,   humidity = Biome.HUMIDITY.NORMAL },
     -- Hot + Wet quadrant
-    [5] = { id = 5, name = "Jungle",      temperature = Biome.TEMPERATURE.HOT,      humidity = Biome.HUMIDITY.HUMID },
-    [6] = { id = 6, name = "Swamp",       temperature = Biome.TEMPERATURE.WARM,     humidity = Biome.HUMIDITY.WET },
+    { id = 5, name = "Jungle",      temperature = Biome.TEMPERATURE.HOT,      humidity = Biome.HUMIDITY.HUMID },
+    { id = 6, name = "Swamp",       temperature = Biome.TEMPERATURE.WARM,     humidity = Biome.HUMIDITY.WET },
     -- Hot + Dry quadrant
-    [7] = { id = 7, name = "Savanna",     temperature = Biome.TEMPERATURE.WARM,     humidity = Biome.HUMIDITY.DRY },
-    [8] = { id = 8, name = "Badlands",    temperature = Biome.TEMPERATURE.HOT,      humidity = Biome.HUMIDITY.ARID },
-    [9] = { id = 9, name = "Desert",      temperature = Biome.TEMPERATURE.HOT,      humidity = Biome.HUMIDITY.ARID },
+    { id = 7, name = "Savanna",     temperature = Biome.TEMPERATURE.WARM,     humidity = Biome.HUMIDITY.DRY },
+    { id = 8, name = "Badlands",    temperature = Biome.TEMPERATURE.HOT,      humidity = Biome.HUMIDITY.ARID },
+    { id = 9, name = "Desert",      temperature = Biome.TEMPERATURE.HOT,      humidity = Biome.HUMIDITY.ARID },
 }
 
 -- Get biome ID from noise value (0.0-1.0)
@@ -74,7 +74,7 @@ end
 function Biome.get_id_from_climate(temp_noise, humidity_noise)
     local is_hot = temp_noise >= 0.5
     local is_wet = humidity_noise >= 0.5
-    
+
     if not is_hot and not is_wet then
         -- Cold + Dry: Tundra, Taiga, Snowy Hills (0-2)
         local sub_id = math.floor(temp_noise * 6)  -- 0-2
