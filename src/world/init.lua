@@ -200,15 +200,15 @@ end
 -- Returns biome definition table with id, name, and temperature
 function World.get_biome(self, x, y, z)
     z = z or 0
-    
+
     -- Convert world coordinates to zone coordinates
     local zone_x = math.floor(x / BIOME_ZONE_SIZE)
     local zone_y = math.floor(y / BIOME_ZONE_SIZE)
-    
+
     -- Get biome noise for this zone (uses biome_seed_offset for independent noise)
     -- Add z layer offset for slight variation between layers
     local noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset)
-    
+
     -- Get biome definition from noise value
     return Biome.get_by_noise(noise)
 end
