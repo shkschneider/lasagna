@@ -27,8 +27,6 @@ local VALUE_COLORS = {
     Colors.pink.light,
 }
 
-local SOLID = 0.33 -- % converted to air
-
 local World = Object {
     HEIGHT = 512,
     id = "world",
@@ -76,8 +74,8 @@ function World.draw_layer(self, layer)
         for row = start_row, end_row do
             local value = self:get_block_value(layer, col, row)
 
-            -- 0.0-0.1 = air (don't draw)
-            if value >= SOLID then
+            -- value > 0 means it's not air (generator already applied SOLID threshold)
+            if value > 0 then
                 local x = col * BLOCK_SIZE - camera_x
                 local y = row * BLOCK_SIZE - camera_y
 
@@ -157,11 +155,11 @@ function World.get_block_value(self, z, col, row)
     return 0
 end
 
--- Get block at position (legacy - returns block ID based on value threshold)
+-- Get block at position (legacy - returns block ID based on value)
 function World.get_block_id(self, z, col, row)
     local value = self:get_block_value(z, col, row)
-    -- Value considered solid (for physics/collision)
-    if value >= SOLID then
+    -- value > 0 means solid (generator already applied SOLID threshold)
+    if value > 0 then
         return BLOCKS.STONE
     end
     return BLOCKS.AIR
@@ -232,8 +230,8 @@ function World.find_spawn_position(self, z)
     local col = BLOCK_SIZE
     for row = 0, self.HEIGHT - 1 do
         local value = self:get_block_value(z, col, row)
-        -- Value considered solid ground (same as physics)
-        if value >= SOLID then
+        -- value > 0 means solid ground (generator already applied SOLID threshold)
+        if value > 0 then
             -- Spawn above the ground
             -- Player is 2 blocks tall and position is at center
             -- Subtract player height to ensure player is fully above ground

@@ -13,6 +13,10 @@ local BUCKET_SIZE = 0.1  -- Size of each value bucket (0.1 = 10 buckets from 0.0
 -- Adjust this to control how rough/smooth the surface appears
 local SURFACE_SMOOTHNESS = 0.75
 
+-- Solid threshold: values >= this are considered solid (not air)
+-- Lower = more terrain, Higher = more air/caves
+local SOLID = 0.33
+
 -- Surface cut parameters for Starbound-like organic terrain
 local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
 
@@ -89,7 +93,7 @@ end
 --------------------------------------------------------------------------------
 
 -- Generate terrain for a single column
--- Stores raw noise values: 0 = air, 0.0-1.0 = terrain density (rounded to 0.1)
+-- Stores raw noise values: 0 = air, values >= SOLID = terrain density (rounded to bucket)
 local function generate_column_terrain(column_data, col, z, world_height)
     -- Calculate organic surface using multi-octave noise for Starbound-like terrain
     local surface_offset = organic_surface_noise(col, z)
@@ -99,7 +103,7 @@ local function generate_column_terrain(column_data, col, z, world_height)
     -- Clamp cut row to valid range
     cut_row = math.max(1, math.min(world_height - 3, cut_row))
 
-    -- Fill column with noise values (rounded to 0.1 precision)
+    -- Fill column with noise values (rounded to bucket precision)
     for row = 0, world_height - 1 do
         if row < cut_row then
             -- Above cut line = air (value 0)
@@ -107,8 +111,14 @@ local function generate_column_terrain(column_data, col, z, world_height)
         else
             -- Below cut line: use 2D simplex noise for terrain density
             local terrain_value = simplex2d(col * TERRAIN_FREQUENCY, row * TERRAIN_FREQUENCY + z * 10)
-            -- Round to 0.1 precision for easier debugging
-            column_data[row] = round_value(terrain_value)
+            -- Round to bucket precision for easier debugging
+            terrain_value = round_value(terrain_value)
+            -- Apply SOLID threshold: values below become air (0)
+            if terrain_value < SOLID then
+                column_data[row] = 0
+            else
+                column_data[row] = terrain_value
+            end
         end
     end
 end
