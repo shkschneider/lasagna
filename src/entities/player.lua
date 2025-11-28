@@ -150,7 +150,7 @@ function Player.update(self, dt)
                 local excess_blocks = fall_blocks - Player.SAFE_FALL_BLOCKS
                 local damage = math.floor(excess_blocks * Player.FALL_DAMAGE_PER_BLOCK)
                 if damage > 0 then
-                    self:hit(damage)
+                    self:hit(stance.crouched and (damage / 2) or damage)
                 end
             end
             self.fall_start_y = nil
