@@ -2,29 +2,21 @@ local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
-local Colors = require "libraries.colors"
+local BlockRef = require "data.blocks.ids"
 
--- Color palette for value ranges (0.1-0.2, 0.2-0.3, etc.)
--- Index 1 = 0.1-0.2, Index 2 = 0.2-0.3, etc.
-local VALUE_COLORS = {
-    Colors.red.dark,
-    Colors.red.light,
-    Colors.orange.dark,
-    Colors.orange.light,
-    Colors.yellow.dark,
-    Colors.yellow.light,
-    Colors.brown.dark,
-    Colors.brown.light,
-    Colors.green.dark,
-    Colors.green.light,
-    Colors.blue.dark,
-    Colors.blue.light,
-    Colors.purple.dark,
-    Colors.purple.light,
-    Colors.magenta.dark,
-    Colors.magenta.light,
-    Colors.pink.dark,
-    Colors.pink.light,
+-- Block mapping for value ranges (value * 10 = index)
+-- Maps noise values to actual terrain block types
+local VALUE_TO_BLOCK = {
+    [1] = BlockRef.MUD,        -- 0.1-0.2: Mud (wet areas, caves)
+    [2] = BlockRef.GRAVEL,     -- 0.2-0.3: Gravel
+    [3] = BlockRef.CLAY,       -- 0.3-0.4: Clay
+    [4] = BlockRef.DIRT,       -- 0.4-0.5: Dirt
+    [5] = BlockRef.SAND,       -- 0.5-0.6: Sand
+    [6] = BlockRef.SANDSTONE,  -- 0.6-0.7: Sandstone
+    [7] = BlockRef.LIMESTONE,  -- 0.7-0.8: Limestone
+    [8] = BlockRef.STONE,      -- 0.8-0.9: Stone
+    [9] = BlockRef.GRANITE,    -- 0.9-1.0: Granite
+    [10] = BlockRef.BASALT,    -- 1.0: Basalt (deepest)
 }
 
 local World = Object {
@@ -69,7 +61,7 @@ function World.draw_layer(self, layer)
     start_row = math.max(0, start_row)
     end_row = math.min(self.HEIGHT - 1, end_row)
 
-    -- Draw blocks using color mapping based on value ranges
+    -- Draw blocks using actual block colors based on value ranges
     for col = start_col, end_col do
         for row = start_row, end_row do
             local value = self:get_block_value(layer, col, row)
@@ -79,15 +71,18 @@ function World.draw_layer(self, layer)
                 local x = col * BLOCK_SIZE - camera_x
                 local y = row * BLOCK_SIZE - camera_y
 
-                -- Map value to color index: 0.1-0.2 = 1, 0.2-0.3 = 2, etc.
-                local color_index = math.floor(value * 10)
-                -- Clamp to valid range (1-9)
-                color_index = math.max(1, math.min(9, color_index))
+                -- Map value to block type: 0.1-0.2 = 1, 0.2-0.3 = 2, etc.
+                local block_index = math.floor(value * 10)
+                -- Clamp to valid range (1-10)
+                block_index = math.max(1, math.min(10, block_index))
 
-                local color = VALUE_COLORS[color_index]
-                if color then
-                    love.graphics.setColor(color[1], color[2], color[3], 1)
-                    love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
+                local block_id = VALUE_TO_BLOCK[block_index]
+                if block_id then
+                    local block = Registry.Blocks:get(block_id)
+                    if block and block.color then
+                        love.graphics.setColor(block.color[1], block.color[2], block.color[3], 1)
+                        love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
+                    end
                 end
             end
         end
