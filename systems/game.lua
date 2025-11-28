@@ -3,6 +3,11 @@ local Object = require "core.object"
 local TimeComponent = require "components.time"
 local GameStateComponent = require "components.gamestate"
 
+-- Helper function to check if input should be ignored based on game state
+local function should_ignore_input(state)
+    return state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD
+end
+
 local Game = Object {
     id = "game",
     priority = 0,
@@ -90,50 +95,32 @@ function Game.keypressed(self, key)
 end
 
 function Game.keyreleased(self, key)
-    local state = self.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
-        return
-    end
+    if should_ignore_input(self.state.current) then return end
     Love.keyreleased(self, key)
 end
 
 function Game.mousepressed(self, x, y, button)
-    local state = self.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
-        return
-    end
+    if should_ignore_input(self.state.current) then return end
     Love.mousepressed(self, x, y, button)
 end
 
 function Game.mousereleased(self, x, y, button)
-    local state = self.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
-        return
-    end
+    if should_ignore_input(self.state.current) then return end
     Love.mousereleased(self, x, y, button)
 end
 
 function Game.mousemoved(self, x, y, dx, dy)
-    local state = self.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
-        return
-    end
+    if should_ignore_input(self.state.current) then return end
     Love.mousemoved(self, x, y, dx, dy)
 end
 
 function Game.wheelmoved(self, x, y)
-    local state = self.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
-        return
-    end
+    if should_ignore_input(self.state.current) then return end
     Love.wheelmoved(self, x, y)
 end
 
 function Game.textinput(self, text)
-    local state = self.state.current
-    if state == GameStateComponent.MENU or state == GameStateComponent.PAUSE or state == GameStateComponent.LOAD then
-        return
-    end
+    if should_ignore_input(self.state.current) then return end
     Love.textinput(self, text)
 end
 
