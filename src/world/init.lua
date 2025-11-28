@@ -46,8 +46,12 @@ function World.update(self, dt)
 end
 
 function World.draw(self)
-    for z = LAYER_MIN, LAYER_MAX do
-        self:draw_layer(z)
+    if G.debug then
+        self:draw_layer(G.player.position.z)
+    else
+        for z = LAYER_MIN, LAYER_MAX do
+            self:draw_layer(z)
+        end
     end
 end
 
