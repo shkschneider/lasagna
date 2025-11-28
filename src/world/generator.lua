@@ -2,6 +2,7 @@ local Love = require "core.love"
 local Object = require "core.object"
 local WorldData = require "src.data.worlddata"
 local BlockRef = require "data.blocks.ids"
+local Biome = require "src.data.biome"
 
 --------------------------------------------------------------------------------
 -- World Generation Overview
@@ -17,22 +18,19 @@ local BlockRef = require "data.blocks.ids"
 --   - Uses 1D multi-octave noise to create organic surface line
 --   - Everything above the cut is air, below is terrain
 --
--- Step 3: Surface Filling
---   - Adds grass on top and dirt below the surface cut
---   - Creates the recognizable surface layer
+-- Step 3: Biome-Based Surface Filling
+--   - Determines biome from temperature + humidity noise
+--   - Cold + Dry: Snow on top, dirt below
+--   - Hot + Dry: Sand on top and below
+--   - Default: Grass on top, dirt below
 --
 -- Step 4: Cleanup Pass
---   - Removes floating dirt/grass blocks above cave openings
+--   - Removes floating surface blocks above cave openings
 --   - Ensures surface blocks have solid ground support
 --
 -- Step 5: Bedrock Layer
 --   - Places bedrock at the bottom of each column
 --   - Creates an unbreakable world floor
---
--- Step 6: Biomes (future expansion)
---   - Uses 2D simplex noise sampled in 64x64 zones
---   - 10 biome types based on noise rounded to 0.1 precision
---   - Will affect block types, vegetation, and terrain features
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
@@ -64,6 +62,9 @@ local NOISE_OFFSET = 100
 
 -- Seed offset for reproducible noise (set in Generator.load)
 local seed_offset = 0
+
+-- Biome seed offset (different from terrain seed for independent noise)
+local biome_seed_offset = 0
 
 --------------------------------------------------------------------------------
 -- Noise functions using love.math.noise (Simplex noise)
@@ -126,6 +127,60 @@ local function organic_surface_noise(col, z)
     return hills + variation + detail
 end
 
+-- Get biome for a column based on temperature and humidity noise
+-- Returns biome definition with temperature and humidity properties
+local function get_column_biome(col, z)
+    -- Convert column to zone coordinates (same as World.get_biome)
+    local zone_x = math.floor((col * BLOCK_SIZE) / Biome.ZONE_SIZE)
+    local zone_y = 0  -- Use 0 for y since we're generating at surface level
+    
+    -- Get temperature noise
+    local temp_noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset)
+    
+    -- Get humidity noise using a different seed offset
+    local humidity_noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset + 500)
+    
+    return Biome.get_by_climate(temp_noise, humidity_noise)
+end
+
+-- Get surface block type based on biome
+-- Returns the appropriate surface block (grass, snow, or sand)
+local function get_surface_block(biome)
+    local temp = biome.temperature
+    local humidity = biome.humidity
+    
+    -- Cold + Dry biomes: use snow instead of grass
+    if (temp == Biome.TEMPERATURE.FREEZING or temp == Biome.TEMPERATURE.COLD) and
+       (humidity == Biome.HUMIDITY.ARID or humidity == Biome.HUMIDITY.DRY) then
+        return BlockRef.SNOW
+    end
+    
+    -- Hot + Dry biomes: use sand instead of grass
+    if (temp == Biome.TEMPERATURE.HOT or temp == Biome.TEMPERATURE.WARM) and
+       (humidity == Biome.HUMIDITY.ARID or humidity == Biome.HUMIDITY.DRY) then
+        return BlockRef.SAND
+    end
+    
+    -- Default: grass
+    return BlockRef.GRASS
+end
+
+-- Get subsurface block type based on biome
+-- Returns the appropriate block below the surface (dirt or sand)
+local function get_subsurface_block(biome)
+    local temp = biome.temperature
+    local humidity = biome.humidity
+    
+    -- Hot + Dry biomes: use sand below surface too
+    if (temp == Biome.TEMPERATURE.HOT or temp == Biome.TEMPERATURE.WARM) and
+       (humidity == Biome.HUMIDITY.ARID or humidity == Biome.HUMIDITY.DRY) then
+        return BlockRef.SAND
+    end
+    
+    -- Default: dirt
+    return BlockRef.DIRT
+end
+
 --------------------------------------------------------------------------------
 -- Pure World Generation Functions (no global G access)
 -- Stores block IDs (0-99) or noise values as (NOISE_OFFSET + value*100)
@@ -134,8 +189,13 @@ end
 
 -- Generate terrain for a single column
 -- Stores: 0 = air, block IDs for surface blocks, NOISE_OFFSET+ for noise-based terrain
--- Also adds surface layer with grass on top and dirt below (on top of generated ground)
+-- Also adds surface layer with biome-appropriate blocks on top and subsurface below
 local function generate_column_terrain(column_data, col, z, world_height)
+    -- Get biome for this column
+    local biome = get_column_biome(col, z)
+    local surface_block = get_surface_block(biome)
+    local subsurface_block = get_subsurface_block(biome)
+    
     -- Calculate organic surface using multi-octave noise for Starbound-like terrain
     local surface_offset = organic_surface_noise(col, z)
     local cut_ratio = SURFACE_Y_RATIO + surface_offset
@@ -174,34 +234,35 @@ local function generate_column_terrain(column_data, col, z, world_height)
         end
     end
 
-    -- If we found a surface, add dirt and grass ON TOP (not replacing)
+    -- If we found a surface, add subsurface and surface blocks ON TOP (not replacing)
     if surface_row and surface_row > 0 then
-        -- Random dirt depth based on column position (deterministic)
+        -- Random subsurface depth based on column position (deterministic)
         local dirt_noise = simplex1d(col * 0.1 + z * 0.05 + 500)
         local dirt_depth = math.floor(DIRT_DEPTH_MIN + dirt_noise * (DIRT_DEPTH_MAX - DIRT_DEPTH_MIN + 1))
         dirt_depth = math.max(DIRT_DEPTH_MIN, math.min(DIRT_DEPTH_MAX, dirt_depth))
 
-        -- Add dirt blocks on top of the surface (in the air above it)
+        -- Add subsurface blocks on top of the terrain (in the air above it)
         for i = 1, dirt_depth do
             local dirt_row = surface_row - i
             if dirt_row >= 0 then
-                column_data[dirt_row] = BlockRef.DIRT
+                column_data[dirt_row] = subsurface_block
             end
         end
 
-        -- Add grass on top of the dirt (only if we placed at least one dirt block)
+        -- Add surface block on top (only if we placed at least one subsurface block)
         local grass_row = surface_row - dirt_depth - GRASS_DEPTH
         if grass_row >= 0 and dirt_depth > 0 then
-            column_data[grass_row] = BlockRef.GRASS
+            column_data[grass_row] = surface_block
         end
     end
 
     -- Third pass: clean up floating surface blocks
-    -- Remove dirt/grass that has an air gap below it (falls into cave openings)
+    -- Remove surface/subsurface blocks that have an air gap below (falls into cave openings)
     for row = 0, world_height - 2 do
         local block = column_data[row]
-        -- Check if this is a dirt or grass block
-        if block == BlockRef.DIRT or block == BlockRef.GRASS then
+        -- Check if this is a surface or subsurface block
+        if block == BlockRef.DIRT or block == BlockRef.GRASS or 
+           block == BlockRef.SNOW or block == BlockRef.SAND then
             -- Check if the block immediately below is air
             local below = column_data[row + 1]
             if below == BlockRef.AIR then
@@ -260,6 +321,9 @@ function Generator.load(self)
     -- Set seed offset for love.math.noise (used as z coordinate for 2D noise seeding)
     -- Modulo keeps the offset in a reasonable range for noise function stability
     seed_offset = self.data.seed % 10000
+    
+    -- Set biome seed offset (different from terrain seed for independent noise)
+    biome_seed_offset = (self.data.seed % 10000) + 1000
 
     -- Initialize generation queues
     self.generation_queue_high = {}

@@ -22,4 +22,5 @@ return {
     SANDSTONE = 19,
     SLATE = 20,
     CLAY = 21,
+    SNOW = 22,
 }

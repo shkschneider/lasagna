@@ -158,3 +158,13 @@ BlocksRegistry:register({
     tier = math.huge, -- Effectively unbreakable
     drops = function() return nil, 0 end, -- No drops
 })
+
+-- Register Snow (white surface block for cold biomes)
+BlocksRegistry:register({
+    id = BlockRef.SNOW,
+    name = "Snow",
+    solid = true,
+    color = Colors.white.normal,
+    tier = 0,
+    drops = function() return BlockRef.SNOW end,
+})
