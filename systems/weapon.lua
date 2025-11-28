@@ -68,7 +68,7 @@ function WeaponSystem.try_shoot(self)
     local vx = dx * speed
     local vy = dy * speed
 
-    G.entity:newBullet(
+    G.entities:newBullet(
         player_x,
         player_y,
         player_z,

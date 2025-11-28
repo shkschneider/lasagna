@@ -68,8 +68,7 @@ function PlayerSystem.load(self)
     self.hotbar:set_slot(1, StackComponent.new(ITEMS.OMNITOOL, 1, "item"))
 
     if G.debug then
-        local px, py = G.world:world_to_block(self.position.x, self.position.y)
-        Log.debug(px, py)
+        Log.debug(G.world:world_to_block(self.position.x, self.position.y))
         -- Add weapon items to hotbar slots 2 and 3
         self.hotbar:set_slot(2, StackComponent.new(ITEMS.GUN, 1, "item"))
         self.hotbar:set_slot(3, StackComponent.new(ITEMS.ROCKET_LAUNCHER, 1, "item"))

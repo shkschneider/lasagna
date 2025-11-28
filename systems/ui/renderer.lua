@@ -49,7 +49,7 @@ function Renderer.draw(self)
         render(self.canvases.world2, function()
             G.world:draw_layer(pz)
         end)
-        render(self.canvases.entities, G.entity, G.player)
+        render(self.canvases.entities, G.entities, G.player)
         love.graphics.setShader(Shaders.greyscale)
         render(self.canvases.world1, function()
             for z = pz + 1, LAYER_MAX do
