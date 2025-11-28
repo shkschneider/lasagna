@@ -17,6 +17,11 @@ local ITEMS = Registry.items()
 local HOTBAR_SIZE = 9
 local BACKPACK_SIZE = 27  -- 3 rows of 9
 
+-- UI constants for health/stamina bars
+local UI_SLOT_SIZE = 60
+local UI_HOTBAR_Y_OFFSET = 80
+local UI_BAR_GAP = 10
+
 local PlayerSystem = Object {
     id = "player",
     priority = 20,
@@ -78,8 +83,11 @@ function PlayerSystem.update(self, dt)
     local vel = self.velocity
     local stance = self.stance
 
-    -- Call component updates via Object recursion
-    -- This handles stamina regen, health regen (if enabled), and damage_timer
+    -- Manually update health and stamina components
+    self.health:update(dt)
+    self.stamina:update(dt)
+
+    -- Call other component updates via Object recursion
     Love.update(self, dt)
 
     -- Check if on ground first (using physics system)
@@ -190,7 +198,71 @@ function PlayerSystem.draw(self)
             self.height)
     end
 
+    -- Draw health and stamina bars (UI elements, not camera-relative)
+    self:draw_health_bar()
+    self:draw_stamina_bar()
+
     Love.draw(self)
+end
+
+-- Helper function to calculate bar positioning relative to hotbar
+local function get_bar_layout(hotbar)
+    local screen_width, screen_height = love.graphics.getDimensions()
+    local hotbar_y = screen_height - UI_HOTBAR_Y_OFFSET
+    local hotbar_x = (screen_width - (hotbar.size * UI_SLOT_SIZE)) / 2
+    local hotbar_width = hotbar.size * UI_SLOT_SIZE
+    local bar_height = BLOCK_SIZE / 4  -- 1/4 BLOCK_SIZE high
+    local bar_width = hotbar_width / 2  -- Half the hotbar width
+    local bar_y = hotbar_y - bar_height - UI_BAR_GAP
+    return hotbar_x, bar_y, bar_width, bar_height, hotbar_width
+end
+
+-- Draw health bar UI
+function PlayerSystem.draw_health_bar(self)
+    if not self.hotbar then return end
+
+    local hotbar_x, bar_y, bar_width, bar_height = get_bar_layout(self.hotbar)
+    local bar_x = hotbar_x  -- Aligned left
+
+    -- Health bar background
+    love.graphics.setColor(0, 0, 0, 0.5)
+    love.graphics.rectangle("fill", bar_x, bar_y, bar_width, bar_height)
+
+    -- Health bar fill
+    local health = self.health
+    local health_percentage = health.current / health.max
+    local fill_width = bar_width * health_percentage
+
+    -- Color based on health percentage
+    if health_percentage > 0.6 then
+        love.graphics.setColor(0, 1, 0, 0.8)  -- Green
+    elseif health_percentage > 0.3 then
+        love.graphics.setColor(1, 1, 0, 0.8)  -- Yellow
+    else
+        love.graphics.setColor(1, 0, 0, 0.8)  -- Red
+    end
+    love.graphics.rectangle("fill", bar_x, bar_y, fill_width, bar_height)
+end
+
+-- Draw stamina bar UI
+function PlayerSystem.draw_stamina_bar(self)
+    if not self.hotbar then return end
+
+    local hotbar_x, bar_y, bar_width, bar_height, hotbar_width = get_bar_layout(self.hotbar)
+    local bar_x = hotbar_x + hotbar_width / 2  -- Aligned right (after health bar)
+
+    -- Stamina bar background
+    love.graphics.setColor(0, 0, 0, 0.5)
+    love.graphics.rectangle("fill", bar_x, bar_y, bar_width, bar_height)
+
+    -- Stamina bar fill
+    local stamina = self.stamina
+    local stamina_percentage = stamina.current / stamina.max
+    local fill_width = bar_width * stamina_percentage
+
+    -- Blue color for stamina
+    love.graphics.setColor(0, 0.5, 1, 0.8)  -- Blue
+    love.graphics.rectangle("fill", bar_x, bar_y, fill_width, bar_height)
 end
 
 function PlayerSystem.can_switch_layer(self, target_layer)
