@@ -22,6 +22,7 @@ local SOLID = 0.33
 local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
 
 -- Surface layer parameters
+local GRASS_DEPTH = 1
 local DIRT_DEPTH_MIN = 2  -- Minimum dirt depth below grass
 local DIRT_DEPTH_MAX = 5  -- Maximum dirt depth below grass
 
@@ -160,7 +161,7 @@ local function generate_column_terrain(column_data, col, z, world_height)
         end
 
         -- Add grass on top of the dirt (only if we placed at least one dirt block)
-        local grass_row = surface_row - dirt_depth - 1
+        local grass_row = surface_row - dirt_depth - GRASS_DEPTH
         if grass_row >= 0 and dirt_depth > 0 then
             column_data[grass_row] = BlockRef.GRASS
         end
