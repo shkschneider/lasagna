@@ -26,8 +26,8 @@ end
 
 -- Surface cut parameters
 local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
-local CUT_FREQUENCY = 0.01    -- Low frequency for gentle surface oscillation
-local CUT_AMPLITUDE = 0.05    -- Small amplitude to avoid crazy surface
+local CUT_FREQUENCY = 0.002   -- Very low frequency for smooth, organic surface
+local CUT_AMPLITUDE = 0.02    -- Very small amplitude for gentle hills
 
 -- 2D terrain noise parameters
 local TERRAIN_FREQUENCY = 0.05
@@ -35,16 +35,21 @@ local TERRAIN_FREQUENCY = 0.05
 -- Layer differentiation
 local Z_SCALE_FACTOR = 0.1    -- Scale factor for z in noise calculations
 
+-- Helper: round value to 0.1 precision for debugging
+local function round_value(value)
+    return math.floor(value * 10 + 0.5) / 10
+end
+
 --------------------------------------------------------------------------------
 -- Pure World Generation Functions (no global G access)
 -- Stores raw noise values (0.0 to 1.0) instead of block IDs
 --------------------------------------------------------------------------------
 
 -- Generate terrain for a single column
--- Stores raw noise values: 0 = air, 0.0-1.0 = terrain density
+-- Stores raw noise values: 0 = air, 0.0-1.0 = terrain density (rounded to 0.1)
 local function generate_column_terrain(column_data, col, z, world_height)
     -- Calculate surface cut line using 1D simplex noise
-    -- Oscillates gently around SURFACE_Y_RATIO
+    -- Very smooth oscillation around SURFACE_Y_RATIO
     local cut_noise = simplex1d(col * CUT_FREQUENCY + z * Z_SCALE_FACTOR)
     local cut_ratio = SURFACE_Y_RATIO + (cut_noise - 0.5) * CUT_AMPLITUDE * 2
     local cut_row = math.floor(world_height * cut_ratio)
@@ -52,7 +57,7 @@ local function generate_column_terrain(column_data, col, z, world_height)
     -- Clamp cut row to valid range
     cut_row = math.max(1, math.min(world_height - 3, cut_row))
     
-    -- Fill column with noise values
+    -- Fill column with noise values (rounded to 0.1 precision)
     for row = 0, world_height - 1 do
         if row < cut_row then
             -- Above cut line = air (value 0)
@@ -60,7 +65,8 @@ local function generate_column_terrain(column_data, col, z, world_height)
         else
             -- Below cut line: use 2D simplex noise for terrain density
             local terrain_value = simplex2d(col * TERRAIN_FREQUENCY, row * TERRAIN_FREQUENCY + z * 10)
-            column_data[row] = terrain_value
+            -- Round to 0.1 precision for easier debugging
+            column_data[row] = round_value(terrain_value)
         end
     end
 end
