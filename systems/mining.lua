@@ -120,7 +120,7 @@ function MiningSystem.complete_mining(self)
         local drop_id, drop_count = proto.drops()
         if drop_id then
             local wx, wy = G.world:block_to_world(col, row)
-            G.entity:newDrop(
+            G.entities:newDrop(
                 wx + BLOCK_SIZE / 2,
                 wy + BLOCK_SIZE / 2,
                 z,

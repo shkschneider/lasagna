@@ -47,7 +47,7 @@ function DebugSystem.draw(self)
     love.graphics.print(string.format("Health: %s", G.player.health:tostring()), 10, 180)
     love.graphics.print(string.format("Stamina: %s", G.player.stamina:tostring()), 10, 200)
     love.graphics.print(string.format("Canvases: %d", #G.renderer.canvases), 10, 240) -- FIXME always 0
-    love.graphics.print(string.format("Entities: %d", 1 + #G.entity.entities), 10, 260)
+    love.graphics.print(string.format("Entities: %d", 1 + #G.entities.entities), 10, 260)
     Love.draw(self)
 end
 
