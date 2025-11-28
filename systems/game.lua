@@ -29,17 +29,9 @@ local Game = Object {
 }
 
 function Game.load(self, state)
-    self.state = GameStateComponent.new(state or GameStateComponent.BOOT)
+    self.state = GameStateComponent.new(state or GameStateComponent.MENU)
     Log.debug(self.state:tostring())
-    if state then
-        self.state = GameStateComponent.new(state)
-        self.menu:load()
-    else
-        self.state = GameStateComponent.new(GameStateComponent.BOOT)
-        self.renderer:load()
-        self.state = GameStateComponent.new(GameStateComponent.MENU)
-        self.menu:load()
-    end
+    Love.load(self)
 end
 
 function Game.update(self, dt)

@@ -3,6 +3,8 @@ local Object = require "core.object"
 local GameStateComponent = require "components.gamestate"
 
 local Renderer = Object {
+    id = "renderer",
+    priority = 1,  -- Very high priority - must initialize graphics first
     canvases = nil,
 }
 
