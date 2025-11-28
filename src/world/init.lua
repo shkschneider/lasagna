@@ -4,11 +4,11 @@ local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 local BlockRef = require "data.blocks.ids"
 
--- Special marker values for surface blocks (must match generator.lua)
-local MARKER_GRASS = -1
-local MARKER_DIRT = -2
+-- Block ID offset: noise values are stored as NOISE_OFFSET + value*100
+-- Block IDs 0-99 are actual blocks, 100+ are noise values
+local NOISE_OFFSET = 100
 
--- Block mapping for value ranges (value * 10 = index)
+-- Block mapping for noise value ranges (value * 10 = index)
 -- Maps noise values to actual terrain block types
 local VALUE_TO_BLOCK = {
     [1] = BlockRef.MUD,        -- 0.1-0.2: Mud (wet areas, caves)
@@ -65,7 +65,7 @@ function World.draw_layer(self, layer)
     start_row = math.max(0, start_row)
     end_row = math.min(self.HEIGHT - 1, end_row)
 
-    -- Draw blocks using actual block colors based on value ranges
+    -- Draw blocks using actual block colors
     for col = start_col, end_col do
         for row = start_row, end_row do
             local value = self:get_block_value(layer, col, row)
@@ -76,14 +76,14 @@ function World.draw_layer(self, layer)
                 local y = row * BLOCK_SIZE - camera_y
                 local block_id = nil
 
-                -- Check for special marker values (surface blocks)
-                if value == MARKER_GRASS then
-                    block_id = BlockRef.GRASS
-                elseif value == MARKER_DIRT then
-                    block_id = BlockRef.DIRT
-                elseif value > 0 then
-                    -- Map noise value to block type: 0.1-0.2 = 1, 0.2-0.3 = 2, etc.
-                    local block_index = math.floor(value * 10)
+                -- Check if it's a direct block ID (< NOISE_OFFSET) or a noise value (>= NOISE_OFFSET)
+                if value < NOISE_OFFSET then
+                    -- Direct block ID (grass, dirt, etc.)
+                    block_id = value
+                else
+                    -- Noise value: convert back to 0.0-1.0 range and map to block
+                    local noise_value = (value - NOISE_OFFSET) / 100
+                    local block_index = math.floor(noise_value * 10)
                     -- Clamp to valid range (1-10)
                     block_index = math.max(1, math.min(10, block_index))
                     block_id = VALUE_TO_BLOCK[block_index]
@@ -162,21 +162,22 @@ function World.get_block_value(self, z, col, row)
     return 0
 end
 
--- Get block at position (returns block ID based on value)
+-- Get block at position (returns block ID)
 function World.get_block_id(self, z, col, row)
     local value = self:get_block_value(z, col, row)
-    -- Check for special marker values (surface blocks)
-    if value == MARKER_GRASS then
-        return BlockRef.GRASS
-    elseif value == MARKER_DIRT then
-        return BlockRef.DIRT
-    elseif value > 0 then
-        -- Map noise value to block type
-        local block_index = math.floor(value * 10)
+    -- Check if it's a direct block ID (< NOISE_OFFSET) or a noise value (>= NOISE_OFFSET)
+    if value == 0 then
+        return BlockRef.AIR
+    elseif value < NOISE_OFFSET then
+        -- Direct block ID (grass, dirt, etc.)
+        return value
+    else
+        -- Noise value: convert back to 0.0-1.0 range and map to block
+        local noise_value = (value - NOISE_OFFSET) / 100
+        local block_index = math.floor(noise_value * 10)
         block_index = math.max(1, math.min(10, block_index))
         return VALUE_TO_BLOCK[block_index] or BlockRef.STONE
     end
-    return BlockRef.AIR
 end
 
 -- Get block prototype at position
@@ -244,8 +245,9 @@ function World.find_spawn_position(self, z)
     local col = BLOCK_SIZE
     for row = 0, self.HEIGHT - 1 do
         local value = self:get_block_value(z, col, row)
-        -- value > 0 means solid ground (generator already applied SOLID threshold)
-        if value > 0 then
+        -- Check for solid ground: positive values or marker values (grass/dirt are solid)
+        -- value > 0 = noise-based terrain, MARKER_GRASS = -1, MARKER_DIRT = -2
+        if value ~= 0 then
             -- Spawn above the ground
             -- Player is 2 blocks tall and position is at center
             -- Subtract player height to ensure player is fully above ground
