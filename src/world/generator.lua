@@ -24,10 +24,21 @@ end
 -- Terrain Generation Constants
 --------------------------------------------------------------------------------
 
--- Surface cut parameters
-local SURFACE_Y_RATIO = 0.5  -- Base surface at 1/4 from top
-local CUT_FREQUENCY = 0.002   -- Very low frequency for smooth, organic surface
-local CUT_AMPLITUDE = 0.02    -- Very small amplitude for gentle hills
+-- Surface cut parameters for Starbound-like organic terrain
+local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
+
+-- Multi-octave noise for organic terrain shape
+-- Large scale: rolling hills
+local HILL_FREQUENCY = 0.005      -- Very large features
+local HILL_AMPLITUDE = 0.08       -- Large height variation
+
+-- Medium scale: terrain variation
+local TERRAIN_VAR_FREQUENCY = 0.02  -- Medium features
+local TERRAIN_VAR_AMPLITUDE = 0.03  -- Moderate variation
+
+-- Small scale: surface detail
+local DETAIL_FREQUENCY = 0.08     -- Small details
+local DETAIL_AMPLITUDE = 0.01     -- Subtle variation
 
 -- 2D terrain noise parameters
 local TERRAIN_FREQUENCY = 0.05
@@ -35,9 +46,27 @@ local TERRAIN_FREQUENCY = 0.05
 -- Layer differentiation
 local Z_SCALE_FACTOR = 0.1    -- Scale factor for z in noise calculations
 
--- Helper: round value to 0.1 precision for debugging
+-- Value bucketing for debugging visualization
+local BUCKET_SIZE = 0.1  -- Size of each value bucket (0.1 = 10 buckets from 0.0 to 1.0)
+
+-- Helper: round value to bucket precision
 local function round_value(value)
-    return math.floor(value * 10 + 0.5) / 10
+    return math.floor(value / BUCKET_SIZE + 0.5) * BUCKET_SIZE
+end
+
+-- Multi-octave 1D noise for organic surface shape
+-- Combines multiple frequencies for natural-looking terrain
+local function organic_surface_noise(col, z)
+    -- Large rolling hills
+    local hills = (simplex1d(col * HILL_FREQUENCY + z * Z_SCALE_FACTOR) - 0.5) * 2 * HILL_AMPLITUDE
+    
+    -- Medium terrain variation
+    local variation = (simplex1d(col * TERRAIN_VAR_FREQUENCY + z * Z_SCALE_FACTOR + 100) - 0.5) * 2 * TERRAIN_VAR_AMPLITUDE
+    
+    -- Small surface detail
+    local detail = (simplex1d(col * DETAIL_FREQUENCY + z * Z_SCALE_FACTOR + 200) - 0.5) * 2 * DETAIL_AMPLITUDE
+    
+    return hills + variation + detail
 end
 
 --------------------------------------------------------------------------------
@@ -48,14 +77,13 @@ end
 -- Generate terrain for a single column
 -- Stores raw noise values: 0 = air, 0.0-1.0 = terrain density (rounded to 0.1)
 local function generate_column_terrain(column_data, col, z, world_height)
-    -- Calculate surface cut line using 1D simplex noise
-    -- Very smooth oscillation around SURFACE_Y_RATIO
-    local cut_noise = simplex1d(col * CUT_FREQUENCY + z * Z_SCALE_FACTOR)
-    local cut_ratio = SURFACE_Y_RATIO + (cut_noise - 0.5) * CUT_AMPLITUDE * 2
+    -- Calculate organic surface using multi-octave noise for Starbound-like terrain
+    local surface_offset = organic_surface_noise(col, z)
+    local cut_ratio = SURFACE_Y_RATIO + surface_offset
     local cut_row = math.floor(world_height * cut_ratio)
 
     -- Clamp cut row to valid range
-    cut_row = 32 --math.max(1, math.min(world_height - 3, cut_row))
+    cut_row = math.max(1, math.min(world_height - 3, cut_row))
 
     -- Fill column with noise values (rounded to 0.1 precision)
     for row = 0, world_height - 1 do
