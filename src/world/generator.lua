@@ -132,7 +132,8 @@ function Generator.load(self)
     Log.info(self.data.seed)
     Love.load(self)
     -- Set seed offset for love.math.noise (used as z coordinate for 2D noise seeding)
-    seed_offset = self.data.seed % 1000
+    -- Modulo keeps the offset in a reasonable range for noise function stability
+    seed_offset = self.data.seed % 10000
 
     -- Initialize generation queues
     self.generation_queue_high = {}
