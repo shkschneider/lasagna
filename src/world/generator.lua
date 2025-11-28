@@ -2,6 +2,9 @@ local Love = require "core.love"
 local Object = require "core.object"
 local WorldData = require "src.data.worlddata"
 
+-- Value bucketing for debugging visualization
+local BUCKET_SIZE = 0.1  -- Size of each value bucket (0.1 = 10 buckets from 0.0 to 1.0)
+
 -- Seed offset for reproducible noise (set in Generator.load)
 local seed_offset = 0
 
@@ -46,9 +49,6 @@ local TERRAIN_FREQUENCY = 0.05
 -- Layer differentiation
 local Z_SCALE_FACTOR = 0.1    -- Scale factor for z in noise calculations
 
--- Value bucketing for debugging visualization
-local BUCKET_SIZE = 0.1  -- Size of each value bucket (0.1 = 10 buckets from 0.0 to 1.0)
-
 -- Helper: round value to bucket precision
 local function round_value(value)
     return math.floor(value / BUCKET_SIZE + 0.5) * BUCKET_SIZE
@@ -59,13 +59,13 @@ end
 local function organic_surface_noise(col, z)
     -- Large rolling hills
     local hills = (simplex1d(col * HILL_FREQUENCY + z * Z_SCALE_FACTOR) - 0.5) * 2 * HILL_AMPLITUDE
-    
+
     -- Medium terrain variation
     local variation = (simplex1d(col * TERRAIN_VAR_FREQUENCY + z * Z_SCALE_FACTOR + 100) - 0.5) * 2 * TERRAIN_VAR_AMPLITUDE
-    
+
     -- Small surface detail
     local detail = (simplex1d(col * DETAIL_FREQUENCY + z * Z_SCALE_FACTOR + 200) - 0.5) * 2 * DETAIL_AMPLITUDE
-    
+
     return hills + variation + detail
 end
 

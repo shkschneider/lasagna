@@ -7,15 +7,24 @@ local Colors = require "libraries.colors"
 -- Color palette for value ranges (0.1-0.2, 0.2-0.3, etc.)
 -- Index 1 = 0.1-0.2, Index 2 = 0.2-0.3, etc.
 local VALUE_COLORS = {
-    Colors.red.normal,      -- 0.1-0.2
-    Colors.orange.normal,    -- 0.2-0.3
-    Colors.yellow.normal,      -- 0.3-0.4
-    Colors.brown.normal,    -- 0.4-0.5
-    Colors.green.normal,     -- 0.5-0.6
-    Colors.blue.normal,   -- 0.6-0.7
-    Colors.purple.normal,    -- 0.7-0.8
-    Colors.magenta.normal,  -- 0.8-0.9
-    Colors.pink.normal,   -- 0.9-1.0
+    Colors.red.dark,
+    Colors.red.light,
+    Colors.orange.dark,
+    Colors.orange.light,
+    Colors.yellow.dark,
+    Colors.yellow.light,
+    Colors.brown.dark,
+    Colors.brown.light,
+    Colors.green.dark,
+    Colors.green.light,
+    Colors.blue.dark,
+    Colors.blue.light,
+    Colors.purple.dark,
+    Colors.purple.light,
+    Colors.magenta.dark,
+    Colors.magenta.light,
+    Colors.pink.dark,
+    Colors.pink.light,
 }
 
 local SOLID = 0.33
