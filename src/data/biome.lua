@@ -18,7 +18,7 @@
 local Biome = {}
 
 -- Biome zone size (in blocks)
-Biome.ZONE_SIZE = 64
+Biome.ZONE_SIZE = 512
 
 -- Biome temperature categories
 Biome.TEMPERATURE = {
