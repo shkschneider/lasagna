@@ -41,24 +41,24 @@ function Renderer.draw(self)
     else
         love.graphics.clear(0.4, 0.6, 0.9, 1)
         local px, py, pz = G.player:get_position()
-        love.graphics.setShader(Shaders.sepia)
-        render(self.canvases.world1, function()
-            for z = LAYER_MIN, pz - 1 do
-                G.world:draw_layer(z)
-            end
-        end)
-        love.graphics.setShader()
+        -- love.graphics.setShader(Shaders.sepia)
+        -- render(self.canvases.world1, function()
+        --     for z = LAYER_MIN, pz - 1 do
+        --         G.world:draw_layer(z)
+        --     end
+        -- end)
+        -- love.graphics.setShader()
         render(self.canvases.world2, function()
             G.world:draw_layer(pz)
         end)
         render(self.canvases.entities, G.entities, G.player)
-        love.graphics.setShader(Shaders.greyscale)
-        render(self.canvases.world1, function()
-            for z = pz + 1, LAYER_MAX do
-                G.world:draw_layer(z)
-            end
-        end)
-        love.graphics.setShader()
+        -- love.graphics.setShader(Shaders.greyscale)
+        -- render(self.canvases.world1, function()
+        --     for z = pz + 1, LAYER_MAX do
+        --         G.world:draw_layer(z)
+        --     end
+        -- end)
+        -- love.graphics.setShader()
         render(self.canvases.things, G.mining, G.building, G.weapon, G.lore)
         render(self.canvases.overlay, G.ui, G.chat, G.debug or G.menu, G.debug and G.menu or nil)
     end

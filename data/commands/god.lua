@@ -4,6 +4,7 @@ CommandsRegistry:register({
     name = "god",
     description = "Invincible",
     execute = function(args)
+        if not G.debug then return false, nil end
         if G.player.health then
             if not G.player.health.invincible then
                 G.player.health.invincible = true

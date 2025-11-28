@@ -1,58 +1,169 @@
-local noise = require "core.noise"
 local Love = require "core.love"
 local Object = require "core.object"
-local Registry = require "registries"
-local BLOCKS = Registry.blocks()
 local WorldData = require "src.data.worlddata"
+local BlockRef = require "data.blocks.ids"
 
--- Load generators (features)
-local generators = require "data.world"
+--------------------------------------------------------------------------------
+-- Terrain Generation Parameters
+--------------------------------------------------------------------------------
 
--- Constants for terrain generation
-local SURFACE_HEIGHT_RATIO = 0.75
-local BASE_FREQUENCY = 0.02
-local BASE_AMPLITUDE = 15
-local DIRT_MIN_DEPTH = 5
-local DIRT_MAX_DEPTH = 15
+-- Value bucketing for debugging visualization
+local BUCKET_SIZE = 0.1  -- Size of each value bucket (0.1 = 10 buckets from 0.0 to 1.0)
 
--- Calculate surface height for a given column and layer
-local function calculate_surface_height(col, z, world_height)
-    local noise_val = noise.octave_perlin2d(col * BASE_FREQUENCY, z * 0.1, 4, 0.5, 2.0)
-    local base_height = math.floor(world_height * SURFACE_HEIGHT_RATIO + noise_val * BASE_AMPLITUDE)
-    if z == 1 then
-        base_height = base_height + 5
-    elseif z == -1 then
-        base_height = base_height - 5
-    end
-    return base_height
+-- Surface smoothness: 0.0 = rough (all detail), 1.0 = smooth (only large hills)
+-- Adjust this to control how rough/smooth the surface appears
+local SURFACE_SMOOTHNESS = 0.75
+
+-- Solid threshold: values >= this are considered solid (not air)
+-- Lower = more terrain, Higher = more air/caves
+local SOLID = 0.33
+
+-- Surface cut parameters for Starbound-like organic terrain
+local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
+
+-- Surface layer parameters
+local GRASS_DEPTH = 1
+local DIRT_DEPTH_MIN = 2  -- Minimum dirt depth below grass
+local DIRT_DEPTH_MAX = 5  -- Maximum dirt depth below grass
+
+-- Block ID offset: noise values (0.0-1.0) are stored as 100+ to distinguish from block IDs
+-- Block IDs 0-99 are reserved for actual blocks, 100+ are noise values * 100
+local NOISE_OFFSET = 100
+
+-- Seed offset for reproducible noise (set in Generator.load)
+local seed_offset = 0
+
+--------------------------------------------------------------------------------
+-- Noise functions using love.math.noise (Simplex noise)
+-- love.math.noise returns values in [0, 1] range
+--------------------------------------------------------------------------------
+
+-- 1D simplex noise for surface cut line
+local function simplex1d(x)
+    return love.math.noise(x, seed_offset)
 end
 
--- Generate base terrain (air, stone, bedrock)
-local function generate_air_stone_bedrock(column_data, world_col, base_height, world_height)
+-- 2D simplex noise for terrain density map
+local function simplex2d(x, y)
+    return love.math.noise(x, y, seed_offset)
+end
+
+--------------------------------------------------------------------------------
+-- Terrain Generation Constants
+--------------------------------------------------------------------------------
+
+-- Surface cut parameters for Starbound-like organic terrain
+local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
+
+-- Multi-octave noise for organic terrain shape
+-- Large scale: rolling hills (always present)
+local HILL_FREQUENCY = 0.005      -- Very large features
+local HILL_AMPLITUDE = 0.08       -- Large height variation
+
+-- Medium scale: terrain variation (reduced by smoothness)
+local TERRAIN_VAR_FREQUENCY = 0.02  -- Medium features
+local TERRAIN_VAR_AMPLITUDE = 0.03  -- Moderate variation
+
+-- Small scale: surface detail (most affected by smoothness)
+local DETAIL_FREQUENCY = 0.08     -- Small details
+local DETAIL_AMPLITUDE = 0.01     -- Subtle variation
+
+-- 2D terrain noise parameters
+local TERRAIN_FREQUENCY = 0.05
+
+-- Layer differentiation
+local Z_SCALE_FACTOR = 0.1    -- Scale factor for z in noise calculations
+
+-- Helper: round value to bucket precision
+local function round_value(value)
+    return math.floor(value / BUCKET_SIZE + 0.5) * BUCKET_SIZE
+end
+
+-- Multi-octave 1D noise for organic surface shape
+-- Combines multiple frequencies for natural-looking terrain
+-- SURFACE_SMOOTHNESS controls how much detail/roughness is visible
+local function organic_surface_noise(col, z)
+    -- Large rolling hills (always full strength)
+    local hills = (simplex1d(col * HILL_FREQUENCY + z * Z_SCALE_FACTOR) - 0.5) * 2 * HILL_AMPLITUDE
+
+    -- Medium terrain variation (reduced by smoothness)
+    local medium_factor = 1.0 - (SURFACE_SMOOTHNESS * 0.5)  -- 50% reduction at max smoothness
+    local variation = (simplex1d(col * TERRAIN_VAR_FREQUENCY + z * Z_SCALE_FACTOR + 100) - 0.5) * 2 * TERRAIN_VAR_AMPLITUDE * medium_factor
+
+    -- Small surface detail (most affected by smoothness)
+    local detail_factor = 1.0 - SURFACE_SMOOTHNESS  -- 100% reduction at max smoothness
+    local detail = (simplex1d(col * DETAIL_FREQUENCY + z * Z_SCALE_FACTOR + 200) - 0.5) * 2 * DETAIL_AMPLITUDE * detail_factor
+
+    return hills + variation + detail
+end
+
+--------------------------------------------------------------------------------
+-- Pure World Generation Functions (no global G access)
+-- Stores block IDs (0-99) or noise values as (NOISE_OFFSET + value*100)
+-- Block ID 0 = AIR, 1 = DIRT, 2 = GRASS, etc.
+--------------------------------------------------------------------------------
+
+-- Generate terrain for a single column
+-- Stores: 0 = air, block IDs for surface blocks, NOISE_OFFSET+ for noise-based terrain
+-- Also adds surface layer with grass on top and dirt below (on top of generated ground)
+local function generate_column_terrain(column_data, col, z, world_height)
+    -- Calculate organic surface using multi-octave noise for Starbound-like terrain
+    local surface_offset = organic_surface_noise(col, z)
+    local cut_ratio = SURFACE_Y_RATIO + surface_offset
+    local cut_row = math.floor(world_height * cut_ratio)
+
+    -- Clamp cut row to valid range
+    cut_row = math.max(1, math.min(world_height - 3, cut_row))
+
+    -- Fill column with noise values (stored as NOISE_OFFSET + value*100)
     for row = 0, world_height - 1 do
-        if row >= base_height then
-            column_data[row] = BLOCKS.STONE
+        if row < cut_row then
+            -- Above cut line = air (block ID 0)
+            column_data[row] = BlockRef.AIR
         else
-            column_data[row] = BLOCKS.AIR
+            -- Below cut line: use 2D simplex noise for terrain density
+            local terrain_value = simplex2d(col * TERRAIN_FREQUENCY, row * TERRAIN_FREQUENCY + z * 10)
+            -- Round to bucket precision for easier debugging
+            terrain_value = round_value(terrain_value)
+            -- Apply SOLID threshold: values below become air
+            if terrain_value < SOLID then
+                column_data[row] = BlockRef.AIR
+            else
+                -- Store noise value as offset (100 + value*100, so 0.5 becomes 150)
+                column_data[row] = NOISE_OFFSET + math.floor(terrain_value * 100)
+            end
         end
     end
-    column_data[world_height - 2] = BLOCKS.BEDROCK
-    column_data[world_height - 1] = BLOCKS.BEDROCK
-end
 
--- Generate dirt and grass layers
-local function generate_dirt_and_grass(column_data, world_col, z, base_height, world_height)
-    local dirt_depth = DIRT_MIN_DEPTH + math.floor((DIRT_MAX_DEPTH - DIRT_MIN_DEPTH) *
-        (noise.perlin2d(world_col * 0.05, z * 0.1) + 1) / 2)
-    for row = base_height, math.min(base_height + dirt_depth - 1, world_height - 1) do
-        if column_data[row] == BLOCKS.STONE then
-            column_data[row] = BLOCKS.DIRT
+    -- Second pass: add surface layer ON TOP of the generated terrain
+    -- Find the first solid block from top (the surface)
+    local surface_row = nil
+    for row = 0, world_height - 1 do
+        if column_data[row] and column_data[row] > 0 then
+            surface_row = row
+            break
         end
     end
-    if base_height > 0 and base_height < world_height then
-        if column_data[base_height] == BLOCKS.DIRT and
-           column_data[base_height - 1] == BLOCKS.AIR then
-            column_data[base_height] = BLOCKS.GRASS
+
+    -- If we found a surface, add dirt and grass ON TOP (not replacing)
+    if surface_row and surface_row > 0 then
+        -- Random dirt depth based on column position (deterministic)
+        local dirt_noise = simplex1d(col * 0.1 + z * 0.05 + 500)
+        local dirt_depth = math.floor(DIRT_DEPTH_MIN + dirt_noise * (DIRT_DEPTH_MAX - DIRT_DEPTH_MIN + 1))
+        dirt_depth = math.max(DIRT_DEPTH_MIN, math.min(DIRT_DEPTH_MAX, dirt_depth))
+
+        -- Add dirt blocks on top of the surface (in the air above it)
+        for i = 1, dirt_depth do
+            local dirt_row = surface_row - i
+            if dirt_row >= 0 then
+                column_data[dirt_row] = BlockRef.DIRT
+            end
+        end
+
+        -- Add grass on top of the dirt (only if we placed at least one dirt block)
+        local grass_row = surface_row - dirt_depth - GRASS_DEPTH
+        if grass_row >= 0 and dirt_depth > 0 then
+            column_data[grass_row] = BlockRef.GRASS
         end
     end
 end
@@ -82,14 +193,13 @@ end
 local function run_generator(self, z, col)
     local column_data = self.data.columns[z][col]
     local world_height = self.data.height
-    local base_height = calculate_surface_height(col, z, world_height)
 
-    -- Base terrain generation
-    generate_air_stone_bedrock(column_data, col, base_height, world_height)
-    generate_dirt_and_grass(column_data, col, z, base_height, world_height)
-
-    -- Features (from data/world/)
-    generators(column_data, col, z, base_height, world_height)
+    -- Generate terrain using the new approach:
+    -- 1. Surface from 1D noise at ~1/4 from top
+    -- 2. Air above, stone below
+    -- 3. Caves carved with 2D noise
+    -- 4. Grass on surface, dirt below grass
+    generate_column_terrain(column_data, col, z, world_height)
 end
 
 function Generator.load(self)
@@ -99,8 +209,9 @@ function Generator.load(self)
     assert(self.data.seed)
     Log.info(self.data.seed)
     Love.load(self)
-    -- Seed the noise library
-    noise.seed(self.data.seed)
+    -- Set seed offset for love.math.noise (used as z coordinate for 2D noise seeding)
+    -- Modulo keeps the offset in a reasonable range for noise function stability
+    seed_offset = self.data.seed % 10000
 
     -- Initialize generation queues
     self.generation_queue_high = {}
@@ -161,7 +272,6 @@ function Generator.update(self, dt)
         local key = string.format("%d_%d", col_info.z, col_info.col)
 
         -- Check if not already generating or generated
-        local data = G.world.generator.data
         local already_done = (self.data.generated_columns[key] == true) or (self.data.generating_columns[key] == true)
 
         if not self.active_coroutines[key] and not already_done then
@@ -181,7 +291,7 @@ function Generator.update(self, dt)
                 self.active_coroutines[key] = nil
                 active_count = active_count - 1
                 -- Clear generating flag on error
-                data.generating_columns[key] = nil
+                self.data.generating_columns[key] = nil
             end
         else
             -- Column already generating or generated, remove from tracking

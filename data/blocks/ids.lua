@@ -13,4 +13,13 @@ return {
     COBALT_ORE = 11,
     SAND = 12,
     BEDROCK = 13,
+    -- New terrain blocks
+    GRAVEL = 14,
+    MUD = 15,
+    BASALT = 16,
+    GRANITE = 17,
+    LIMESTONE = 18,
+    SANDSTONE = 19,
+    SLATE = 20,
+    CLAY = 21,
 }

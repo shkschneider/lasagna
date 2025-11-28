@@ -1,13 +1,15 @@
 local CommandsRegistry = require "registries.commands"
 local WorldData = require "src.data.worlddata"
+local GameState = require "src.data.gamestate"
 
 CommandsRegistry:register({
     name = "reset",
     description = "Reset game (optional seed)",
     execute = function(args)
-        local seed = tonumber(args[1] or (os.time() + love.timer.getTime()))
+        if not G.debug then return false, nil end
+        local seed = tonumber(args[1]) or math.round(os.time() + (love.timer.getTime() * 9 ^ 9))
         G.world.generator.data = WorldData.new(seed)
-        G:load()
+        G:load(GameState.LOAD)
         return true, "Reset (" .. seed .. ")"
     end,
 })

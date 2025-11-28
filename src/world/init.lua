@@ -2,6 +2,27 @@ local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
+local BlockRef = require "data.blocks.ids"
+
+-- Block ID offset: noise values are stored as NOISE_OFFSET + value*100
+-- Block IDs 0-99 are actual blocks, 100+ are noise values
+local NOISE_OFFSET = 100
+
+-- Block mapping for noise value ranges (value * 10 = index)
+-- Maps noise values to actual terrain block types
+-- NOTE: Grass and Dirt are NOT included here - they only appear as surface blocks
+local VALUE_TO_BLOCK = {
+    [1] = BlockRef.MUD,        -- 0.1-0.2: Mud (wet areas, caves)
+    [2] = BlockRef.GRAVEL,     -- 0.2-0.3: Gravel
+    [3] = BlockRef.CLAY,       -- 0.3-0.4: Clay
+    [4] = BlockRef.SLATE,      -- 0.4-0.5: Slate (was Dirt - now surface only)
+    [5] = BlockRef.SAND,       -- 0.5-0.6: Sand
+    [6] = BlockRef.SANDSTONE,  -- 0.6-0.7: Sandstone
+    [7] = BlockRef.LIMESTONE,  -- 0.7-0.8: Limestone
+    [8] = BlockRef.STONE,      -- 0.8-0.9: Stone
+    [9] = BlockRef.GRANITE,    -- 0.9-1.0: Granite
+    [10] = BlockRef.BASALT,    -- 1.0: Basalt (deepest)
+}
 
 local World = Object {
     HEIGHT = 512,
@@ -20,8 +41,12 @@ function World.update(self, dt)
 end
 
 function World.draw(self)
-    for z = LAYER_MIN, LAYER_MAX do
-        self:draw_layer(z)
+    if G.debug then
+        self:draw_layer(G.player.position.z)
+    else
+        for z = LAYER_MIN, LAYER_MAX do
+            self:draw_layer(z)
+        end
     end
 end
 
@@ -30,7 +55,6 @@ function World.draw_layer(self, layer)
     local screen_width, screen_height = love.graphics.getDimensions()
 
     local camera_x, camera_y = G.camera:get_offset()
-    local player_x, player_y, player_z = G.player:get_position()
 
     -- Calculate visible area
     local start_col = math.floor(camera_x / BLOCK_SIZE) - 1
@@ -42,35 +66,36 @@ function World.draw_layer(self, layer)
     start_row = math.max(0, start_row)
     end_row = math.min(self.HEIGHT - 1, end_row)
 
-    -- Check if this is the layer above the player
-    local is_layer_above = (layer >= player_z + 1)
-
-    -- Draw blocks
+    -- Draw blocks using actual block colors
     for col = start_col, end_col do
         for row = start_row, end_row do
-            local block_id = self:get_block_id(layer, col, row)
-            local proto = Registry.Blocks:get(block_id)
+            local value = self:get_block_value(layer, col, row)
 
-            if proto and proto.solid then
+            -- value ~= 0 means it's not air
+            if value ~= 0 then
                 local x = col * BLOCK_SIZE - camera_x
                 local y = row * BLOCK_SIZE - camera_y
+                local block_id = nil
 
-                if is_layer_above then
-                    -- For layers above player, only draw blocks that have air on top
-                    local top_block = self:get_block_id(layer, col, row - 1)
-                    local top_proto = Registry.Blocks:get(top_block)
-                    if not (top_proto and top_proto.solid) then
-                        -- Draw this block with semi-transparency
-                        local r, g, b = proto.color[1] or 1, proto.color[2] or 1, proto.color[3] or 1
-                        love.graphics.setColor(r, g, b, 0.5)
+                -- Check if it's a direct block ID (< NOISE_OFFSET) or a noise value (>= NOISE_OFFSET)
+                if value < NOISE_OFFSET then
+                    -- Direct block ID (grass, dirt, etc.)
+                    block_id = value
+                else
+                    -- Noise value: convert back to 0.0-1.0 range and map to block
+                    local noise_value = (value - NOISE_OFFSET) / 100
+                    local block_index = math.floor(noise_value * 10)
+                    -- Clamp to valid range (1-10)
+                    block_index = math.max(1, math.min(10, block_index))
+                    block_id = VALUE_TO_BLOCK[block_index]
+                end
+
+                if block_id then
+                    local block = Registry.Blocks:get(block_id)
+                    if block and block.color then
+                        love.graphics.setColor(block.color[1], block.color[2], block.color[3], block.color[4] or 1)
                         love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
                     end
-                else
-                    -- Normal filled blocks for other layers
-                    -- Ensure blocks are drawn with full opacity (alpha=1) to properly cover layers below
-                    local r, g, b = proto.color[1] or 1, proto.color[2] or 1, proto.color[3] or 1
-                    love.graphics.setColor(r, g, b, 1)
-                    love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
                 end
             end
         end
@@ -119,10 +144,10 @@ function World.is_valid_building_location(self, col, row, layer)
     return false
 end
 
--- Get block at position
-function World.get_block_id(self, z, col, row)
+-- Get raw noise value at position (0.0-1.0 range, 0 = air)
+function World.get_block_value(self, z, col, row)
     if row < 0 or row >= self.HEIGHT then
-        return BLOCKS.AIR
+        return 0
     end
 
     -- Request column generation with high priority (visible column)
@@ -135,7 +160,25 @@ function World.get_block_id(self, z, col, row)
         return data.columns[z][col][row]
     end
 
-    return BLOCKS.AIR
+    return 0
+end
+
+-- Get block at position (returns block ID)
+function World.get_block_id(self, z, col, row)
+    local value = self:get_block_value(z, col, row)
+    -- Check if it's a direct block ID (< NOISE_OFFSET) or a noise value (>= NOISE_OFFSET)
+    if value == 0 then
+        return BlockRef.AIR
+    elseif value < NOISE_OFFSET then
+        -- Direct block ID (grass, dirt, etc.)
+        return value
+    else
+        -- Noise value: convert back to 0.0-1.0 range and map to block
+        local noise_value = (value - NOISE_OFFSET) / 100
+        local block_index = math.floor(noise_value * 10)
+        block_index = math.max(1, math.min(10, block_index))
+        return VALUE_TO_BLOCK[block_index] or BlockRef.STONE
+    end
 end
 
 -- Get block prototype at position
@@ -144,7 +187,7 @@ function World.get_block_def(self, z, col, row)
     return Registry.Blocks:get(block_id)
 end
 
--- Set block at position
+-- Set block value at position (0 = air, 1 = solid)
 function World.set_block(self, z, col, row, block_id)
     local data = self.generator.data
     if row < 0 or row >= data.height then
@@ -162,6 +205,9 @@ function World.set_block(self, z, col, row, block_id)
         data.columns[z][col] = {}
     end
 
+    -- Convert block ID to noise value (0 = air, 1 = solid)
+    local value = (block_id == BLOCKS.AIR) and 0 or 1
+
     -- Track change from generated terrain
     if not data.changes[z] then
         data.changes[z] = {}
@@ -169,9 +215,9 @@ function World.set_block(self, z, col, row, block_id)
     if not data.changes[z][col] then
         data.changes[z][col] = {}
     end
-    data.changes[z][col][row] = block_id
+    data.changes[z][col][row] = value
 
-    data.columns[z][col][row] = block_id
+    data.columns[z][col][row] = value
     return true
 end
 
@@ -199,8 +245,10 @@ function World.find_spawn_position(self, z)
     -- Find the surface by searching for the first solid block from top
     local col = BLOCK_SIZE
     for row = 0, self.HEIGHT - 1 do
-        local block_def = self.get_block_def(self, z, col, row)
-        if block_def and block_def.solid then
+        local value = self:get_block_value(z, col, row)
+        -- Check for solid ground: positive values or marker values (grass/dirt are solid)
+        -- value > 0 = noise-based terrain, MARKER_GRASS = -1, MARKER_DIRT = -2
+        if value ~= 0 then
             -- Spawn above the ground
             -- Player is 2 blocks tall and position is at center
             -- Subtract player height to ensure player is fully above ground

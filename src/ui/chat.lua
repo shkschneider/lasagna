@@ -94,6 +94,8 @@ function Chat.draw(self)
 end
 
 function Chat.keypressed(self, key)
+    -- FIXME pausing while chat open/edit
+    -- FIXME open command with /, /reset, then / only opens chat not commands
     -- Check if we should toggle chat
     if key == "return" then
         if not self.in_input_mode then
@@ -105,8 +107,8 @@ function Chat.keypressed(self, key)
             -- Submit the input
             if self.input ~= "" then
                 self:process_input(self.input)
-                self.input = ""
             end
+            self.input = ""
             self.in_input_mode = false
             love.keyboard.setTextInput(false)
             -- Start timer to auto-hide after 10 seconds

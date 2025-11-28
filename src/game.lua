@@ -6,7 +6,7 @@ local GameState = require "src.data.gamestate"
 local Game = Object {
     id = "game",
     priority = 0,
-    state = nil,
+    state = GameState.new(GameState.BOOT),
     time = TimeScale.new(1),
     world = require("src.world"),
     camera = require("src.ui.camera"),
@@ -24,19 +24,18 @@ local Game = Object {
 }
 
 function Game.load(self, state)
-    assert(self.NAME and self.VERSION)
     if state then assert(self.state) end
     self.state = GameState.new(state or GameState.BOOT)
     Log.debug(self.state:tostring())
-    if state then
-        self.menu:load()
-    else -- initial (boot -> menu)
+    -- initial (boot -> menu)
+    if not state then
         self.state = GameState.new(GameState.MENU)
         self.debug = require("src.debug").get()
         if self.debug then Log.level = 0 end
+        assert(self.NAME and self.VERSION)
         Log.info(self.NAME, self.VERSION:tostring())
-        Love.load(self)
     end
+    self.menu:load()
 end
 
 function Game.update(self, dt)

@@ -51,7 +51,7 @@ function Control.update(self, dt)
     local on_ground = G.player.on_ground
 
     -- Handle crouching toggle (only when on ground)
-    local is_crouching = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
+    local is_crouching = love.keyboard.isDown("s") or love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
 
     if is_crouching and not stance.crouched then
         -- Switch to crouching (only when on ground)
