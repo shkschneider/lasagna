@@ -30,16 +30,20 @@ end
 -- Surface cut parameters for Starbound-like organic terrain
 local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
 
+-- Surface smoothness: 0.0 = rough (all detail), 1.0 = smooth (only large hills)
+-- Adjust this to control how rough/smooth the surface appears
+local SURFACE_SMOOTHNESS = 0.5
+
 -- Multi-octave noise for organic terrain shape
--- Large scale: rolling hills
+-- Large scale: rolling hills (always present)
 local HILL_FREQUENCY = 0.005      -- Very large features
 local HILL_AMPLITUDE = 0.08       -- Large height variation
 
--- Medium scale: terrain variation
+-- Medium scale: terrain variation (reduced by smoothness)
 local TERRAIN_VAR_FREQUENCY = 0.02  -- Medium features
 local TERRAIN_VAR_AMPLITUDE = 0.03  -- Moderate variation
 
--- Small scale: surface detail
+-- Small scale: surface detail (most affected by smoothness)
 local DETAIL_FREQUENCY = 0.08     -- Small details
 local DETAIL_AMPLITUDE = 0.01     -- Subtle variation
 
@@ -56,15 +60,18 @@ end
 
 -- Multi-octave 1D noise for organic surface shape
 -- Combines multiple frequencies for natural-looking terrain
+-- SURFACE_SMOOTHNESS controls how much detail/roughness is visible
 local function organic_surface_noise(col, z)
-    -- Large rolling hills
+    -- Large rolling hills (always full strength)
     local hills = (simplex1d(col * HILL_FREQUENCY + z * Z_SCALE_FACTOR) - 0.5) * 2 * HILL_AMPLITUDE
 
-    -- Medium terrain variation
-    local variation = (simplex1d(col * TERRAIN_VAR_FREQUENCY + z * Z_SCALE_FACTOR + 100) - 0.5) * 2 * TERRAIN_VAR_AMPLITUDE
+    -- Medium terrain variation (reduced by smoothness)
+    local medium_factor = 1.0 - (SURFACE_SMOOTHNESS * 0.5)  -- 50% reduction at max smoothness
+    local variation = (simplex1d(col * TERRAIN_VAR_FREQUENCY + z * Z_SCALE_FACTOR + 100) - 0.5) * 2 * TERRAIN_VAR_AMPLITUDE * medium_factor
 
-    -- Small surface detail
-    local detail = (simplex1d(col * DETAIL_FREQUENCY + z * Z_SCALE_FACTOR + 200) - 0.5) * 2 * DETAIL_AMPLITUDE
+    -- Small surface detail (most affected by smoothness)
+    local detail_factor = 1.0 - SURFACE_SMOOTHNESS  -- 100% reduction at max smoothness
+    local detail = (simplex1d(col * DETAIL_FREQUENCY + z * Z_SCALE_FACTOR + 200) - 0.5) * 2 * DETAIL_AMPLITUDE * detail_factor
 
     return hills + variation + detail
 end
