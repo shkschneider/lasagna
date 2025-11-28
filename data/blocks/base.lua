@@ -1,3 +1,4 @@
+local Colors = require "libraries.colors"
 local BlockRef = require "data.blocks.ids"
 local BlocksRegistry = require "registries.blocks"
 
@@ -23,7 +24,7 @@ BlocksRegistry:register({
     id = BlockRef.GRASS,
     name = "Grass",
     solid = true,
-    color = {hex2rgb("#4a8c2e")},  -- Fresh green
+    color = Colors.green.normal,
     tier = 0,
     drops = function() return BlockRef.DIRT end,
 })
@@ -33,7 +34,7 @@ BlocksRegistry:register({
     id = BlockRef.DIRT,
     name = "Dirt",
     solid = true,
-    color = {hex2rgb("#8b5a2b")},  -- Medium brown
+    color = Colors.brown.normal,
     tier = 0,
     drops = function() return BlockRef.DIRT end,
 })
@@ -43,7 +44,7 @@ BlocksRegistry:register({
     id = BlockRef.SAND,
     name = "Sand",
     solid = true,
-    color = {hex2rgb("#e6d4a3")},  -- Sandy tan
+    color = Colors.yellow.light,
     tier = 0,
     drops = function() return BlockRef.SAND end,
 })
@@ -53,7 +54,7 @@ BlocksRegistry:register({
     id = BlockRef.STONE,
     name = "Stone",
     solid = true,
-    color = {hex2rgb("#7a7a7a")},  -- Medium gray
+    color = Colors.gray.normal,
     tier = 1,
     drops = function() return BlockRef.STONE end,
 })
@@ -63,7 +64,7 @@ BlocksRegistry:register({
     id = BlockRef.GRAVEL,
     name = "Gravel",
     solid = true,
-    color = {hex2rgb("#9e9e9e")},  -- Light gray with slight variation
+    color = Colors.gray.light,
     tier = 0,
     drops = function() return BlockRef.GRAVEL end,
 })
@@ -73,7 +74,7 @@ BlocksRegistry:register({
     id = BlockRef.MUD,
     name = "Mud",
     solid = true,
-    color = {hex2rgb("#5c4033")},  -- Dark brown
+    color = Colors.brown.dark,
     tier = 0,
     drops = function() return BlockRef.MUD end,
 })
@@ -83,7 +84,7 @@ BlocksRegistry:register({
     id = BlockRef.BASALT,
     name = "Basalt",
     solid = true,
-    color = {hex2rgb("#3d3d3d")},  -- Dark gray/black
+    color = Colors.black.light,
     tier = 1,
     drops = function() return BlockRef.BASALT end,
 })
@@ -113,7 +114,7 @@ BlocksRegistry:register({
     id = BlockRef.SANDSTONE,
     name = "Sandstone",
     solid = true,
-    color = {hex2rgb("#c9a86c")},  -- Orange-tan
+    color = Colors.yellow.dark,
     tier = 1,
     drops = function() return BlockRef.SANDSTONE end,
 })
@@ -133,7 +134,7 @@ BlocksRegistry:register({
     id = BlockRef.CLAY,
     name = "Clay",
     solid = true,
-    color = {hex2rgb("#b87333")},  -- Terracotta orange
+    color = Colors.orange.light,
     tier = 0,
     drops = function() return BlockRef.CLAY end,
 })
@@ -143,7 +144,7 @@ BlocksRegistry:register({
     id = BlockRef.WOOD,
     name = "Wood",
     solid = true,
-    color = {hex2rgb("#8b6914")},  -- Wood brown
+    color = Colors.brown.normal,
     tier = 0,
     drops = function() return BlockRef.WOOD end,
 })
@@ -153,7 +154,7 @@ BlocksRegistry:register({
     id = BlockRef.BEDROCK,
     name = "Bedrock",
     solid = true,
-    color = {hex2rgb("#1a1a1a")},  -- Very dark gray
+    color = Colors.black.normal,
     tier = math.huge, -- Effectively unbreakable
     drops = function() return nil, 0 end, -- No drops
 })
