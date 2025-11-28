@@ -78,6 +78,7 @@ end
 
 -- Apply horizontal movement with collision detection
 -- Returns whether a wall was hit and the new x position
+-- 1px tolerance on vertical edges to allow movement in 2-block-tall gaps
 function Physics.apply_horizontal_movement(world, pos, vel, width, height, dt)
     local new_x = pos.x + vel.x * dt
     local hit_wall = false
@@ -90,8 +91,9 @@ function Physics.apply_horizontal_movement(world, pos, vel, width, height, dt)
             check_col = math.floor((new_x - width / 2) / BLOCK_SIZE)
         end
 
-        local top_row = math.floor((pos.y - height / 2) / BLOCK_SIZE)
-        local bottom_row = math.floor((pos.y + height / 2 - math.eps) / BLOCK_SIZE)
+        -- 1px tolerance on top and bottom to allow movement in exactly 2-block-tall gaps
+        local top_row = math.floor((pos.y + 1 - (height - 2) / 2) / BLOCK_SIZE)
+        local bottom_row = math.floor((pos.y - 1 + (height - 2) / 2 - math.eps) / BLOCK_SIZE)
 
         for row = top_row, bottom_row do
             local block_def = world:get_block_def(pos.z, check_col, row)
@@ -119,8 +121,9 @@ function Physics.apply_vertical_movement(world, pos, vel, width, height, velocit
 
     -- Ground collision
     local bottom_y = new_y + height / 2
-    local left_col = math.floor((pos.x - width / 2) / BLOCK_SIZE)
-    local right_col = math.floor((pos.x + width / 2 - math.eps) / BLOCK_SIZE)
+    -- 1px tolerance
+    local left_col = math.floor(((pos.x + 1) - (width - 2) / 2) / BLOCK_SIZE)
+    local right_col = math.floor(((pos.x + 1) + (width -2) / 2 - math.eps) / BLOCK_SIZE)
     local bottom_row = math.floor(bottom_y / BLOCK_SIZE)
 
     for c = left_col, right_col do

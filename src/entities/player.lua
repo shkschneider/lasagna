@@ -271,7 +271,7 @@ end
 
 function Player.can_switch_layer(self, target_layer)
     return G.world:can_switch_layer(target_layer)
-        and not Physics.check_collision(G.world, self.position.x, self.position.y, target_layer, self.width, self.height)
+        and not Physics.check_collision(G.world, self.position.x + 1, self.position.y + 1, target_layer, self.width - 2, self.height - 2)
 end
 
 -- Inventory management - delegates to Inventory
