@@ -25,7 +25,7 @@ end
 --------------------------------------------------------------------------------
 
 -- Surface cut parameters
-local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
+local SURFACE_Y_RATIO = 0.5  -- Base surface at 1/4 from top
 local CUT_FREQUENCY = 0.002   -- Very low frequency for smooth, organic surface
 local CUT_AMPLITUDE = 0.02    -- Very small amplitude for gentle hills
 
@@ -53,10 +53,10 @@ local function generate_column_terrain(column_data, col, z, world_height)
     local cut_noise = simplex1d(col * CUT_FREQUENCY + z * Z_SCALE_FACTOR)
     local cut_ratio = SURFACE_Y_RATIO + (cut_noise - 0.5) * CUT_AMPLITUDE * 2
     local cut_row = math.floor(world_height * cut_ratio)
-    
+
     -- Clamp cut row to valid range
-    cut_row = math.max(1, math.min(world_height - 3, cut_row))
-    
+    cut_row = 32 --math.max(1, math.min(world_height - 3, cut_row))
+
     -- Fill column with noise values (rounded to 0.1 precision)
     for row = 0, world_height - 1 do
         if row < cut_row then
