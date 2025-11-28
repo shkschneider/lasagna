@@ -10,11 +10,12 @@ local NOISE_OFFSET = 100
 
 -- Block mapping for noise value ranges (value * 10 = index)
 -- Maps noise values to actual terrain block types
+-- NOTE: Grass and Dirt are NOT included here - they only appear as surface blocks
 local VALUE_TO_BLOCK = {
     [1] = BlockRef.MUD,        -- 0.1-0.2: Mud (wet areas, caves)
     [2] = BlockRef.GRAVEL,     -- 0.2-0.3: Gravel
     [3] = BlockRef.CLAY,       -- 0.3-0.4: Clay
-    [4] = BlockRef.DIRT,       -- 0.4-0.5: Dirt
+    [4] = BlockRef.SLATE,      -- 0.4-0.5: Slate (was Dirt - now surface only)
     [5] = BlockRef.SAND,       -- 0.5-0.6: Sand
     [6] = BlockRef.SANDSTONE,  -- 0.6-0.7: Sandstone
     [7] = BlockRef.LIMESTONE,  -- 0.7-0.8: Limestone

@@ -104,7 +104,7 @@ end
 
 -- Generate terrain for a single column
 -- Stores: 0 = air, block IDs for surface blocks, NOISE_OFFSET+ for noise-based terrain
--- Also adds surface layer with grass on top and dirt below
+-- Also adds surface layer with grass on top and dirt below (on top of generated ground)
 local function generate_column_terrain(column_data, col, z, world_height)
     -- Calculate organic surface using multi-octave noise for Starbound-like terrain
     local surface_offset = organic_surface_noise(col, z)
@@ -134,7 +134,7 @@ local function generate_column_terrain(column_data, col, z, world_height)
         end
     end
 
-    -- Second pass: add surface layer (grass on top, dirt below)
+    -- Second pass: add surface layer ON TOP of the generated terrain
     -- Find the first solid block from top (the surface)
     local surface_row = nil
     for row = 0, world_height - 1 do
@@ -144,22 +144,25 @@ local function generate_column_terrain(column_data, col, z, world_height)
         end
     end
 
-    -- If we found a surface, add grass and dirt
-    if surface_row then
+    -- If we found a surface, add dirt and grass ON TOP (not replacing)
+    if surface_row and surface_row > 0 then
         -- Random dirt depth based on column position (deterministic)
         local dirt_noise = simplex1d(col * 0.1 + z * 0.05 + 500)
         local dirt_depth = math.floor(DIRT_DEPTH_MIN + dirt_noise * (DIRT_DEPTH_MAX - DIRT_DEPTH_MIN + 1))
         dirt_depth = math.max(DIRT_DEPTH_MIN, math.min(DIRT_DEPTH_MAX, dirt_depth))
 
-        -- Place grass on the surface (block ID 2)
-        column_data[surface_row] = BlockRef.GRASS
-
-        -- Place dirt below the grass (block ID 1)
+        -- Add dirt blocks on top of the surface (in the air above it)
         for i = 1, dirt_depth do
-            local dirt_row = surface_row + i
-            if dirt_row < world_height and column_data[dirt_row] and column_data[dirt_row] > 0 then
+            local dirt_row = surface_row - i
+            if dirt_row >= 0 then
                 column_data[dirt_row] = BlockRef.DIRT
             end
+        end
+
+        -- Add grass on top of the dirt (only if we placed at least one dirt block)
+        local grass_row = surface_row - dirt_depth - 1
+        if grass_row >= 0 and dirt_depth > 0 then
+            column_data[grass_row] = BlockRef.GRASS
         end
     end
 end
