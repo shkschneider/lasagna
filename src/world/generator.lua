@@ -4,87 +4,91 @@ local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 local WorldData = require "src.data.worlddata"
 
--- Feature generators (disabled for now - will be re-enabled when worldgen is more advanced)
--- local generators = require "data.world"
-
--- Constants for terrain generation
-local SURFACE_HEIGHT_RATIO = 0.75
-local BASE_FREQUENCY = 0.02
-local BASE_AMPLITUDE = 15
-local DIRT_MIN_DEPTH = 5
-local DIRT_MAX_DEPTH = 15
-
 -- Seed offset for reproducible noise (set in Generator.load)
 local seed_offset = 0
 
--- Octave noise using love.math.noise (fractal brownian motion)
--- love.math.noise returns values in [0, 1], we convert to [-1, 1] for terrain generation
-local function octave_noise2d(x, y, octaves, persistence, lacunarity)
-    octaves = octaves or 4
-    persistence = persistence or 0.5
-    lacunarity = lacunarity or 2.0
+--------------------------------------------------------------------------------
+-- Noise functions using love.math.noise
+--------------------------------------------------------------------------------
 
-    local total = 0
-    local frequency = 1
-    local amplitude = 1
-    local max_value = 0
-
-    for i = 1, octaves do
-        -- Use seed_offset as z coordinate for seeding
-        local noise_val = love.math.noise(x * frequency, y * frequency, seed_offset + i)
-        total = total + (noise_val * 2 - 1) * amplitude  -- Convert [0,1] to [-1,1]
-        max_value = max_value + amplitude
-        amplitude = amplitude * persistence
-        frequency = frequency * lacunarity
-    end
-
-    return total / max_value
+-- 1D noise for surface cut line
+-- Returns value in [0, 1] range
+local function noise1d(x)
+    return love.math.noise(x, seed_offset)
 end
 
--- Simple 2D noise wrapper using love.math.noise
+-- 2D noise for terrain density
+-- Returns value in [0, 1] range
 local function noise2d(x, y)
-    -- Use seed_offset as z coordinate for seeding, convert [0,1] to [-1,1]
-    return love.math.noise(x, y, seed_offset) * 2 - 1
+    return love.math.noise(x, y, seed_offset)
 end
 
--- Calculate surface height for a given column and layer
-local function calculate_surface_height(col, z, world_height)
-    local noise_val = octave_noise2d(col * BASE_FREQUENCY, z * 0.1, 4, 0.5, 2.0)
-    local base_height = math.floor(world_height * SURFACE_HEIGHT_RATIO + noise_val * BASE_AMPLITUDE)
+--------------------------------------------------------------------------------
+-- Terrain Generation Constants
+--------------------------------------------------------------------------------
+
+-- Surface cut parameters
+local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
+local CUT_FREQUENCY = 0.02    -- 1D noise frequency for surface variation
+local CUT_AMPLITUDE = 0.1     -- How much the cut line varies
+
+-- 2D terrain noise parameters
+local TERRAIN_FREQUENCY = 0.05
+local TERRAIN_THRESHOLD = 0.5  -- Below this = air (caves), above = stone
+
+--------------------------------------------------------------------------------
+-- Pure World Generation Functions (no global G access)
+--------------------------------------------------------------------------------
+
+-- Generate terrain for a single column using:
+-- 1. 2D noise to create terrain density map
+-- 2. 1D noise to determine surface cut line
+-- 3. Final pass: grass on surface, dirt below
+local function generate_column_terrain(column_data, col, z, world_height)
+    -- Calculate surface cut line using 1D noise
+    local cut_noise = noise1d(col * CUT_FREQUENCY + z * 0.1)
+    local cut_ratio = SURFACE_Y_RATIO + (cut_noise - 0.5) * CUT_AMPLITUDE * 2
+    local cut_row = math.floor(world_height * cut_ratio)
+    
+    -- Layer offset
     if z == 1 then
-        base_height = base_height + 5
+        cut_row = cut_row - 3
     elseif z == -1 then
-        base_height = base_height - 5
+        cut_row = cut_row + 3
     end
-    return base_height
-end
-
--- Generate base terrain (air, stone, bedrock)
-local function generate_air_stone_bedrock(column_data, world_col, base_height, world_height)
+    cut_row = math.max(1, math.min(world_height - 3, cut_row))
+    
+    -- Fill column using 2D noise for terrain density
     for row = 0, world_height - 1 do
-        if row >= base_height then
-            column_data[row] = BLOCKS.STONE
-        else
+        if row < cut_row then
+            -- Above cut line = always air
             column_data[row] = BLOCKS.AIR
+        else
+            -- Below cut line: use 2D noise to determine if stone or air (cave)
+            local terrain_noise = noise2d(col * TERRAIN_FREQUENCY, row * TERRAIN_FREQUENCY + z * 10)
+            if terrain_noise > TERRAIN_THRESHOLD then
+                column_data[row] = BLOCKS.STONE
+            else
+                column_data[row] = BLOCKS.AIR
+            end
         end
     end
+    
+    -- Bedrock at bottom (always solid)
     column_data[world_height - 2] = BLOCKS.BEDROCK
     column_data[world_height - 1] = BLOCKS.BEDROCK
-end
-
--- Generate dirt and grass layers
-local function generate_dirt_and_grass(column_data, world_col, z, base_height, world_height)
-    local dirt_depth = DIRT_MIN_DEPTH + math.floor((DIRT_MAX_DEPTH - DIRT_MIN_DEPTH) *
-        (noise2d(world_col * 0.05, z * 0.1) + 1) / 2)
-    for row = base_height, math.min(base_height + dirt_depth - 1, world_height - 1) do
+    
+    -- Final pass: Add grass and dirt at surface
+    -- Find first solid block from top and make it grass, dirt below
+    for row = 0, world_height - 3 do
         if column_data[row] == BLOCKS.STONE then
-            column_data[row] = BLOCKS.DIRT
-        end
-    end
-    if base_height > 0 and base_height < world_height then
-        if column_data[base_height] == BLOCKS.DIRT and
-           column_data[base_height - 1] == BLOCKS.AIR then
-            column_data[base_height] = BLOCKS.GRASS
+            if row > 0 and column_data[row - 1] == BLOCKS.AIR then
+                column_data[row] = BLOCKS.GRASS
+                if row + 1 < world_height - 2 and column_data[row + 1] == BLOCKS.STONE then
+                    column_data[row + 1] = BLOCKS.DIRT
+                end
+            end
+            break
         end
     end
 end
@@ -114,14 +118,13 @@ end
 local function run_generator(self, z, col)
     local column_data = self.data.columns[z][col]
     local world_height = self.data.height
-    local base_height = calculate_surface_height(col, z, world_height)
 
-    -- Base terrain generation
-    generate_air_stone_bedrock(column_data, col, base_height, world_height)
-    generate_dirt_and_grass(column_data, col, z, base_height, world_height)
-
-    -- Features (disabled for now - will be re-enabled when worldgen is more advanced)
-    -- generators(column_data, col, z, base_height, world_height)
+    -- Generate terrain using the new approach:
+    -- 1. Surface from 1D noise at ~1/4 from top
+    -- 2. Air above, stone below
+    -- 3. Caves carved with 2D noise
+    -- 4. Grass on surface, dirt below grass
+    generate_column_terrain(column_data, col, z, world_height)
 end
 
 function Generator.load(self)
