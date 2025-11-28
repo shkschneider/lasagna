@@ -123,8 +123,8 @@ end
 -- Get block at position (legacy - returns block ID based on value threshold)
 function World.get_block_id(self, z, col, row)
     local value = self:get_block_value(z, col, row)
-    -- Value > 0.5 is considered solid (for physics/collision)
-    if value > 0.5 then
+    -- Value >= 0.5 is considered solid (for physics/collision)
+    if value >= 0.5 then
         return BLOCKS.STONE
     end
     return BLOCKS.AIR
@@ -195,8 +195,8 @@ function World.find_spawn_position(self, z)
     local col = BLOCK_SIZE
     for row = 0, self.HEIGHT - 1 do
         local value = self:get_block_value(z, col, row)
-        -- Value > 0.5 is considered solid ground
-        if value > 0.5 then
+        -- Value >= 0.5 is considered solid ground (same as physics)
+        if value >= 0.5 then
             -- Spawn above the ground
             -- Player is 2 blocks tall and position is at center
             -- Subtract player height to ensure player is fully above ground
