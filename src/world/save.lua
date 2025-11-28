@@ -169,7 +169,7 @@ function Save.apply_save_data(self, save_data)
         local current = G.VERSION
         local saved = save_data.version
         if saved.major ~= current.major or saved.minor ~= current.minor then
-            Log.warn("Save", string.format(
+            Log.warning("Save", string.format(
                 "Save version mismatch: saved %d.%d.%s, current %s",
                 saved.major, saved.minor, tostring(saved.patch or "x"),
                 current:tostring()

@@ -65,7 +65,7 @@ function Player.load(self)
     -- Initialize based on actual spawn position
     self.on_ground = Physics.is_on_ground(G.world, self.position, self.width, self.height)
     if not self.on_ground then
-        Log.warn("Player not on ground!")
+        Log.warning("Player not on ground!")
     end
 
     -- Items
