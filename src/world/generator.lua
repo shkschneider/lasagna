@@ -36,6 +36,14 @@ local CUT_AMPLITUDE = 0.1     -- How much the cut line varies
 local TERRAIN_FREQUENCY = 0.05
 local TERRAIN_THRESHOLD = 0.5  -- Below this = air (caves), above = stone
 
+-- Layer differentiation
+local Z_SCALE_FACTOR = 0.1    -- Scale factor for z in noise calculations
+local LAYER_Z_OFFSET = 10     -- Z offset to differentiate layers in 2D noise
+local LAYER_ROW_OFFSET = 3    -- Row offset per layer for surface variation
+
+-- Buffer zones
+local BEDROCK_BUFFER = 3      -- Minimum rows above bedrock for surface
+
 --------------------------------------------------------------------------------
 -- Pure World Generation Functions (no global G access)
 --------------------------------------------------------------------------------
@@ -46,17 +54,17 @@ local TERRAIN_THRESHOLD = 0.5  -- Below this = air (caves), above = stone
 -- 3. Final pass: grass on surface, dirt below
 local function generate_column_terrain(column_data, col, z, world_height)
     -- Calculate surface cut line using 1D noise
-    local cut_noise = noise1d(col * CUT_FREQUENCY + z * 0.1)
+    local cut_noise = noise1d(col * CUT_FREQUENCY + z * Z_SCALE_FACTOR)
     local cut_ratio = SURFACE_Y_RATIO + (cut_noise - 0.5) * CUT_AMPLITUDE * 2
     local cut_row = math.floor(world_height * cut_ratio)
     
     -- Layer offset
     if z == 1 then
-        cut_row = cut_row - 3
+        cut_row = cut_row - LAYER_ROW_OFFSET
     elseif z == -1 then
-        cut_row = cut_row + 3
+        cut_row = cut_row + LAYER_ROW_OFFSET
     end
-    cut_row = math.max(1, math.min(world_height - 3, cut_row))
+    cut_row = math.max(1, math.min(world_height - BEDROCK_BUFFER, cut_row))
     
     -- Fill column using 2D noise for terrain density
     for row = 0, world_height - 1 do
@@ -65,7 +73,7 @@ local function generate_column_terrain(column_data, col, z, world_height)
             column_data[row] = BLOCKS.AIR
         else
             -- Below cut line: use 2D noise to determine if stone or air (cave)
-            local terrain_noise = noise2d(col * TERRAIN_FREQUENCY, row * TERRAIN_FREQUENCY + z * 10)
+            local terrain_noise = noise2d(col * TERRAIN_FREQUENCY, row * TERRAIN_FREQUENCY + z * LAYER_Z_OFFSET)
             if terrain_noise > TERRAIN_THRESHOLD then
                 column_data[row] = BLOCKS.STONE
             else
@@ -80,7 +88,7 @@ local function generate_column_terrain(column_data, col, z, world_height)
     
     -- Final pass: Add grass and dirt at surface
     -- Find first solid block from top and make it grass, dirt below
-    for row = 0, world_height - 3 do
+    for row = 0, world_height - BEDROCK_BUFFER do
         if column_data[row] == BLOCKS.STONE then
             if row > 0 and column_data[row - 1] == BLOCKS.AIR then
                 column_data[row] = BLOCKS.GRASS
