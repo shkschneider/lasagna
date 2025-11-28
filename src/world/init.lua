@@ -2,6 +2,21 @@ local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
+local Colors = require "libraries.colors"
+
+-- Color palette for value ranges (0.1-0.2, 0.2-0.3, etc.)
+-- Index 1 = 0.1-0.2, Index 2 = 0.2-0.3, etc.
+local VALUE_COLORS = {
+    Colors.blue.dark,      -- 0.1-0.2
+    Colors.blue.normal,    -- 0.2-0.3
+    Colors.cyan.dark,      -- 0.3-0.4
+    Colors.cyan.normal,    -- 0.4-0.5
+    Colors.green.dark,     -- 0.5-0.6
+    Colors.green.normal,   -- 0.6-0.7
+    Colors.yellow.dark,    -- 0.7-0.8
+    Colors.yellow.normal,  -- 0.8-0.9
+    Colors.brown.normal,   -- 0.9-1.0
+}
 
 local World = Object {
     HEIGHT = 512,
@@ -41,19 +56,26 @@ function World.draw_layer(self, layer)
     start_row = math.max(0, start_row)
     end_row = math.min(self.HEIGHT - 1, end_row)
 
-    -- Draw blocks using raw noise values as grayscale
+    -- Draw blocks using color mapping based on value ranges
     for col = start_col, end_col do
         for row = start_row, end_row do
             local value = self:get_block_value(layer, col, row)
             
-            -- Only draw if there's terrain (value > 0)
-            if value and value > 0 then
+            -- 0.0-0.1 = air (don't draw)
+            if value and value >= 0.1 then
                 local x = col * BLOCK_SIZE - camera_x
                 local y = row * BLOCK_SIZE - camera_y
                 
-                -- Display as grayscale: setColor(1, 1, 1, value)
-                love.graphics.setColor(1, 1, 1, value)
-                love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
+                -- Map value to color index: 0.1-0.2 = 1, 0.2-0.3 = 2, etc.
+                local color_index = math.floor(value * 10)
+                -- Clamp to valid range (1-9)
+                color_index = math.max(1, math.min(9, color_index))
+                
+                local color = VALUE_COLORS[color_index]
+                if color then
+                    love.graphics.setColor(color[1], color[2], color[3], 1)
+                    love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
+                end
             end
         end
     end
