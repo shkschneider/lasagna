@@ -14,6 +14,7 @@ local Game = Object {
     mining = require("src.world.mining"),
     building = require("src.world.building"),
     weapon = require("src.items.weapon"),
+    jetpack = require("src.items.jetpack"),
     entities = require("src.entities"),
     ui = require("src.ui"),
     chat = require("src.ui.chat"),
