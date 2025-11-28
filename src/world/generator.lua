@@ -1,12 +1,12 @@
-local noise = require "core.noise"
+local noise = require "libraries.noise"
 local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 local WorldData = require "src.data.worlddata"
 
--- Load generators (features)
-local generators = require "data.world"
+-- Feature generators (disabled for now - will be re-enabled when worldgen is more advanced)
+-- local generators = require "data.world"
 
 -- Constants for terrain generation
 local SURFACE_HEIGHT_RATIO = 0.75
@@ -88,8 +88,8 @@ local function run_generator(self, z, col)
     generate_air_stone_bedrock(column_data, col, base_height, world_height)
     generate_dirt_and_grass(column_data, col, z, base_height, world_height)
 
-    -- Features (from data/world/)
-    generators(column_data, col, z, base_height, world_height)
+    -- Features (disabled for now - will be re-enabled when worldgen is more advanced)
+    -- generators(column_data, col, z, base_height, world_height)
 end
 
 function Generator.load(self)
@@ -161,7 +161,6 @@ function Generator.update(self, dt)
         local key = string.format("%d_%d", col_info.z, col_info.col)
 
         -- Check if not already generating or generated
-        local data = G.world.generator.data
         local already_done = (self.data.generated_columns[key] == true) or (self.data.generating_columns[key] == true)
 
         if not self.active_coroutines[key] and not already_done then
@@ -181,7 +180,7 @@ function Generator.update(self, dt)
                 self.active_coroutines[key] = nil
                 active_count = active_count - 1
                 -- Clear generating flag on error
-                data.generating_columns[key] = nil
+                self.data.generating_columns[key] = nil
             end
         else
             -- Column already generating or generated, remove from tracking
