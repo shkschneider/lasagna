@@ -1,16 +1,14 @@
 local CommandsRegistry = require "registries.commands"
-local VectorComponent = require "components.vector"
+local Vector = require "src.data.vector"
 
 CommandsRegistry:register({
     name = "teleport",
     description = "Teleports to location",
     execute = function(args)
-        local x, y = args[1], args[2], args[3] or G.player.position.z
         if G.player.position then
-            G.player.position = VectorComponent.new(x, y, z)
-            if G.player.velocity then
-                G.player.velocity = VectorComponent.new(0, 0)
-            end
+            local x, y = args[1], args[2], args[3] or G.player.position.z
+            G.player.position = Vector.new(x, y, z)
+            G.player.velocity = Vector.new(0, 0)
         end
         return true, "Teleported"
     end,

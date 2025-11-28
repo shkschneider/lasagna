@@ -1,6 +1,6 @@
 require "core"
-
--- Global: constants
+require "libraries.luax"
+Log = require "libraries.log"
 
 LAYER_MIN = -1
 LAYER_DEFAULT = 0
@@ -8,28 +8,13 @@ LAYER_MAX = 1
 BLOCK_SIZE = 16
 STACK_SIZE = 64
 
--- Global: libraries
-
-require "libraries.luax"
-Log = require "libraries.log"
-
--- Global: game
-
-G = require("systems.game")
+G = require("src.game")
 G.NAME = "Lasagna"
 G.VERSION = { major = 0, minor = 1, patch = nil, tostring = function(self)
     return string.format("%d.%d.%s", self.major, self.minor, tostring(self.patch or "x"))
 end }
 
--- love2d
-
-function love.load()
-    G.debug = require("systems.debug").get()
-    if G.debug then Log.level = 0 end
-    Log.info(G.NAME, G.VERSION:tostring())
-    G:load()
-end
-
+function love.load() G:load() end
 function love.update(dt) G:update(dt) end
 function love.draw() G:draw() end
 function love.keypressed(key) G:keypressed(key) end
