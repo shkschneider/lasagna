@@ -20,6 +20,14 @@ local SOLID = 0.33
 -- Surface cut parameters for Starbound-like organic terrain
 local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
 
+-- Surface layer parameters
+local DIRT_DEPTH_MIN = 2  -- Minimum dirt depth below grass
+local DIRT_DEPTH_MAX = 5  -- Maximum dirt depth below grass
+
+-- Special marker values for surface blocks (negative to distinguish from noise values)
+local MARKER_GRASS = -1
+local MARKER_DIRT = -2
+
 -- Seed offset for reproducible noise (set in Generator.load)
 local seed_offset = 0
 
@@ -90,10 +98,12 @@ end
 --------------------------------------------------------------------------------
 -- Pure World Generation Functions (no global G access)
 -- Stores raw noise values (0.0 to 1.0) instead of block IDs
+-- Special negative values mark surface blocks (MARKER_GRASS, MARKER_DIRT)
 --------------------------------------------------------------------------------
 
 -- Generate terrain for a single column
 -- Stores raw noise values: 0 = air, values >= SOLID = terrain density (rounded to bucket)
+-- Also adds surface layer with grass on top and dirt below
 local function generate_column_terrain(column_data, col, z, world_height)
     -- Calculate organic surface using multi-octave noise for Starbound-like terrain
     local surface_offset = organic_surface_noise(col, z)
@@ -118,6 +128,35 @@ local function generate_column_terrain(column_data, col, z, world_height)
                 column_data[row] = 0
             else
                 column_data[row] = terrain_value
+            end
+        end
+    end
+
+    -- Second pass: add surface layer (grass on top, dirt below)
+    -- Find the first solid block from top (the surface)
+    local surface_row = nil
+    for row = 0, world_height - 1 do
+        if column_data[row] and column_data[row] > 0 then
+            surface_row = row
+            break
+        end
+    end
+
+    -- If we found a surface, add grass and dirt
+    if surface_row then
+        -- Random dirt depth based on column position (deterministic)
+        local dirt_noise = simplex1d(col * 0.1 + z * 0.05 + 500)
+        local dirt_depth = math.floor(DIRT_DEPTH_MIN + dirt_noise * (DIRT_DEPTH_MAX - DIRT_DEPTH_MIN + 1))
+        dirt_depth = math.max(DIRT_DEPTH_MIN, math.min(DIRT_DEPTH_MAX, dirt_depth))
+
+        -- Place grass on the surface
+        column_data[surface_row] = MARKER_GRASS
+
+        -- Place dirt below the grass
+        for i = 1, dirt_depth do
+            local dirt_row = surface_row + i
+            if dirt_row < world_height and column_data[dirt_row] and column_data[dirt_row] > 0 then
+                column_data[dirt_row] = MARKER_DIRT
             end
         end
     end

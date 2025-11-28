@@ -4,6 +4,10 @@ local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 local BlockRef = require "data.blocks.ids"
 
+-- Special marker values for surface blocks (must match generator.lua)
+local MARKER_GRASS = -1
+local MARKER_DIRT = -2
+
 -- Block mapping for value ranges (value * 10 = index)
 -- Maps noise values to actual terrain block types
 local VALUE_TO_BLOCK = {
@@ -66,17 +70,25 @@ function World.draw_layer(self, layer)
         for row = start_row, end_row do
             local value = self:get_block_value(layer, col, row)
 
-            -- value > 0 means it's not air (generator already applied SOLID threshold)
-            if value > 0 then
+            -- value ~= 0 means it's not air
+            if value ~= 0 then
                 local x = col * BLOCK_SIZE - camera_x
                 local y = row * BLOCK_SIZE - camera_y
+                local block_id = nil
 
-                -- Map value to block type: 0.1-0.2 = 1, 0.2-0.3 = 2, etc.
-                local block_index = math.floor(value * 10)
-                -- Clamp to valid range (1-10)
-                block_index = math.max(1, math.min(10, block_index))
+                -- Check for special marker values (surface blocks)
+                if value == MARKER_GRASS then
+                    block_id = BlockRef.GRASS
+                elseif value == MARKER_DIRT then
+                    block_id = BlockRef.DIRT
+                elseif value > 0 then
+                    -- Map noise value to block type: 0.1-0.2 = 1, 0.2-0.3 = 2, etc.
+                    local block_index = math.floor(value * 10)
+                    -- Clamp to valid range (1-10)
+                    block_index = math.max(1, math.min(10, block_index))
+                    block_id = VALUE_TO_BLOCK[block_index]
+                end
 
-                local block_id = VALUE_TO_BLOCK[block_index]
                 if block_id then
                     local block = Registry.Blocks:get(block_id)
                     if block and block.color then
@@ -150,14 +162,21 @@ function World.get_block_value(self, z, col, row)
     return 0
 end
 
--- Get block at position (legacy - returns block ID based on value)
+-- Get block at position (returns block ID based on value)
 function World.get_block_id(self, z, col, row)
     local value = self:get_block_value(z, col, row)
-    -- value > 0 means solid (generator already applied SOLID threshold)
-    if value > 0 then
-        return BLOCKS.STONE
+    -- Check for special marker values (surface blocks)
+    if value == MARKER_GRASS then
+        return BlockRef.GRASS
+    elseif value == MARKER_DIRT then
+        return BlockRef.DIRT
+    elseif value > 0 then
+        -- Map noise value to block type
+        local block_index = math.floor(value * 10)
+        block_index = math.max(1, math.min(10, block_index))
+        return VALUE_TO_BLOCK[block_index] or BlockRef.STONE
     end
-    return BLOCKS.AIR
+    return BlockRef.AIR
 end
 
 -- Get block prototype at position
