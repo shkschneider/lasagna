@@ -348,22 +348,20 @@ end
 
 -- Print usage
 local function print_usage()
-    print("Usage: lua makelove [target]")
-    print("")
-    print("Targets:")
-    print("  windows   Build for Windows (zip with love.exe)")
-    print("  mac       Build for macOS (app bundle)")
-    print("  linux     Build for Linux (tar.gz with love binary)")
-    print("  clean     Remove all build artifacts")
-    print("")
-    print("If no target is specified, builds for all platforms.")
+    print("Usage: lua makelove [...]")
+    print("       check   -- Runs luacheck on codebase")
+    print("       windows -- Build for Windows (zip with love.exe)")
+    print("       mac     -- Build for macOS (app bundle)")
+    print("       linux   -- Build for Linux (tar.gz with love binary)")
+    print("       all     -- Builds for all platforms.")
+    print("       clean   -- Remove all build artifacts")
 end
 
 -- Main entry point
 local function main(args)
     local target = args[1]
 
-    if target == "help" or target == "-h" or target == "--help" then
+    if target == nil or target == "help" then
         print_usage()
         return 0
     end
@@ -387,8 +385,7 @@ local function main(args)
 
     local success = true
 
-    if target == nil then
-        -- Build all targets
+    if target == "all" then
         success = build_windows() and success
         success = build_mac() and success
         success = build_linux() and success
