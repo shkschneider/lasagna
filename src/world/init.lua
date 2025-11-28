@@ -80,7 +80,7 @@ function World.draw_layer(self, layer)
                 if block_id then
                     local block = Registry.Blocks:get(block_id)
                     if block and block.color then
-                        love.graphics.setColor(block.color[1], block.color[2], block.color[3], 1)
+                        love.graphics.setColor(block.color[1], block.color[2], block.color[3], block.color[4] or 1)
                         love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
                     end
                 end
