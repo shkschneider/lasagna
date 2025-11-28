@@ -197,7 +197,7 @@ function World.get_block_def(self, z, col, row)
 end
 
 -- Get biome at world position (x, y in world coordinates, z is layer)
--- Returns biome definition table with id, name, and temperature
+-- Returns biome definition table with id, name, temperature, and humidity
 function World.get_biome(self, x, y, z)
     z = z or 0
 
@@ -205,12 +205,15 @@ function World.get_biome(self, x, y, z)
     local zone_x = math.floor(x / BIOME_ZONE_SIZE)
     local zone_y = math.floor(y / BIOME_ZONE_SIZE)
 
-    -- Get biome noise for this zone (uses biome_seed_offset for independent noise)
+    -- Get temperature noise for this zone (uses biome_seed_offset for independent noise)
     -- Add z layer offset for slight variation between layers
-    local noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset)
+    local temp_noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset)
+    
+    -- Get humidity noise using a different seed offset (biome_seed_offset + 500)
+    local humidity_noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset + 500)
 
-    -- Get biome definition from noise value
-    return Biome.get_by_noise(noise)
+    -- Get biome definition from temperature and humidity
+    return Biome.get_by_climate(temp_noise, humidity_noise)
 end
 
 -- Set block value at position (0 = air, 1 = solid)
