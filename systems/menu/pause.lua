@@ -8,7 +8,7 @@ return function()
             label = "[C] ontinue",
             enabled = true,
             action = function()
-                G:switch(GameStateComponent.PLAY)
+                G:load(GameStateComponent.PLAY)
             end
         },
         {
@@ -17,7 +17,7 @@ return function()
             enabled = true,
             action = function()
                 G.world.save:save()
-                G:switch(GameStateComponent.PLAY)
+                G:load(GameStateComponent.PLAY)
             end
         },
         {
@@ -26,7 +26,7 @@ return function()
             enabled = save_exists,
             action = function()
                 G.pending_save_data = G.world.save:load()
-                G:switch(GameStateComponent.LOAD)
+                G:load(GameStateComponent.LOAD)
             end
         },
         {
@@ -34,7 +34,7 @@ return function()
             label = "[Q] uit",
             enabled = true,
             action = function()
-                G:switch(GameStateComponent.MENU)
+                G:load(GameStateComponent.MENU)
             end
         },
     }

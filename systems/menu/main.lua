@@ -11,7 +11,7 @@ return function()
                 -- Store save data for loading phase
                 G.pending_save_data = G.world.save:load()
                 -- Transition to LOAD state
-                G:switch(GameStateComponent.LOAD)
+                G:load(GameStateComponent.LOAD)
             end
         },
         {
@@ -22,7 +22,7 @@ return function()
                 -- Clear any pending save data
                 G.pending_save_data = nil
                 -- Transition to LOAD state
-                G:switch(GameStateComponent.LOAD)
+                G:load(GameStateComponent.LOAD)
             end
         },
         {
@@ -30,7 +30,7 @@ return function()
             label = "[Q] uit",
             enabled = true,
             action = function()
-                G:switch(GameStateComponent.QUIT)
+                G:load(GameStateComponent.QUIT)
                 love.event.quit()
             end
         },

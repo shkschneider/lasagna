@@ -28,18 +28,17 @@ local Game = Object {
     renderer = require("systems.ui.renderer"),
 }
 
-function Game.switch(self, gamestate)
-    assert(gamestate)
-    Log.debug(string.upper(gamestate))
-    self.state = GameStateComponent.new(gamestate)
-    self.menu:load()
-end
-
-function Game.load(self)
-    self.state = GameStateComponent.new(GameStateComponent.BOOT)
-    self.renderer:load()
-    self.state = GameStateComponent.new(GameStateComponent.MENU)
-    self.menu:load()
+function Game.load(self, state)
+    if state then
+        Log.debug(string.upper(state))
+        self.state = GameStateComponent.new(state)
+        self.menu:load()
+    else
+        self.state = GameStateComponent.new(GameStateComponent.BOOT)
+        self.renderer:load()
+        self.state = GameStateComponent.new(GameStateComponent.MENU)
+        self.menu:load()
+    end
 end
 
 function Game.update(self, dt)
@@ -54,7 +53,7 @@ function Game.update(self, dt)
         -- Update loader and transition to PLAY when ready
         if self.loader:update(dt) then
             self.loader:reset()
-            self:switch(GameStateComponent.PLAY)
+            self:load(GameStateComponent.PLAY)
         end
         return
     elseif state == GameStateComponent.MENU or state == GameStateComponent.PAUSE then
@@ -73,13 +72,13 @@ function Game.keypressed(self, key)
     local state = self.state.current
     if key == "escape" then
         if state == GameStateComponent.PLAY then
-            self:switch(GameStateComponent.PAUSE)
+            self:load(GameStateComponent.PAUSE)
             return
         elseif state == GameStateComponent.PAUSE then
-            self:switch(GameStateComponent.PLAY)
+            self:load(GameStateComponent.PLAY)
             return
         elseif state == GameStateComponent.MENU then
-            self:switch(GameStateComponent.QUIT)
+            self:load(GameStateComponent.QUIT)
             love.event.quit()
             return
         end
