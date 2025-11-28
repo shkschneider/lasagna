@@ -1,25 +1,22 @@
 local Love = require "core.love"
 local Object = require "core.object"
-local Registry = require "registries"
-local BLOCKS = Registry.blocks()
 local WorldData = require "src.data.worlddata"
 
 -- Seed offset for reproducible noise (set in Generator.load)
 local seed_offset = 0
 
 --------------------------------------------------------------------------------
--- Noise functions using love.math.noise
+-- Noise functions using love.math.noise (Simplex noise)
+-- love.math.noise returns values in [0, 1] range
 --------------------------------------------------------------------------------
 
--- 1D noise for surface cut line
--- Returns value in [0, 1] range
-local function noise1d(x)
+-- 1D simplex noise for surface cut line
+local function simplex1d(x)
     return love.math.noise(x, seed_offset)
 end
 
--- 2D noise for terrain density
--- Returns value in [0, 1] range
-local function noise2d(x, y)
+-- 2D simplex noise for terrain density map
+local function simplex2d(x, y)
     return love.math.noise(x, y, seed_offset)
 end
 
@@ -29,74 +26,41 @@ end
 
 -- Surface cut parameters
 local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
-local CUT_FREQUENCY = 0.02    -- 1D noise frequency for surface variation
-local CUT_AMPLITUDE = 0.1     -- How much the cut line varies
+local CUT_FREQUENCY = 0.01    -- Low frequency for gentle surface oscillation
+local CUT_AMPLITUDE = 0.05    -- Small amplitude to avoid crazy surface
 
 -- 2D terrain noise parameters
 local TERRAIN_FREQUENCY = 0.05
-local TERRAIN_THRESHOLD = 0.5  -- Below this = air (caves), above = stone
 
 -- Layer differentiation
 local Z_SCALE_FACTOR = 0.1    -- Scale factor for z in noise calculations
-local LAYER_Z_OFFSET = 10     -- Z offset to differentiate layers in 2D noise
-local LAYER_ROW_OFFSET = 3    -- Row offset per layer for surface variation
-
--- Buffer zones
-local BEDROCK_BUFFER = 3      -- Minimum rows above bedrock for surface
 
 --------------------------------------------------------------------------------
 -- Pure World Generation Functions (no global G access)
+-- Stores raw noise values (0.0 to 1.0) instead of block IDs
 --------------------------------------------------------------------------------
 
--- Generate terrain for a single column using:
--- 1. 2D noise to create terrain density map
--- 2. 1D noise to determine surface cut line
--- 3. Final pass: grass on surface, dirt below
+-- Generate terrain for a single column
+-- Stores raw noise values: 0 = air, 0.0-1.0 = terrain density
 local function generate_column_terrain(column_data, col, z, world_height)
-    -- Calculate surface cut line using 1D noise
-    local cut_noise = noise1d(col * CUT_FREQUENCY + z * Z_SCALE_FACTOR)
+    -- Calculate surface cut line using 1D simplex noise
+    -- Oscillates gently around SURFACE_Y_RATIO
+    local cut_noise = simplex1d(col * CUT_FREQUENCY + z * Z_SCALE_FACTOR)
     local cut_ratio = SURFACE_Y_RATIO + (cut_noise - 0.5) * CUT_AMPLITUDE * 2
     local cut_row = math.floor(world_height * cut_ratio)
     
-    -- Layer offset
-    if z == 1 then
-        cut_row = cut_row - LAYER_ROW_OFFSET
-    elseif z == -1 then
-        cut_row = cut_row + LAYER_ROW_OFFSET
-    end
-    cut_row = math.max(1, math.min(world_height - BEDROCK_BUFFER, cut_row))
+    -- Clamp cut row to valid range
+    cut_row = math.max(1, math.min(world_height - 3, cut_row))
     
-    -- Fill column using 2D noise for terrain density
+    -- Fill column with noise values
     for row = 0, world_height - 1 do
         if row < cut_row then
-            -- Above cut line = always air
-            column_data[row] = BLOCKS.AIR
+            -- Above cut line = air (value 0)
+            column_data[row] = 0
         else
-            -- Below cut line: use 2D noise to determine if stone or air (cave)
-            local terrain_noise = noise2d(col * TERRAIN_FREQUENCY, row * TERRAIN_FREQUENCY + z * LAYER_Z_OFFSET)
-            if terrain_noise > TERRAIN_THRESHOLD then
-                column_data[row] = BLOCKS.STONE
-            else
-                column_data[row] = BLOCKS.AIR
-            end
-        end
-    end
-    
-    -- Bedrock at bottom (always solid)
-    column_data[world_height - 2] = BLOCKS.BEDROCK
-    column_data[world_height - 1] = BLOCKS.BEDROCK
-    
-    -- Final pass: Add grass and dirt at surface
-    -- Find first solid block from top and make it grass, dirt below
-    for row = 0, world_height - BEDROCK_BUFFER do
-        if column_data[row] == BLOCKS.STONE then
-            if row > 0 and column_data[row - 1] == BLOCKS.AIR then
-                column_data[row] = BLOCKS.GRASS
-                if row + 1 < world_height - 2 and column_data[row + 1] == BLOCKS.STONE then
-                    column_data[row + 1] = BLOCKS.DIRT
-                end
-            end
-            break
+            -- Below cut line: use 2D simplex noise for terrain density
+            local terrain_value = simplex2d(col * TERRAIN_FREQUENCY, row * TERRAIN_FREQUENCY + z * 10)
+            column_data[row] = terrain_value
         end
     end
 end

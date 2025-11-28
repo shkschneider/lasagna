@@ -30,7 +30,6 @@ function World.draw_layer(self, layer)
     local screen_width, screen_height = love.graphics.getDimensions()
 
     local camera_x, camera_y = G.camera:get_offset()
-    local player_x, player_y, player_z = G.player:get_position()
 
     -- Calculate visible area
     local start_col = math.floor(camera_x / BLOCK_SIZE) - 1
@@ -42,36 +41,19 @@ function World.draw_layer(self, layer)
     start_row = math.max(0, start_row)
     end_row = math.min(self.HEIGHT - 1, end_row)
 
-    -- Check if this is the layer above the player
-    local is_layer_above = (layer >= player_z + 1)
-
-    -- Draw blocks
+    -- Draw blocks using raw noise values as grayscale
     for col = start_col, end_col do
         for row = start_row, end_row do
-            local block_id = self:get_block_id(layer, col, row)
-            local proto = Registry.Blocks:get(block_id)
-
-            if proto and proto.solid then
+            local value = self:get_block_value(layer, col, row)
+            
+            -- Only draw if there's terrain (value > 0)
+            if value and value > 0 then
                 local x = col * BLOCK_SIZE - camera_x
                 local y = row * BLOCK_SIZE - camera_y
-
-                if is_layer_above then
-                    -- For layers above player, only draw blocks that have air on top
-                    local top_block = self:get_block_id(layer, col, row - 1)
-                    local top_proto = Registry.Blocks:get(top_block)
-                    if not (top_proto and top_proto.solid) then
-                        -- Draw this block with semi-transparency
-                        local r, g, b = proto.color[1] or 1, proto.color[2] or 1, proto.color[3] or 1
-                        love.graphics.setColor(r, g, b, 0.5)
-                        love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
-                    end
-                else
-                    -- Normal filled blocks for other layers
-                    -- Ensure blocks are drawn with full opacity (alpha=1) to properly cover layers below
-                    local r, g, b = proto.color[1] or 1, proto.color[2] or 1, proto.color[3] or 1
-                    love.graphics.setColor(r, g, b, 1)
-                    love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
-                end
+                
+                -- Display as grayscale: setColor(1, 1, 1, value)
+                love.graphics.setColor(1, 1, 1, value)
+                love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
             end
         end
     end
@@ -119,10 +101,10 @@ function World.is_valid_building_location(self, col, row, layer)
     return false
 end
 
--- Get block at position
-function World.get_block_id(self, z, col, row)
+-- Get raw noise value at position (0.0-1.0 range, 0 = air)
+function World.get_block_value(self, z, col, row)
     if row < 0 or row >= self.HEIGHT then
-        return BLOCKS.AIR
+        return 0
     end
 
     -- Request column generation with high priority (visible column)
@@ -135,6 +117,16 @@ function World.get_block_id(self, z, col, row)
         return data.columns[z][col][row]
     end
 
+    return 0
+end
+
+-- Get block at position (legacy - returns block ID based on value threshold)
+function World.get_block_id(self, z, col, row)
+    local value = self:get_block_value(z, col, row)
+    -- Value > 0.5 is considered solid (for physics/collision)
+    if value > 0.5 then
+        return BLOCKS.STONE
+    end
     return BLOCKS.AIR
 end
 
@@ -199,8 +191,9 @@ function World.find_spawn_position(self, z)
     -- Find the surface by searching for the first solid block from top
     local col = BLOCK_SIZE
     for row = 0, self.HEIGHT - 1 do
-        local block_def = self.get_block_def(self, z, col, row)
-        if block_def and block_def.solid then
+        local value = self:get_block_value(z, col, row)
+        -- Value > 0.5 is considered solid ground
+        if value > 0.5 then
             -- Spawn above the ground
             -- Player is 2 blocks tall and position is at center
             -- Subtract player height to ensure player is fully above ground
