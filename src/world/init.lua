@@ -136,7 +136,7 @@ function World.get_block_def(self, z, col, row)
     return Registry.Blocks:get(block_id)
 end
 
--- Set block at position
+-- Set block value at position (0 = air, 1 = solid)
 function World.set_block(self, z, col, row, block_id)
     local data = self.generator.data
     if row < 0 or row >= data.height then
@@ -154,6 +154,9 @@ function World.set_block(self, z, col, row, block_id)
         data.columns[z][col] = {}
     end
 
+    -- Convert block ID to noise value (0 = air, 1 = solid)
+    local value = (block_id == BLOCKS.AIR) and 0 or 1
+
     -- Track change from generated terrain
     if not data.changes[z] then
         data.changes[z] = {}
@@ -161,9 +164,9 @@ function World.set_block(self, z, col, row, block_id)
     if not data.changes[z][col] then
         data.changes[z][col] = {}
     end
-    data.changes[z][col][row] = block_id
+    data.changes[z][col][row] = value
 
-    data.columns[z][col][row] = block_id
+    data.columns[z][col][row] = value
     return true
 end
 
