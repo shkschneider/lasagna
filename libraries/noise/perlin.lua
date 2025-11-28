@@ -50,17 +50,17 @@ function noise.perlin3d(x, y, z)
     local X = math.floor(x) % 256
     local Y = math.floor(y) % 256
     local Z = math.floor(z) % 256
-    
+
     -- Find relative x,y,z of point in cube
     x = x - math.floor(x)
     y = y - math.floor(y)
     z = z - math.floor(z)
-    
+
     -- Compute fade curves
     local u = fade(x)
     local v = fade(y)
     local w = fade(z)
-    
+
     -- Hash coordinates of cube corners
     local A = p[X] + Y
     local AA = p[A] + Z
@@ -68,7 +68,7 @@ function noise.perlin3d(x, y, z)
     local B = p[X + 1] + Y
     local BA = p[B] + Z
     local BB = p[B + 1] + Z
-    
+
     -- Add blended results from 8 corners of cube
     return lerp(w,
         lerp(v,
@@ -98,19 +98,19 @@ function noise.octave_perlin2d(x, y, octaves, persistence, lacunarity)
     octaves = octaves or 4
     persistence = persistence or 0.5
     lacunarity = lacunarity or 2.0
-    
+
     local total = 0
     local frequency = 1
     local amplitude = 1
     local max_value = 0
-    
+
     for i = 1, octaves do
         total = total + noise.perlin2d(x * frequency, y * frequency) * amplitude
         max_value = max_value + amplitude
         amplitude = amplitude * persistence
         frequency = frequency * lacunarity
     end
-    
+
     return total / max_value
 end
 
@@ -118,7 +118,7 @@ end
 -- Accepts either a seed number or a custom random generator function
 function noise.seed(seed_or_rng)
     local random
-    
+
     if type(seed_or_rng) == "function" then
         -- Use provided random function
         random = seed_or_rng
@@ -153,19 +153,19 @@ function noise.seed(seed_or_rng)
             end
         end
     end
-    
+
     -- Create a new permutation based on seed/random
     local temp = {}
     for i = 0, 255 do
         temp[i] = i
     end
-    
+
     -- Fisher-Yates shuffle (using 0-based indexing)
     for i = 255, 1, -1 do
         local j = random(0, i)
         temp[i], temp[j] = temp[j], temp[i]
     end
-    
+
     -- Update permutation table
     for i = 0, 255 do
         p[i] = temp[i]

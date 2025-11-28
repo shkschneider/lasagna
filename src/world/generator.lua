@@ -1,4 +1,4 @@
-local noise = require "libraries.noise"
+local noise = require "libraries.noise.perlin" -- TODO libraries.noise.simplex
 local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
