@@ -1,4 +1,3 @@
-local noise = require "libraries.noise.perlin" -- TODO libraries.noise.simplex
 local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "registries"
@@ -15,9 +14,42 @@ local BASE_AMPLITUDE = 15
 local DIRT_MIN_DEPTH = 5
 local DIRT_MAX_DEPTH = 15
 
+-- Seed offset for reproducible noise (set in Generator.load)
+local seed_offset = 0
+
+-- Octave noise using love.math.noise (fractal brownian motion)
+-- love.math.noise returns values in [0, 1], we convert to [-1, 1] for terrain generation
+local function octave_noise2d(x, y, octaves, persistence, lacunarity)
+    octaves = octaves or 4
+    persistence = persistence or 0.5
+    lacunarity = lacunarity or 2.0
+
+    local total = 0
+    local frequency = 1
+    local amplitude = 1
+    local max_value = 0
+
+    for i = 1, octaves do
+        -- Use seed_offset as z coordinate for seeding
+        local noise_val = love.math.noise(x * frequency, y * frequency, seed_offset + i)
+        total = total + (noise_val * 2 - 1) * amplitude  -- Convert [0,1] to [-1,1]
+        max_value = max_value + amplitude
+        amplitude = amplitude * persistence
+        frequency = frequency * lacunarity
+    end
+
+    return total / max_value
+end
+
+-- Simple 2D noise wrapper using love.math.noise
+local function noise2d(x, y)
+    -- Use seed_offset as z coordinate for seeding, convert [0,1] to [-1,1]
+    return love.math.noise(x, y, seed_offset) * 2 - 1
+end
+
 -- Calculate surface height for a given column and layer
 local function calculate_surface_height(col, z, world_height)
-    local noise_val = noise.octave_perlin2d(col * BASE_FREQUENCY, z * 0.1, 4, 0.5, 2.0)
+    local noise_val = octave_noise2d(col * BASE_FREQUENCY, z * 0.1, 4, 0.5, 2.0)
     local base_height = math.floor(world_height * SURFACE_HEIGHT_RATIO + noise_val * BASE_AMPLITUDE)
     if z == 1 then
         base_height = base_height + 5
@@ -43,7 +75,7 @@ end
 -- Generate dirt and grass layers
 local function generate_dirt_and_grass(column_data, world_col, z, base_height, world_height)
     local dirt_depth = DIRT_MIN_DEPTH + math.floor((DIRT_MAX_DEPTH - DIRT_MIN_DEPTH) *
-        (noise.perlin2d(world_col * 0.05, z * 0.1) + 1) / 2)
+        (noise2d(world_col * 0.05, z * 0.1) + 1) / 2)
     for row = base_height, math.min(base_height + dirt_depth - 1, world_height - 1) do
         if column_data[row] == BLOCKS.STONE then
             column_data[row] = BLOCKS.DIRT
@@ -99,8 +131,8 @@ function Generator.load(self)
     assert(self.data.seed)
     Log.info(self.data.seed)
     Love.load(self)
-    -- Seed the noise library
-    noise.seed(self.data.seed)
+    -- Set seed offset for love.math.noise (used as z coordinate for 2D noise seeding)
+    seed_offset = self.data.seed % 1000
 
     -- Initialize generation queues
     self.generation_queue_high = {}
