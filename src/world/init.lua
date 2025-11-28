@@ -3,10 +3,17 @@ local Object = require "core.object"
 local Registry = require "registries"
 local BLOCKS = Registry.blocks()
 local BlockRef = require "data.blocks.ids"
+local Biome = require "src.data.biome"
 
 -- Block ID offset: noise values are stored as NOISE_OFFSET + value*100
 -- Block IDs 0-99 are actual blocks, 100+ are noise values
 local NOISE_OFFSET = 100
+
+-- Biome zone size in blocks (64x64 zones)
+local BIOME_ZONE_SIZE = Biome.ZONE_SIZE
+
+-- Seed offset for biome noise (set when generator loads)
+local biome_seed_offset = 0
 
 -- Block mapping for noise value ranges (value * 10 = index)
 -- Maps noise values to actual terrain block types
@@ -34,6 +41,8 @@ local World = Object {
 
 function World.load(self)
     Love.load(self)
+    -- Set biome seed offset after generator loads (generator sets its seed in its load)
+    biome_seed_offset = (self.generator.data.seed % 10000) + 1000
 end
 
 function World.update(self, dt)
@@ -185,6 +194,23 @@ end
 function World.get_block_def(self, z, col, row)
     local block_id = self.get_block_id(self, z, col, row)
     return Registry.Blocks:get(block_id)
+end
+
+-- Get biome at world position (x, y in world coordinates, z is layer)
+-- Returns biome definition table with id, name, and temperature
+function World.get_biome(self, x, y, z)
+    z = z or 0
+    
+    -- Convert world coordinates to zone coordinates
+    local zone_x = math.floor(x / BIOME_ZONE_SIZE)
+    local zone_y = math.floor(y / BIOME_ZONE_SIZE)
+    
+    -- Get biome noise for this zone (uses biome_seed_offset for independent noise)
+    -- Add z layer offset for slight variation between layers
+    local noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset)
+    
+    -- Get biome definition from noise value
+    return Biome.get_by_noise(noise)
 end
 
 -- Set block value at position (0 = air, 1 = solid)

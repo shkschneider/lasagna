@@ -2,6 +2,30 @@ local Love = require "core.love"
 local Object = require "core.object"
 local WorldData = require "src.data.worlddata"
 local BlockRef = require "data.blocks.ids"
+local Biome = require "src.data.biome"
+
+--------------------------------------------------------------------------------
+-- World Generation Overview
+--------------------------------------------------------------------------------
+-- World generation is done in multiple steps:
+--
+-- Step 1: 2D Noise Ground
+--   - Uses 2D simplex noise to determine terrain density
+--   - Creates the basic underground structure with varying block types
+--
+-- Step 2: Surface Cut
+--   - Uses 1D multi-octave noise to create organic surface line
+--   - Everything above the cut is air, below is terrain
+--
+-- Step 3: Surface Filling
+--   - Adds grass on top and dirt below the surface cut
+--   - Creates the recognizable surface layer
+--
+-- Step 4: Biomes (future expansion)
+--   - Uses 2D simplex noise sampled in 64x64 zones
+--   - 10 biome types based on noise rounded to 0.1 precision
+--   - Will affect block types, vegetation, and terrain features
+--------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 -- Terrain Generation Parameters
@@ -33,6 +57,9 @@ local NOISE_OFFSET = 100
 -- Seed offset for reproducible noise (set in Generator.load)
 local seed_offset = 0
 
+-- Biome zone size in blocks (64x64 zones)
+local BIOME_ZONE_SIZE = Biome.ZONE_SIZE
+
 --------------------------------------------------------------------------------
 -- Noise functions using love.math.noise (Simplex noise)
 -- love.math.noise returns values in [0, 1] range
@@ -48,12 +75,30 @@ local function simplex2d(x, y)
     return love.math.noise(x, y, seed_offset)
 end
 
+-- 2D simplex noise for biome zones
+-- Uses a different seed offset to create independent biome distribution
+local function biome_noise_2d(zone_x, zone_y)
+    -- Use seed_offset + 1000 to create independent biome noise
+    return love.math.noise(zone_x, zone_y, seed_offset + 1000)
+end
+
+-- Calculate biome noise value for a world position
+-- Returns a value rounded to 0.1 precision (0.0-0.9)
+local function get_biome_noise(x, y, z)
+    -- Convert world coordinates to zone coordinates
+    local zone_x = math.floor(x / BIOME_ZONE_SIZE)
+    local zone_y = math.floor(y / BIOME_ZONE_SIZE)
+    
+    -- Add z layer offset for slight variation between layers
+    local noise = biome_noise_2d(zone_x * 0.1 + z * 0.05, zone_y * 0.1)
+    
+    -- Round to 0.1 precision
+    return math.floor(noise * 10 + 0.5) / 10
+end
+
 --------------------------------------------------------------------------------
 -- Terrain Generation Constants
 --------------------------------------------------------------------------------
-
--- Surface cut parameters for Starbound-like organic terrain
-local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
 
 -- Multi-octave noise for organic terrain shape
 -- Large scale: rolling hills (always present)
