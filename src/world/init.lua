@@ -27,7 +27,7 @@ local VALUE_COLORS = {
     Colors.pink.light,
 }
 
-local SOLID = 0.33
+local SOLID = 0.33 -- % converted to air
 
 local World = Object {
     HEIGHT = 512,

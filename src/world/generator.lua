@@ -2,8 +2,19 @@ local Love = require "core.love"
 local Object = require "core.object"
 local WorldData = require "src.data.worlddata"
 
+--------------------------------------------------------------------------------
+-- Terrain Generation Parameters
+--------------------------------------------------------------------------------
+
 -- Value bucketing for debugging visualization
 local BUCKET_SIZE = 0.1  -- Size of each value bucket (0.1 = 10 buckets from 0.0 to 1.0)
+
+-- Surface smoothness: 0.0 = rough (all detail), 1.0 = smooth (only large hills)
+-- Adjust this to control how rough/smooth the surface appears
+local SURFACE_SMOOTHNESS = 0.75
+
+-- Surface cut parameters for Starbound-like organic terrain
+local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
 
 -- Seed offset for reproducible noise (set in Generator.load)
 local seed_offset = 0
@@ -29,10 +40,6 @@ end
 
 -- Surface cut parameters for Starbound-like organic terrain
 local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
-
--- Surface smoothness: 0.0 = rough (all detail), 1.0 = smooth (only large hills)
--- Adjust this to control how rough/smooth the surface appears
-local SURFACE_SMOOTHNESS = 0.5
 
 -- Multi-octave noise for organic terrain shape
 -- Large scale: rolling hills (always present)

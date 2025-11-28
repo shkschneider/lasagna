@@ -7,7 +7,7 @@ CommandsRegistry:register({
     description = "Reset game (optional seed)",
     execute = function(args)
         if not G.debug then return false, nil end
-        local seed = tonumber(args[1] or (os.time() + love.timer.getTime()))
+        local seed = tonumber(args[1]) or math.round(os.time() + (love.timer.getTime() * 9 ^ 9))
         G.world.generator.data = WorldData.new(seed)
         G:load(GameState.LOAD)
         return true, "Reset (" .. seed .. ")"
