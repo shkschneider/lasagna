@@ -10,7 +10,6 @@ local Jetpack = Object {
 }
 
 function Jetpack.load(self)
-    self.thrusting = false
     Love.load(self)
 end
 
