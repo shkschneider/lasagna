@@ -29,9 +29,16 @@ local Game = Object {
 }
 
 function Game.load(self, state)
-    self.state = GameStateComponent.new(state or GameStateComponent.MENU)
+    if state then assert(self.state) end
+    self.state = GameStateComponent.new(state or GameStateComponent.BOOT)
     Log.debug(self.state:tostring())
-    Love.load(self)
+    if state then
+        self.menu:load()
+    else
+        -- after initial loading (boot -> menu)
+        self.state = GameStateComponent.new(GameStateComponent.MENU)
+        Love.load(self)
+    end
 end
 
 function Game.update(self, dt)
@@ -39,11 +46,9 @@ function Game.update(self, dt)
     if state == GameStateComponent.BOOT then
         return -- wait
     elseif state == GameStateComponent.LOAD then
-        -- Start loader on first frame of LOAD state
         if not self.loader:is_active() then
             self.loader:start()
         end
-        -- Update loader and transition to PLAY when ready
         if self.loader:update(dt) then
             self.loader:reset()
             self:load(GameStateComponent.PLAY)
