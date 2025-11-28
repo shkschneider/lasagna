@@ -2,7 +2,6 @@ local Love = require "core.love"
 local Object = require "core.object"
 local WorldData = require "src.data.worlddata"
 local BlockRef = require "data.blocks.ids"
-local Biome = require "src.data.biome"
 
 --------------------------------------------------------------------------------
 -- World Generation Overview
@@ -57,9 +56,6 @@ local NOISE_OFFSET = 100
 -- Seed offset for reproducible noise (set in Generator.load)
 local seed_offset = 0
 
--- Biome zone size in blocks (64x64 zones)
-local BIOME_ZONE_SIZE = Biome.ZONE_SIZE
-
 --------------------------------------------------------------------------------
 -- Noise functions using love.math.noise (Simplex noise)
 -- love.math.noise returns values in [0, 1] range
@@ -73,27 +69,6 @@ end
 -- 2D simplex noise for terrain density map
 local function simplex2d(x, y)
     return love.math.noise(x, y, seed_offset)
-end
-
--- 2D simplex noise for biome zones
--- Uses a different seed offset to create independent biome distribution
-local function biome_noise_2d(zone_x, zone_y)
-    -- Use seed_offset + 1000 to create independent biome noise
-    return love.math.noise(zone_x, zone_y, seed_offset + 1000)
-end
-
--- Calculate biome noise value for a world position
--- Returns a value rounded to 0.1 precision (0.0-0.9)
-local function get_biome_noise(x, y, z)
-    -- Convert world coordinates to zone coordinates
-    local zone_x = math.floor(x / BIOME_ZONE_SIZE)
-    local zone_y = math.floor(y / BIOME_ZONE_SIZE)
-    
-    -- Add z layer offset for slight variation between layers
-    local noise = biome_noise_2d(zone_x * 0.1 + z * 0.05, zone_y * 0.1)
-    
-    -- Round to 0.1 precision
-    return math.floor(noise * 10 + 0.5) / 10
 end
 
 --------------------------------------------------------------------------------
