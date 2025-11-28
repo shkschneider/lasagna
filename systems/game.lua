@@ -29,8 +29,9 @@ local Game = Object {
 }
 
 function Game.load(self, state)
+    self.state = GameStateComponent.new(state or GameStateComponent.BOOT)
+    Log.debug(self.state:tostring())
     if state then
-        Log.debug(string.upper(state))
         self.state = GameStateComponent.new(state)
         self.menu:load()
     else

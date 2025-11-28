@@ -30,50 +30,15 @@ function love.load()
     G:load()
 end
 
-function love.update(dt)
-    G:update(dt)
-end
-
-function love.draw()
-    G:draw()
-end
-
-function love.keypressed(key)
-    G:keypressed(key)
-end
-
-function love.keyreleased(key)
-    G:keyreleased(key)
-end
-
-function love.mousepressed(x, y, button)
-    G:mousepressed(x, y, button)
-end
-
-function love.mousereleased(x, y, button)
-    G:mousereleased(x, y, button)
-end
-
-function love.mousemoved(x, y, dx, dy)
-    G:mousemoved(x, y, dx, dy)
-end
-
-function love.wheelmoved(x, y)
-    G:wheelmoved(x, y)
-end
-
-function love.textinput(text)
-    G:textinput(text)
-end
-
-function love.resize(width, height)
-    G:resize(width, height)
-end
-
-function love.focus(focused)
-    G:focus(focused)
-end
-
-function love.quit()
-    G:quit()
-end
+function love.update(dt) G:update(dt) end
+function love.draw() G:draw() end
+function love.keypressed(key) G:keypressed(key) end
+function love.keyreleased(key) G:keyreleased(key) end
+function love.mousepressed(x, y, button) G:mousepressed(x, y, button) end
+function love.mousereleased(x, y, button) G:mousereleased(x, y, button) end
+function love.mousemoved(x, y, dx, dy) G:mousemoved(x, y, dx, dy) end
+function love.wheelmoved(x, y) G:wheelmoved(x, y) end
+function love.textinput(text) G:textinput(text) end
+function love.resize(width, height) G:resize(width, height) end
+function love.focus(focused) G:focus(focused) end
+function love.quit() G:quit() end
