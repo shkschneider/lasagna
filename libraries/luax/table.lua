@@ -7,6 +7,15 @@ if not table.unpack then
     table.unpack = unpack
 end
 
+local function table_getn(self)
+    local count = 0
+    for _, _ in pairs(self) do
+        count = count + 1
+    end
+    return count
+end
+table.getn = table_getn -- override
+
 local function table_isarray(self)
     if type(self) ~= "table" then return false end
     if next(self) == nil then return true end
