@@ -129,10 +129,13 @@ end
 
 -- Get biome for a column based on temperature and humidity noise
 -- Returns biome definition with temperature and humidity properties
+-- Uses zone_y = 0 to match terrain generation (biomes are determined per-column, not per-block)
 local function get_column_biome(col, z)
-    -- Convert column to zone coordinates (same as World.get_biome)
+    -- Convert column to zone coordinates (same as World.get_biome but with y=0)
     local zone_x = math.floor((col * BLOCK_SIZE) / Biome.ZONE_SIZE)
-    local zone_y = 0  -- Use 0 for y since we're generating at surface level
+    -- Use fixed zone_y = 0 for consistent column-based biome generation
+    -- This ensures the same biome is used for the entire column during generation
+    local zone_y = 0
     
     -- Get temperature noise
     local temp_noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset)

@@ -226,14 +226,17 @@ function World.get_block_def(self, z, col, row)
     return Registry.Blocks:get(block_id)
 end
 
--- Get biome at world position (x, y in world coordinates, z is layer)
+-- Get biome at world position (x in world coordinates, z is layer)
 -- Returns biome definition table with id, name, temperature, and humidity
+-- Note: y coordinate is ignored - biomes are determined per-column, not per-block
+-- This matches the terrain generator which uses zone_y = 0 for all blocks in a column
 function World.get_biome(self, x, y, z)
     z = z or 0
 
-    -- Convert world coordinates to zone coordinates
+    -- Convert world x coordinate to zone coordinate
     local zone_x = math.floor(x / BIOME_ZONE_SIZE)
-    local zone_y = math.floor(y / BIOME_ZONE_SIZE)
+    -- Use fixed zone_y = 0 to match terrain generator (biomes are column-based)
+    local zone_y = 0
 
     -- Get temperature noise for this zone (uses biome_seed_offset for independent noise)
     -- Add z layer offset for slight variation between layers
