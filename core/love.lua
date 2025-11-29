@@ -28,6 +28,7 @@ end
 
 function Love.load(self, ...)
     self.__objects = nil -- invalidates
+    Log.verbose((self.id or "?") .. ".load")
     Love_call(self, "load", ...)
 end
 

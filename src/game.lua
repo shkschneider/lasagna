@@ -122,14 +122,17 @@ function Game.textinput(self, text)
 end
 
 function Game.resize(self, width, height)
+    Log.verbose("Game.resize", width, height)
     Love.resize(self, width, height)
 end
 
 function Game.focus(self, focused)
+    if focused then Log.verbose("Game.focused") end
     Love.focus(self, focused)
 end
 
 function Game.quit(self)
+    Log.verbose("Game.quit")
     Love.quit(self)
 end
 
