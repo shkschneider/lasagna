@@ -26,7 +26,7 @@ function Interface.draw(self)
     local mouse_col, mouse_row = G.world:world_to_block(world_x, world_y)
     local block_def = G.world:get_block_def(pos.z, mouse_col, mouse_row)
     local block_name = block_def and block_def.name or "Air"
-    local biome_name = G.world:get_biome(mouse_x, mouse_y, pos.z).name
+    local biome_name = G.world:get_biome(world_x, world_y, pos.z).name
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print(string.format("[%s] %s", biome_name, block_name), screen_width / 2, 10)
 
