@@ -43,7 +43,7 @@ function Player.load(self)
     self.backpack = Inventory.new(BACKPACK_SIZE)
     self.control = Control.new()
     self.weapon = Weapon
-    self.jetpack = Jetpack
+    self.jetpack = G.debug and Jetpack or nil
 
     -- s
     local x, y, z = G.world:find_spawn_position(LAYER_DEFAULT)

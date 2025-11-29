@@ -116,7 +116,7 @@ function Control.update(self, dt)
 
     -- Jetpack handling - only when in air and holding space
     local space_held = love.keyboard.isDown("space")
-    if space_held and not on_ground then
+    if G.player.jetpack and space_held and not on_ground then
         local stamina_cost = self.JETPACK_STAMINA_COST * dt
         if self:has_stamina(stamina_cost) then
             self:consume_stamina(stamina_cost)
