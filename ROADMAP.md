@@ -9,7 +9,22 @@ Notes
 
 ---
 
-v0.2 — Crafting and Ages (basic progression)
+v0.2 — WorldGeneration (biomes)
+
+---
+
+v0.3 — Death & snapshot restore
+- Goals
+  - Automatic periodic snapshot system saving world and player state (lightweight).
+  - On death, restore the last snapshot (no manual saves).
+- Non-goals
+  - Long-term persistence and multi-snapshot UI management.
+- Acceptance criteria
+  - If player dies, the world and player inventory/position/health restore to the last snapshot slot.
+
+---
+
+v0.4 — Crafting and Ages (basic progression)
 - Goals
   - Hand crafting and Workbench recipes (simple recipes only).
   - Age progression system: unlocks (per README) — at minimum unlock an extra 9-slot row for inventory and next-tier Omnitool.
@@ -24,7 +39,7 @@ v0.2 — Crafting and Ages (basic progression)
 
 ---
 
-v0.3 — Optional: Enemies (deferred for MVP)
+v0.5 — Enemies (deferred for MVP)
 - Goals
   - Basic enemy types (passive/hostile), layer-aware spawn rules, simple pathing/aggro.
   - Health/damage system for player and enemies.
@@ -35,18 +50,7 @@ v0.3 — Optional: Enemies (deferred for MVP)
 
 ---
 
-v0.4 — Death & snapshot restore
-- Goals
-  - Automatic periodic snapshot system saving world and player state (lightweight).
-  - On death, restore the last snapshot (no manual saves).
-- Non-goals
-  - Long-term persistence and multi-snapshot UI management.
-- Acceptance criteria
-  - If player dies, the world and player inventory/position/health restore to the last snapshot slot.
-
----
-
-v0.5 — UX, polish, and quality-of-life
+v0.6 — UX, polish, and quality-of-life
 - Goals
   - Inventory drag/drop, stack splitting, mouse-driven placement/dropping.
   - HUD polish (health, age indicator, tooltips).
