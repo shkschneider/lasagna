@@ -104,7 +104,10 @@ function Player.update(self, dt)
     end
 
     -- Apply gravity (using physics system with player's gravity)
-    Physics.apply_gravity(vel, self.gravity, dt)
+    -- Skip gravity when jetpack is active
+    if not self.control.jetpack_thrusting then
+        Physics.apply_gravity(vel, self.gravity, dt)
+    end
 
     -- Apply horizontal velocity with collision (using physics system)
     local hit_wall, new_x = Physics.apply_horizontal_movement(
