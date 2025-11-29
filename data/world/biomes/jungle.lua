@@ -9,11 +9,11 @@ BiomesRegistry:register({
     name = "Jungle",
     temperature = "hot",
     humidity = "humid",
-    
+
     -- Surface block configuration
     surface = BlockRef.GRASS,
     subsurface = BlockRef.MUD,
-    
+
     -- Underground block weights (percentages, auto-normalized)
     underground = {
         { block = BlockRef.STONE,     weight = 30 },

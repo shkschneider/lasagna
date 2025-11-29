@@ -6,11 +6,15 @@ local BiomesRegistry = {}
 -- Register a new biome
 function BiomesRegistry.register(self, definition)
     assert(definition.id, "Biome must have an id")
-    assert(definition.name, "Biome must have a name")
     assert(not self:exists(definition.id), "Biome already exists: " .. tostring(definition.id))
     self[definition.id] = definition
-    -- Also index by name for convenient lookup
     self[definition.name] = definition
+    assert(definition.name, "Biome must have a name")
+    definition.temperature = definition.temperature or "normal"
+    definition.humidity = definition.humidity or "normal"
+    assert(definition.surface and definition.subsurface, "Biome must have surface defined")
+    assert(definition.underground, "Biome must have underground defined")
+    -- TODO assert sum of weight == 100
     return definition.id
 end
 
