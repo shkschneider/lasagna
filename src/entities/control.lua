@@ -7,6 +7,8 @@ local Control = {
     JUMP_FORCE = 300, -- unit?
     STAMINA_RUN_COST = 2.5,  -- per second
     STAMINA_JUMP_COST = 5,   -- per jump
+    JETPACK_STAMINA_COST = 2,  -- per second
+    JETPACK_THRUST_FORCE = 200,
 }
 
 function Control.new()
@@ -14,6 +16,7 @@ function Control.new()
         id = "control",
         priority = 19, -- Run before player system (priority 20)
         sprinting = false,
+        jetpack_thrusting = false,
     }
     return setmetatable(control, { __index = Control })
 end
@@ -109,6 +112,21 @@ function Control.update(self, dt)
             vel.x = vel.x * 1.5
             self:consume_stamina(self.STAMINA_JUMP_COST)
         end
+    end
+
+    -- Jetpack handling - only when in air and holding space
+    local space_held = love.keyboard.isDown("space")
+    if G.player.jetpack and space_held and not on_ground then
+        local stamina_cost = self.JETPACK_STAMINA_COST * dt
+        if self:has_stamina(stamina_cost) then
+            self:consume_stamina(stamina_cost)
+            vel.y = vel.y - self.JETPACK_THRUST_FORCE * dt
+            self.jetpack_thrusting = true
+        else
+            self.jetpack_thrusting = false
+        end
+    else
+        self.jetpack_thrusting = false
     end
 
     Love.update(self, dt)

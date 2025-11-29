@@ -3,6 +3,8 @@ local Object = require "core.object"
 local Control = require "src.entities.control"
 local Physics = require "src.world.physics"
 local Inventory = require "src.items.inventory"
+local Weapon = require "src.items.weapon"
+local Jetpack = require "src.items.jetpack"
 local Vector = require "src.data.vector"
 local Stack = require "src.data.stack"
 local Omnitool = require "src.data.omnitool"
@@ -40,6 +42,8 @@ function Player.load(self)
     self.hotbar = Inventory.new(HOTBAR_SIZE)
     self.backpack = Inventory.new(BACKPACK_SIZE)
     self.control = Control.new()
+    self.weapon = Weapon
+    self.jetpack = G.debug and Jetpack or nil
 
     -- s
     local x, y, z = G.world:find_spawn_position(LAYER_DEFAULT)
@@ -100,7 +104,10 @@ function Player.update(self, dt)
     end
 
     -- Apply gravity (using physics system with player's gravity)
-    Physics.apply_gravity(vel, self.gravity, dt)
+    -- Skip gravity when jetpack is active
+    if not self.control.jetpack_thrusting then
+        Physics.apply_gravity(vel, self.gravity, dt)
+    end
 
     -- Apply horizontal velocity with collision (using physics system)
     local hit_wall, new_x = Physics.apply_horizontal_movement(

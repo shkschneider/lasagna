@@ -13,7 +13,6 @@ local Game = Object {
     player = require("src.entities.player"),
     mining = require("src.world.mining"),
     building = require("src.world.building"),
-    weapon = require("src.items.weapon"),
     entities = require("src.entities"),
     ui = require("src.ui"),
     chat = require("src.ui.chat"),
