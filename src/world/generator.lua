@@ -147,40 +147,50 @@ local function get_column_biome(col, z)
 end
 
 -- Get surface block type based on biome
--- Returns the appropriate surface block (grass, snow, or sand)
+-- Returns the appropriate surface block (grass, snow, sand, or mud)
 local function get_surface_block(biome)
-    local temp = biome.temperature
-    local humidity = biome.humidity
+    local name = biome.name
     
-    -- Cold + Dry biomes: use snow instead of grass
-    if (temp == Biome.TEMPERATURE.FREEZING or temp == Biome.TEMPERATURE.COLD) and
-       (humidity == Biome.HUMIDITY.ARID or humidity == Biome.HUMIDITY.DRY) then
+    -- Tundra/Taiga: mud on top
+    if name == "Tundra" or name == "Taiga" then
+        return BlockRef.MUD
+    end
+    
+    -- Snowy Hills: snow on top
+    if name == "Snowy Hills" then
         return BlockRef.SNOW
     end
     
-    -- Hot + Dry biomes: use sand instead of grass
-    if (temp == Biome.TEMPERATURE.HOT or temp == Biome.TEMPERATURE.WARM) and
-       (humidity == Biome.HUMIDITY.ARID or humidity == Biome.HUMIDITY.DRY) then
+    -- Desert/Savanna/Badlands (Hot + Dry): sand on top
+    if name == "Desert" or name == "Savanna" or name == "Badlands" then
         return BlockRef.SAND
     end
     
-    -- Default: grass
+    -- Jungle/Swamp/Forest/Plains: grass on top
     return BlockRef.GRASS
 end
 
 -- Get subsurface block type based on biome
--- Returns the appropriate block below the surface (dirt or sand)
+-- Returns the appropriate block below the surface (dirt, mud, or sandstone)
 local function get_subsurface_block(biome)
-    local temp = biome.temperature
-    local humidity = biome.humidity
+    local name = biome.name
     
-    -- Hot + Dry biomes: use sand below surface too
-    if (temp == Biome.TEMPERATURE.HOT or temp == Biome.TEMPERATURE.WARM) and
-       (humidity == Biome.HUMIDITY.ARID or humidity == Biome.HUMIDITY.DRY) then
+    -- Desert: sandstone below
+    if name == "Desert" then
+        return BlockRef.SANDSTONE
+    end
+    
+    -- Savanna/Badlands: sand below (like before)
+    if name == "Savanna" or name == "Badlands" then
         return BlockRef.SAND
     end
     
-    -- Default: dirt
+    -- Jungle/Swamp: mud below
+    if name == "Jungle" or name == "Swamp" then
+        return BlockRef.MUD
+    end
+    
+    -- Tundra/Taiga/Snowy Hills/Forest/Plains: dirt below
     return BlockRef.DIRT
 end
 
@@ -266,7 +276,8 @@ local function generate_column_terrain(column_data, col, z, world_height)
         local block = column_data[row]
         -- Check if this is a surface or subsurface block
         if block == BlockRef.DIRT or block == BlockRef.GRASS or 
-           block == BlockRef.SNOW or block == BlockRef.SAND then
+           block == BlockRef.SNOW or block == BlockRef.SAND or
+           block == BlockRef.MUD or block == BlockRef.SANDSTONE then
             -- Check if the block immediately below is sky (empty)
             local below = column_data[row + 1]
             if below == BlockRef.SKY then
