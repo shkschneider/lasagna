@@ -108,13 +108,13 @@ function World.draw_layer(self, layer)
             local x = col * BLOCK_SIZE - camera_x
             local y = row * BLOCK_SIZE - camera_y
 
-            -- value == 0 means air
-            if value == 0 then
-                -- Draw underground air as black (no sky access)
-                if not self:has_access_to_sky(layer, col, row) then
-                    love.graphics.setColor(0, 0, 0, 1)
-                    love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
-                end
+            -- value == 0 means SKY (fully transparent, don't draw)
+            if value == BlockRef.SKY then
+                -- Sky is fully transparent, nothing to draw
+            elseif value == BlockRef.AIR then
+                -- Underground air - draw semi-transparent black
+                love.graphics.setColor(0, 0, 0, 0.5)
+                love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
             else
                 -- Draw solid blocks
                 local block_id = nil
@@ -143,9 +143,9 @@ end
 
 -- Check if a location is valid for building
 function World.is_valid_building_location(self, col, row, layer)
-    -- Check if spot is empty (air)
+    -- Check if spot is empty (sky or air)
     local current_block = self:get_block_id(layer, col, row)
-    if current_block ~= BLOCKS.AIR then
+    if current_block ~= BlockRef.SKY and current_block ~= BlockRef.AIR then
         return false
     end
 
@@ -206,7 +206,9 @@ end
 function World.get_block_id(self, z, col, row)
     local value = self:get_block_value(z, col, row)
     -- Check if it's a direct block ID (< NOISE_OFFSET) or a noise value (>= NOISE_OFFSET)
-    if value == 0 then
+    if value == BlockRef.SKY then
+        return BlockRef.SKY
+    elseif value == BlockRef.AIR then
         return BlockRef.AIR
     elseif value < NOISE_OFFSET then
         -- Direct block ID (grass, dirt, etc.)
@@ -245,17 +247,12 @@ function World.get_biome(self, x, y, z)
 end
 
 -- Check if a position has direct access to the sky (no solid blocks above it)
--- Returns true if there's only air from this position up to row 0 (top of world)
+-- Returns true if there's only sky from this position up to row 0 (top of world)
+-- Note: This is now O(1) efficient - just check if the block is SKY (not AIR)
 function World.has_access_to_sky(self, z, col, row)
-    -- Check all rows above this position
-    for check_row = row - 1, 0, -1 do
-        local value = self:get_block_value(z, col, check_row)
-        -- If there's any solid block above, no sky access
-        if value ~= 0 then
-            return false
-        end
-    end
-    return true
+    -- A block has sky access if it's SKY (0), not AIR (1) which is underground
+    local value = self:get_block_value(z, col, row)
+    return value == BlockRef.SKY
 end
 
 -- Set block value at position (0 = air, 1 = solid)

@@ -10,12 +10,21 @@ local function hex2rgb(hex)
         tonumber("0x" .. hex:sub(5, 6)) / 255
 end
 
--- Register Air
+-- Register Sky (transparent air with sky access)
+BlocksRegistry:register({
+    id = BlockRef.SKY,
+    name = "Sky",
+    solid = false,
+    color = {0, 0, 0, 0},  -- Fully transparent
+    tier = 0,
+})
+
+-- Register Air (underground air without sky access)
 BlocksRegistry:register({
     id = BlockRef.AIR,
     name = "Air",
     solid = false,
-    color = {0, 0, 0, 0},
+    color = {0, 0, 0, 0.5},  -- Semi-transparent black (cave darkness)
     tier = 0,
 })
 
