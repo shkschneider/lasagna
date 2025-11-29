@@ -105,10 +105,18 @@ function World.draw_layer(self, layer)
         for row = start_row, end_row do
             local value = self:get_block_value(layer, col, row)
 
-            -- value ~= 0 means it's not air
-            if value ~= 0 then
-                local x = col * BLOCK_SIZE - camera_x
-                local y = row * BLOCK_SIZE - camera_y
+            local x = col * BLOCK_SIZE - camera_x
+            local y = row * BLOCK_SIZE - camera_y
+
+            -- value == 0 means air
+            if value == 0 then
+                -- Draw underground air as black (no sky access)
+                if not self:has_access_to_sky(layer, col, row) then
+                    love.graphics.setColor(0, 0, 0, 1)
+                    love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
+                end
+            else
+                -- Draw solid blocks
                 local block_id = nil
 
                 -- Check if it's a direct block ID (< NOISE_OFFSET) or a noise value (>= NOISE_OFFSET)
@@ -234,6 +242,20 @@ function World.get_biome(self, x, y, z)
 
     -- Get biome definition from temperature and humidity
     return Biome.get_by_climate(temp_noise, humidity_noise)
+end
+
+-- Check if a position has direct access to the sky (no solid blocks above it)
+-- Returns true if there's only air from this position up to row 0 (top of world)
+function World.has_access_to_sky(self, z, col, row)
+    -- Check all rows above this position
+    for check_row = row - 1, 0, -1 do
+        local value = self:get_block_value(z, col, check_row)
+        -- If there's any solid block above, no sky access
+        if value ~= 0 then
+            return false
+        end
+    end
+    return true
 end
 
 -- Set block value at position (0 = air, 1 = solid)
