@@ -3,6 +3,8 @@
 -- Run from repo root:
 --   lua ./tests/states.lua
 
+require "libraries.luax"
+
 local function ok(msg)
     print("PASS: " .. msg)
 end

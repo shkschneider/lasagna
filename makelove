@@ -350,6 +350,7 @@ local function tests()
     log("Testing...")
     if not run("lua ./tests/log.lua >/dev/null") then return false end
     if not run("lua ./tests/states.lua >/dev/null") then return false end
+    if not run("lua ./tests/biomes.lua >/dev/null") then return false end
     log("Tests: all tests completed.")
     return true
 end

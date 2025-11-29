@@ -4,7 +4,7 @@ local Physics = require "src.world.physics"
 local Vector = require "src.data.vector"
 local Projectile = require "src.data.projectile"
 local ItemDrop = require "src.data.itemdrop"
-local Registry = require "registries"
+local Registry = require "src.registries"
 local BLOCKS = Registry.blocks()
 
 local Entity = Object {

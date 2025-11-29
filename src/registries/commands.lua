@@ -6,9 +6,9 @@ local CommandsRegistry = {}
 -- Register a new command
 function CommandsRegistry.register(self, definition)
     assert(definition.name, "Command must have a name")
-    assert(definition.execute, "Command must have an execute function")
     assert(not self:exists(definition.name), "Command already exists: " .. tostring(definition.name))
     self[definition.name] = definition
+    assert(definition.execute, "Command must have an execute function")
     return definition.name
 end
 

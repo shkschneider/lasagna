@@ -1,7 +1,7 @@
 -- Weapon item definitions
 
 local ItemRef = require "data.items.ids"
-local ItemsRegistry = require "registries.items"
+local ItemsRegistry = require "src.registries.items"
 
 -- Register Gun
 ItemsRegistry:register({

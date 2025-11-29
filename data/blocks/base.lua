@@ -1,6 +1,6 @@
 local Colors = require "libraries.colors"
 local BlockRef = require "data.blocks.ids"
-local BlocksRegistry = require "registries.blocks"
+local BlocksRegistry = require "src.registries.blocks"
 
 -- Helper function to convert hex to rgb
 local function hex2rgb(hex)
@@ -10,12 +10,21 @@ local function hex2rgb(hex)
         tonumber("0x" .. hex:sub(5, 6)) / 255
 end
 
--- Register Air
+-- Register Sky (transparent air with sky access)
+BlocksRegistry:register({
+    id = BlockRef.SKY,
+    name = "Sky",
+    solid = false,
+    color = {0, 0, 0, 0},  -- Fully transparent
+    tier = 0,
+})
+
+-- Register Air (underground air without sky access)
 BlocksRegistry:register({
     id = BlockRef.AIR,
     name = "Air",
     solid = false,
-    color = {0, 0, 0, 0},
+    color = {0, 0, 0, 0.5},  -- Semi-transparent black (cave darkness)
     tier = 0,
 })
 
@@ -157,4 +166,14 @@ BlocksRegistry:register({
     color = Colors.black.normal,
     tier = math.huge, -- Effectively unbreakable
     drops = function() return nil, 0 end, -- No drops
+})
+
+-- Register Snow (white surface block for cold biomes)
+BlocksRegistry:register({
+    id = BlockRef.SNOW,
+    name = "Snow",
+    solid = true,
+    color = Colors.white.normal,
+    tier = 0,
+    drops = function() return BlockRef.SNOW end,
 })

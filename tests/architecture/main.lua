@@ -3,6 +3,7 @@ assert(love)
 local Object = require "core.object"
 local Love = require "core.love"
 
+Log = require "libraries.log"
 local Game = Object {}
 
 function Game.draw(self)

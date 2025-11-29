@@ -1,7 +1,7 @@
 -- Omnitool item definition
 
 local ItemRef = require "data.items.ids"
-local ItemsRegistry = require "registries.items"
+local ItemsRegistry = require "src.registries.items"
 
 -- Register Omnitool
 ItemsRegistry:register({

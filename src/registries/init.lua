@@ -1,7 +1,8 @@
 local Registry = {
-    Blocks = require("registries.blocks"),
-    Items = require("registries.items"),
-    Commands = require("registries.commands"),
+    Blocks = require("src.registries.blocks"),
+    Items = require("src.registries.items"),
+    Commands = require("src.registries.commands"),
+    Biomes = require("src.registries.biomes"),
 }
 
 -- Blocks
@@ -38,6 +39,18 @@ end
 
 function Registry.commands()
     return COMMANDS
+end
+
+-- Biomes
+
+local BIOMES = require "data.world.biomes"
+
+function Registry.biome(id_or_name)
+    return Registry.Biomes:get(id_or_name)
+end
+
+function Registry.biomes()
+    return BIOMES
 end
 
 return Registry

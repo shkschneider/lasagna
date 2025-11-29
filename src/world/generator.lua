@@ -2,6 +2,35 @@ local Love = require "core.love"
 local Object = require "core.object"
 local WorldData = require "src.data.worlddata"
 local BlockRef = require "data.blocks.ids"
+local Biome = require "src.data.biome"
+
+--------------------------------------------------------------------------------
+-- World Generation Overview
+--------------------------------------------------------------------------------
+-- World generation is done in multiple steps:
+--
+-- Step 1: 2D Noise Ground
+--   - Uses 2D simplex noise to determine terrain density
+--   - Creates the basic underground structure with varying block types
+--   - Sand and sandstone are excluded (reserved for biome-specific placement)
+--
+-- Step 2: Surface Cut
+--   - Uses 1D multi-octave noise to create organic surface line
+--   - Everything above the cut is air, below is terrain
+--
+-- Step 3: Biome-Based Surface Filling
+--   - Determines biome from temperature + humidity noise
+--   - Uses BIOME_SURFACES table for surface/subsurface blocks per biome
+--   - See BIOME_SURFACES table below for complete configuration
+--
+-- Step 4: Cleanup Pass
+--   - Removes floating surface blocks above cave openings
+--   - Ensures surface blocks have solid ground support
+--
+-- Step 5: Bedrock Layer
+--   - Places bedrock at the bottom of each column
+--   - Creates an unbreakable world floor
+--------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 -- Terrain Generation Parameters
@@ -33,6 +62,9 @@ local NOISE_OFFSET = 100
 -- Seed offset for reproducible noise (set in Generator.load)
 local seed_offset = 0
 
+-- Biome seed offset (different from terrain seed for independent noise)
+local biome_seed_offset = 0
+
 --------------------------------------------------------------------------------
 -- Noise functions using love.math.noise (Simplex noise)
 -- love.math.noise returns values in [0, 1] range
@@ -51,9 +83,6 @@ end
 --------------------------------------------------------------------------------
 -- Terrain Generation Constants
 --------------------------------------------------------------------------------
-
--- Surface cut parameters for Starbound-like organic terrain
-local SURFACE_Y_RATIO = 0.25  -- Base surface at 1/4 from top
 
 -- Multi-octave noise for organic terrain shape
 -- Large scale: rolling hills (always present)
@@ -97,16 +126,40 @@ local function organic_surface_noise(col, z)
     return hills + variation + detail
 end
 
+-- Get biome for a column based on temperature and humidity noise
+-- Returns biome definition with temperature and humidity properties
+-- Uses zone_y = 0 to match terrain generation (biomes are determined per-column, not per-block)
+local function get_column_biome(col, z)
+    -- Convert column to zone coordinates (same as World.get_biome but with y=0)
+    local zone_x = math.floor((col * BLOCK_SIZE) / Biome.ZONE_SIZE)
+    -- Use fixed zone_y = 0 for consistent column-based biome generation
+    -- This ensures the same biome is used for the entire column during generation
+    local zone_y = 0
+    
+    -- Get temperature noise
+    local temp_noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset)
+    
+    -- Get humidity noise using a different seed offset
+    local humidity_noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset + 500)
+    
+    return Biome.get_by_climate(temp_noise, humidity_noise)
+end
+
 --------------------------------------------------------------------------------
 -- Pure World Generation Functions (no global G access)
 -- Stores block IDs (0-99) or noise values as (NOISE_OFFSET + value*100)
--- Block ID 0 = AIR, 1 = DIRT, 2 = GRASS, etc.
+-- Block ID 0 = SKY (transparent), 1 = AIR (underground), 2 = DIRT, etc.
 --------------------------------------------------------------------------------
 
 -- Generate terrain for a single column
--- Stores: 0 = air, block IDs for surface blocks, NOISE_OFFSET+ for noise-based terrain
--- Also adds surface layer with grass on top and dirt below (on top of generated ground)
+-- Stores: SKY = sky, AIR = underground air, block IDs for surface blocks, NOISE_OFFSET+ for noise-based terrain
+-- Also adds surface layer with biome-appropriate blocks on top and subsurface below
 local function generate_column_terrain(column_data, col, z, world_height)
+    -- Get biome for this column
+    local biome = get_column_biome(col, z)
+    local surface_block = Biome.get_surface_block(biome)
+    local subsurface_block = Biome.get_subsurface_block(biome)
+    
     -- Calculate organic surface using multi-octave noise for Starbound-like terrain
     local surface_offset = organic_surface_noise(col, z)
     local cut_ratio = SURFACE_Y_RATIO + surface_offset
@@ -116,18 +169,19 @@ local function generate_column_terrain(column_data, col, z, world_height)
     cut_row = math.max(1, math.min(world_height - 3, cut_row))
 
     -- Fill column with noise values (stored as NOISE_OFFSET + value*100)
+    -- Initially use SKY for all air (will convert underground SKY to AIR later)
     for row = 0, world_height - 1 do
         if row < cut_row then
-            -- Above cut line = air (block ID 0)
-            column_data[row] = BlockRef.AIR
+            -- Above cut line = sky (block ID 0)
+            column_data[row] = BlockRef.SKY
         else
             -- Below cut line: use 2D simplex noise for terrain density
             local terrain_value = simplex2d(col * TERRAIN_FREQUENCY, row * TERRAIN_FREQUENCY + z * 10)
             -- Round to bucket precision for easier debugging
             terrain_value = round_value(terrain_value)
-            -- Apply SOLID threshold: values below become air
+            -- Apply SOLID threshold: values below become sky (will be converted to AIR if underground)
             if terrain_value < SOLID then
-                column_data[row] = BlockRef.AIR
+                column_data[row] = BlockRef.SKY
             else
                 -- Store noise value as offset (100 + value*100, so 0.5 becomes 150)
                 column_data[row] = NOISE_OFFSET + math.floor(terrain_value * 100)
@@ -139,31 +193,67 @@ local function generate_column_terrain(column_data, col, z, world_height)
     -- Find the first solid block from top (the surface)
     local surface_row = nil
     for row = 0, world_height - 1 do
-        if column_data[row] and column_data[row] > 0 then
+        if column_data[row] and column_data[row] > BlockRef.AIR then
             surface_row = row
             break
         end
     end
 
-    -- If we found a surface, add dirt and grass ON TOP (not replacing)
+    -- If we found a surface, add subsurface and surface blocks ON TOP (not replacing)
     if surface_row and surface_row > 0 then
-        -- Random dirt depth based on column position (deterministic)
+        -- Random subsurface depth based on column position (deterministic)
         local dirt_noise = simplex1d(col * 0.1 + z * 0.05 + 500)
         local dirt_depth = math.floor(DIRT_DEPTH_MIN + dirt_noise * (DIRT_DEPTH_MAX - DIRT_DEPTH_MIN + 1))
         dirt_depth = math.max(DIRT_DEPTH_MIN, math.min(DIRT_DEPTH_MAX, dirt_depth))
 
-        -- Add dirt blocks on top of the surface (in the air above it)
+        -- Add subsurface blocks on top of the terrain (in the air above it)
         for i = 1, dirt_depth do
             local dirt_row = surface_row - i
             if dirt_row >= 0 then
-                column_data[dirt_row] = BlockRef.DIRT
+                column_data[dirt_row] = subsurface_block
             end
         end
 
-        -- Add grass on top of the dirt (only if we placed at least one dirt block)
+        -- Add surface block on top (only if we placed at least one subsurface block)
         local grass_row = surface_row - dirt_depth - GRASS_DEPTH
         if grass_row >= 0 and dirt_depth > 0 then
-            column_data[grass_row] = BlockRef.GRASS
+            column_data[grass_row] = surface_block
+        end
+    end
+
+    -- Third pass: clean up floating surface blocks
+    -- Remove surface/subsurface blocks that have an air gap below (falls into cave openings)
+    for row = 0, world_height - 2 do
+        local block = column_data[row]
+        -- Check if this is a surface or subsurface block
+        if block == BlockRef.DIRT or block == BlockRef.GRASS or 
+           block == BlockRef.SNOW or block == BlockRef.SAND or
+           block == BlockRef.MUD or block == BlockRef.SANDSTONE then
+            -- Check if the block immediately below is sky (empty)
+            local below = column_data[row + 1]
+            if below == BlockRef.SKY then
+                -- This block is floating over air - remove it
+                column_data[row] = BlockRef.SKY
+            end
+        end
+    end
+
+    -- Fourth pass: place bedrock at the bottom of the column
+    -- Creates an unbreakable world floor
+    column_data[world_height - 1] = BlockRef.BEDROCK
+
+    -- Fifth pass: convert SKY blocks without sky access to AIR
+    -- SKY blocks below any solid block become AIR (underground/cave air)
+    local found_solid = false
+    for row = 0, world_height - 1 do
+        local block = column_data[row]
+        -- Check if we've encountered a solid block yet
+        if block ~= BlockRef.SKY and block ~= BlockRef.AIR then
+            found_solid = true
+        end
+        -- If we're below a solid block and this is SKY, convert to AIR
+        if found_solid and block == BlockRef.SKY then
+            column_data[row] = BlockRef.AIR
         end
     end
 end
@@ -212,6 +302,9 @@ function Generator.load(self)
     -- Set seed offset for love.math.noise (used as z coordinate for 2D noise seeding)
     -- Modulo keeps the offset in a reasonable range for noise function stability
     seed_offset = self.data.seed % 10000
+    
+    -- Set biome seed offset (different from terrain seed for independent noise)
+    biome_seed_offset = (self.data.seed % 10000) + 1000
 
     -- Initialize generation queues
     self.generation_queue_high = {}

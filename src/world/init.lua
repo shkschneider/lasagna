@@ -1,28 +1,19 @@
 local Love = require "core.love"
 local Object = require "core.object"
-local Registry = require "registries"
+local Registry = require "src.registries"
 local BLOCKS = Registry.blocks()
 local BlockRef = require "data.blocks.ids"
+local Biome = require "src.data.biome"
 
 -- Block ID offset: noise values are stored as NOISE_OFFSET + value*100
 -- Block IDs 0-99 are actual blocks, 100+ are noise values
 local NOISE_OFFSET = 100
 
--- Block mapping for noise value ranges (value * 10 = index)
--- Maps noise values to actual terrain block types
--- NOTE: Grass and Dirt are NOT included here - they only appear as surface blocks
-local VALUE_TO_BLOCK = {
-    BlockRef.MUD,        -- 0.1-0.2: Mud (wet areas, caves)
-    BlockRef.GRAVEL,     -- 0.2-0.3: Gravel
-    BlockRef.CLAY,       -- 0.3-0.4: Clay
-    BlockRef.SLATE,      -- 0.4-0.5: Slate (was Dirt - now surface only)
-    BlockRef.SAND,       -- 0.5-0.6: Sand
-    BlockRef.SANDSTONE,  -- 0.6-0.7: Sandstone
-    BlockRef.LIMESTONE,  -- 0.7-0.8: Limestone
-    BlockRef.STONE,      -- 0.8-0.9: Stone
-    BlockRef.GRANITE,    -- 0.9-1.0: Granite
-    BlockRef.BASALT,    -- 1.0: Basalt (deepest)
-}
+-- Biome zone size in blocks (512x512 zones)
+local BIOME_ZONE_SIZE = Biome.ZONE_SIZE
+
+-- Seed offset for biome noise (set when generator loads)
+local biome_seed_offset = 0
 
 local World = Object {
     HEIGHT = 512,
@@ -34,6 +25,8 @@ local World = Object {
 
 function World.load(self)
     Love.load(self)
+    -- Set biome seed offset after generator loads (generator sets its seed in its load)
+    biome_seed_offset = (self.generator.data.seed % 10000) + 1000
 end
 
 function World.update(self, dt)
@@ -71,10 +64,16 @@ function World.draw_layer(self, layer)
         for row = start_row, end_row do
             local value = self:get_block_value(layer, col, row)
 
-            -- value ~= 0 means it's not air
-            if value ~= 0 then
-                local x = col * BLOCK_SIZE - camera_x
-                local y = row * BLOCK_SIZE - camera_y
+            local x = col * BLOCK_SIZE - camera_x
+            local y = row * BLOCK_SIZE - camera_y
+
+            -- value == 0 means SKY (fully transparent, don't draw)
+            if value == BlockRef.SKY then
+                -- Sky is fully transparent, nothing to draw
+            elseif value == BlockRef.AIR then
+                -- Underground air - draw semi-transparent black
+            else
+                -- Draw solid blocks
                 local block_id = nil
 
                 -- Check if it's a direct block ID (< NOISE_OFFSET) or a noise value (>= NOISE_OFFSET)
@@ -82,12 +81,10 @@ function World.draw_layer(self, layer)
                     -- Direct block ID (grass, dirt, etc.)
                     block_id = value
                 else
-                    -- Noise value: convert back to 0.0-1.0 range and map to block
+                    -- Noise value: convert back to 0.0-1.0 range and use shared weighted lookup
+                    -- Shared underground distribution prevents visible seams at biome transitions
                     local noise_value = (value - NOISE_OFFSET) / 100
-                    local block_index = math.floor(noise_value * 10)
-                    -- Clamp to valid range (1-10)
-                    block_index = math.max(1, math.min(10, block_index))
-                    block_id = VALUE_TO_BLOCK[block_index]
+                    block_id = Biome.get_underground_block(noise_value)
                 end
 
                 if block_id then
@@ -104,9 +101,9 @@ end
 
 -- Check if a location is valid for building
 function World.is_valid_building_location(self, col, row, layer)
-    -- Check if spot is empty (air)
+    -- Check if spot is empty (sky or air)
     local current_block = self:get_block_id(layer, col, row)
-    if current_block ~= BLOCKS.AIR then
+    if current_block ~= BlockRef.SKY and current_block ~= BlockRef.AIR then
         return false
     end
 
@@ -164,20 +161,22 @@ function World.get_block_value(self, z, col, row)
 end
 
 -- Get block at position (returns block ID)
+-- Uses shared underground block distribution to prevent visible biome transition seams
 function World.get_block_id(self, z, col, row)
     local value = self:get_block_value(z, col, row)
     -- Check if it's a direct block ID (< NOISE_OFFSET) or a noise value (>= NOISE_OFFSET)
-    if value == 0 then
+    if value == BlockRef.SKY then
+        return BlockRef.SKY
+    elseif value == BlockRef.AIR then
         return BlockRef.AIR
     elseif value < NOISE_OFFSET then
         -- Direct block ID (grass, dirt, etc.)
         return value
     else
-        -- Noise value: convert back to 0.0-1.0 range and map to block
+        -- Noise value: convert back to 0.0-1.0 range and use shared weighted lookup
+        -- Shared underground distribution prevents visible seams at biome transitions
         local noise_value = (value - NOISE_OFFSET) / 100
-        local block_index = math.floor(noise_value * 10)
-        block_index = math.max(1, math.min(10, block_index))
-        return VALUE_TO_BLOCK[block_index] or BlockRef.STONE
+        return Biome.get_underground_block(noise_value)
     end
 end
 
@@ -185,6 +184,38 @@ end
 function World.get_block_def(self, z, col, row)
     local block_id = self.get_block_id(self, z, col, row)
     return Registry.Blocks:get(block_id)
+end
+
+-- Get biome at world position (x in world coordinates, z is layer)
+-- Returns biome definition table with id, name, temperature, and humidity
+-- Note: y coordinate is ignored - biomes are determined per-column, not per-block
+-- This matches the terrain generator which uses zone_y = 0 for all blocks in a column
+function World.get_biome(self, x, y, z)
+    z = z or 0
+
+    -- Convert world x coordinate to zone coordinate
+    local zone_x = math.floor(x / BIOME_ZONE_SIZE)
+    -- Use fixed zone_y = 0 to match terrain generator (biomes are column-based)
+    local zone_y = 0
+
+    -- Get temperature noise for this zone (uses biome_seed_offset for independent noise)
+    -- Add z layer offset for slight variation between layers
+    local temp_noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset)
+
+    -- Get humidity noise using a different seed offset (biome_seed_offset + 500)
+    local humidity_noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset + 500)
+
+    -- Get biome definition from temperature and humidity
+    return Biome.get_by_climate(temp_noise, humidity_noise)
+end
+
+-- Check if a position has direct access to the sky (no solid blocks above it)
+-- Returns true if there's only sky from this position up to row 0 (top of world)
+-- Note: This is now O(1) efficient - just check if the block is SKY (not AIR)
+function World.has_access_to_sky(self, z, col, row)
+    -- A block has sky access if it's SKY (0), not AIR (1) which is underground
+    local value = self:get_block_value(z, col, row)
+    return value == BlockRef.SKY
 end
 
 -- Set block value at position (0 = air, 1 = solid)

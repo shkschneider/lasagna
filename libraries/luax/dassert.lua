@@ -1,6 +1,6 @@
 local _assert = assert
 
-assert = setmetatable({
+dassert = setmetatable({
     DEBUG = false,
 }, {
     __call = function(self, condition, message, ...)
@@ -10,3 +10,6 @@ assert = setmetatable({
         end
     end,
 })
+
+-- assert = require("dassert")
+return dassert

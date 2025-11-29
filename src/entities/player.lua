@@ -11,7 +11,7 @@ local Omnitool = require "src.data.omnitool"
 local Stance = require "src.data.stance"
 local Health = require "src.data.health"
 local Stamina = require "src.data.stamina"
-local Registry = require "registries"
+local Registry = require "src.registries"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
@@ -65,7 +65,7 @@ function Player.load(self)
     -- Initialize based on actual spawn position
     self.on_ground = Physics.is_on_ground(G.world, self.position, self.width, self.height)
     if not self.on_ground then
-        Log.warn("Player not on ground!")
+        Log.warning("Player not on ground!")
     end
 
     -- Items
@@ -150,7 +150,7 @@ function Player.update(self, dt)
                 local excess_blocks = fall_blocks - Player.SAFE_FALL_BLOCKS
                 local damage = math.floor(excess_blocks * Player.FALL_DAMAGE_PER_BLOCK)
                 if damage > 0 then
-                    self:hit(damage)
+                    self:hit(stance.crouched and (damage / 2) or damage)
                 end
             end
             self.fall_start_y = nil
@@ -271,7 +271,7 @@ end
 
 function Player.can_switch_layer(self, target_layer)
     return G.world:can_switch_layer(target_layer)
-        and not Physics.check_collision(G.world, self.position.x, self.position.y, target_layer, self.width, self.height)
+        and not Physics.check_collision(G.world, self.position.x + 1, self.position.y + 1, target_layer, self.width - 2, self.height - 2)
 end
 
 -- Inventory management - delegates to Inventory

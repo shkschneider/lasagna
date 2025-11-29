@@ -32,7 +32,7 @@ end
 --  draw method - renders drop
 function ItemDrop.draw(self, entity, camera_x, camera_y)
     if entity and entity.position then
-        local Registry = require "registries"
+        local Registry = require "src.registries"
         local proto = Registry.Blocks:get(self.block_id)
         if proto then
             -- Use global BLOCK_SIZE constant

@@ -7,17 +7,17 @@ local Game = Object {
     id = "game",
     priority = 0,
     world = require("src.world"),
-    camera = require("src.ui.camera"),
+    camera = require("src.camera"),
     player = require("src.entities.player"),
     mining = require("src.world.mining"),
     building = require("src.world.building"),
     entities = require("src.entities"),
     ui = require("src.ui"),
-    chat = require("src.ui.chat"),
+    chat = require("src.chat"),
     lore = require("src.lore"),
     menu = require("src.ui.menu"),
     loader = require("src.ui.loader"),
-    renderer = require("src.ui.renderer"),
+    renderer = require("src.renderer"),
     init = function(self)
         self.state = GameState.new(GameState.BOOT)
         self.time = TimeScale.new(1)
@@ -32,8 +32,11 @@ function Game.load(self, state)
     if not state then
         self.state = GameState.new(GameState.MENU)
         self.debug = require("src.debug").get()
-        if self.debug then Log.level = 0 end
-        assert(self.NAME and self.VERSION)
+        if self.debug then
+            Log.level = 0 -- all
+            dassert.DEBUG = true
+        end
+        dassert(self.NAME and self.VERSION)
         Log.info(self.NAME, self.VERSION:tostring())
     end
     self.menu:load()

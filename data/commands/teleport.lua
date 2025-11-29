@@ -1,4 +1,4 @@
-local CommandsRegistry = require "registries.commands"
+local CommandsRegistry = require "src.registries.commands"
 local Vector = require "src.data.vector"
 
 CommandsRegistry:register({
