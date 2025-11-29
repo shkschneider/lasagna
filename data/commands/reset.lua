@@ -1,4 +1,4 @@
-local CommandsRegistry = require "registries.commands"
+local CommandsRegistry = require "src.registries.commands"
 local WorldData = require "src.data.worlddata"
 local GameState = require "src.data.gamestate"
 

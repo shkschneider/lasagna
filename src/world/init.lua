@@ -1,6 +1,6 @@
 local Love = require "core.love"
 local Object = require "core.object"
-local Registry = require "registries"
+local Registry = require "src.registries"
 local BLOCKS = Registry.blocks()
 local BlockRef = require "data.blocks.ids"
 local Biome = require "src.data.biome"

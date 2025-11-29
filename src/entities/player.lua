@@ -11,7 +11,7 @@ local Omnitool = require "src.data.omnitool"
 local Stance = require "src.data.stance"
 local Health = require "src.data.health"
 local Stamina = require "src.data.stamina"
-local Registry = require "registries"
+local Registry = require "src.registries"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 

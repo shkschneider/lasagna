@@ -1,4 +1,4 @@
-local CommandsRegistry = require "registries.commands"
+local CommandsRegistry = require "src.registries.commands"
 
 CommandsRegistry:register({
     name = "seed",
