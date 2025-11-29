@@ -15,8 +15,10 @@ local BIOME_ZONE_SIZE = Biome.ZONE_SIZE
 -- Seed offset for biome noise (set when generator loads)
 local biome_seed_offset = 0
 
--- Block mapping for noise value ranges (value * 10 = index)
--- Maps noise values to actual terrain block types
+--------------------------------------------------------------------------------
+-- Weighted Block Spawn System
+--------------------------------------------------------------------------------
+-- Define blocks with their spawn weights (higher = more common)
 -- NOTE: Grass, Dirt, Sand, and Sandstone are NOT included here - they only appear as surface/biome blocks
 local VALUE_TO_BLOCK = {
     BlockRef.MUD,        -- 0.1-0.2: Mud (wet areas, caves)
@@ -30,6 +32,42 @@ local VALUE_TO_BLOCK = {
     BlockRef.GRANITE,    -- 0.9-1.0: Granite
     BlockRef.BASALT,    -- 1.0: Basalt (deepest)
 }
+
+local BLOCK_WEIGHTS = {
+    { block = BlockRef.STONE,     weight = 40 },  -- Most common
+    { block = BlockRef.GRANITE,   weight = 20 },
+    { block = BlockRef.LIMESTONE, weight = 15 },
+    { block = BlockRef.SLATE,     weight = 10 },
+    { block = BlockRef.GRAVEL,    weight = 5 },
+    { block = BlockRef.CLAY,      weight = 5 },
+    { block = BlockRef.MUD,       weight = 3 },
+    { block = BlockRef.BASALT,    weight = 2 },
+}
+
+-- Pre-compute cumulative thresholds (normalized to 0.0-1.0)
+local BLOCK_THRESHOLDS = {}
+local total_weight = 0
+for _, entry in ipairs(BLOCK_WEIGHTS) do
+    total_weight = total_weight + entry.weight
+end
+local cumulative = 0
+for _, entry in ipairs(BLOCK_WEIGHTS) do
+    cumulative = cumulative + entry.weight
+    table.insert(BLOCK_THRESHOLDS, {
+        threshold = cumulative / total_weight,
+        block = entry.block
+    })
+end
+
+-- Get block from noise value using weighted thresholds
+local function get_block_from_noise(noise_value)
+    for _, entry in ipairs(BLOCK_THRESHOLDS) do
+        if noise_value <= entry.threshold then
+            return entry.block
+        end
+    end
+    return BlockRef.STONE  -- fallback
+end
 
 local World = Object {
     HEIGHT = 512,
@@ -91,12 +129,9 @@ function World.draw_layer(self, layer)
                     -- Direct block ID (grass, dirt, etc.)
                     block_id = value
                 else
-                    -- Noise value: convert back to 0.0-1.0 range and map to block
+                    -- Noise value: convert back to 0.0-1.0 range and use weighted lookup
                     local noise_value = (value - NOISE_OFFSET) / 100
-                    local block_index = math.floor(noise_value * 10)
-                    -- Clamp to valid range (1-10)
-                    block_index = math.max(1, math.min(10, block_index))
-                    block_id = VALUE_TO_BLOCK[block_index]
+                    block_id = get_block_from_noise(noise_value)
                 end
 
                 if block_id then
@@ -182,11 +217,9 @@ function World.get_block_id(self, z, col, row)
         -- Direct block ID (grass, dirt, etc.)
         return value
     else
-        -- Noise value: convert back to 0.0-1.0 range and map to block
+        -- Noise value: convert back to 0.0-1.0 range and use weighted lookup
         local noise_value = (value - NOISE_OFFSET) / 100
-        local block_index = math.floor(noise_value * 10)
-        block_index = math.max(1, math.min(10, block_index))
-        return VALUE_TO_BLOCK[block_index] or BlockRef.STONE
+        return get_block_from_noise(noise_value)
     end
 end
 
@@ -208,7 +241,7 @@ function World.get_biome(self, x, y, z)
     -- Get temperature noise for this zone (uses biome_seed_offset for independent noise)
     -- Add z layer offset for slight variation between layers
     local temp_noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset)
-    
+
     -- Get humidity noise using a different seed offset (biome_seed_offset + 500)
     local humidity_noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset + 500)
 
