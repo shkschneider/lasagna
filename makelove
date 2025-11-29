@@ -346,10 +346,19 @@ local function check()
     return true
 end
 
+local function tests()
+    log("Testing...")
+    if not run("lua ./tests/log.lua >/dev/null") then return false end
+    if not run("lua ./tests/states.lua >/dev/null") then return false end
+    log("Tests: all tests completed.")
+    return true
+end
+
 -- Print usage
 local function print_usage()
     print("Usage: lua makelove [...]")
     print("       check   -- Runs luacheck on codebase")
+    print("       tests   -- Runs ./tests/*")
     print("       windows -- Build for Windows (zip with love.exe)")
     print("       mac     -- Build for macOS (app bundle)")
     print("       linux   -- Build for Linux (tar.gz with love binary)")
@@ -367,8 +376,11 @@ local function main(args)
     end
 
     if target == "check" then
-        check()
-        return 0
+        return check() and 0 or 1
+    end
+
+    if target == "tests" then
+        return tests() and 0 or 1
     end
 
     if target == "clean" then
