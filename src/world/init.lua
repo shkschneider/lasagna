@@ -50,6 +50,7 @@ local total_weight = 0
 for _, entry in ipairs(BLOCK_WEIGHTS) do
     total_weight = total_weight + entry.weight
 end
+assert(total_weight == 100)
 local cumulative = 0
 for _, entry in ipairs(BLOCK_WEIGHTS) do
     cumulative = cumulative + entry.weight
