@@ -6,8 +6,6 @@ local GameState = require "src.data.gamestate"
 local Game = Object {
     id = "game",
     priority = 0,
-    state = GameState.new(GameState.BOOT),
-    time = TimeScale.new(1),
     world = require("src.world"),
     camera = require("src.ui.camera"),
     player = require("src.entities.player"),
@@ -20,6 +18,10 @@ local Game = Object {
     menu = require("src.ui.menu"),
     loader = require("src.ui.loader"),
     renderer = require("src.ui.renderer"),
+    init = function(self)
+        self.state = GameState.new(GameState.BOOT)
+        self.time = TimeScale.new(1)
+    end,
 }
 
 function Game.load(self, state)

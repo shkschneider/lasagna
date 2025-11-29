@@ -68,12 +68,10 @@ function Player.load(self)
         Log.warn("Player not on ground!")
     end
 
-    -- Add omnitool to hotbar slot 1
+    -- Items
     self.hotbar:set_slot(1, Stack.new(ITEMS.OMNITOOL, 1, "item"))
-
     if G.debug then
         Log.debug(G.world:world_to_block(self.position.x, self.position.y))
-        -- Add weapon items to hotbar slots 2 and 3
         self.hotbar:set_slot(2, Stack.new(ITEMS.GUN, 1, "item"))
         self.hotbar:set_slot(3, Stack.new(ITEMS.ROCKET_LAUNCHER, 1, "item"))
     end
