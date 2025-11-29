@@ -1,5 +1,6 @@
-require "core"
 require "libraries.luax"
+require "core"
+dassert = dassert or assert
 Log = require "libraries.log"
 
 LAYER_MIN = -1

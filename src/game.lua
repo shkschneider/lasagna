@@ -32,8 +32,11 @@ function Game.load(self, state)
     if not state then
         self.state = GameState.new(GameState.MENU)
         self.debug = require("src.debug").get()
-        if self.debug then Log.level = 0 end
-        assert(self.NAME and self.VERSION)
+        if self.debug then
+            Log.level = 0 -- all
+            dassert.DEBUG = true
+        end
+        dassert(self.NAME and self.VERSION)
         Log.info(self.NAME, self.VERSION:tostring())
     end
     self.menu:load()
