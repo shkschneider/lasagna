@@ -43,19 +43,19 @@ Biome.HUMIDITY = {
 -- Note: Lua arrays are 1-based, so IDs are 1-10 (not 0-9)
 Biome.BIOMES = {
     -- Cold + Dry quadrant (IDs 1-3)
-    [1] = { id = 1, name = "Tundra",      temperature = Biome.TEMPERATURE.FREEZING, humidity = Biome.HUMIDITY.ARID },
-    [2] = { id = 2, name = "Taiga",       temperature = Biome.TEMPERATURE.COLD,     humidity = Biome.HUMIDITY.DRY },
-    [3] = { id = 3, name = "Snowy Hills", temperature = Biome.TEMPERATURE.COLD,     humidity = Biome.HUMIDITY.NORMAL },
+    { id = 1, name = "Tundra",      temperature = Biome.TEMPERATURE.FREEZING, humidity = Biome.HUMIDITY.ARID },
+    { id = 2, name = "Taiga",       temperature = Biome.TEMPERATURE.COLD,     humidity = Biome.HUMIDITY.DRY },
+    { id = 3, name = "Snowy Hills", temperature = Biome.TEMPERATURE.COLD,     humidity = Biome.HUMIDITY.NORMAL },
     -- Cold + Wet quadrant (IDs 4-5)
-    [4] = { id = 4, name = "Forest",      temperature = Biome.TEMPERATURE.NORMAL,   humidity = Biome.HUMIDITY.WET },
-    [5] = { id = 5, name = "Plains",      temperature = Biome.TEMPERATURE.NORMAL,   humidity = Biome.HUMIDITY.NORMAL },
+    { id = 4, name = "Forest",      temperature = Biome.TEMPERATURE.NORMAL,   humidity = Biome.HUMIDITY.WET },
+    { id = 5, name = "Plains",      temperature = Biome.TEMPERATURE.NORMAL,   humidity = Biome.HUMIDITY.NORMAL },
     -- Hot + Wet quadrant (IDs 6-7)
-    [6] = { id = 6, name = "Jungle",      temperature = Biome.TEMPERATURE.HOT,      humidity = Biome.HUMIDITY.HUMID },
-    [7] = { id = 7, name = "Swamp",       temperature = Biome.TEMPERATURE.WARM,     humidity = Biome.HUMIDITY.WET },
+    { id = 6, name = "Jungle",      temperature = Biome.TEMPERATURE.HOT,      humidity = Biome.HUMIDITY.HUMID },
+    { id = 7, name = "Swamp",       temperature = Biome.TEMPERATURE.WARM,     humidity = Biome.HUMIDITY.WET },
     -- Hot + Dry quadrant (IDs 8-10)
-    [8] = { id = 8, name = "Savanna",     temperature = Biome.TEMPERATURE.WARM,     humidity = Biome.HUMIDITY.DRY },
-    [9] = { id = 9, name = "Badlands",    temperature = Biome.TEMPERATURE.HOT,      humidity = Biome.HUMIDITY.ARID },
-    [10] = { id = 10, name = "Desert",    temperature = Biome.TEMPERATURE.HOT,      humidity = Biome.HUMIDITY.ARID },
+    { id = 8, name = "Savanna",     temperature = Biome.TEMPERATURE.WARM,     humidity = Biome.HUMIDITY.DRY },
+    { id = 9, name = "Badlands",    temperature = Biome.TEMPERATURE.HOT,      humidity = Biome.HUMIDITY.ARID },
+    { id = 10, name = "Desert",    temperature = Biome.TEMPERATURE.HOT,      humidity = Biome.HUMIDITY.ARID },
 }
 
 -- Get biome ID from noise value (0.0-1.0)
