@@ -20,19 +20,6 @@ local biome_seed_offset = 0
 --------------------------------------------------------------------------------
 -- Define blocks with their spawn weights (higher = more common)
 -- NOTE: Grass, Dirt, Sand, and Sandstone are NOT included here - they only appear as surface/biome blocks
-local VALUE_TO_BLOCK = {
-    BlockRef.MUD,        -- 0.1-0.2: Mud (wet areas, caves)
-    BlockRef.GRAVEL,     -- 0.2-0.3: Gravel
-    BlockRef.CLAY,       -- 0.3-0.4: Clay
-    BlockRef.SLATE,      -- 0.4-0.5: Slate (was Dirt - now surface only)
-    BlockRef.SAND,       -- 0.5-0.6: Sand
-    BlockRef.SANDSTONE,  -- 0.6-0.7: Sandstone
-    BlockRef.LIMESTONE,  -- 0.7-0.8: Limestone
-    BlockRef.STONE,      -- 0.8-0.9: Stone
-    BlockRef.GRANITE,    -- 0.9-1.0: Granite
-    BlockRef.BASALT,    -- 1.0: Basalt (deepest)
-}
-
 local BLOCK_WEIGHTS = {
     { block = BlockRef.STONE,     weight = 40 },  -- Most common
     { block = BlockRef.GRANITE,   weight = 20 },
@@ -43,7 +30,6 @@ local BLOCK_WEIGHTS = {
     { block = BlockRef.MUD,       weight = 3 },
     { block = BlockRef.BASALT,    weight = 2 },
 }
-
 -- Pre-compute cumulative thresholds (normalized to 0.0-1.0)
 local BLOCK_THRESHOLDS = {}
 local total_weight = 0
