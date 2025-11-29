@@ -20,9 +20,8 @@ local Biome = require "src.data.biome"
 --
 -- Step 3: Biome-Based Surface Filling
 --   - Determines biome from temperature + humidity noise
---   - Cold + Dry: Snow on top, dirt below
---   - Hot + Dry: Sand on top and below
---   - Default: Grass on top, dirt below
+--   - Uses BIOME_SURFACES table for surface/subsurface blocks per biome
+--   - See BIOME_SURFACES table below for complete configuration
 --
 -- Step 4: Cleanup Pass
 --   - Removes floating surface blocks above cave openings
@@ -146,52 +145,48 @@ local function get_column_biome(col, z)
     return Biome.get_by_climate(temp_noise, humidity_noise)
 end
 
--- Get surface block type based on biome
--- Returns the appropriate surface block (grass, snow, sand, or mud)
+--------------------------------------------------------------------------------
+-- Biome Surface Configuration
+--------------------------------------------------------------------------------
+-- Defines surface and subsurface blocks for each biome
+-- This table is the single source of truth for biome-specific surface materials
+local BIOME_SURFACES = {
+    -- Cold + Dry biomes
+    ["Tundra"]      = { surface = BlockRef.MUD,   subsurface = BlockRef.DIRT },
+    ["Taiga"]       = { surface = BlockRef.MUD,   subsurface = BlockRef.DIRT },
+    ["Snowy Hills"] = { surface = BlockRef.SNOW,  subsurface = BlockRef.STONE },
+    
+    -- Cold + Wet biomes (unchanged)
+    ["Forest"]      = { surface = BlockRef.GRASS, subsurface = BlockRef.DIRT },
+    ["Plains"]      = { surface = BlockRef.GRASS, subsurface = BlockRef.DIRT },
+    
+    -- Hot + Wet biomes
+    ["Jungle"]      = { surface = BlockRef.GRASS, subsurface = BlockRef.MUD },
+    ["Swamp"]       = { surface = BlockRef.GRASS, subsurface = BlockRef.MUD },
+    
+    -- Hot + Dry biomes
+    ["Savanna"]     = { surface = BlockRef.SAND,  subsurface = BlockRef.SANDSTONE },
+    ["Badlands"]    = { surface = BlockRef.SAND,  subsurface = BlockRef.SANDSTONE },
+    ["Desert"]      = { surface = BlockRef.SAND,  subsurface = BlockRef.SANDSTONE },
+}
+
+-- Default surface configuration for unknown biomes
+local DEFAULT_SURFACE = { surface = BlockRef.GRASS, subsurface = BlockRef.DIRT }
+
+--------------------------------------------------------------------------------
+-- Surface Block Functions
+--------------------------------------------------------------------------------
+
+-- Get surface block type based on biome using BIOME_SURFACES table
 local function get_surface_block(biome)
-    local name = biome.name
-    
-    -- Tundra/Taiga: mud on top
-    if name == "Tundra" or name == "Taiga" then
-        return BlockRef.MUD
-    end
-    
-    -- Snowy Hills: snow on top
-    if name == "Snowy Hills" then
-        return BlockRef.SNOW
-    end
-    
-    -- Desert/Savanna/Badlands (Hot + Dry): sand on top
-    if name == "Desert" or name == "Savanna" or name == "Badlands" then
-        return BlockRef.SAND
-    end
-    
-    -- Jungle/Swamp/Forest/Plains: grass on top
-    return BlockRef.GRASS
+    local config = BIOME_SURFACES[biome.name] or DEFAULT_SURFACE
+    return config.surface
 end
 
--- Get subsurface block type based on biome
--- Returns the appropriate block below the surface (dirt, mud, or sandstone)
+-- Get subsurface block type based on biome using BIOME_SURFACES table
 local function get_subsurface_block(biome)
-    local name = biome.name
-    
-    -- Desert: sandstone below
-    if name == "Desert" then
-        return BlockRef.SANDSTONE
-    end
-    
-    -- Savanna/Badlands: sand below (like before)
-    if name == "Savanna" or name == "Badlands" then
-        return BlockRef.SAND
-    end
-    
-    -- Jungle/Swamp: mud below
-    if name == "Jungle" or name == "Swamp" then
-        return BlockRef.MUD
-    end
-    
-    -- Tundra/Taiga/Snowy Hills/Forest/Plains: dirt below
-    return BlockRef.DIRT
+    local config = BIOME_SURFACES[biome.name] or DEFAULT_SURFACE
+    return config.subsurface
 end
 
 --------------------------------------------------------------------------------
