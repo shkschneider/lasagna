@@ -151,8 +151,8 @@ local subsurface_block = Biome.get_subsurface_block(plains)
 expect(subsurface_block ~= nil, "get_subsurface_block returns a value")
 expect(type(subsurface_block) == "number", "get_subsurface_block returns a number")
 
--- Test get_underground_block
-local underground_block = Biome.get_underground_block("Plains", 0.5)
+-- Test get_underground_block (shared distribution for all biomes)
+local underground_block = Biome.get_underground_block(0.5)
 expect(underground_block ~= nil, "get_underground_block returns a value")
 expect(type(underground_block) == "number", "get_underground_block returns a number")
 

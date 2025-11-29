@@ -61,11 +61,6 @@ function World.draw_layer(self, layer)
 
     -- Draw blocks using actual block colors
     for col = start_col, end_col do
-        -- Get biome for this column (biomes are column-based)
-        local world_x = col * BLOCK_SIZE
-        local biome = self:get_biome(world_x, 0, layer)
-        local biome_name = biome and biome.name or "Plains"
-        
         for row = start_row, end_row do
             local value = self:get_block_value(layer, col, row)
 
@@ -86,9 +81,10 @@ function World.draw_layer(self, layer)
                     -- Direct block ID (grass, dirt, etc.)
                     block_id = value
                 else
-                    -- Noise value: convert back to 0.0-1.0 range and use biome-specific weighted lookup
+                    -- Noise value: convert back to 0.0-1.0 range and use shared weighted lookup
+                    -- Shared underground distribution prevents visible seams at biome transitions
                     local noise_value = (value - NOISE_OFFSET) / 100
-                    block_id = Biome.get_underground_block(biome_name, noise_value)
+                    block_id = Biome.get_underground_block(noise_value)
                 end
 
                 if block_id then
@@ -165,7 +161,7 @@ function World.get_block_value(self, z, col, row)
 end
 
 -- Get block at position (returns block ID)
--- Uses biome-specific underground block weights
+-- Uses shared underground block distribution to prevent visible biome transition seams
 function World.get_block_id(self, z, col, row)
     local value = self:get_block_value(z, col, row)
     -- Check if it's a direct block ID (< NOISE_OFFSET) or a noise value (>= NOISE_OFFSET)
@@ -177,12 +173,10 @@ function World.get_block_id(self, z, col, row)
         -- Direct block ID (grass, dirt, etc.)
         return value
     else
-        -- Noise value: convert back to 0.0-1.0 range and use biome-specific weighted lookup
-        local world_x = col * BLOCK_SIZE
-        local biome = self:get_biome(world_x, 0, z)
-        local biome_name = biome and biome.name or "Plains"
+        -- Noise value: convert back to 0.0-1.0 range and use shared weighted lookup
+        -- Shared underground distribution prevents visible seams at biome transitions
         local noise_value = (value - NOISE_OFFSET) / 100
-        return Biome.get_underground_block(biome_name, noise_value)
+        return Biome.get_underground_block(noise_value)
     end
 end
 

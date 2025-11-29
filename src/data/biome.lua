@@ -103,8 +103,10 @@ end
 local DEFAULT_SURFACE = BlockRef.GRASS
 local DEFAULT_SUBSURFACE = BlockRef.DIRT
 
--- Default underground block weights for unknown biomes
-local DEFAULT_UNDERGROUND = {
+-- Shared underground block weights for all biomes
+-- Using a single distribution prevents visible seams at biome transitions
+-- Biome-specific blocks are used for surface/subsurface only
+local SHARED_UNDERGROUND = {
     { block = BlockRef.STONE,     weight = 40 },
     { block = BlockRef.GRANITE,   weight = 20 },
     { block = BlockRef.LIMESTONE, weight = 15 },
@@ -131,8 +133,8 @@ function Biome.get_subsurface_block(biome)
     return DEFAULT_SUBSURFACE
 end
 
--- Pre-computed cumulative thresholds for each biome (populated on first access)
-local underground_thresholds_cache = {}
+-- Pre-computed cumulative thresholds for shared underground (cached once)
+local shared_underground_thresholds = nil
 
 -- Build cumulative thresholds from weights array
 local function build_thresholds(weights)
@@ -152,19 +154,18 @@ local function build_thresholds(weights)
     return thresholds
 end
 
--- Get underground block thresholds for a biome (cached)
-function Biome.get_underground_thresholds(biome_name)
-    if not underground_thresholds_cache[biome_name] then
-        local biome = BiomesRegistry:get(biome_name)
-        local weights = (biome and biome.underground) or DEFAULT_UNDERGROUND
-        underground_thresholds_cache[biome_name] = build_thresholds(weights)
+-- Get shared underground block thresholds (cached, single distribution for all biomes)
+function Biome.get_underground_thresholds()
+    if not shared_underground_thresholds then
+        shared_underground_thresholds = build_thresholds(SHARED_UNDERGROUND)
     end
-    return underground_thresholds_cache[biome_name]
+    return shared_underground_thresholds
 end
 
--- Get underground block from noise value for a specific biome
-function Biome.get_underground_block(biome_name, noise_value)
-    local thresholds = Biome.get_underground_thresholds(biome_name)
+-- Get underground block from noise value (shared distribution for all biomes)
+-- This prevents visible seams at biome transitions
+function Biome.get_underground_block(noise_value)
+    local thresholds = Biome.get_underground_thresholds()
     for _, entry in ipairs(thresholds) do
         if noise_value <= entry.threshold then
             return entry.block
