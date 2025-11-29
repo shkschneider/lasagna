@@ -13,7 +13,6 @@ function BiomesRegistry.register(self, definition)
     definition.temperature = definition.temperature or "normal"
     definition.humidity = definition.humidity or "normal"
     assert(definition.surface and definition.subsurface, "Biome must have surface defined")
-    assert(definition.underground, "Biome must have underground defined")
     -- TODO assert sum of weight == 100
     return definition.id
 end
