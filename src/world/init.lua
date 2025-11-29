@@ -113,8 +113,6 @@ function World.draw_layer(self, layer)
                 -- Sky is fully transparent, nothing to draw
             elseif value == BlockRef.AIR then
                 -- Underground air - draw semi-transparent black
-                love.graphics.setColor(0, 0, 0, 0.5)
-                love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
             else
                 -- Draw solid blocks
                 local block_id = nil
