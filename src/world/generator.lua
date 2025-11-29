@@ -146,50 +146,6 @@ local function get_column_biome(col, z)
 end
 
 --------------------------------------------------------------------------------
--- Biome Surface Configuration
---------------------------------------------------------------------------------
--- Defines surface and subsurface blocks for each biome
--- This table is the single source of truth for biome-specific surface materials
-local BIOME_SURFACES = {
-    -- Cold + Dry biomes
-    ["Tundra"]      = { surface = BlockRef.MUD,   subsurface = BlockRef.DIRT },
-    ["Taiga"]       = { surface = BlockRef.MUD,   subsurface = BlockRef.DIRT },
-    ["Snowy Hills"] = { surface = BlockRef.SNOW,  subsurface = BlockRef.STONE },
-    
-    -- Cold + Wet biomes (unchanged)
-    ["Forest"]      = { surface = BlockRef.GRASS, subsurface = BlockRef.DIRT },
-    ["Plains"]      = { surface = BlockRef.GRASS, subsurface = BlockRef.DIRT },
-    
-    -- Hot + Wet biomes
-    ["Jungle"]      = { surface = BlockRef.GRASS, subsurface = BlockRef.MUD },
-    ["Swamp"]       = { surface = BlockRef.GRASS, subsurface = BlockRef.MUD },
-    
-    -- Hot + Dry biomes
-    ["Savanna"]     = { surface = BlockRef.SAND,  subsurface = BlockRef.SANDSTONE },
-    ["Badlands"]    = { surface = BlockRef.SAND,  subsurface = BlockRef.SANDSTONE },
-    ["Desert"]      = { surface = BlockRef.SAND,  subsurface = BlockRef.SANDSTONE },
-}
-
--- Default surface configuration for unknown biomes
-local DEFAULT_SURFACE = { surface = BlockRef.GRASS, subsurface = BlockRef.DIRT }
-
---------------------------------------------------------------------------------
--- Surface Block Functions
---------------------------------------------------------------------------------
-
--- Get surface block type based on biome using BIOME_SURFACES table
-local function get_surface_block(biome)
-    local config = BIOME_SURFACES[biome.name] or DEFAULT_SURFACE
-    return config.surface
-end
-
--- Get subsurface block type based on biome using BIOME_SURFACES table
-local function get_subsurface_block(biome)
-    local config = BIOME_SURFACES[biome.name] or DEFAULT_SURFACE
-    return config.subsurface
-end
-
---------------------------------------------------------------------------------
 -- Pure World Generation Functions (no global G access)
 -- Stores block IDs (0-99) or noise values as (NOISE_OFFSET + value*100)
 -- Block ID 0 = SKY (transparent), 1 = AIR (underground), 2 = DIRT, etc.
@@ -201,8 +157,8 @@ end
 local function generate_column_terrain(column_data, col, z, world_height)
     -- Get biome for this column
     local biome = get_column_biome(col, z)
-    local surface_block = get_surface_block(biome)
-    local subsurface_block = get_subsurface_block(biome)
+    local surface_block = Biome.get_surface_block(biome)
+    local subsurface_block = Biome.get_subsurface_block(biome)
     
     -- Calculate organic surface using multi-octave noise for Starbound-like terrain
     local surface_offset = organic_surface_noise(col, z)

@@ -15,6 +15,8 @@
 -- Humidity noise: < 0.5 = dry, >= 0.5 = wet
 --------------------------------------------------------------------------------
 
+local BlockRef = require "data.blocks.ids"
+
 local Biome = {}
 
 -- Biome zone size (in blocks)
@@ -110,6 +112,209 @@ end
 function Biome.get_by_climate(temp_noise, humidity_noise)
     local id = Biome.get_id_from_climate(temp_noise, humidity_noise)
     return Biome.BIOMES[id]
+end
+
+--------------------------------------------------------------------------------
+-- Biome Surface Configuration
+--------------------------------------------------------------------------------
+-- Defines surface and subsurface blocks for each biome
+-- This table is the single source of truth for biome-specific surface materials
+Biome.SURFACES = {
+    -- Cold + Dry biomes
+    ["Tundra"]      = { surface = BlockRef.MUD,   subsurface = BlockRef.DIRT },
+    ["Taiga"]       = { surface = BlockRef.MUD,   subsurface = BlockRef.DIRT },
+    ["Snowy Hills"] = { surface = BlockRef.SNOW,  subsurface = BlockRef.STONE },
+    
+    -- Cold + Wet biomes (unchanged)
+    ["Forest"]      = { surface = BlockRef.GRASS, subsurface = BlockRef.DIRT },
+    ["Plains"]      = { surface = BlockRef.GRASS, subsurface = BlockRef.DIRT },
+    
+    -- Hot + Wet biomes
+    ["Jungle"]      = { surface = BlockRef.GRASS, subsurface = BlockRef.MUD },
+    ["Swamp"]       = { surface = BlockRef.GRASS, subsurface = BlockRef.MUD },
+    
+    -- Hot + Dry biomes
+    ["Savanna"]     = { surface = BlockRef.SAND,  subsurface = BlockRef.SANDSTONE },
+    ["Badlands"]    = { surface = BlockRef.SAND,  subsurface = BlockRef.SANDSTONE },
+    ["Desert"]      = { surface = BlockRef.SAND,  subsurface = BlockRef.SANDSTONE },
+}
+
+-- Default surface configuration for unknown biomes
+Biome.DEFAULT_SURFACE = { surface = BlockRef.GRASS, subsurface = BlockRef.DIRT }
+
+-- Get surface block for a biome
+function Biome.get_surface_block(biome)
+    local config = Biome.SURFACES[biome.name] or Biome.DEFAULT_SURFACE
+    return config.surface
+end
+
+-- Get subsurface block for a biome
+function Biome.get_subsurface_block(biome)
+    local config = Biome.SURFACES[biome.name] or Biome.DEFAULT_SURFACE
+    return config.subsurface
+end
+
+--------------------------------------------------------------------------------
+-- Biome Underground Block Configuration
+--------------------------------------------------------------------------------
+-- Defines weighted block spawn probabilities for underground terrain per biome
+-- Weights are percentages (should sum to 100 for clarity, but auto-normalizes)
+-- NOTE: Grass, Dirt, Sand, Sandstone, Snow are surface-only blocks
+Biome.UNDERGROUND = {
+    -- Cold + Dry biomes: more granite and slate (frozen/rocky)
+    ["Tundra"] = {
+        { block = BlockRef.STONE,     weight = 35 },
+        { block = BlockRef.GRANITE,   weight = 25 },
+        { block = BlockRef.SLATE,     weight = 20 },
+        { block = BlockRef.LIMESTONE, weight = 10 },
+        { block = BlockRef.GRAVEL,    weight = 5 },
+        { block = BlockRef.CLAY,      weight = 3 },
+        { block = BlockRef.BASALT,    weight = 2 },
+    },
+    ["Taiga"] = {
+        { block = BlockRef.STONE,     weight = 35 },
+        { block = BlockRef.GRANITE,   weight = 25 },
+        { block = BlockRef.SLATE,     weight = 15 },
+        { block = BlockRef.LIMESTONE, weight = 10 },
+        { block = BlockRef.GRAVEL,    weight = 8 },
+        { block = BlockRef.CLAY,      weight = 5 },
+        { block = BlockRef.BASALT,    weight = 2 },
+    },
+    ["Snowy Hills"] = {
+        { block = BlockRef.STONE,     weight = 40 },
+        { block = BlockRef.GRANITE,   weight = 25 },
+        { block = BlockRef.SLATE,     weight = 15 },
+        { block = BlockRef.LIMESTONE, weight = 10 },
+        { block = BlockRef.GRAVEL,    weight = 5 },
+        { block = BlockRef.BASALT,    weight = 5 },
+    },
+    
+    -- Cold + Wet biomes: standard mix with more clay
+    ["Forest"] = {
+        { block = BlockRef.STONE,     weight = 40 },
+        { block = BlockRef.GRANITE,   weight = 18 },
+        { block = BlockRef.LIMESTONE, weight = 15 },
+        { block = BlockRef.SLATE,     weight = 10 },
+        { block = BlockRef.CLAY,      weight = 8 },
+        { block = BlockRef.GRAVEL,    weight = 5 },
+        { block = BlockRef.MUD,       weight = 2 },
+        { block = BlockRef.BASALT,    weight = 2 },
+    },
+    ["Plains"] = {
+        { block = BlockRef.STONE,     weight = 40 },
+        { block = BlockRef.GRANITE,   weight = 20 },
+        { block = BlockRef.LIMESTONE, weight = 15 },
+        { block = BlockRef.SLATE,     weight = 10 },
+        { block = BlockRef.CLAY,      weight = 5 },
+        { block = BlockRef.GRAVEL,    weight = 5 },
+        { block = BlockRef.MUD,       weight = 3 },
+        { block = BlockRef.BASALT,    weight = 2 },
+    },
+    
+    -- Hot + Wet biomes: more mud and clay
+    ["Jungle"] = {
+        { block = BlockRef.STONE,     weight = 30 },
+        { block = BlockRef.GRANITE,   weight = 15 },
+        { block = BlockRef.LIMESTONE, weight = 15 },
+        { block = BlockRef.MUD,       weight = 15 },
+        { block = BlockRef.CLAY,      weight = 12 },
+        { block = BlockRef.SLATE,     weight = 8 },
+        { block = BlockRef.GRAVEL,    weight = 3 },
+        { block = BlockRef.BASALT,    weight = 2 },
+    },
+    ["Swamp"] = {
+        { block = BlockRef.STONE,     weight = 25 },
+        { block = BlockRef.MUD,       weight = 25 },
+        { block = BlockRef.CLAY,      weight = 20 },
+        { block = BlockRef.LIMESTONE, weight = 12 },
+        { block = BlockRef.GRANITE,   weight = 8 },
+        { block = BlockRef.SLATE,     weight = 5 },
+        { block = BlockRef.GRAVEL,    weight = 3 },
+        { block = BlockRef.BASALT,    weight = 2 },
+    },
+    
+    -- Hot + Dry biomes: more sandstone and limestone
+    ["Savanna"] = {
+        { block = BlockRef.STONE,     weight = 35 },
+        { block = BlockRef.SANDSTONE, weight = 20 },
+        { block = BlockRef.LIMESTONE, weight = 20 },
+        { block = BlockRef.GRANITE,   weight = 10 },
+        { block = BlockRef.SLATE,     weight = 8 },
+        { block = BlockRef.GRAVEL,    weight = 5 },
+        { block = BlockRef.BASALT,    weight = 2 },
+    },
+    ["Badlands"] = {
+        { block = BlockRef.STONE,     weight = 30 },
+        { block = BlockRef.SANDSTONE, weight = 25 },
+        { block = BlockRef.LIMESTONE, weight = 15 },
+        { block = BlockRef.GRANITE,   weight = 12 },
+        { block = BlockRef.CLAY,      weight = 8 },
+        { block = BlockRef.SLATE,     weight = 5 },
+        { block = BlockRef.GRAVEL,    weight = 3 },
+        { block = BlockRef.BASALT,    weight = 2 },
+    },
+    ["Desert"] = {
+        { block = BlockRef.SANDSTONE, weight = 35 },
+        { block = BlockRef.STONE,     weight = 25 },
+        { block = BlockRef.LIMESTONE, weight = 20 },
+        { block = BlockRef.GRANITE,   weight = 10 },
+        { block = BlockRef.SLATE,     weight = 5 },
+        { block = BlockRef.GRAVEL,    weight = 3 },
+        { block = BlockRef.BASALT,    weight = 2 },
+    },
+}
+
+-- Default underground block weights for unknown biomes
+Biome.DEFAULT_UNDERGROUND = {
+    { block = BlockRef.STONE,     weight = 40 },
+    { block = BlockRef.GRANITE,   weight = 20 },
+    { block = BlockRef.LIMESTONE, weight = 15 },
+    { block = BlockRef.SLATE,     weight = 10 },
+    { block = BlockRef.GRAVEL,    weight = 5 },
+    { block = BlockRef.CLAY,      weight = 5 },
+    { block = BlockRef.MUD,       weight = 3 },
+    { block = BlockRef.BASALT,    weight = 2 },
+}
+
+-- Pre-computed cumulative thresholds for each biome (populated on first access)
+local underground_thresholds_cache = {}
+
+-- Build cumulative thresholds from weights array
+local function build_thresholds(weights)
+    local thresholds = {}
+    local total_weight = 0
+    for _, entry in ipairs(weights) do
+        total_weight = total_weight + entry.weight
+    end
+    local cumulative = 0
+    for _, entry in ipairs(weights) do
+        cumulative = cumulative + entry.weight
+        table.insert(thresholds, {
+            threshold = cumulative / total_weight,
+            block = entry.block
+        })
+    end
+    return thresholds
+end
+
+-- Get underground block thresholds for a biome (cached)
+function Biome.get_underground_thresholds(biome_name)
+    if not underground_thresholds_cache[biome_name] then
+        local weights = Biome.UNDERGROUND[biome_name] or Biome.DEFAULT_UNDERGROUND
+        underground_thresholds_cache[biome_name] = build_thresholds(weights)
+    end
+    return underground_thresholds_cache[biome_name]
+end
+
+-- Get underground block from noise value for a specific biome
+function Biome.get_underground_block(biome_name, noise_value)
+    local thresholds = Biome.get_underground_thresholds(biome_name)
+    for _, entry in ipairs(thresholds) do
+        if noise_value <= entry.threshold then
+            return entry.block
+        end
+    end
+    return BlockRef.STONE  -- fallback
 end
 
 return Biome

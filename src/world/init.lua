@@ -9,52 +9,11 @@ local Biome = require "src.data.biome"
 -- Block IDs 0-99 are actual blocks, 100+ are noise values
 local NOISE_OFFSET = 100
 
--- Biome zone size in blocks (64x64 zones)
+-- Biome zone size in blocks (512x512 zones)
 local BIOME_ZONE_SIZE = Biome.ZONE_SIZE
 
 -- Seed offset for biome noise (set when generator loads)
 local biome_seed_offset = 0
-
---------------------------------------------------------------------------------
--- Weighted Block Spawn System
---------------------------------------------------------------------------------
--- Define blocks with their spawn weights (higher = more common)
--- NOTE: Grass, Dirt, Sand, and Sandstone are NOT included here - they only appear as surface/biome blocks
-local BLOCK_WEIGHTS = {
-    { block = BlockRef.STONE,     weight = 40 },  -- Most common
-    { block = BlockRef.GRANITE,   weight = 20 },
-    { block = BlockRef.LIMESTONE, weight = 15 },
-    { block = BlockRef.SLATE,     weight = 10 },
-    { block = BlockRef.GRAVEL,    weight = 5 },
-    { block = BlockRef.CLAY,      weight = 5 },
-    { block = BlockRef.MUD,       weight = 3 },
-    { block = BlockRef.BASALT,    weight = 2 },
-}
--- Pre-compute cumulative thresholds (normalized to 0.0-1.0)
-local BLOCK_THRESHOLDS = {}
-local total_weight = 0
-for _, entry in ipairs(BLOCK_WEIGHTS) do
-    total_weight = total_weight + entry.weight
-end
-assert(total_weight == 100)
-local cumulative = 0
-for _, entry in ipairs(BLOCK_WEIGHTS) do
-    cumulative = cumulative + entry.weight
-    table.insert(BLOCK_THRESHOLDS, {
-        threshold = cumulative / total_weight,
-        block = entry.block
-    })
-end
-
--- Get block from noise value using weighted thresholds
-local function get_block_from_noise(noise_value)
-    for _, entry in ipairs(BLOCK_THRESHOLDS) do
-        if noise_value <= entry.threshold then
-            return entry.block
-        end
-    end
-    return BlockRef.STONE  -- fallback
-end
 
 local World = Object {
     HEIGHT = 512,
@@ -102,6 +61,11 @@ function World.draw_layer(self, layer)
 
     -- Draw blocks using actual block colors
     for col = start_col, end_col do
+        -- Get biome for this column (biomes are column-based)
+        local world_x = col * BLOCK_SIZE
+        local biome = self:get_biome(world_x, 0, layer)
+        local biome_name = biome and biome.name or "Plains"
+        
         for row = start_row, end_row do
             local value = self:get_block_value(layer, col, row)
 
@@ -122,9 +86,9 @@ function World.draw_layer(self, layer)
                     -- Direct block ID (grass, dirt, etc.)
                     block_id = value
                 else
-                    -- Noise value: convert back to 0.0-1.0 range and use weighted lookup
+                    -- Noise value: convert back to 0.0-1.0 range and use biome-specific weighted lookup
                     local noise_value = (value - NOISE_OFFSET) / 100
-                    block_id = get_block_from_noise(noise_value)
+                    block_id = Biome.get_underground_block(biome_name, noise_value)
                 end
 
                 if block_id then
@@ -201,6 +165,7 @@ function World.get_block_value(self, z, col, row)
 end
 
 -- Get block at position (returns block ID)
+-- Uses biome-specific underground block weights
 function World.get_block_id(self, z, col, row)
     local value = self:get_block_value(z, col, row)
     -- Check if it's a direct block ID (< NOISE_OFFSET) or a noise value (>= NOISE_OFFSET)
@@ -212,9 +177,12 @@ function World.get_block_id(self, z, col, row)
         -- Direct block ID (grass, dirt, etc.)
         return value
     else
-        -- Noise value: convert back to 0.0-1.0 range and use weighted lookup
+        -- Noise value: convert back to 0.0-1.0 range and use biome-specific weighted lookup
+        local world_x = col * BLOCK_SIZE
+        local biome = self:get_biome(world_x, 0, z)
+        local biome_name = biome and biome.name or "Plains"
         local noise_value = (value - NOISE_OFFSET) / 100
-        return get_block_from_noise(noise_value)
+        return Biome.get_underground_block(biome_name, noise_value)
     end
 end
 
