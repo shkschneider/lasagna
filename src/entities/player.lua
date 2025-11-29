@@ -3,6 +3,8 @@ local Object = require "core.object"
 local Control = require "src.entities.control"
 local Physics = require "src.world.physics"
 local Inventory = require "src.items.inventory"
+local Weapon = require "src.items.weapon"
+local Jetpack = require "src.items.jetpack"
 local Vector = require "src.data.vector"
 local Stack = require "src.data.stack"
 local Omnitool = require "src.data.omnitool"
@@ -40,6 +42,8 @@ function Player.load(self)
     self.hotbar = Inventory.new(HOTBAR_SIZE)
     self.backpack = Inventory.new(BACKPACK_SIZE)
     self.control = Control.new()
+    self.weapon = Weapon
+    self.jetpack = Jetpack
 
     -- s
     local x, y, z = G.world:find_spawn_position(LAYER_DEFAULT)
