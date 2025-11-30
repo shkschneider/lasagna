@@ -37,7 +37,7 @@ function Menu.draw(self)
 
     -- For PAUSE, draw semi-transparent overlay over the game
     if state == GameState.PAUSE then
-        love.graphics.setColor(0, 0, 0, 0.5)
+        love.graphics.setColor(0, 0, 0, 0.75)
         love.graphics.rectangle("fill", 0, 0, screen_width, screen_height)
     else
         -- For MENU and LOAD, draw solid black background
