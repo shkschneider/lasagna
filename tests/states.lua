@@ -140,7 +140,7 @@ do
 end
 
 -- renderer mock
-package.loaded["src.ui.renderer"] = {
+package.loaded["src.renderer"] = {
     draw = function() end
 }
 
