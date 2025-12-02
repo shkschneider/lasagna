@@ -52,8 +52,9 @@ function Health.update(self, dt)
     end
 end
 
--- Draw health bar UI (top-right, first bar)
-function Health.draw_bar(self, bar_index)
+-- Draw health bar UI
+function Health.draw(self)
+    local bar_index = 0
     local screen_width = love.graphics.getDimensions()
     local bar_height = BLOCK_SIZE / 4
     local bar_width = Health.BAR_WIDTH

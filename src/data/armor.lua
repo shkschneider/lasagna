@@ -24,8 +24,9 @@ end
 
 function Armor.update(self, dt) end
 
--- Draw armor bar UI (top-right)
-function Armor.draw_bar(self, bar_index)
+-- Draw armor bar UI
+function Armor.draw(self)
+    local bar_index = 1
     local screen_width = love.graphics.getDimensions()
     local bar_height = BLOCK_SIZE / 4
     local bar_width = Armor.BAR_WIDTH

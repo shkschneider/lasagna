@@ -24,8 +24,9 @@ function Stamina.update(self, dt)
     end
 end
 
--- Draw stamina bar UI (top-right)
-function Stamina.draw_bar(self, bar_index)
+-- Draw stamina bar UI
+function Stamina.draw(self)
+    local bar_index = 2
     local screen_width = love.graphics.getDimensions()
     local bar_height = BLOCK_SIZE / 4
     local bar_width = Stamina.BAR_WIDTH

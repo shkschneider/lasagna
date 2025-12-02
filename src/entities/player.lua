@@ -205,9 +205,9 @@ function Player.draw(self)
     end
 
     -- Draw health, armor, and stamina bars (UI elements, not camera-relative)
-    self.health:draw_bar(0)  -- First bar (index 0)
-    self.armor:draw_bar(1)   -- Second bar (index 1)
-    self.stamina:draw_bar(2) -- Third bar (index 2)
+    self.health:draw()  -- First bar
+    self.armor:draw()   -- Second bar
+    self.stamina:draw() -- Third bar
 
     Love.draw(self)
 end
