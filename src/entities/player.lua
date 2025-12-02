@@ -205,6 +205,13 @@ function Player.draw(self)
             self.height)
     end
 
+    if self.control.jetpack_thrusting then
+        local jx, jy = pos.x - camera_x,
+            pos.y - camera_y + self.height / 2
+        love.graphics.setColor(1, 1, 0, 1)
+        love.graphics.line(jx, jy, jx, jy + BLOCK_SIZE)
+    end
+
     -- Draw health, armor, and stamina bars (UI elements, not camera-relative)
     self.health:draw()  -- First bar
     self.armor:draw()   -- Second bar
