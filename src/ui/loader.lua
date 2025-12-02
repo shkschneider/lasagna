@@ -14,6 +14,8 @@ local Loader = Object {
 
 -- Start loading process
 function Loader.start(self)
+    local WorldData = require "src.data.worlddata"
+    
     self._elapsed = 0
     self._done = false
     self._progress = 0
@@ -21,6 +23,11 @@ function Loader.start(self)
         self._progress = 0.05
         G.menu:load()
         coroutine.yield() -- yield after menu load to update display
+
+        -- If loading a saved game, set the generator seed before Love.load
+        if G.pending_save_data and G.pending_save_data.seed then
+            G.world.generator.data = WorldData.new(G.pending_save_data.seed)
+        end
 
         self._progress = 0.1
         Love.load(G)

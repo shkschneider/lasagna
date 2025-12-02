@@ -295,7 +295,10 @@ end
 function Generator.load(self)
     local t = love.timer.getTime()
 
-    self.data = WorldData.new(G.debug and os.getenv("SEED") or math.round(os.time() + (love.timer.getTime() * 9 ^ 9)))
+    -- Only create new WorldData if not already set (e.g., by loader with saved seed)
+    if not self.data or not self.data.seed then
+        self.data = WorldData.new(G.debug and os.getenv("SEED") or math.round(os.time() + (love.timer.getTime() * 9 ^ 9)))
+    end
     assert(self.data.seed)
     Log.info(self.data.seed)
     Love.load(self)

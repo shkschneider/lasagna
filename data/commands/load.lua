@@ -1,6 +1,5 @@
 local CommandsRegistry = require "src.registries.commands"
 local GameState = require "src.data.gamestate"
-local WorldData = require "src.data.worlddata"
 
 CommandsRegistry:register({
     name = "load",
@@ -17,9 +16,8 @@ CommandsRegistry:register({
             return false, "Failed to load save"
         end
 
+        -- Store save data for loader to apply after world regeneration
         G.pending_save_data = save_data
-        -- Reset the world with the saved seed
-        G.world.generator.data = WorldData.new(save_data.seed)
         -- Trigger game reload which will apply save data via loader
         G:load(GameState.LOAD)
 
