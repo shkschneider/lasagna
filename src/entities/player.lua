@@ -126,7 +126,8 @@ function Player.update(self, dt)
     local impact_velocity = vel.y
 
     -- Apply vertical velocity with collision (using physics system)
-    local velocity_modifier = stance.crouched and 0.5 or 1
+    -- Don't apply crouch velocity modifier when jetpack is thrusting (would reduce thrust effectiveness)
+    local velocity_modifier = (stance.crouched and not self.control.jetpack_thrusting) and 0.5 or 1
     local landed, hit_ceiling, new_y = Physics.apply_vertical_movement(
         G.world, pos, vel, self.width, self.height, velocity_modifier, dt
     )
