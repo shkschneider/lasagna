@@ -41,6 +41,10 @@ function Loader.start(self)
             G.world.save:apply_save_data(G.pending_save_data)
             G.pending_save_data = nil
         end
+        
+        self._progress = 0.99
+        coroutine.yield() -- yield to allow one frame of rendering before transition
+        
         self._progress = 1.0
     end)
 end
