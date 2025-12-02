@@ -13,6 +13,7 @@ local Health = require "src.data.health"
 local Stamina = require "src.data.stamina"
 local Armor = require "src.data.armor"
 local Registry = require "src.registries"
+local GameState = require "src.data.gamestate"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
@@ -89,6 +90,8 @@ function Player.update(self, dt)
 
     -- Call other component updates via Object recursion
     Love.update(self, dt)
+
+    if self:is_dead() then return end
 
     -- Check if on ground first (using physics system)
     local on_ground = Physics.is_on_ground(G.world, pos, self.width, self.height)
@@ -336,6 +339,11 @@ function Player.hit(self, damage)
     -- Apply remaining damage to health
     if damage > 0 then
         self.health:hit(damage)
+    end
+    -- Death
+    if self:is_dead() then
+        self.velocity = Vector.new(0, 0)
+        G:load(GameState.DEAD)
     end
 end
 

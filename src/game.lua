@@ -58,13 +58,6 @@ function Game.update(self, dt)
     elseif state == GameState.MENU or state == GameState.PAUSE then
         return
     elseif state == GameState.DEAD then
-        -- In DEAD state, only update chat for message display
-        self.chat:update(dt)
-        return
-    end
-    -- Check for player death and transition to DEAD state
-    if self.player and self.player:is_dead() then
-        self:load(GameState.DEAD)
         return
     end
     dt = dt * self.time.scale
