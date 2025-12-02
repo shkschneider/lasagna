@@ -151,9 +151,9 @@ function Player.update(self, dt)
             if fall_blocks > Player.SAFE_FALL_BLOCKS then
                 local excess_blocks = fall_blocks - Player.SAFE_FALL_BLOCKS
                 -- Linear damage scaling with height and velocity factor
-                local damage = math.clamp(0, (impact_velocity * excess_blocks) / self.gravity, self.health.max)
+                local damage = math.clamp(0, (impact_velocity * excess_blocks) / self.gravity, self.health.max + self.armor.max)
                 if damage > 0 then
-                    self:hit(stance.crouched and (damage / 2) or damage)
+                    self:hit(damage)
                 end
             end
             self.fall_start_y = nil
@@ -325,6 +325,7 @@ end
 
 function Player.hit(self, damage)
     if not self.health then return end
+    damage = self.stance.crouched and (damage / 2) or damage
     -- Armor halfs the damage
     if self.armor and self.armor.current > 0 then
         local dmg = math.min(damage, self.armor.current * 2)
