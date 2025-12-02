@@ -30,6 +30,7 @@ local Player = Object {
     -- Constants
     SAFE_FALL_BLOCKS = 4,  -- 2x player height
     FALL_DAMAGE_PER_BLOCK = 5,
+    FALL_VELOCITY_DIVISOR = 100,  -- normalizes velocity for damage scaling
     STAMINA_REGEN_RATE = 1,  -- per second
 }
 
@@ -151,10 +152,9 @@ function Player.update(self, dt)
             -- Safe fall is 4 blocks (2x player height, since player is 2 blocks tall)
             if fall_blocks > Player.SAFE_FALL_BLOCKS then
                 local excess_blocks = fall_blocks - Player.SAFE_FALL_BLOCKS
-                local base_damage = excess_blocks * Player.FALL_DAMAGE_PER_BLOCK
-                -- Scale damage by velocity at impact relative to gravity
-                local velocity_scale = math.abs(impact_velocity) / self.gravity
-                local damage = math.floor(base_damage * velocity_scale)
+                -- Linear damage scaling with height and velocity factor
+                local velocity_factor = math.abs(impact_velocity) / Player.FALL_VELOCITY_DIVISOR
+                local damage = math.floor(excess_blocks * Player.FALL_DAMAGE_PER_BLOCK * (1 + velocity_factor))
                 if damage > 0 then
                     self:hit(stance.crouched and (damage / 2) or damage)
                 end
