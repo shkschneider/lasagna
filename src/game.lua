@@ -57,8 +57,16 @@ function Game.update(self, dt)
         return
     elseif state == GameState.MENU or state == GameState.PAUSE then
         return
+    elseif state == GameState.DEAD then
+        -- In DEAD state, only update chat for message display
+        self.chat:update(dt)
+        return
     end
-    if self.player and self.player:is_dead() then return end
+    -- Check for player death and transition to DEAD state
+    if self.player and self.player:is_dead() then
+        self:load(GameState.DEAD)
+        return
+    end
     dt = dt * self.time.scale
     Love.update(self, dt)
 end
@@ -81,9 +89,16 @@ function Game.keypressed(self, key)
             love.event.quit()
             return
         end
+        -- DEAD state: escape does nothing
     end
     if state == GameState.MENU or state == GameState.PAUSE then
         self.menu:keypressed(key)
+        return
+    elseif state == GameState.DEAD then
+        -- DEAD state: only handle return key for respawn
+        if key == "return" then
+            self.menu:keypressed(key)
+        end
         return
     elseif state == GameState.LOAD then
         return  -- No input during loading
@@ -93,7 +108,7 @@ function Game.keypressed(self, key)
 end
 
 local function should_ignore_input(state)
-    return state == GameState.MENU or state == GameState.PAUSE or state == GameState.LOAD
+    return state == GameState.MENU or state == GameState.PAUSE or state == GameState.LOAD or state == GameState.DEAD
 end
 
 function Game.keyreleased(self, key)

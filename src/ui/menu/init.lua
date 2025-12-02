@@ -20,6 +20,9 @@ function Menu.load(self)
     elseif state == GameState.LOAD then
         self.title = "Loading..."
         self.items = require("src.ui.menu.loading")()
+    elseif state == GameState.DEAD then
+        self.title = "You Died"
+        self.items = require("src.ui.menu.dead")()
     end
     Love.load(self)
 end
@@ -28,15 +31,15 @@ end
 function Menu.draw(self)
     local state = G.state.current
 
-    -- Only draw in MENU, PAUSE, or LOAD states
-    if state ~= GameState.MENU and state ~= GameState.PAUSE and state ~= GameState.LOAD then
+    -- Only draw in MENU, PAUSE, LOAD, or DEAD states
+    if state ~= GameState.MENU and state ~= GameState.PAUSE and state ~= GameState.LOAD and state ~= GameState.DEAD then
         return
     end
 
     local screen_width, screen_height = love.graphics.getDimensions()
 
-    -- For PAUSE, draw semi-transparent overlay over the game
-    if state == GameState.PAUSE then
+    -- For PAUSE and DEAD, draw semi-transparent overlay over the game
+    if state == GameState.PAUSE or state == GameState.DEAD then
         love.graphics.setColor(0, 0, 0, 0.75)
         love.graphics.rectangle("fill", 0, 0, screen_width, screen_height)
     else
@@ -100,8 +103,8 @@ end
 function Menu.keypressed(self, key)
     local state = G.state.current
 
-    -- Only handle input in MENU or PAUSE states (not LOAD)
-    if state ~= GameState.MENU and state ~= GameState.PAUSE then
+    -- Only handle input in MENU, PAUSE, or DEAD states (not LOAD)
+    if state ~= GameState.MENU and state ~= GameState.PAUSE and state ~= GameState.DEAD then
         return
     end
 

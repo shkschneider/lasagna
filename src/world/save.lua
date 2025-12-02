@@ -37,7 +37,10 @@ local Save = Object {
     _cached_info_modtime = nil,
     -- Autosave settings
     AUTOSAVE_INTERVAL = 60,  -- Autosave every 60 seconds
+    AUTOSAVE_DELAY = 1,      -- Delay between snapshot and save to disk
     _autosave_timer = nil,   -- Timer for autosave (nil until after spawn)
+    _autosave_snapshot = nil, -- Pending snapshot data
+    _autosave_delay_timer = nil, -- Timer for delay after snapshot
 }
 
 -- Helper function to ensure table keys are numbers
@@ -54,11 +57,38 @@ function Save.get_save_path(self)
     return self.SAVE_DIR .. self.SAVE_FILENAME
 end
 
+-- Check if player is dead (prevents saving during death)
+function Save.is_player_dead(self)
+    return G.player and G.player:is_dead()
+end
+
 -- Update autosave timer
 function Save.update(self, dt)
+    -- Never save while player is dead
+    if self:is_player_dead() then
+        -- Cancel any pending autosave snapshot
+        self._autosave_snapshot = nil
+        self._autosave_delay_timer = nil
+        return
+    end
+
     -- Initialize autosave timer on first update (after spawn)
     if self._autosave_timer == nil then
         self._autosave_timer = self.AUTOSAVE_INTERVAL
+    end
+
+    -- Handle pending snapshot delay
+    if self._autosave_snapshot then
+        self._autosave_delay_timer = self._autosave_delay_timer - dt
+        if self._autosave_delay_timer <= 0 then
+            -- Delay complete, check if player is still alive before saving
+            if not self:is_player_dead() then
+                self:save_snapshot(self._autosave_snapshot)
+            end
+            self._autosave_snapshot = nil
+            self._autosave_delay_timer = nil
+        end
+        return
     end
 
     -- Count down timer
@@ -66,7 +96,13 @@ function Save.update(self, dt)
 
     -- Trigger autosave when timer expires
     if self._autosave_timer <= 0 then
-        self:save()
+        -- Take snapshot and display message
+        self._autosave_snapshot = self:create_save_data()
+        self._autosave_delay_timer = self.AUTOSAVE_DELAY
+        -- Display "Autosaving..." message in chat
+        if G.chat then
+            G.chat:add_message("Autosaving...")
+        end
         -- Reset timer for next autosave
         self._autosave_timer = self.AUTOSAVE_INTERVAL
     end
@@ -277,7 +313,18 @@ end
 
 -- Save game state to file
 function Save.save(self)
+    -- Never save while player is dead
+    if self:is_player_dead() then
+        Log.warning("Cannot save while dead")
+        return false
+    end
+    
     local save_data = self:create_save_data()
+    return self:save_snapshot(save_data)
+end
+
+-- Save a snapshot (pre-created save data) to file
+function Save.save_snapshot(self, save_data)
     local serialized = serializer.serialize(save_data)
 
     local path = self:get_save_path()
