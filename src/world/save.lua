@@ -59,7 +59,6 @@ function Save.update(self, dt)
     -- Initialize autosave timer on first update (after spawn)
     if self._autosave_timer == nil then
         self._autosave_timer = self.AUTOSAVE_INTERVAL
-        Log.info("Save", "Autosave enabled (every " .. self.AUTOSAVE_INTERVAL .. " seconds)")
     end
 
     -- Count down timer
@@ -285,19 +284,19 @@ function Save.save(self)
     local success, message = love.filesystem.write(path, serialized)
 
     if success then
-        Log.info("Save", "Game saved to " .. path)
+        Log.info("Game saved to " .. path)
         -- Invalidate cache when save file changes
         self._cached_info = nil
         self._cached_info_modtime = nil
         return true
     else
-        Log.error("Save", "Failed to save: " .. tostring(message))
+        Log.warning("Failed to save: " .. tostring(message))
         return false
     end
 end
 
 -- Load game state from file
-function Save.load(self)
+function Save.rollback(self)
     local path = self:get_save_path()
 
     -- Check if save file exists
@@ -371,7 +370,7 @@ function Save.get_info(self)
     end
 
     -- Load and parse the save file (needed for version/seed info)
-    local save_data = self:load()
+    local save_data = self:rollback()
     local result
     if not save_data then
         result = {

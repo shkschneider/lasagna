@@ -25,7 +25,7 @@ return function()
             label = "[L] oad Game",
             enabled = save_exists,
             action = function()
-                G.pending_save_data = G.world.save:load()
+                G.pending_save_data = G.world.save:rollback()
                 G:load(GameState.LOAD)
             end
         },
