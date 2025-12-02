@@ -55,7 +55,7 @@ function Player.load(self)
     self.stance = Stance.new(Stance.STANDING)
     self.stance.crouched = false
     self.health = Health.new(100, 100)
-    self.armor = Armor.new(0, 100)  -- Armor starts at 0
+    self.armor = Armor.new(G.debug and 50 or 0, 100)
     self.stamina = Stamina.new(100, 100, Player.STAMINA_REGEN_RATE)
 
     -- Fall damage tracking
@@ -388,20 +388,16 @@ function Player.can_stand_up(self)
 end
 
 function Player.hit(self, damage)
-    if not self.health then
-        return
-    end
-
-    -- Apply damage to armor first (armor takes half damage)
-    -- Any remaining damage goes to health
-    local remaining_damage = damage
+    if not self.health then return end
+    -- Armor halfs the damage
     if self.armor and self.armor.current > 0 then
-        remaining_damage = self.armor:hit(damage)
+        local dmg = math.min(damage, self.armor.current * 2)
+        self.armor:hit(dmg)
+        damage = damage - dmg
     end
-
     -- Apply remaining damage to health
-    if remaining_damage > 0 then
-        self.health:hit(remaining_damage)
+    if damage > 0 then
+        self.health:hit(damage)
     end
 end
 
