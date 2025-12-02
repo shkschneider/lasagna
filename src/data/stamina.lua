@@ -29,7 +29,7 @@ function Stamina.draw(self)
     local bar_index = 2
     local screen_width = love.graphics.getDimensions()
     local bar_height = BLOCK_SIZE / 4
-    local bar_width = Stamina.BAR_WIDTH
+    local bar_width = Stamina.BAR_WIDTH * (1.0 - bar_index * 0.25)
     local bar_x = screen_width - bar_width - Stamina.BAR_GAP
     local bar_y = Stamina.BAR_GAP + (bar_height + Stamina.BAR_GAP) * bar_index
 
