@@ -41,9 +41,8 @@ function Control.consume_stamina(self, amount)
 end
 
 function Control.update(self, dt)
-    if G.chat.in_input_mode then
-        return
-    end
+    if G.chat.in_input_mode then return end
+    -- if G.player.inventory_open then return end
 
     local pos = G.player.position
     local vel = G.player.velocity

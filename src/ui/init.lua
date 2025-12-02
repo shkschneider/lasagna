@@ -14,6 +14,8 @@ function Interface.draw(self)
     local camera_x, camera_y = G.camera:get_offset()
     local pos = G.player.position
     local hotbar = G.player.hotbar
+    local backpack = G.player.backpack
+    local inventory_open = G.player.inventory_open
 
     -- Draw cursor highlight
     self:draw_cursor_highlight(camera_x, camera_y, pos.z)
@@ -29,60 +31,41 @@ function Interface.draw(self)
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print(string.format("[%s] %s", biome_name, block_name), screen_width / 2, 10)
 
-    -- Draw hotbar (top-left)
-    local hotbar_y = 10
+    -- Draw inventory (hotbar + backpack if open)
     local slot_size = BLOCK_SIZE * 2  -- 2*BLOCK_SIZE width and height
     local hotbar_x = 10
+    local hotbar_y = 10
+    local padding = 5  -- Padding around the inventory box
 
-    for i = 1, hotbar.size do
-        local x = hotbar_x + (i - 1) * slot_size
-
-        -- Slot background
-        love.graphics.setColor(0, 0, 0, 0.33)
-        love.graphics.rectangle("fill", x, hotbar_y, slot_size - 2, slot_size - 2)
-
-        -- Slot border
-        if i == hotbar.selected_slot then
-            love.graphics.setColor(1, 1, 0, 0.5) -- Yellow for selected
-        else
-            love.graphics.setColor(0.3, 0.3, 0.3, 0.8)
-        end
-        love.graphics.rectangle("line", x, hotbar_y, slot_size - 4, slot_size - 4)
-
-        -- Item in slot
-        local slot = hotbar:get_slot(i)
-        if slot then
-            local proto = nil
-            local color = nil
-
-            if slot.block_id then
-                proto = Registry.Blocks:get(slot.block_id)
-                if proto then
-                    color = proto.color
-                end
-            elseif slot.item_id then
-                proto = Registry.Items:get(slot.item_id)
-                if proto and proto.weapon then
-                    -- Use weapon bullet color for display
-                    color = proto.weapon.bullet_color or {1, 1, 1, 1}
-                else
-                    color = {1, 1, 1, 1}
-                end
-            end
-
-            if proto and color then
-                -- Draw item as colored square
-                love.graphics.setColor(color)
-                love.graphics.rectangle("fill", x + 8, hotbar_y + 8, slot_size - 20, slot_size - 20)
-
-                -- Draw count
-                love.graphics.setColor(1, 1, 1, 1)
-                love.graphics.print(tostring(slot.count), x + slot_size / 4, hotbar_y + slot_size - 20 - 10)
-            end
-        end
+    -- Calculate background dimensions
+    local hotbar_width = hotbar.size * slot_size
+    local hotbar_height = slot_size
+    local total_height = hotbar_height
+    if inventory_open then
+        total_height = hotbar_height + (3 * slot_size)  -- hotbar + 3 rows of backpack
     end
 
-    -- Selected item name below hotbar
+    -- Draw semi-transparent black background box below and around hotbar (and backpack)
+    love.graphics.setColor(0, 0, 0, 0.5)
+    love.graphics.rectangle("fill",
+        hotbar_x - padding,
+        hotbar_y - padding,
+        hotbar_width + padding * 2,
+        total_height + padding * 2)
+
+    -- Draw hotbar slots
+    self:draw_inventory_slots(hotbar, hotbar_x, hotbar_y, slot_size, 9, true)
+
+    -- Draw backpack when inventory is open
+    if inventory_open then
+        love.graphics.setColor(0, 0, 0, 0.33)
+        love.graphics.rectangle("fill", 0, 0, love.graphics.getDimensions())
+        local backpack_y = hotbar_y + slot_size  -- Start right below hotbar
+        self:draw_inventory_slots(backpack, hotbar_x, backpack_y, slot_size, 9, false)
+    end
+
+    -- Selected item name below inventory
+    local name_y = hotbar_y + total_height + 5
     local selected_slot = hotbar:get_selected()
     if selected_slot then
         local proto = nil
@@ -96,11 +79,71 @@ function Interface.draw(self)
         if proto then
             love.graphics.setColor(1, 1, 1, 1)
             local text = proto.name
-            love.graphics.print(text, hotbar_x, hotbar_y + slot_size + 5)
+            love.graphics.print(text, hotbar_x, name_y)
         end
     end
 
     Love.draw(self)
+end
+
+-- Draw inventory slots (used for hotbar and backpack)
+-- @param show_selection: if true, highlight the selected slot (for hotbar)
+function Interface.draw_inventory_slots(self, inventory, start_x, start_y, slot_size, slots_per_row, show_selection)
+    for i = 1, inventory.size do
+        local col = (i - 1) % slots_per_row
+        local row = math.floor((i - 1) / slots_per_row)
+        local x = start_x + col * slot_size
+        local y = start_y + row * slot_size
+
+        -- Slot background
+        love.graphics.setColor(0, 0, 0, 0.33)
+        love.graphics.rectangle("fill", x, y, slot_size - 2, slot_size - 2)
+
+        -- Slot border
+        if show_selection and i == inventory.selected_slot then
+            love.graphics.setColor(1, 1, 0, 0.5) -- Yellow for selected
+        else
+            love.graphics.setColor(0.3, 0.3, 0.3, 0.8)
+        end
+        love.graphics.rectangle("line", x, y, slot_size - 4, slot_size - 4)
+
+        -- Item in slot
+        local slot = inventory:get_slot(i)
+        if slot then
+            self:draw_slot_item(slot, x, y, slot_size)
+        end
+    end
+end
+
+-- Draw a single slot item
+function Interface.draw_slot_item(self, slot, x, y, slot_size)
+    local proto = nil
+    local color = nil
+
+    if slot.block_id then
+        proto = Registry.Blocks:get(slot.block_id)
+        if proto then
+            color = proto.color
+        end
+    elseif slot.item_id then
+        proto = Registry.Items:get(slot.item_id)
+        if proto and proto.weapon then
+            -- Use weapon bullet color for display
+            color = proto.weapon.bullet_color or {1, 1, 1, 1}
+        else
+            color = {1, 1, 1, 1}
+        end
+    end
+
+    if proto and color then
+        -- Draw item as colored square
+        love.graphics.setColor(color)
+        love.graphics.rectangle("fill", x + 8, y + 8, slot_size - 20, slot_size - 20)
+
+        -- Draw count
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.print(tostring(slot.count), x + slot_size / 4, y + slot_size - 20 - 10)
+    end
 end
 
 -- Draw cursor highlight for block under cursor

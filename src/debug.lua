@@ -69,11 +69,8 @@ function Debug.draw(self)
     love.graphics.print(string.format("State: %s", G.state:tostring()), 10, start_y + line_height * 5)
     love.graphics.print(string.format("Time: %s", G.time:tostring()), 10, start_y + line_height * 6)
     love.graphics.print(string.format("Stance: %s", G.player.stance:tostring()), 10, start_y + line_height * 7)
-    love.graphics.print(string.format("Health: %s", G.player.health:tostring()), 10, start_y + line_height * 8)
-    love.graphics.print(string.format("Armor: %s", G.player.armor:tostring()), 10, start_y + line_height * 9)
-    love.graphics.print(string.format("Stamina: %s", G.player.stamina:tostring()), 10, start_y + line_height * 10)
-    love.graphics.print(string.format("Canvases: %d", table.getn(G.renderer.canvases)), 10, start_y + line_height * 11)
-    love.graphics.print(string.format("Entities: %d", 1 + #G.entities.entities), 10, start_y + line_height * 12)
+    love.graphics.print(string.format("Canvases: %d", table.getn(G.renderer.canvases)), 10, start_y + line_height * 8)
+    love.graphics.print(string.format("Entities: %d", 1 + #G.entities.entities), 10, start_y + line_height * 9)
     Love.draw(self)
 end
 

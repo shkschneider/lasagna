@@ -57,6 +57,7 @@ function Player.load(self)
 
     -- Fall damage tracking
     self.fall_start_y = nil
+    self.inventory_open = false  -- Whether the full inventory (backpack) is displayed
 
     -- Cached ground state (updated after physics resolution each frame)
     -- Initialize based on actual spawn position
@@ -210,6 +211,14 @@ function Player.draw(self)
     self.stamina:draw() -- Third bar
 
     Love.draw(self)
+end
+
+function Player.keypressed(self, key)
+    if key == "tab" then
+        self.inventory_open = not self.inventory_open
+    else
+        Love.keypressed(self, key)
+    end
 end
 
 function Player.can_switch_layer(self, target_layer)
