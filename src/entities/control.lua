@@ -60,6 +60,12 @@ function Control.update(self, dt)
             G.player.height = BLOCK_SIZE * 2
             -- Adjust position to keep bottom aligned
             pos.y = pos.y - BLOCK_SIZE / 2
+            -- Scale velocity to maintain consistent movement speed when standing up from crouch
+            -- When crouched, vertical velocity is applied at 0.5x, so we need to halve velocity
+            -- when standing to prevent sudden speed increase
+            if not on_ground then
+                vel.y = vel.y * 0.5
+            end
             return true
         end
         return false
@@ -68,15 +74,15 @@ function Control.update(self, dt)
     -- Handle crouching toggle (only when on ground)
     local is_crouching = love.keyboard.isDown("s") or love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
 
-    if is_crouching and not stance.crouched then
+    if is_crouching and not stance.crouched and on_ground then
         -- Switch to crouching (only when on ground)
         stance.current = Stance.STANDING
         stance.crouched = true
         G.player.height = BLOCK_SIZE * 1
         -- Adjust position to keep bottom aligned
         pos.y = pos.y + BLOCK_SIZE / 2
-    elseif not is_crouching and stance.crouched then
-        -- Try to stand up - check clearance
+    elseif (not is_crouching or not on_ground) and stance.crouched then
+        -- Try to stand up when releasing crouch key or leaving ground
         try_stand_up()
     end
 
@@ -126,6 +132,8 @@ function Control.update(self, dt)
         local stamina_cost = self.JETPACK_STAMINA_COST * dt
         if self:has_stamina(stamina_cost) then
             self:consume_stamina(stamina_cost)
+            -- Jetpack provides upward thrust (negative velocity = upward)
+            -- Always apply thrust in upward direction only
             vel.y = vel.y - self.JETPACK_THRUST_FORCE * dt
             self.jetpack_thrusting = true
         else
