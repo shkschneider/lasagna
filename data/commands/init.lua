@@ -2,6 +2,8 @@ local CommandsRegistry = require "src.registries.commands"
 
 local here = (...):gsub("%.init$", "") .. "."
 
+require(here .. "help")
+
 require(here .. "god")
 require(here .. "heal")
 require(here .. "kill")
