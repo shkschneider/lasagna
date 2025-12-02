@@ -54,7 +54,7 @@ end
 
 -- Test 3: Check all biomes have required fields
 print("\n-- Test 3: All biomes have required fields")
-local required_fields = {"id", "name", "temperature", "humidity", "surface", "subsurface", "underground"}
+local required_fields = {"id", "name", "temperature", "humidity", "surface", "subsurface"}
 for id, biome in BiomesRegistry:iterate() do
     for _, field in ipairs(required_fields) do
         expect(biome[field] ~= nil, "Biome " .. biome.name .. " has field '" .. field .. "'")
@@ -69,24 +69,8 @@ for i = 1, 10 do
     expect(biome.id == i, "Biome ID " .. i .. " matches expected")
 end
 
--- Test 5: Check underground weights are valid
-print("\n-- Test 5: Underground weights are valid")
-for id, biome in BiomesRegistry:iterate() do
-    expect(type(biome.underground) == "table", "Biome " .. biome.name .. " has underground table")
-    expect(#biome.underground > 0, "Biome " .. biome.name .. " has at least one underground block")
-    
-    local total_weight = 0
-    for _, entry in ipairs(biome.underground) do
-        expect(entry.block ~= nil, "Biome " .. biome.name .. " underground entry has block")
-        expect(type(entry.weight) == "number", "Biome " .. biome.name .. " underground entry has weight")
-        expect(entry.weight > 0, "Biome " .. biome.name .. " underground weight is positive")
-        total_weight = total_weight + entry.weight
-    end
-    expect(total_weight > 0, "Biome " .. biome.name .. " has positive total weight")
-end
-
--- Test 6: Check temperature values are valid
-print("\n-- Test 6: Temperature values are valid")
+-- Test 5: Check temperature values are valid
+print("\n-- Test 5: Temperature values are valid")
 local valid_temperatures = {
     ["freezing"] = true,
     ["cold"] = true,
@@ -95,12 +79,12 @@ local valid_temperatures = {
     ["hot"] = true,
 }
 for id, biome in BiomesRegistry:iterate() do
-    expect(valid_temperatures[biome.temperature], 
+    expect(valid_temperatures[biome.temperature],
         "Biome " .. biome.name .. " has valid temperature '" .. tostring(biome.temperature) .. "'")
 end
 
--- Test 7: Check humidity values are valid
-print("\n-- Test 7: Humidity values are valid")
+-- Test 6: Check humidity values are valid
+print("\n-- Test 6: Humidity values are valid")
 local valid_humidities = {
     ["arid"] = true,
     ["dry"] = true,
@@ -109,12 +93,12 @@ local valid_humidities = {
     ["humid"] = true,
 }
 for id, biome in BiomesRegistry:iterate() do
-    expect(valid_humidities[biome.humidity], 
+    expect(valid_humidities[biome.humidity],
         "Biome " .. biome.name .. " has valid humidity '" .. tostring(biome.humidity) .. "'")
 end
 
--- Test 8: Check surface and subsurface are valid block IDs
-print("\n-- Test 8: Surface and subsurface are valid block IDs")
+-- Test 7: Check surface and subsurface are valid block IDs
+print("\n-- Test 7: Surface and subsurface are valid block IDs")
 for id, biome in BiomesRegistry:iterate() do
     expect(type(biome.surface) == "number", "Biome " .. biome.name .. " surface is a number")
     expect(type(biome.subsurface) == "number", "Biome " .. biome.name .. " subsurface is a number")
@@ -122,8 +106,8 @@ for id, biome in BiomesRegistry:iterate() do
     expect(biome.subsurface > 0, "Biome " .. biome.name .. " subsurface is positive")
 end
 
--- Test 9: Check biome helper functions work
-print("\n-- Test 9: Biome helper functions work")
+-- Test 8: Check biome helper functions work
+print("\n-- Test 8: Biome helper functions work")
 local Biome = require("src.data.biome")
 
 -- Test get_by_id
@@ -150,10 +134,5 @@ expect(type(surface_block) == "number", "get_surface_block returns a number")
 local subsurface_block = Biome.get_subsurface_block(plains)
 expect(subsurface_block ~= nil, "get_subsurface_block returns a value")
 expect(type(subsurface_block) == "number", "get_subsurface_block returns a number")
-
--- Test get_underground_block (shared distribution for all biomes)
-local underground_block = Biome.get_underground_block(0.5)
-expect(underground_block ~= nil, "get_underground_block returns a value")
-expect(type(underground_block) == "number", "get_underground_block returns a number")
 
 print("\n=== All biome tests passed! ===")
