@@ -54,33 +54,12 @@ function Interface.draw(self)
         total_height + padding * 2)
 
     -- Draw hotbar slots
-    self:draw_inventory_slots(hotbar, hotbar_x, hotbar_y, slot_size, 9)
+    self:draw_inventory_slots(hotbar, hotbar_x, hotbar_y, slot_size, 9, true)
 
     -- Draw backpack when inventory is open
     if inventory_open then
         local backpack_y = hotbar_y + slot_size  -- Start right below hotbar
-        -- Draw 3 rows of 9 slots
-        for row = 0, 2 do
-            local row_y = backpack_y + row * slot_size
-            for col = 0, 8 do
-                local slot_index = row * 9 + col + 1
-                local x = hotbar_x + col * slot_size
-
-                -- Slot background
-                love.graphics.setColor(0, 0, 0, 0.33)
-                love.graphics.rectangle("fill", x, row_y, slot_size - 2, slot_size - 2)
-
-                -- Slot border
-                love.graphics.setColor(0.3, 0.3, 0.3, 0.8)
-                love.graphics.rectangle("line", x, row_y, slot_size - 4, slot_size - 4)
-
-                -- Item in slot
-                local slot = backpack:get_slot(slot_index)
-                if slot then
-                    self:draw_slot_item(slot, x, row_y, slot_size)
-                end
-            end
-        end
+        self:draw_inventory_slots(backpack, hotbar_x, backpack_y, slot_size, 9, false)
     end
 
     -- Selected item name below inventory
@@ -105,8 +84,9 @@ function Interface.draw(self)
     Love.draw(self)
 end
 
--- Draw inventory slots (used for hotbar)
-function Interface.draw_inventory_slots(self, inventory, start_x, start_y, slot_size, slots_per_row)
+-- Draw inventory slots (used for hotbar and backpack)
+-- @param show_selection: if true, highlight the selected slot (for hotbar)
+function Interface.draw_inventory_slots(self, inventory, start_x, start_y, slot_size, slots_per_row, show_selection)
     for i = 1, inventory.size do
         local col = (i - 1) % slots_per_row
         local row = math.floor((i - 1) / slots_per_row)
@@ -118,7 +98,7 @@ function Interface.draw_inventory_slots(self, inventory, start_x, start_y, slot_
         love.graphics.rectangle("fill", x, y, slot_size - 2, slot_size - 2)
 
         -- Slot border
-        if i == inventory.selected_slot then
+        if show_selection and i == inventory.selected_slot then
             love.graphics.setColor(1, 1, 0, 0.5) -- Yellow for selected
         else
             love.graphics.setColor(0.3, 0.3, 0.3, 0.8)
