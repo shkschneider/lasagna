@@ -23,6 +23,8 @@ function Health.hit(self, damage)
         return
     end
 
+    Log.debug(string.format("Hit: %d-%d/%d", self.current, damage, self.max))
+
     -- Apply damage
     self.current = math.max(0, self.current - damage)
 
