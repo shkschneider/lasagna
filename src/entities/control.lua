@@ -154,6 +154,8 @@ function Control.keypressed(self, key)
         if G.player:can_switch_layer(target_layer) then
             G.player.position.z = target_layer
         end
+    elseif key == "tab" then
+        G.player.inventory_open = not G.player.inventory_open
     end
 
     Love.keypressed(self, key)

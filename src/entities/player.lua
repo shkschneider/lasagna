@@ -57,6 +57,7 @@ function Player.load(self)
 
     -- Fall damage tracking
     self.fall_start_y = nil
+    self.inventory_open = false  -- Whether the full inventory (backpack) is displayed
 
     -- Cached ground state (updated after physics resolution each frame)
     -- Initialize based on actual spawn position
