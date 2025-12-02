@@ -321,7 +321,7 @@ function Player.hit(self, damage)
     -- Armor halfs the damage
     if self.armor and self.armor.current > 0 then
         local dmg = math.min(damage, self.armor.current * 2)
-        self.armor:hit(dmg)
+        self.armor:hit(dmg / 2)
         damage = damage - dmg
     end
     -- Apply remaining damage to health
