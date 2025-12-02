@@ -1,5 +1,7 @@
 local Armor = {
     id = "armor",
+    BAR_GAP = 10,
+    BAR_WIDTH = 150,
     tostring = function(self)
         return string.format("%d%%", self.current)
     end,
@@ -21,5 +23,29 @@ function Armor.hit(self, damage)
 end
 
 function Armor.update(self, dt) end
+
+-- Draw armor bar UI (top-right)
+function Armor.draw_bar(self, bar_index)
+    local screen_width = love.graphics.getDimensions()
+    local bar_height = BLOCK_SIZE / 4
+    local bar_width = Armor.BAR_WIDTH
+    local bar_x = screen_width - bar_width - Armor.BAR_GAP
+    local bar_y = Armor.BAR_GAP + (bar_height + Armor.BAR_GAP) * bar_index
+
+    -- Armor bar background
+    love.graphics.setColor(0, 0, 0, 0.5)
+    love.graphics.rectangle("fill", bar_x, bar_y, bar_width, bar_height)
+
+    -- Armor bar fill (fills from right, decreases to left)
+    if self.max > 0 then
+        local armor_percentage = self.current / self.max
+        local fill_width = bar_width * armor_percentage
+        local fill_x = bar_x + bar_width - fill_width
+
+        -- Silver/gray color for armor
+        love.graphics.setColor(0.7, 0.7, 0.8, 0.8)
+        love.graphics.rectangle("fill", fill_x, bar_y, fill_width, bar_height)
+    end
+end
 
 return Armor
