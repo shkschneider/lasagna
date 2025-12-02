@@ -11,6 +11,7 @@ local Omnitool = require "src.data.omnitool"
 local Stance = require "src.data.stance"
 local Health = require "src.data.health"
 local Stamina = require "src.data.stamina"
+local Armor = require "src.data.armor"
 local Registry = require "src.registries"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
@@ -19,9 +20,7 @@ local ITEMS = Registry.items()
 local HOTBAR_SIZE = 9
 local BACKPACK_SIZE = 27  -- 3 rows of 9
 
--- UI constants for health/stamina bars
-local UI_SLOT_SIZE = 60
-local UI_HOTBAR_Y_OFFSET = 80
+-- UI constants for health/stamina/armor bars
 local UI_BAR_GAP = 10
 
 local Player = Object {
@@ -56,6 +55,7 @@ function Player.load(self)
     self.stance = Stance.new(Stance.STANDING)
     self.stance.crouched = false
     self.health = Health.new(100, 100)
+    self.armor = Armor.new(0, 100)  -- Armor starts at 0
     self.stamina = Stamina.new(100, 100, Player.STAMINA_REGEN_RATE)
 
     -- Fall damage tracking
@@ -84,8 +84,9 @@ function Player.update(self, dt)
     local vel = self.velocity
     local stance = self.stance
 
-    -- Manually update health and stamina components
+    -- Manually update health, armor, and stamina components
     self.health:update(dt)
+    self.armor:update(dt)
     self.stamina:update(dt)
 
     -- Call other component updates via Object recursion
@@ -206,31 +207,27 @@ function Player.draw(self)
             self.height)
     end
 
-    -- Draw health and stamina bars (UI elements, not camera-relative)
+    -- Draw health, armor, and stamina bars (UI elements, not camera-relative)
     self:draw_health_bar()
+    self:draw_armor_bar()
     self:draw_stamina_bar()
 
     Love.draw(self)
 end
 
--- Helper function to calculate bar positioning relative to hotbar
-local function get_bar_layout(hotbar)
-    local screen_width, screen_height = love.graphics.getDimensions()
-    local hotbar_y = screen_height - UI_HOTBAR_Y_OFFSET
-    local hotbar_x = (screen_width - (hotbar.size * UI_SLOT_SIZE)) / 2
-    local hotbar_width = hotbar.size * UI_SLOT_SIZE
+-- Helper function to calculate bar positioning in top-right corner
+local function get_topright_bar_layout()
+    local screen_width = love.graphics.getDimensions()
     local bar_height = BLOCK_SIZE / 4  -- 1/4 BLOCK_SIZE high
-    local bar_width = hotbar_width / 2  -- Half the hotbar width
-    local bar_y = hotbar_y - bar_height - UI_BAR_GAP
-    return hotbar_x, bar_y, bar_width, bar_height, hotbar_width
+    local bar_width = 150  -- Fixed width for bars
+    local bar_x = screen_width - bar_width - UI_BAR_GAP  -- Right-aligned with gap
+    return bar_x, bar_width, bar_height
 end
 
--- Draw health bar UI
+-- Draw health bar UI (top-right, first bar)
 function Player.draw_health_bar(self)
-    if not self.hotbar then return end
-
-    local hotbar_x, bar_y, bar_width, bar_height = get_bar_layout(self.hotbar)
-    local bar_x = hotbar_x  -- Aligned left
+    local bar_x, bar_width, bar_height = get_topright_bar_layout()
+    local bar_y = UI_BAR_GAP  -- Top of screen with gap
 
     -- Health bar background
     love.graphics.setColor(0, 0, 0, 0.5)
@@ -252,12 +249,31 @@ function Player.draw_health_bar(self)
     love.graphics.rectangle("fill", bar_x, bar_y, fill_width, bar_height)
 end
 
--- Draw stamina bar UI
-function Player.draw_stamina_bar(self)
-    if not self.hotbar then return end
+-- Draw armor bar UI (top-right, second bar, between health and stamina)
+function Player.draw_armor_bar(self)
+    local bar_x, bar_width, bar_height = get_topright_bar_layout()
+    local bar_y = UI_BAR_GAP + bar_height + UI_BAR_GAP  -- Below health bar
 
-    local hotbar_x, bar_y, bar_width, bar_height, hotbar_width = get_bar_layout(self.hotbar)
-    local bar_x = hotbar_x + hotbar_width / 2  -- Aligned right (after health bar)
+    -- Armor bar background
+    love.graphics.setColor(0, 0, 0, 0.5)
+    love.graphics.rectangle("fill", bar_x, bar_y, bar_width, bar_height)
+
+    -- Armor bar fill
+    local armor = self.armor
+    if armor.max > 0 then
+        local armor_percentage = armor.current / armor.max
+        local fill_width = bar_width * armor_percentage
+
+        -- Silver/gray color for armor
+        love.graphics.setColor(0.7, 0.7, 0.8, 0.8)
+        love.graphics.rectangle("fill", bar_x, bar_y, fill_width, bar_height)
+    end
+end
+
+-- Draw stamina bar UI (top-right, third bar, below armor)
+function Player.draw_stamina_bar(self)
+    local bar_x, bar_width, bar_height = get_topright_bar_layout()
+    local bar_y = UI_BAR_GAP + (bar_height + UI_BAR_GAP) * 2  -- Below armor bar
 
     -- Stamina bar background
     love.graphics.setColor(0, 0, 0, 0.5)
@@ -373,8 +389,17 @@ function Player.hit(self, damage)
         return
     end
 
-    -- Delegate to health component
-    self.health:hit(damage)
+    -- Apply damage to armor first (armor takes half damage)
+    -- Any remaining damage goes to health
+    local remaining_damage = damage
+    if self.armor and self.armor.current > 0 then
+        remaining_damage = self.armor:hit(damage)
+    end
+
+    -- Apply remaining damage to health
+    if remaining_damage > 0 then
+        self.health:hit(remaining_damage)
+    end
 end
 
 function Player.is_dead(self)

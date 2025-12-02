@@ -14,12 +14,11 @@ function Interface.draw(self)
     local camera_x, camera_y = G.camera:get_offset()
     local pos = G.player.position
     local hotbar = G.player.hotbar
-    local omnitool = G.player.omnitool
 
     -- Draw cursor highlight
     self:draw_cursor_highlight(camera_x, camera_y, pos.z)
 
-    -- Draw lookup
+    -- Draw lookup (center top)
     local mouse_x, mouse_y = love.mouse.getPosition()
     local world_x = mouse_x + camera_x
     local world_y = mouse_y + camera_y
@@ -30,24 +29,10 @@ function Interface.draw(self)
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print(string.format("[%s] %s", biome_name, block_name), screen_width / 2, 10)
 
-    -- Layer indicator
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.print(string.format("Layer: %d", pos.z), 10, 10)
-
-    -- Omnitool tier
-    love.graphics.print(string.format("OmniTool: %s", omnitool:tostring()), 10, 30)
-
-    -- Player position
-    local block_x, block_y = G.world:world_to_block(pos.x, pos.y)
-    love.graphics.print(string.format("Position: %d, %d", block_x, block_y), 10, 50)
-
-    -- Mouse position
-    love.graphics.print(string.format("Mouse: %d,%d", mouse_col, mouse_row), 10, 70)
-
-    -- Draw hotbar
-    local hotbar_y = screen_height - 80
+    -- Draw hotbar (top-left)
+    local hotbar_y = 10
     local slot_size = 60
-    local hotbar_x = (screen_width - (hotbar.size * slot_size)) / 2
+    local hotbar_x = 10
 
     for i = 1, hotbar.size do
         local x = hotbar_x + (i - 1) * slot_size
@@ -97,7 +82,7 @@ function Interface.draw(self)
         end
     end
 
-    -- Selected item name above hotbar
+    -- Selected item name below hotbar
     local selected_slot = hotbar:get_selected()
     if selected_slot then
         local proto = nil
@@ -111,8 +96,7 @@ function Interface.draw(self)
         if proto then
             love.graphics.setColor(1, 1, 1, 1)
             local text = proto.name
-            local text_width = love.graphics.getFont():getWidth(text)
-            love.graphics.print(text, (screen_width - text_width) / 2, hotbar_y - 40)
+            love.graphics.print(text, hotbar_x, hotbar_y + slot_size + 5)
         end
     end
 
