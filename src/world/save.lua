@@ -181,7 +181,7 @@ end
 -- Apply loaded save data to current game state
 function Save.apply_save_data(self, save_data)
     if not save_data then
-        Log.error("Save", "No save data to apply")
+        Log.error("Nothing")
         return false
     end
 
@@ -190,8 +190,8 @@ function Save.apply_save_data(self, save_data)
         local current = G.VERSION
         local saved = save_data.version
         if saved.major ~= current.major or saved.minor ~= current.minor then
-            Log.warning("Save", string.format(
-                "Save version mismatch: saved %d.%d.%s, current %s",
+            Log.warning(string.format(
+                "Version mismatch: saved %d.%d.%s, current %s",
                 saved.major, saved.minor, tostring(saved.patch or "x"),
                 current:tostring()
             ))
@@ -271,7 +271,7 @@ function Save.apply_save_data(self, save_data)
         end
     end
 
-    Log.info("Save", "Save data applied successfully")
+    Log.info("Success")
     return true
 end
 
@@ -284,13 +284,13 @@ function Save.save(self)
     local success, message = love.filesystem.write(path, serialized)
 
     if success then
-        Log.info("Game saved to " .. path)
+        Log.info(save_data.seed, path)
         -- Invalidate cache when save file changes
         self._cached_info = nil
         self._cached_info_modtime = nil
         return true
     else
-        Log.warning("Failed to save: " .. tostring(message))
+        Log.warning(tostring(message))
         return false
     end
 end
@@ -325,7 +325,7 @@ function Save.rollback(self)
         return nil
     end
 
-    Log.info("Save", "Save loaded from " .. path)
+    Log.info(save_data.seed, path)
     return save_data
 end
 
