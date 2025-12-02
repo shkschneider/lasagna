@@ -123,6 +123,9 @@ function Player.update(self, dt)
 
     pos.x = new_x
 
+    -- Capture vertical velocity before physics resolution (for fall damage calculation)
+    local impact_velocity = vel.y
+
     -- Apply vertical velocity with collision (using physics system)
     local velocity_modifier = stance.crouched and 0.5 or 1
     local landed, hit_ceiling, new_y = Physics.apply_vertical_movement(
@@ -148,7 +151,10 @@ function Player.update(self, dt)
             -- Safe fall is 4 blocks (2x player height, since player is 2 blocks tall)
             if fall_blocks > Player.SAFE_FALL_BLOCKS then
                 local excess_blocks = fall_blocks - Player.SAFE_FALL_BLOCKS
-                local damage = math.floor(excess_blocks * Player.FALL_DAMAGE_PER_BLOCK)
+                local base_damage = excess_blocks * Player.FALL_DAMAGE_PER_BLOCK
+                -- Scale damage by velocity at impact relative to gravity
+                local velocity_scale = math.abs(impact_velocity) / self.gravity
+                local damage = math.floor(base_damage * velocity_scale)
                 if damage > 0 then
                     self:hit(stance.crouched and (damage / 2) or damage)
                 end
