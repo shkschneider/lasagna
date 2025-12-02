@@ -217,7 +217,7 @@ end
 
 -- Helper function to calculate bar positioning in top-right corner
 local function get_topright_bar_layout()
-    local screen_width = love.graphics.getDimensions()
+    local screen_width, _ = love.graphics.getDimensions()
     local bar_height = BLOCK_SIZE / 4  -- 1/4 BLOCK_SIZE high
     local bar_width = 150  -- Fixed width for bars
     local bar_x = screen_width - bar_width - UI_BAR_GAP  -- Right-aligned with gap
@@ -233,10 +233,11 @@ function Player.draw_health_bar(self)
     love.graphics.setColor(0, 0, 0, 0.5)
     love.graphics.rectangle("fill", bar_x, bar_y, bar_width, bar_height)
 
-    -- Health bar fill
+    -- Health bar fill (fills from right, decreases to left)
     local health = self.health
     local health_percentage = health.current / health.max
     local fill_width = bar_width * health_percentage
+    local fill_x = bar_x + bar_width - fill_width  -- Start from right side
 
     -- Color based on health percentage
     if health_percentage > 0.6 then
@@ -246,7 +247,7 @@ function Player.draw_health_bar(self)
     else
         love.graphics.setColor(1, 0, 0, 0.8)  -- Red
     end
-    love.graphics.rectangle("fill", bar_x, bar_y, fill_width, bar_height)
+    love.graphics.rectangle("fill", fill_x, bar_y, fill_width, bar_height)
 end
 
 -- Draw armor bar UI (top-right, second bar, between health and stamina)
@@ -258,15 +259,16 @@ function Player.draw_armor_bar(self)
     love.graphics.setColor(0, 0, 0, 0.5)
     love.graphics.rectangle("fill", bar_x, bar_y, bar_width, bar_height)
 
-    -- Armor bar fill
+    -- Armor bar fill (fills from right, decreases to left)
     local armor = self.armor
     if armor.max > 0 then
         local armor_percentage = armor.current / armor.max
         local fill_width = bar_width * armor_percentage
+        local fill_x = bar_x + bar_width - fill_width  -- Start from right side
 
         -- Silver/gray color for armor
         love.graphics.setColor(0.7, 0.7, 0.8, 0.8)
-        love.graphics.rectangle("fill", bar_x, bar_y, fill_width, bar_height)
+        love.graphics.rectangle("fill", fill_x, bar_y, fill_width, bar_height)
     end
 end
 
@@ -279,14 +281,15 @@ function Player.draw_stamina_bar(self)
     love.graphics.setColor(0, 0, 0, 0.5)
     love.graphics.rectangle("fill", bar_x, bar_y, bar_width, bar_height)
 
-    -- Stamina bar fill
+    -- Stamina bar fill (fills from right, decreases to left)
     local stamina = self.stamina
     local stamina_percentage = stamina.current / stamina.max
     local fill_width = bar_width * stamina_percentage
+    local fill_x = bar_x + bar_width - fill_width  -- Start from right side
 
     -- Blue color for stamina
     love.graphics.setColor(0, 0.5, 1, 0.8)  -- Blue
-    love.graphics.rectangle("fill", bar_x, bar_y, fill_width, bar_height)
+    love.graphics.rectangle("fill", fill_x, bar_y, fill_width, bar_height)
 end
 
 function Player.can_switch_layer(self, target_layer)

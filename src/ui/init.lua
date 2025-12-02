@@ -31,7 +31,7 @@ function Interface.draw(self)
 
     -- Draw hotbar (top-left)
     local hotbar_y = 10
-    local slot_size = 60
+    local slot_size = BLOCK_SIZE * 2  -- 2*BLOCK_SIZE width and height
     local hotbar_x = 10
 
     for i = 1, hotbar.size do
