@@ -30,7 +30,6 @@ local Player = Object {
     -- Constants
     SAFE_FALL_BLOCKS = 4,  -- 2x player height
     FALL_DAMAGE_PER_BLOCK = 5,
-    COLLISION_DAMAGE_VELOCITY = 300,  -- velocity threshold for wall/ceiling damage
     STAMINA_REGEN_RATE = 1,  -- per second
 }
 
@@ -108,18 +107,10 @@ function Player.update(self, dt)
         Physics.apply_gravity(vel, self.gravity, dt)
     end
 
-    -- Capture horizontal velocity before collision (for wall damage)
-    local horizontal_velocity = math.abs(vel.x)
-
     -- Apply horizontal velocity with collision (using physics system)
     local hit_wall, new_x = Physics.apply_horizontal_movement(
         G.world, pos, vel, self.width, self.height, dt
     )
-
-    -- Apply small damage when hitting a wall at high velocity
-    if hit_wall and not self.health.invincible and horizontal_velocity >= Player.COLLISION_DAMAGE_VELOCITY then
-        self:hit(1)
-    end
 
     -- When crouched and on ground, prevent falling off edges
     -- Only apply the new position if there would be ground beneath it
@@ -132,7 +123,7 @@ function Player.update(self, dt)
 
     pos.x = new_x
 
-    -- Capture vertical velocity before physics resolution (for fall/ceiling damage)
+    -- Capture vertical velocity before physics resolution (for fall damage calculation)
     local impact_velocity = vel.y
 
     -- Apply vertical velocity with collision (using physics system)
@@ -140,11 +131,6 @@ function Player.update(self, dt)
     local landed, hit_ceiling, new_y = Physics.apply_vertical_movement(
         G.world, pos, vel, self.width, self.height, velocity_modifier, dt
     )
-
-    -- Apply small damage when hitting a ceiling at high velocity
-    if hit_ceiling and not self.health.invincible and math.abs(impact_velocity) >= Player.COLLISION_DAMAGE_VELOCITY then
-        self:hit(1)
-    end
 
     -- Always update position - apply_vertical_movement returns the correct y position
     -- whether on ground (snapped to ground) or in air (new_y from movement)
