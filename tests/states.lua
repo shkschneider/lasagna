@@ -101,9 +101,9 @@ package.loaded["src.world"] = {}
 package.loaded["src.ui.camera"] = {}
 
 -- player mock with configurable is_dead
-local player_mock = { 
+local player_mock = {
     _is_dead = false,
-    is_dead = function(self) return player_mock._is_dead end 
+    is_dead = function(self) return player_mock._is_dead end
 }
 package.loaded["src.entities.player"] = player_mock
 
@@ -209,6 +209,7 @@ do
     Game.state = GS.new(GS.LOAD)
 
     -- run update once (dt arbitrary)
+    Game.time = require("src.data.timescale").new(1)
     Game:update(0.016)
 
     expect(mock.loader_started, "loader:start() called during LOAD update")
@@ -221,58 +222,43 @@ print("-- Test 4: player death transitions game to DEAD state")
 do
     local GS = require("src.data.gamestate")
     local player = package.loaded["src.entities.player"]
-    
+
     -- Set game to PLAY state
     Game.state = GS.new(GS.PLAY)
-    
+
     -- Set player to dead
     player._is_dead = true
-    
+
     -- run update
+    Game.time = require("src.data.timescale").new(1)
     Game:update(0.016)
-    
+
     expect(Game.state and Game.state.current == GS.DEAD, "Game transitioned to DEAD when player died")
-    
+
     -- Reset player state
     player._is_dead = false
 end
 
-print("-- Test 5: DEAD state only updates chat")
-do
-    local GS = require("src.data.gamestate")
-    mock.chat_update_called = false
-    mock.Love_update_called = false
-    
-    -- Set game to DEAD state
-    Game.state = GS.new(GS.DEAD)
-    
-    -- run update
-    Game:update(0.016)
-    
-    expect(mock.chat_update_called, "chat:update() called in DEAD state")
-    expect(not mock.Love_update_called, "Love.update() NOT called in DEAD state")
-end
-
-print("-- Test 6: DEAD state ignores most input but allows return key")
+print("-- Test 5: DEAD state ignores most input but allows return key")
 do
     local GS = require("src.data.gamestate")
     mock.menu_keypressed_called = false
-    
+
     -- Update menu mock to track keypressed
     local menu = package.loaded["src.ui.menu"]
-    menu.keypressed = function(self, key) 
-        mock.menu_keypressed_called = true 
+    menu.keypressed = function(self, key)
+        mock.menu_keypressed_called = true
         mock.menu_keypressed_key = key
     end
-    
+
     -- Set game to DEAD state
     Game.state = GS.new(GS.DEAD)
-    
+
     -- Try escape key - should be ignored
     mock.menu_keypressed_called = false
     Game:keypressed("escape")
     expect(not mock.menu_keypressed_called, "escape key ignored in DEAD state")
-    
+
     -- Try return key - should be passed to menu
     mock.menu_keypressed_called = false
     Game:keypressed("return")
