@@ -358,13 +358,14 @@ end
 -- Print usage
 local function print_usage()
     print("Usage: lua makelove [...]")
-    print("       check   -- Runs luacheck on codebase")
-    print("       tests   -- Runs ./tests/*")
-    print("       windows -- Build for Windows (zip with love.exe)")
-    print("       mac     -- Build for macOS (app bundle)")
-    print("       linux   -- Build for Linux (tar.gz with love binary)")
-    print("       all     -- Builds for all platforms.")
-    print("       clean   -- Remove all build artifacts")
+    print("       run|play -- Runs the game")
+    print("       check    -- Runs luacheck on codebase")
+    print("       tests    -- Runs ./tests/*")
+    print("       windows  -- Build for Windows (zip with love.exe)")
+    print("       mac      -- Build for macOS (app bundle)")
+    print("       linux    -- Build for Linux (tar.gz with love binary)")
+    print("       all      -- Builds for all platforms.")
+    print("       clean    -- Remove all build artifacts")
 end
 
 -- Main entry point
@@ -373,6 +374,11 @@ local function main(args)
 
     if target == nil or target == "help" then
         print_usage()
+        return 0
+    end
+
+    if target == "run" or target == "play" then
+        run("love .")
         return 0
     end
 
