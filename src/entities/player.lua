@@ -94,9 +94,9 @@ function Player.update(self, dt)
     -- Check if on ground first (using physics system)
     local on_ground = Physics.is_on_ground(G.world, pos, self.width, self.height)
 
-    -- Track fall start position when first becoming airborne
+    -- Track fall start position - update to highest point reached (lowest Y)
     if not on_ground then
-        if self.fall_start_y == nil then
+        if self.fall_start_y == nil or pos.y < self.fall_start_y then
             self.fall_start_y = pos.y
         end
     end
@@ -123,6 +123,9 @@ function Player.update(self, dt)
 
     pos.x = new_x
 
+    -- Capture vertical velocity before physics resolution (for fall damage calculation)
+    local impact_velocity = vel.y
+
     -- Apply vertical velocity with collision (using physics system)
     local velocity_modifier = stance.crouched and 0.5 or 1
     local landed, hit_ceiling, new_y = Physics.apply_vertical_movement(
@@ -148,7 +151,8 @@ function Player.update(self, dt)
             -- Safe fall is 4 blocks (2x player height, since player is 2 blocks tall)
             if fall_blocks > Player.SAFE_FALL_BLOCKS then
                 local excess_blocks = fall_blocks - Player.SAFE_FALL_BLOCKS
-                local damage = math.floor(excess_blocks * Player.FALL_DAMAGE_PER_BLOCK)
+                -- Linear damage scaling with height and velocity factor
+                local damage = math.clamp(0, (impact_velocity * excess_blocks) / self.gravity, self.health.max)
                 if damage > 0 then
                     self:hit(stance.crouched and (damage / 2) or damage)
                 end

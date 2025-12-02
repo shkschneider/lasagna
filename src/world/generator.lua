@@ -135,13 +135,13 @@ local function get_column_biome(col, z)
     -- Use fixed zone_y = 0 for consistent column-based biome generation
     -- This ensures the same biome is used for the entire column during generation
     local zone_y = 0
-    
+
     -- Get temperature noise
     local temp_noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset)
-    
+
     -- Get humidity noise using a different seed offset
     local humidity_noise = love.math.noise(zone_x * 0.1 + z * 0.05, zone_y * 0.1, biome_seed_offset + 500)
-    
+
     return Biome.get_by_climate(temp_noise, humidity_noise)
 end
 
@@ -159,7 +159,7 @@ local function generate_column_terrain(column_data, col, z, world_height)
     local biome = get_column_biome(col, z)
     local surface_block = Biome.get_surface_block(biome)
     local subsurface_block = Biome.get_subsurface_block(biome)
-    
+
     -- Calculate organic surface using multi-octave noise for Starbound-like terrain
     local surface_offset = organic_surface_noise(col, z)
     local cut_ratio = SURFACE_Y_RATIO + surface_offset
@@ -226,7 +226,7 @@ local function generate_column_terrain(column_data, col, z, world_height)
     for row = 0, world_height - 2 do
         local block = column_data[row]
         -- Check if this is a surface or subsurface block
-        if block == BlockRef.DIRT or block == BlockRef.GRASS or 
+        if block == BlockRef.DIRT or block == BlockRef.GRASS or
            block == BlockRef.SNOW or block == BlockRef.SAND or
            block == BlockRef.MUD or block == BlockRef.SANDSTONE then
             -- Check if the block immediately below is sky (empty)
@@ -302,7 +302,7 @@ function Generator.load(self)
     -- Set seed offset for love.math.noise (used as z coordinate for 2D noise seeding)
     -- Modulo keeps the offset in a reasonable range for noise function stability
     seed_offset = self.data.seed % 10000
-    
+
     -- Set biome seed offset (different from terrain seed for independent noise)
     biome_seed_offset = (self.data.seed % 10000) + 1000
 
@@ -312,8 +312,7 @@ function Generator.load(self)
     self.queued_columns = {}
     self.active_coroutines = {}
 
-    local range = G.debug and BLOCK_SIZE or ((BLOCK_SIZE * BLOCK_SIZE) / 4)
-    self:pregenerate_spawn_area(range)
+    self:pregenerate_spawn_area(nil)
 
     Log.verbose(string.format("Took %fs", love.timer.getTime() - t))
 end
@@ -409,9 +408,13 @@ function Generator.generate_column_immediate(self, z, col)
     self.data.generated_columns[key] = true
 end
 
--- Pre-generate columns around spawn area (32 to left and right)
+-- Pre-generate columns around spawn area
 -- Updates G.loader progress and yields if loader is active
 function Generator.pregenerate_spawn_area(self, range)
+    local width, _ = love.graphics.getDimensions()
+    range = math.clamp(math.floor(width / BLOCK_SIZE / 2), range or 0, math.ceil(width / BLOCK_SIZE))
+    Log.debug("PreGen", "+/-" .. tostring(range))
+
     local spawn_col = BLOCK_SIZE  -- Same as used in find_spawn_position
 
     -- Calculate total columns to generate (for progress tracking)
