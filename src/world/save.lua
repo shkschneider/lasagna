@@ -35,6 +35,9 @@ local Save = Object {
     -- Cache for save info to avoid repeated parsing
     _cached_info = nil,
     _cached_info_modtime = nil,
+    -- Autosave settings
+    AUTOSAVE_INTERVAL = 60,  -- Autosave every 60 seconds
+    _autosave_timer = nil,   -- Timer for autosave (nil until after spawn)
 }
 
 -- Helper function to ensure table keys are numbers
@@ -49,6 +52,25 @@ end
 -- Get the full save file path
 function Save.get_save_path(self)
     return self.SAVE_DIR .. self.SAVE_FILENAME
+end
+
+-- Update autosave timer
+function Save.update(self, dt)
+    -- Initialize autosave timer on first update (after spawn)
+    if self._autosave_timer == nil then
+        self._autosave_timer = self.AUTOSAVE_INTERVAL
+        Log.info("Save", "Autosave enabled (every " .. self.AUTOSAVE_INTERVAL .. " seconds)")
+    end
+
+    -- Count down timer
+    self._autosave_timer = self._autosave_timer - dt
+
+    -- Trigger autosave when timer expires
+    if self._autosave_timer <= 0 then
+        self:save()
+        -- Reset timer for next autosave
+        self._autosave_timer = self.AUTOSAVE_INTERVAL
+    end
 end
 
 -- Serialize inventory storage (hotbar or backpack) to saveable format

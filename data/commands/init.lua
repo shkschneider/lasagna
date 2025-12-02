@@ -5,8 +5,11 @@ local here = (...):gsub("%.init$", "") .. "."
 require(here .. "god")
 require(here .. "heal")
 require(here .. "kill")
+require(here .. "load")
 require(here .. "ping")
 require(here .. "reset")
+require(here .. "rollback")
+require(here .. "save")
 require(here .. "seed")
 require(here .. "teleport")
 
