@@ -58,6 +58,8 @@ function Interface.draw(self)
 
     -- Draw backpack when inventory is open
     if inventory_open then
+        love.graphics.setColor(0, 0, 0, 0.33)
+        love.graphics.rectangle("fill", 0, 0, love.graphics.getDimensions())
         local backpack_y = hotbar_y + slot_size  -- Start right below hotbar
         self:draw_inventory_slots(backpack, hotbar_x, backpack_y, slot_size, 9, false)
     end
