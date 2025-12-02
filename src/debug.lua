@@ -39,15 +39,41 @@ function Debug.keypressed(self, key)
 end
 
 function Debug.draw(self)
+    local _, screen_height = love.graphics.getDimensions()
+    local line_height = 20
+    local start_y = screen_height - (11 * line_height)  -- 11 lines of debug info from bottom
+
     love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, 100)
-    love.graphics.print(string.format("State: %s", G.state:tostring()), 10, 120)
-    love.graphics.print(string.format("Time: %s", G.time:tostring()), 10, 140)
-    love.graphics.print(string.format("Stance: %s", G.player.stance:tostring()), 10, 160)
-    love.graphics.print(string.format("Health: %s", G.player.health:tostring()), 10, 180)
-    love.graphics.print(string.format("Stamina: %s", G.player.stamina:tostring()), 10, 200)
-    love.graphics.print(string.format("Canvases: %d", table.getn(G.renderer.canvases)), 10, 240)
-    love.graphics.print(string.format("Entities: %d", 1 + #G.entities.entities), 10, 260)
+
+    -- Layer indicator
+    local pos = G.player.position
+    love.graphics.print(string.format("Layer: %d", pos.z), 10, start_y)
+
+    -- Omnitool tier
+    local omnitool = G.player.omnitool
+    love.graphics.print(string.format("OmniTool: %s", omnitool:tostring()), 10, start_y + line_height)
+
+    -- Player position
+    local block_x, block_y = G.world:world_to_block(pos.x, pos.y)
+    love.graphics.print(string.format("Position: %d, %d", block_x, block_y), 10, start_y + line_height * 2)
+
+    -- Mouse position
+    local mouse_x, mouse_y = love.mouse.getPosition()
+    local camera_x, camera_y = G.camera:get_offset()
+    local world_x = mouse_x + camera_x
+    local world_y = mouse_y + camera_y
+    local mouse_col, mouse_row = G.world:world_to_block(world_x, world_y)
+    love.graphics.print(string.format("Mouse: %d,%d", mouse_col, mouse_row), 10, start_y + line_height * 3)
+
+    love.graphics.print(string.format("Frames: %d/s", love.timer.getFPS()), 10, start_y + line_height * 4)
+    love.graphics.print(string.format("State: %s", G.state:tostring()), 10, start_y + line_height * 5)
+    love.graphics.print(string.format("Time: %s", G.time:tostring()), 10, start_y + line_height * 6)
+    love.graphics.print(string.format("Stance: %s", G.player.stance:tostring()), 10, start_y + line_height * 7)
+    love.graphics.print(string.format("Health: %s", G.player.health:tostring()), 10, start_y + line_height * 8)
+    love.graphics.print(string.format("Armor: %s", G.player.armor:tostring()), 10, start_y + line_height * 9)
+    love.graphics.print(string.format("Stamina: %s", G.player.stamina:tostring()), 10, start_y + line_height * 10)
+    love.graphics.print(string.format("Canvases: %d", table.getn(G.renderer.canvases)), 10, start_y + line_height * 11)
+    love.graphics.print(string.format("Entities: %d", 1 + #G.entities.entities), 10, start_y + line_height * 12)
     Love.draw(self)
 end
 

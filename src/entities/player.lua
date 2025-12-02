@@ -11,6 +11,7 @@ local Omnitool = require "src.data.omnitool"
 local Stance = require "src.data.stance"
 local Health = require "src.data.health"
 local Stamina = require "src.data.stamina"
+local Armor = require "src.data.armor"
 local Registry = require "src.registries"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
@@ -18,11 +19,6 @@ local ITEMS = Registry.items()
 -- Inventory constants
 local HOTBAR_SIZE = 9
 local BACKPACK_SIZE = 27  -- 3 rows of 9
-
--- UI constants for health/stamina bars
-local UI_SLOT_SIZE = 60
-local UI_HOTBAR_Y_OFFSET = 80
-local UI_BAR_GAP = 10
 
 local Player = Object {
     id = "player",
@@ -56,6 +52,7 @@ function Player.load(self)
     self.stance = Stance.new(Stance.STANDING)
     self.stance.crouched = false
     self.health = Health.new(100, 100)
+    self.armor = Armor.new(G.debug and 50 or 0, 100)
     self.stamina = Stamina.new(100, 100, Player.STAMINA_REGEN_RATE)
 
     -- Fall damage tracking
@@ -84,8 +81,9 @@ function Player.update(self, dt)
     local vel = self.velocity
     local stance = self.stance
 
-    -- Manually update health and stamina components
+    -- Manually update health, armor, and stamina components
     self.health:update(dt)
+    self.armor:update(dt)
     self.stamina:update(dt)
 
     -- Call other component updates via Object recursion
@@ -206,71 +204,12 @@ function Player.draw(self)
             self.height)
     end
 
-    -- Draw health and stamina bars (UI elements, not camera-relative)
-    self:draw_health_bar()
-    self:draw_stamina_bar()
+    -- Draw health, armor, and stamina bars (UI elements, not camera-relative)
+    self.health:draw()  -- First bar
+    self.armor:draw()   -- Second bar
+    self.stamina:draw() -- Third bar
 
     Love.draw(self)
-end
-
--- Helper function to calculate bar positioning relative to hotbar
-local function get_bar_layout(hotbar)
-    local screen_width, screen_height = love.graphics.getDimensions()
-    local hotbar_y = screen_height - UI_HOTBAR_Y_OFFSET
-    local hotbar_x = (screen_width - (hotbar.size * UI_SLOT_SIZE)) / 2
-    local hotbar_width = hotbar.size * UI_SLOT_SIZE
-    local bar_height = BLOCK_SIZE / 4  -- 1/4 BLOCK_SIZE high
-    local bar_width = hotbar_width / 2  -- Half the hotbar width
-    local bar_y = hotbar_y - bar_height - UI_BAR_GAP
-    return hotbar_x, bar_y, bar_width, bar_height, hotbar_width
-end
-
--- Draw health bar UI
-function Player.draw_health_bar(self)
-    if not self.hotbar then return end
-
-    local hotbar_x, bar_y, bar_width, bar_height = get_bar_layout(self.hotbar)
-    local bar_x = hotbar_x  -- Aligned left
-
-    -- Health bar background
-    love.graphics.setColor(0, 0, 0, 0.5)
-    love.graphics.rectangle("fill", bar_x, bar_y, bar_width, bar_height)
-
-    -- Health bar fill
-    local health = self.health
-    local health_percentage = health.current / health.max
-    local fill_width = bar_width * health_percentage
-
-    -- Color based on health percentage
-    if health_percentage > 0.6 then
-        love.graphics.setColor(0, 1, 0, 0.8)  -- Green
-    elseif health_percentage > 0.3 then
-        love.graphics.setColor(1, 1, 0, 0.8)  -- Yellow
-    else
-        love.graphics.setColor(1, 0, 0, 0.8)  -- Red
-    end
-    love.graphics.rectangle("fill", bar_x, bar_y, fill_width, bar_height)
-end
-
--- Draw stamina bar UI
-function Player.draw_stamina_bar(self)
-    if not self.hotbar then return end
-
-    local hotbar_x, bar_y, bar_width, bar_height, hotbar_width = get_bar_layout(self.hotbar)
-    local bar_x = hotbar_x + hotbar_width / 2  -- Aligned right (after health bar)
-
-    -- Stamina bar background
-    love.graphics.setColor(0, 0, 0, 0.5)
-    love.graphics.rectangle("fill", bar_x, bar_y, bar_width, bar_height)
-
-    -- Stamina bar fill
-    local stamina = self.stamina
-    local stamina_percentage = stamina.current / stamina.max
-    local fill_width = bar_width * stamina_percentage
-
-    -- Blue color for stamina
-    love.graphics.setColor(0, 0.5, 1, 0.8)  -- Blue
-    love.graphics.rectangle("fill", bar_x, bar_y, fill_width, bar_height)
 end
 
 function Player.can_switch_layer(self, target_layer)
@@ -369,12 +308,17 @@ function Player.can_stand_up(self)
 end
 
 function Player.hit(self, damage)
-    if not self.health then
-        return
+    if not self.health then return end
+    -- Armor halfs the damage
+    if self.armor and self.armor.current > 0 then
+        local dmg = math.min(damage, self.armor.current * 2)
+        self.armor:hit(dmg)
+        damage = damage - dmg
     end
-
-    -- Delegate to health component
-    self.health:hit(damage)
+    -- Apply remaining damage to health
+    if damage > 0 then
+        self.health:hit(damage)
+    end
 end
 
 function Player.is_dead(self)

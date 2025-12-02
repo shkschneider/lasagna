@@ -126,7 +126,7 @@ function Game.textinput(self, text)
     Love.textinput(self, text)
 end
 
-function Game.resize(self, width, height)
+function Game.resize(self, width, height) -- FIXME does not scale up
     Log.verbose("Game.resize", width, height)
     Love.resize(self, width, height)
 end
