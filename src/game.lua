@@ -66,15 +66,16 @@ function Game.update(self, dt)
         return
     elseif state == GameState.MENU or state == GameState.PAUSE then
         return
-    elseif state == GameState.DEAD then
-        return
+    elseif self.player:is_dead() and state ~= GameState.DEAD then
+        self:load(GameState.DEAD)
     end
-    
+    if state == GameState.DEAD then return end
+
     -- Update fade effect
     if self.fade_direction then
         self.fade_timer = self.fade_timer + dt
         local progress = math.min(self.fade_timer / self.fade_duration, 1.0)
-        
+
         if self.fade_direction == "in" then
             -- Fade in: black (1.0) to transparent (0.0)
             self.fade_alpha = 1.0 - progress
@@ -82,14 +83,14 @@ function Game.update(self, dt)
             -- Fade out: transparent (0.0) to black (1.0)
             self.fade_alpha = progress
         end
-        
+
         -- End fade when complete
         if progress >= 1.0 then
             self.fade_direction = nil
             self.fade_timer = 0
         end
     end
-    
+
     dt = dt * self.time.scale
     Love.update(self, dt)
 end
@@ -108,7 +109,7 @@ end
 
 function Game.draw(self)
     self.renderer:draw() -- NOT Love.draw
-    
+
     -- Draw fade overlay
     if self.fade_alpha > 0 then
         love.graphics.setColor(0, 0, 0, self.fade_alpha)
@@ -131,17 +132,14 @@ function Game.keypressed(self, key)
             self:load(GameState.QUIT)
             love.event.quit()
             return
+        elseif state == GameState.DEAD then
+            self:load(GameState.MENU)
+            return
         end
         -- DEAD state: escape does nothing
     end
-    if state == GameState.MENU or state == GameState.PAUSE then
+    if state == GameState.MENU or state == GameState.PAUSE or state == GameState.DEAD then
         self.menu:keypressed(key)
-        return
-    elseif state == GameState.DEAD then
-        -- DEAD state: only handle return key for respawn
-        if key == "return" then
-            self.menu:keypressed(key)
-        end
         return
     elseif state == GameState.LOAD then
         return  -- No input during loading

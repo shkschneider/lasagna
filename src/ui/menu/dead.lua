@@ -1,20 +1,23 @@
 local GameState = require "src.data.gamestate"
 
 return function()
+    local save_exists = G.world.save:exists()
     return {
         {
-            key = "return",
-            label = "Press [ENTER] to respawn",
+            key = "l",
+            label = "[L] oad Game",
+            enabled = save_exists,
+            action = function()
+                G.pending_save_data = G.world.save:rollback()
+                G:load(GameState.LOAD)
+            end
+        },
+        {
+            key = "q",
+            label = "[Q] uit",
             enabled = true,
             action = function()
-                -- Load the last save to respawn
-                if G.world.save:exists() then
-                    local save_data = G.world.save:rollback()
-                    if save_data then
-                        G.pending_save_data = save_data
-                    end
-                end
-                G:load(GameState.LOAD)
+                G:load(GameState.MENU)
             end
         },
     }

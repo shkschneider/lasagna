@@ -47,16 +47,16 @@ function Menu.draw(self)
         if state == GameState.DEAD then
             r = 1  -- Red for death
         end
-        
+
         -- Create a radial gradient using a mesh
         local num_segments = 32
         local max_dist = math.sqrt((screen_width/2)^2 + (screen_height/2)^2)
-        
+
         -- Build vertices for a fan mesh with gradient
         local vertices = {}
         -- Center vertex with 0 opacity
         table.insert(vertices, {center_x, center_y, 0, 0, r, g, b, 0})
-        
+
         -- Outer ring vertices with full opacity
         for i = 0, num_segments do
             local angle = (i / num_segments) * math.pi * 2
@@ -64,7 +64,7 @@ function Menu.draw(self)
             local y = center_y + math.sin(angle) * max_dist * 1.5
             table.insert(vertices, {x, y, 0, 0, r, g, b, 0.85})
         end
-        
+
         -- Create and draw the mesh
         local mesh = love.graphics.newMesh(vertices, "fan", "static")
         love.graphics.draw(mesh)
@@ -129,10 +129,7 @@ end
 function Menu.keypressed(self, key)
     local state = G.state.current
 
-    -- Only handle input in MENU, PAUSE, or DEAD states (not LOAD)
-    if state ~= GameState.MENU and state ~= GameState.PAUSE and state ~= GameState.DEAD then
-        return
-    end
+    if state == GameState.LOAD then return end
 
     -- Find matching item
     for _, item in ipairs(self.items) do
