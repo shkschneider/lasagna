@@ -106,6 +106,12 @@ end
 
 -- Update all entities
 function Entity.update(self, dt)
+    -- Entities only update during PLAY state
+    local GameState = require "src.data.gamestate"
+    if G.state.current.current ~= GameState.PLAY then
+        return
+    end
+    
     local player_x, player_y, player_z = G.player:get_position()
 
     for i = #self.entities, 1, -1 do

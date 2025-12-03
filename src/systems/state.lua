@@ -17,26 +17,13 @@ function StateSystem.update(self, dt)
     -- Handle state-specific update logic
     local state = self.current.current
     
-    if state == GameState.BOOT then
-        -- Wait for initialization
-        return
-    elseif state == GameState.LOAD then
-        -- Loading is handled by loader system
-        return
-    elseif state == GameState.MENU or state == GameState.PAUSE then
-        -- Menu is handled by menu system
-        return
-    elseif state == GameState.DEAD then
-        -- Dead state: no game updates
-        return
-    end
-    
     -- Check for player death and transition to DEAD state
-    if G.player:is_dead() and state ~= GameState.DEAD then
+    -- Only check when in PLAY state
+    if state == GameState.PLAY and G.player:is_dead() then
         self:transition_to(GameState.DEAD)
     end
     
-    Love.update(self, dt)
+    -- State system doesn't have child components, so no Love.update needed
 end
 
 -- Transition to a new state

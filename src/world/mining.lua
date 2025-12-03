@@ -29,6 +29,12 @@ function Mining.load(self)
 end
 
 function Mining.update(self, dt)
+    -- Mining only updates during PLAY state
+    local GameState = require "src.data.gamestate"
+    if G.state.current.current ~= GameState.PLAY then
+        return
+    end
+    
     local slot = G.player.hotbar:get_selected()
     if not love.mouse.isDown(1) or not slot or slot.item_id ~= ITEMS.OMNITOOL then
         self:cancel_mining()

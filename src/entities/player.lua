@@ -79,6 +79,12 @@ function Player.load(self)
 end
 
 function Player.update(self, dt)
+    -- Player only updates during PLAY state
+    local GameState = require "src.data.gamestate"
+    if G.state.current.current ~= GameState.PLAY then
+        return
+    end
+    
     local pos = self.position
     local vel = self.velocity
     local stance = self.stance

@@ -17,6 +17,12 @@ function Weapon.load(self)
 end
 
 function Weapon.update(self, dt)
+    -- Weapon only updates during PLAY state
+    local GameState = require "src.data.gamestate"
+    if G.state.current.current ~= GameState.PLAY then
+        return
+    end
+    
     -- Decrease cooldown
     if self.cooldown > 0 then
         self.cooldown = self.cooldown - dt

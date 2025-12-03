@@ -16,6 +16,12 @@ function Camera.load(self)
 end
 
 function Camera.update(self, dt)
+    -- Camera only updates during PLAY state
+    local GameState = require "src.data.gamestate"
+    if G.state.current.current ~= GameState.PLAY then
+        return
+    end
+    
     -- Get player position from Player
     local target_x, target_y = G.player:get_position()
     self.target.x = target_x
