@@ -2,6 +2,12 @@
 -- tools/map.lua
 -- Generate ASCII map of the spawn area surface for a given seed
 -- Usage: lua tools/map.lua <seed>
+--
+-- NOTE: This tool uses a simplified noise function and terrain generation
+-- algorithm compared to the actual game. The output provides a general
+-- representation of terrain patterns but may not exactly match the game's
+-- world generation due to differences in noise implementation (LÖVE's
+-- simplex noise vs. our hash-based approximation).
 
 -- Parse command line arguments
 local seed = tonumber(arg[1])
@@ -221,35 +227,33 @@ local function generate_map(seed_val)
         if min_surface == math.huge then
             print("No surface found")
             print("")
-            goto continue
-        end
-        
-        -- Generate ASCII map showing surface line
-        -- Build surface map first
-        local surface_map = {}
-        for col = start_col, start_col + map_width - 1 do
-            local column_data = columns[col]
-            local surface_row = find_surface_row(column_data, world_height)
-            surface_map[col] = surface_row
-        end
-        
-        -- Draw only surface level with spawn marker
-        local line = ""
-        for col = start_col, start_col + map_width - 1 do
-            local is_spawn = (col == spawn_col and z == LAYER_DEFAULT)
-            
-            if is_spawn then
-                line = line .. "X"
-            elseif surface_map[col] then
-                line = line .. "_"
-            else
-                line = line .. " "
+        else
+            -- Generate ASCII map showing surface line
+            -- Build surface map first
+            local surface_map = {}
+            for col = start_col, start_col + map_width - 1 do
+                local column_data = columns[col]
+                local surface_row = find_surface_row(column_data, world_height)
+                surface_map[col] = surface_row
             end
+            
+            -- Draw only surface level with spawn marker
+            local line = ""
+            for col = start_col, start_col + map_width - 1 do
+                local is_spawn = (col == spawn_col and z == LAYER_DEFAULT)
+                
+                if is_spawn then
+                    line = line .. "X"
+                elseif surface_map[col] then
+                    line = line .. "_"
+                else
+                    line = line .. " "
+                end
+            end
+            print(line)
+            
+            print("")
         end
-        print(line)
-        
-        print("")
-        ::continue::
     end
     
     print(string.format("Spawn position: column %d, layer %d", spawn_col, LAYER_DEFAULT))
