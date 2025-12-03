@@ -69,7 +69,7 @@ package.loaded["src.data.timescale"] = {
 }
 
 -- GameState mock with constants and new()
-package.loaded["src.data.gamestate"] = (function()
+package.loaded["src.game.gamestate"] = (function()
     local GS = {}
     GS.BOOT = "BOOT"
     GS.MENU = "MENU"
@@ -88,8 +88,8 @@ package.loaded["src.data.gamestate"] = (function()
     return GS
 end)()
 
--- src.debug.get() returns a debug object or nil; we record the call
-package.loaded["src.debug"] = {
+-- src.game.debug.get() returns a debug object or nil; we record the call
+package.loaded["src.game.debug"] = {
     get = function()
         mock.debug_get_called = true
         return nil -- simulate no debug mode
@@ -118,10 +118,10 @@ local chat_mock = {
     update = function(self, dt) mock.chat_update_called = true end,
     add_message = function(self, msg) end,
 }
-package.loaded["src.chat"] = chat_mock
+package.loaded["src.ui.chat"] = chat_mock
 package.loaded["src.ui.chat"] = chat_mock
 
-package.loaded["src.lore"] = {}
+package.loaded["src.game.lore"] = {}
 
 -- menu mock: menu:load() should be called when Game:load(state) is invoked after boot
 package.loaded["src.ui.menu"] = {
@@ -159,7 +159,7 @@ do
 end
 
 -- renderer mock
-package.loaded["src.renderer"] = {
+package.loaded["src.ui.renderer"] = {
     draw = function() end
 }
 
@@ -170,7 +170,7 @@ local Game = require("src.game")
 Game.NAME = "TESTGAME"
 Game.VERSION = { tostring = function() return "0.0-test" end }
 
-print("-- Test 1: initial boot load (no state arg) should call Love.load and set state to MENU and call src.debug.get()")
+print("-- Test 1: initial boot load (no state arg) should call Love.load and set state to MENU and call src.game.debug.get()")
 do
     -- reset mocks
     mock.Love_load_called = false
@@ -181,14 +181,14 @@ do
     expect(not mock.Love_load_called, "Love.load() called during initial load")
     expect(mock.menu_loaded, "menu:load() called during initial load")
     -- Game.state should be MENU per code path
-    local GS = require("src.data.gamestate")
+    local GS = require("src.game.gamestate")
     expect(Game.state and Game.state.current == GS.MENU, "Game.state is MENU after initial load")
 end
 
 print("-- Test 2: calling Game:load(someState) after initial load should call menu:load()")
 do
     mock.menu_loaded = false
-    local GS = require("src.data.gamestate")
+    local GS = require("src.game.gamestate")
     -- Call load with explicit state; code requires self.state to exist which it does after initial load
     Game:load(GS.LOAD)
     expect(mock.menu_loaded, "menu:load() called when calling Game:load(state)")
@@ -205,7 +205,7 @@ do
     mock.loader_reset_called = false
 
     -- set game state to LOAD explicitly
-    local GS = require("src.data.gamestate")
+    local GS = require("src.game.gamestate")
     Game.state = GS.new(GS.LOAD)
 
     -- run update once (dt arbitrary)
@@ -220,7 +220,7 @@ end
 
 print("-- Test 4: player death transitions game to DEAD state")
 do
-    local GS = require("src.data.gamestate")
+    local GS = require("src.game.gamestate")
     local player = package.loaded["src.entities.player"]
 
     -- Set game to PLAY state
@@ -242,7 +242,7 @@ end
 
 print("-- Test 5: DEAD state ignores most input but allows return key")
 do
-    local GS = require("src.data.gamestate")
+    local GS = require("src.game.gamestate")
     mock.menu_keypressed_called = false
 
     -- Update menu mock to track keypressed

@@ -2,8 +2,8 @@
 -- Places ore veins in stone based on noise and depth
 
 local noise = require "libs.noise"
-local Registry = require "src.registries"
-local BlocksRegistry = require "src.registries.blocks"
+local Registry = require "src.game.registries"
+local BlocksRegistry = require "src.game.registries.blocks"
 local BLOCKS = Registry.blocks()
 
 -- Get ore blocks for generation (cached after first call)

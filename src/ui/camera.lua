@@ -1,6 +1,6 @@
 local Love = require "core.love"
 local Object = require "core.object"
-local Vector = require "src.data.vector"
+local Vector = require "src.game.vector"
 
 local Camera = Object {
     id = "camera",

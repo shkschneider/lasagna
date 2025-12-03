@@ -1,8 +1,10 @@
+local here = (...):gsub("%.init$", "") .. "."
+
 local Registry = {
-    Blocks = require("src.registries.blocks"),
-    Items = require("src.registries.items"),
-    Commands = require("src.registries.commands"),
-    Biomes = require("src.registries.biomes"),
+    Blocks = require(here .. "blocks"),
+    Items = require(here .. "items"),
+    Commands = require(here .. "commands"),
+    Biomes = require(here .. "biomes"),
 }
 
 -- Blocks

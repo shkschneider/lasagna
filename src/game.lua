@@ -1,7 +1,7 @@
 local Love = require "core.love"
 local Object = require "core.object"
-local TimeScale = require "src.data.timescale"
-local GameState = require "src.data.gamestate"
+local TimeScale = require "src.game.timescale"
+local GameState = require "src.game.state"
 
 -- Fade effect constants
 local FADE_DURATION = 1  -- 1 second fade duration
@@ -10,17 +10,17 @@ local Game = Object {
     id = "game",
     priority = 0,
     world = require("src.world"),
-    camera = require("src.camera"),
+    camera = require("src.ui.camera"),
     player = require("src.entities.player"),
     mining = require("src.world.mining"),
     building = require("src.world.building"),
     entities = require("src.entities"),
     ui = require("src.ui"),
-    chat = require("src.chat"),
-    lore = require("src.lore"),
+    chat = require("src.ui.chat"),
+    lore = require("src.game.lore"),
     menu = require("src.ui.menu"),
     loader = require("src.ui.loader"),
-    renderer = require("src.renderer"),
+    renderer = require("src.ui.renderer"),
     init = function(self)
         self.state = GameState.new(GameState.BOOT)
         self.time = TimeScale.new(1)
@@ -38,7 +38,7 @@ function Game.load(self, state)
     -- initial (boot -> menu)
     if not state then
         self.state = GameState.new(GameState.MENU)
-        self.debug = require("src.debug").get()
+        self.debug = require("src.game.debug").get()
         if self.debug then
             Log.level = 0 -- all
             dassert.DEBUG = true

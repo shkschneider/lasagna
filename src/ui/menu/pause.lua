@@ -1,4 +1,4 @@
-local GameState = require "src.data.gamestate"
+local GameState = require "src.game.state"
 
 return function()
     local save_exists = G.world.save:exists()

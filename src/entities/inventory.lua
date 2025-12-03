@@ -5,7 +5,7 @@
 
 local Love = require "core.love"
 local Object = require "core.object"
-local Stack = require "src.data.stack"
+local Stack = require "src.entities.stack"
 
 local Inventory = Object {
     id = "inventory",

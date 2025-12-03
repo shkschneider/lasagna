@@ -2,7 +2,7 @@
 -- Cold + Dry biome with frozen terrain
 
 local BlockRef = require "data.blocks.ids"
-local BiomesRegistry = require "src.registries.biomes"
+local BiomesRegistry = require "src.game.registries.biomes"
 
 BiomesRegistry:register({
     id = 1,

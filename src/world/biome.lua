@@ -16,7 +16,7 @@
 --------------------------------------------------------------------------------
 
 local BlockRef = require "data.blocks.ids"
-local BiomesRegistry = require "src.registries.biomes"
+local BiomesRegistry = require "src.game.registries.biomes"
 
 local Biome = {}
 

@@ -1,6 +1,6 @@
 local Love = require "core.love"
 local Object = require "core.object"
-local Registry = require "src.registries"
+local Registry = require "src.game.registries"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
@@ -25,7 +25,7 @@ function Debug.keypressed(self, key)
         return
     end
     if key == "backspace" then
-        G.debug = require("src.debug").get()
+        G.debug = require("src.game.debug").get()
         return
     end
     -- Adjust omnitool tier

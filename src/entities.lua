@@ -1,10 +1,10 @@
 local Love = require "core.love"
 local Object = require "core.object"
 local Physics = require "src.world.physics"
-local Vector = require "src.data.vector"
-local Projectile = require "src.data.projectile"
-local ItemDrop = require "src.data.itemdrop"
-local Registry = require "src.registries"
+local Vector = require "src.game.vector"
+local Projectile = require "src.entities.projectile"
+local ItemDrop = require "src.entities.itemdrop"
+local Registry = require "src.game.registries"
 local BLOCKS = Registry.blocks()
 
 local Entity = Object {

@@ -1,4 +1,4 @@
-local WorldData = {
+local WorldSeed = {
     id = "worlddata",
     HEIGHT = 512,
     tostring = function(self)
@@ -6,10 +6,10 @@ local WorldData = {
     end,
 }
 
-function WorldData.new(seed, height)
+function WorldSeed.new(seed, height)
     local worlddata = {
         seed = seed or math.random(),
-        height = height or WorldData.HEIGHT,
+        height = height or WorldSeed.HEIGHT,
         -- Column-based storage: columns[z][col] contains rows
         -- No horizontal width limit - columns are generated on demand
         columns = {
@@ -27,7 +27,7 @@ function WorldData.new(seed, height)
             [1] = {},
         },
     }
-    return setmetatable(worlddata, { __index = WorldData })
+    return setmetatable(worlddata, { __index = WorldSeed })
 end
 
-return WorldData
+return WorldSeed

@@ -1,5 +1,5 @@
-local CommandsRegistry = require "src.registries.commands"
-local Vector = require "src.data.vector"
+local CommandsRegistry = require "src.game.registries.commands"
+local Vector = require "src.game.vector"
 
 CommandsRegistry:register({
     name = "teleport",

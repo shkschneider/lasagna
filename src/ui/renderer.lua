@@ -1,6 +1,6 @@
 local Shaders = require "libs.shaders"
 local Object = require "core.object"
-local GameState = require "src.data.gamestate"
+local GameState = require "src.game.state"
 
 local Renderer = Object {
     id = "renderer",

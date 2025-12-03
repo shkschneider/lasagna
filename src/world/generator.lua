@@ -1,8 +1,8 @@
 local Love = require "core.love"
 local Object = require "core.object"
-local WorldData = require "src.data.worlddata"
+local WorldSeed = require "src.world.seed"
 local BlockRef = require "data.blocks.ids"
-local Biome = require "src.data.biome"
+local Biome = require "src.world.biome"
 
 --------------------------------------------------------------------------------
 -- World Generation Overview
@@ -295,9 +295,9 @@ end
 function Generator.load(self)
     local t = love.timer.getTime()
 
-    -- Only create new WorldData if not already set (e.g., by loader with saved seed)
+    -- Only create new WorldSeed if not already set (e.g., by loader with saved seed)
     if not self.data or not self.data.seed then
-        self.data = WorldData.new(G.debug and os.getenv("SEED") or math.round(os.time() + (love.timer.getTime() * 9 ^ 9)))
+        self.data = WorldSeed.new(G.debug and os.getenv("SEED") or math.round(os.time() + (love.timer.getTime() * 9 ^ 9)))
     end
     assert(self.data.seed)
     Log.info(self.data.seed)

@@ -16,4 +16,4 @@ require(here .. "badlands")
 require(here .. "desert")
 
 -- Return the BiomesRegistry for convenience
-return require("src.registries.biomes")
+return require("src.game.registries.biomes")

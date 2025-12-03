@@ -1,6 +1,6 @@
 local Love = require "core.love"
 local Object = require "core.object"
-local Stance = require "src.data.stance"
+local Stance = require "src.entities.stance"
 
 local Control = {
     MOVE_SPEED = 150, -- unit?

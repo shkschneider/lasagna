@@ -1,6 +1,6 @@
 local Love = require "core.love"
 local Object = require "core.object"
-local GameState = require "src.data.gamestate"
+local GameState = require "src.game.state"
 
 local Loader = Object {
     id = "loader",
@@ -14,8 +14,8 @@ local Loader = Object {
 
 -- Start loading process
 function Loader.start(self)
-    local WorldData = require "src.data.worlddata"
-    
+    local WorldSeed = require "src.world.seed"
+
     self._elapsed = 0
     self._done = false
     self._progress = 0
@@ -26,7 +26,7 @@ function Loader.start(self)
 
         -- If loading a saved game, set the generator seed before Love.load
         if G.pending_save_data and G.pending_save_data.seed then
-            G.world.generator.data = WorldData.new(G.pending_save_data.seed)
+            G.world.generator.data = WorldSeed.new(G.pending_save_data.seed)
         end
 
         self._progress = 0.1
@@ -41,10 +41,10 @@ function Loader.start(self)
             G.world.save:apply_save_data(G.pending_save_data)
             G.pending_save_data = nil
         end
-        
+
         self._progress = 0.99
         coroutine.yield() -- yield to allow one frame of rendering before transition
-        
+
         self._progress = 1.0
     end)
 end

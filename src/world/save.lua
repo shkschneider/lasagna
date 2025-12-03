@@ -25,7 +25,7 @@
 local serializer = require "libs.bakpakin.binser"
 
 local Object = require "core.object"
-local Stack = require "src.data.stack"
+local Stack = require "src.entities.stack"
 
 local Save = Object {
     id = "save",
@@ -318,7 +318,7 @@ function Save.save(self)
         Log.warning("Cannot save while dead")
         return false
     end
-    
+
     local save_data = self:create_save_data()
     return self:save_snapshot(save_data)
 end

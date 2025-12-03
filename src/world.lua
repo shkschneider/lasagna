@@ -1,9 +1,9 @@
 local Love = require "core.love"
 local Object = require "core.object"
-local Registry = require "src.registries"
+local Registry = require "src.game.registries"
 local BLOCKS = Registry.blocks()
 local BlockRef = require "data.blocks.ids"
-local Biome = require "src.data.biome"
+local Biome = require "src.world.biome"
 
 -- Block ID offset: noise values are stored as NOISE_OFFSET + value*100
 -- Block IDs 0-99 are actual blocks, 100+ are noise values

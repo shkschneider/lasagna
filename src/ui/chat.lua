@@ -1,6 +1,6 @@
 local Love = require "core.love"
 local Object = require "core.object"
-local Registry = require "src.registries"
+local Registry = require "src.game.registries"
 
 local Chat = Object {
     id = "chat",
