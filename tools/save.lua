@@ -4,7 +4,7 @@
 -- Usage: lua5.3 tools/save.lua <path-to-save-file.sav>
 
 -- Add the repository root to package.path so we can require libs
-local script_dir = arg[0]:match("(.*/)")
+local script_dir = arg[0]:match("(.*[/\\])")
 local repo_root = script_dir and script_dir .. "../" or "./"
 package.path = repo_root .. "?.lua;" .. repo_root .. "?/init.lua;" .. package.path
 
@@ -57,8 +57,6 @@ local function dump_table(t, indent, seen)
             result = result .. string.format("%q", v)
         elseif type(v) == "number" or type(v) == "boolean" then
             result = result .. tostring(v)
-        elseif type(v) == "nil" then
-            result = result .. "nil"
         else
             result = result .. string.format("<%s>", type(v))
         end
