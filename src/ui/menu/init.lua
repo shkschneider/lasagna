@@ -48,14 +48,26 @@ function Menu.draw(self)
             r = 1  -- Red for death
         end
         
-        -- Draw radial gradient from center (0% opacity) to edges (85% opacity for visibility)
-        local segments = 64  -- Number of segments for smooth gradient
-        for i = segments, 1, -1 do
-            local radius = (i / segments) * max_radius
-            local alpha = (i / segments) * 0.85  -- 0% at center to 85% at edges
-            love.graphics.setColor(r, g, b, alpha)
-            love.graphics.circle("fill", center_x, center_y, radius, segments)
+        -- Create a radial gradient using a mesh
+        local num_segments = 32
+        local max_dist = math.sqrt((screen_width/2)^2 + (screen_height/2)^2)
+        
+        -- Build vertices for a fan mesh with gradient
+        local vertices = {}
+        -- Center vertex with 0 opacity
+        table.insert(vertices, {center_x, center_y, 0, 0, r, g, b, 0})
+        
+        -- Outer ring vertices with full opacity
+        for i = 0, num_segments do
+            local angle = (i / num_segments) * math.pi * 2
+            local x = center_x + math.cos(angle) * max_dist * 1.5  -- Extend beyond screen
+            local y = center_y + math.sin(angle) * max_dist * 1.5
+            table.insert(vertices, {x, y, 0, 0, r, g, b, 0.85})
         end
+        
+        -- Create and draw the mesh
+        local mesh = love.graphics.newMesh(vertices, "fan", "static")
+        love.graphics.draw(mesh)
     else
         -- For MENU and LOAD, draw solid black background
         love.graphics.setColor(0, 0, 0, 1)
