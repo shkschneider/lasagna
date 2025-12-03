@@ -343,7 +343,6 @@ function Player.hit(self, damage)
     -- Death
     if self:is_dead() and G.state.current ~= GameState.DEAD then
         self.velocity = Vector.new(0, 0)
-        self.death_count = self.death_count + 1
         -- Start fade-out effect before transitioning to DEAD state
         G:start_fade_out()
         G:load(GameState.DEAD)
