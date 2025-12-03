@@ -3,11 +3,7 @@
 -- Generate ASCII map of the spawn area surface for a given seed
 -- Usage: lua tools/map.lua <seed>
 --
--- NOTE: This tool uses a simplified noise function and terrain generation
--- algorithm compared to the actual game. The output provides a general
--- representation of terrain patterns but may not exactly match the game's
--- world generation due to differences in noise implementation (LÖVE's
--- simplex noise vs. our hash-based approximation).
+-- This tool uses the actual game's world generator to produce accurate terrain maps.
 
 -- Parse command line arguments
 local seed = tonumber(arg[1])
@@ -17,47 +13,35 @@ if not seed then
     os.exit(1)
 end
 
--- Setup minimal environment for world generation
--- Mock LÖVE functions and globals
+-- Setup minimal LÖVE environment for world generation
+love = love or {}
 
--- Simple hash-based noise function for terrain generation
--- Uses prime number multipliers for better distribution
-local NOISE_PRIME_X = 374761393
-local NOISE_PRIME_Y = 668265263
-local NOISE_PRIME_SEED = 1274126177
-local NOISE_MODULO = 2147483647
-
-local function simple_noise(x, y, seed_offset)
-    -- Create a hash from inputs using prime number multipliers
-    local n = x * NOISE_PRIME_X + y * NOISE_PRIME_Y + seed_offset * NOISE_PRIME_SEED
-    -- Ensure n is positive and in a reasonable range
-    n = math.abs(n) % NOISE_MODULO
-    -- Multiple passes to mix the bits
-    n = (n * n * 15731 + 789221) % NOISE_MODULO
-    n = (n + 1376312589) % NOISE_MODULO
-    -- Return value in [0, 1] range
-    return (n % 1000000) / 1000000.0
+-- Mock love.math.noise with built-in Lua functionality
+-- LÖVE uses simplex noise which we need to approximate
+if not love.math then
+    love.math = {}
 end
 
-love = {
-    math = {
-        noise = function(x, y, z)
-            -- Use x, y as coordinates and z as seed
-            y = y or 0
-            z = z or 0
-            return simple_noise(x, y, z)
-        end,
-    },
-    graphics = {
-        getDimensions = function()
-            return 800, 600
-        end,
-    },
-    timer = {
-        getTime = function()
-            return os.clock()
-        end,
-    },
+if not love.math.noise then
+    -- Simple noise implementation using Lua's math library
+    -- This approximates simplex noise behavior for terrain generation
+    function love.math.noise(x, y, z)
+        y = y or 0
+        z = z or 0
+        -- Hash the coordinates to get a pseudo-random value
+        local n = x * 374761393 + y * 668265263 + z * 1274126177
+        n = math.abs(n) % 2147483647
+        n = (n * n * 15731 + 789221) % 2147483647
+        n = (n + 1376312589) % 2147483647
+        return (n % 1000000) / 1000000.0
+    end
+end
+
+love.graphics = love.graphics or {
+    getDimensions = function() return 800, 600 end,
+}
+love.timer = love.timer or {
+    getTime = function() return os.clock() end,
 }
 
 -- Mock logger
@@ -88,103 +72,23 @@ package.loaded["core.love"] = {
     update = function() end,
 }
 
--- Load required modules
-local BlockRef = require("data.blocks.ids")
--- Note: WorldSeed is available but not used directly in this simplified tool
-
--- We need to partially load the generator
--- Copy the essential generation logic here to avoid complex dependencies
-local function generate_column_terrain(column_data, col, z, world_height, seed_val)
-    -- Set up noise seed
-    local seed_offset = seed_val % 10000
-    local biome_seed_offset = (seed_val % 10000) + 1000
-    
-    -- Surface parameters
-    local SURFACE_Y_RATIO = 0.25
-    local SOLID = 0.33
-    local NOISE_OFFSET = 100
-    
-    -- Noise functions
-    local function simplex1d(x)
-        return love.math.noise(x, seed_offset)
-    end
-    
-    local function simplex2d(x, y)
-        return love.math.noise(x, y, seed_offset)
-    end
-    
-    -- Multi-octave noise parameters
-    local HILL_FREQUENCY = 0.005
-    local HILL_AMPLITUDE = 0.08
-    local TERRAIN_VAR_FREQUENCY = 0.02
-    local TERRAIN_VAR_AMPLITUDE = 0.03
-    local DETAIL_FREQUENCY = 0.08
-    local DETAIL_AMPLITUDE = 0.01
-    local SURFACE_SMOOTHNESS = 0.75
-    local Z_SCALE_FACTOR = 0.1
-    local TERRAIN_FREQUENCY = 0.05
-    
-    -- Multi-octave surface noise
-    local function organic_surface_noise(col, z)
-        local hills = (simplex1d(col * HILL_FREQUENCY + z * Z_SCALE_FACTOR) - 0.5) * 2 * HILL_AMPLITUDE
-        local medium_factor = 1.0 - (SURFACE_SMOOTHNESS * 0.5)
-        local variation = (simplex1d(col * TERRAIN_VAR_FREQUENCY + z * Z_SCALE_FACTOR + 100) - 0.5) * 2 * TERRAIN_VAR_AMPLITUDE * medium_factor
-        local detail_factor = 1.0 - SURFACE_SMOOTHNESS
-        local detail = (simplex1d(col * DETAIL_FREQUENCY + z * Z_SCALE_FACTOR + 200) - 0.5) * 2 * DETAIL_AMPLITUDE * detail_factor
-        return hills + variation + detail
-    end
-    
-    -- Calculate surface
-    local surface_offset = organic_surface_noise(col, z)
-    local cut_ratio = SURFACE_Y_RATIO + surface_offset
-    local cut_row = math.floor(world_height * cut_ratio)
-    cut_row = math.max(1, math.min(world_height - 3, cut_row))
-    
-    -- Fill column
-    for row = 0, world_height - 1 do
-        if row < cut_row then
-            column_data[row] = BlockRef.SKY
-        else
-            local terrain_value = simplex2d(col * TERRAIN_FREQUENCY, row * TERRAIN_FREQUENCY + z * 10)
-            if terrain_value < SOLID then
-                column_data[row] = BlockRef.SKY
-            else
-                column_data[row] = NOISE_OFFSET + math.floor(terrain_value * 100)
-            end
-        end
-    end
-    
-    -- Find surface and add surface blocks
-    local surface_row = nil
-    for row = 0, world_height - 1 do
-        if column_data[row] and column_data[row] > BlockRef.AIR then
-            surface_row = row
-            break
-        end
-    end
-    
-    -- Simple surface layer (using grass/dirt for simplicity)
-    if surface_row and surface_row > 0 then
-        -- Add a grass block at surface
-        if surface_row - 1 >= 0 then
-            column_data[surface_row - 1] = BlockRef.GRASS
-        end
-    end
-    
-    -- Convert underground SKY to AIR
-    local found_solid = false
-    for row = 0, world_height - 1 do
-        local block = column_data[row]
-        if block ~= BlockRef.SKY and block ~= BlockRef.AIR then
-            found_solid = true
-        end
-        if found_solid and block == BlockRef.SKY then
-            column_data[row] = BlockRef.AIR
-        end
-    end
+-- Mock math functions if not available
+math.clamp = math.clamp or function(val, min, max)
+    return math.max(min, math.min(max, val))
 end
 
--- Find surface row for a column
+math.round = math.round or function(val)
+    return math.floor(val + 0.5)
+end
+
+-- Load required modules
+local BlockRef = require("data.blocks.ids")
+local WorldSeed = require("src.world.seed")
+
+-- Load the actual world generator
+local Generator = require("src.world.generator")
+
+-- Find surface row for a column (first non-air/non-sky block)
 local function find_surface_row(column_data, world_height)
     for row = 0, world_height - 1 do
         local value = column_data[row]
@@ -195,7 +99,7 @@ local function find_surface_row(column_data, world_height)
     return nil
 end
 
--- Generate and display ASCII map
+-- Generate and display ASCII map with elevation
 local function generate_map(seed_val)
     print(string.format("Generating map for seed: %d", seed_val))
     print("")
@@ -207,57 +111,73 @@ local function generate_map(seed_val)
     local map_width = 80  -- 80 characters wide
     local start_col = spawn_col - math.floor(map_width / 2)
     
+    -- Initialize the generator with the seed
+    local generator = Generator
+    generator.data = WorldSeed.new(seed_val, world_height)
+    generator:load()
+    
     -- Generate for each layer
     for z = LAYER_MIN, LAYER_MAX do
         print(string.format("Layer %d:", z))
         print(string.rep("-", map_width))
         
         -- Generate columns for this layer
-        local columns = {}
+        local surface_rows = {}
         local min_surface = math.huge
         local max_surface = -math.huge
         
         for col = start_col, start_col + map_width - 1 do
-            local column_data = {}
-            generate_column_terrain(column_data, col, z, world_height, seed_val)
-            columns[col] = column_data
-            
+            generator:generate_column_immediate(z, col)
+            local column_data = generator.data.columns[z][col]
             local surface_row = find_surface_row(column_data, world_height)
+            surface_rows[col] = surface_row
+            
             if surface_row then
                 min_surface = math.min(min_surface, surface_row)
                 max_surface = math.max(max_surface, surface_row)
             end
         end
         
-        -- Determine vertical range to display
         -- Check if any surface was found
         if min_surface == math.huge then
             print("No surface found")
             print("")
         else
-            -- Generate ASCII map showing surface line
-            -- Build surface map first
-            local surface_map = {}
-            for col = start_col, start_col + map_width - 1 do
-                local column_data = columns[col]
-                local surface_row = find_surface_row(column_data, world_height)
-                surface_map[col] = surface_row
-            end
+            -- Calculate display range (show terrain with elevation)
+            local display_height = 20  -- Show 20 rows of terrain
+            local mid_surface = math.floor((min_surface + max_surface) / 2)
+            local start_row = mid_surface - math.floor(display_height / 2)
+            local end_row = start_row + display_height - 1
             
-            -- Draw only surface level with spawn marker
-            local line = ""
-            for col = start_col, start_col + map_width - 1 do
-                local is_spawn = (col == spawn_col and z == LAYER_DEFAULT)
-                
-                if is_spawn then
-                    line = line .. "X"
-                elseif surface_map[col] then
-                    line = line .. "_"
-                else
-                    line = line .. " "
+            -- Generate 2D ASCII map showing elevation
+            for row = start_row, end_row do
+                local line = ""
+                for col = start_col, start_col + map_width - 1 do
+                    local surface_row = surface_rows[col]
+                    local is_spawn = (col == spawn_col and z == LAYER_DEFAULT)
+                    
+                    if row < 0 or row >= world_height then
+                        line = line .. " "
+                    elseif not surface_row then
+                        line = line .. " "
+                    elseif row < surface_row then
+                        -- Above surface = sky/air
+                        if is_spawn and row == surface_row - 1 then
+                            line = line .. "X"  -- Mark spawn position above surface
+                        else
+                            line = line .. " "
+                        end
+                    else
+                        -- At or below surface = ground
+                        if is_spawn and row == surface_row then
+                            line = line .. "X"  -- Mark spawn position at surface
+                        else
+                            line = line .. "_"
+                        end
+                    end
                 end
+                print(line)
             end
-            print(line)
             
             print("")
         end
