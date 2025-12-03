@@ -97,7 +97,7 @@ local function main(args)
     end
     
     -- Deserialize using binser
-    local success, result = pcall(binser.deserialize, content)
+    local success, result, len = pcall(binser.deserialize, content)
     if not success then
         print(string.format("Error: Failed to deserialize file '%s'", filepath))
         print(string.format("Details: %s", tostring(result)))
@@ -113,7 +113,7 @@ local function main(args)
     -- Print file info
     print(string.format("File: %s", filepath))
     print(string.format("Size: %d bytes", #content))
-    print(string.format("Deserialized objects: %d", #result))
+    print(string.format("Deserialized objects: %d", len or #result))
     print("")
     
     -- Dump each deserialized object
