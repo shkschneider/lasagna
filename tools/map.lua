@@ -21,14 +21,20 @@ end
 -- Mock LÖVE functions and globals
 
 -- Simple hash-based noise function for terrain generation
+-- Uses prime number multipliers for better distribution
+local NOISE_PRIME_X = 374761393
+local NOISE_PRIME_Y = 668265263
+local NOISE_PRIME_SEED = 1274126177
+local NOISE_MODULO = 2147483647
+
 local function simple_noise(x, y, seed_offset)
-    -- Create a hash from inputs using simple math operations
-    local n = x * 374761393 + y * 668265263 + seed_offset * 1274126177
+    -- Create a hash from inputs using prime number multipliers
+    local n = x * NOISE_PRIME_X + y * NOISE_PRIME_Y + seed_offset * NOISE_PRIME_SEED
     -- Ensure n is positive and in a reasonable range
-    n = math.abs(n) % 2147483647
+    n = math.abs(n) % NOISE_MODULO
     -- Multiple passes to mix the bits
-    n = (n * n * 15731 + 789221) % 2147483647
-    n = (n + 1376312589) % 2147483647
+    n = (n * n * 15731 + 789221) % NOISE_MODULO
+    n = (n + 1376312589) % NOISE_MODULO
     -- Return value in [0, 1] range
     return (n % 1000000) / 1000000.0
 end
@@ -67,6 +73,7 @@ BLOCK_SIZE = 16
 LAYER_MIN = -1
 LAYER_DEFAULT = 0
 LAYER_MAX = 1
+SPAWN_COL = BLOCK_SIZE  -- Spawn column matches the find_spawn_position in World
 
 -- Mock G object
 G = {
@@ -83,7 +90,7 @@ package.loaded["core.love"] = {
 
 -- Load required modules
 local BlockRef = require("data.blocks.ids")
-local WorldSeed = require("src.world.seed")
+-- Note: WorldSeed is available but not used directly in this simplified tool
 
 -- We need to partially load the generator
 -- Copy the essential generation logic here to avoid complex dependencies
@@ -194,7 +201,7 @@ local function generate_map(seed_val)
     print("")
     
     local world_height = 512
-    local spawn_col = BLOCK_SIZE
+    local spawn_col = SPAWN_COL
     
     -- Determine map size (visible area around spawn)
     local map_width = 80  -- 80 characters wide
