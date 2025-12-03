@@ -14,8 +14,12 @@ function Renderer.load(self)
     self:resize(love.graphics.getDimensions())
 end
 
-local function render(canvas, ...)
+local function render(canvas, shader, ...)
+    assert(type(shader) == "userdata" or type(shader) == "table")
     local objects = {...}
+    if type(shader) == "userdata" then
+        love.graphics.setShader(shader)
+    end
     canvas:renderTo(function()
         love.graphics.clear(0, 0, 0, 0)
         for _, c in ipairs(objects) do
@@ -28,6 +32,7 @@ local function render(canvas, ...)
     end)
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.draw(canvas)
+    love.graphics.setShader()
 end
 
 function Renderer.draw(self)
@@ -37,30 +42,22 @@ function Renderer.draw(self)
     local state = G.state.current
     if state == GameState.MENU or state == GameState.LOAD then
         love.graphics.setColor(0, 0, 0, 1)
-        render(self.canvases.overlay, G.menu, G.loader)
+        render(self.canvases.overlay, {}, G.menu, G.loader)
     else
         love.graphics.clear(0.4, 0.6, 0.9, 1)
-        local px, py, pz = G.player:get_position()
-        -- love.graphics.setShader(Shaders.sepia)
-        -- render(self.canvases.world1, function()
-        --     for z = LAYER_MIN, pz - 1 do
-        --         G.world:draw_layer(z)
-        --     end
-        -- end)
-        -- love.graphics.setShader()
-        render(self.canvases.world2, function()
-            G.world:draw_layer(pz)
-        end)
-        render(self.canvases.entities, G.entities, G.player)
-        -- love.graphics.setShader(Shaders.greyscale)
-        -- render(self.canvases.world1, function()
-        --     for z = pz + 1, LAYER_MAX do
-        --         G.world:draw_layer(z)
-        --     end
-        -- end)
-        -- love.graphics.setShader()
-        render(self.canvases.things, G.mining, G.building, G.weapon, G.lore)
-        render(self.canvases.overlay, G.ui, G.chat, G.debug or G.menu, G.debug and G.menu or nil)
+        local _, _, pz = G.player:get_position()
+        render(self.canvases.world1, Shaders.sepia,
+            function() G.world:draw1(pz) end)
+        render(self.canvases.world2, {},
+            function() G.world:draw2(pz) end)
+        render(self.canvases.entities, {},
+            G.entities, G.player)
+        render(self.canvases.world1, Shaders.greyscale,
+            function() G.world:draw3(pz) end)
+        render(self.canvases.things, {},
+            G.mining, G.building, G.weapon, G.lore)
+        render(self.canvases.overlay, {},
+            G.ui, G.chat, G.debug or G.menu, G.debug and G.menu or nil)
     end
 end
 

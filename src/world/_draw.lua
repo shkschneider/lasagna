@@ -2,17 +2,7 @@ local Registry = require "src.game.registries"
 local BlockRef = require "data.blocks.ids"
 local Biome = require "src.world.biome"
 
-function World.draw(self)
-    if G.debug then
-        self:draw_layer(G.player.position.z)
-    else
-        for z = LAYER_MIN, LAYER_MAX do
-            self:draw_layer(z)
-        end
-    end
-end
-
-function World.draw_layer(self, layer)
+local function draw(self, layer)
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
 
@@ -65,5 +55,23 @@ function World.draw_layer(self, layer)
                 end
             end
         end
+    end
+end
+
+function World.draw(self) end
+
+function World.draw1(self, pz)
+    for z = LAYER_MIN, pz - 1 do
+        draw(self, z)
+    end
+end
+
+function World.draw2(self, pz)
+    draw(self, pz)
+end
+
+function World.draw3(self, pz)
+    for z = pz + 1, LAYER_MAX do
+        draw(self, z)
     end
 end
