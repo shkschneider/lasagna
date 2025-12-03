@@ -120,7 +120,10 @@ function World.draw_layer(self, layer)
 end
 
 -- Check if a location is valid for building
--- This is a read-only check (safe for draw phase) since visible columns are pre-generated
+-- This is a read-only check that uses read-only getters because:
+-- 1. When called from UI draw phase, visible columns are already pre-generated (with padding)
+-- 2. When called from update phase (building system), columns are also pre-generated
+-- The 2-block padding in request_visible_columns_generation() ensures adjacent blocks are available
 function World.is_valid_building_location(self, col, row, layer)
     -- Check if spot is empty (sky or air)
     local current_block = self:get_block_id(layer, col, row)
@@ -245,14 +248,14 @@ end
 -- Get block prototype at position
 -- READ-ONLY version (safe for draw phase)
 function World.get_block_def(self, z, col, row)
-    local block_id = self.get_block_id(self, z, col, row)
+    local block_id = self:get_block_id(z, col, row)
     return Registry.Blocks:get(block_id)
 end
 
 -- Get block prototype at position AND request generation if needed
 -- This version can MUTATE state - only use during update phase
 function World.get_block_def_lazy(self, z, col, row)
-    local block_id = self.get_block_id_lazy(self, z, col, row)
+    local block_id = self:get_block_id_lazy(z, col, row)
     return Registry.Blocks:get(block_id)
 end
 
