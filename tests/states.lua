@@ -6,10 +6,10 @@
 require "libraries.luax"
 
 local function ok(msg)
-    print("PASS: " .. msg)
+    io.stdout:write("PASS: " .. msg .. "\n")
 end
 local function fail(msg)
-    print("FAIL: " .. msg)
+    io.stderr:write("FAIL: " .. msg .. "\n")
     os.exit(1)
 end
 local function expect(cond,msg)
@@ -103,7 +103,7 @@ package.loaded["src.ui.camera"] = {}
 -- player mock with configurable is_dead
 local player_mock = {
     _is_dead = false,
-    is_dead = function(self) return player_mock._is_dead end
+    is_dead = function(self) return self._is_dead end
 }
 package.loaded["src.entities.player"] = player_mock
 
@@ -231,6 +231,7 @@ do
 
     -- run update
     Game.time = require("src.data.timescale").new(1)
+    Game.fade_duration = 0
     Game:update(0.016)
 
     expect(Game.state and Game.state.current == GS.DEAD, "Game transitioned to DEAD when player died")
@@ -254,16 +255,17 @@ do
     -- Set game to DEAD state
     Game.state = GS.new(GS.DEAD)
 
-    -- Try escape key - should be ignored
+    -- Try l key - should be passed to menu
     mock.menu_keypressed_called = false
-    Game:keypressed("escape")
-    expect(not mock.menu_keypressed_called, "escape key ignored in DEAD state")
+    Game:keypressed("l")
+    expect(mock.menu_keypressed_called, "l key passed to menu in DEAD state")
+    expect(mock.menu_keypressed_key == "l", "correct key passed to menu")
 
-    -- Try return key - should be passed to menu
+    -- Try q key - should be passed to menu
     mock.menu_keypressed_called = false
-    Game:keypressed("return")
-    expect(mock.menu_keypressed_called, "return key passed to menu in DEAD state")
-    expect(mock.menu_keypressed_key == "return", "correct key passed to menu")
+    Game:keypressed("q")
+    expect(mock.menu_keypressed_called, "q key passed to menu in DEAD state")
+    expect(mock.menu_keypressed_key == "q", "correct key passed to menu")
 end
 
 print("All tests finished.")
