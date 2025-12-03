@@ -120,10 +120,12 @@ function World.draw_layer(self, layer)
 end
 
 -- Check if a location is valid for building
--- This is a read-only check that uses read-only getters because:
--- 1. When called from UI draw phase, visible columns are already pre-generated (with padding)
--- 2. When called from update phase (building system), columns are also pre-generated
--- The 2-block padding in request_visible_columns_generation() ensures adjacent blocks are available
+-- This uses read-only getters (safe for both draw and update phases) because:
+-- 1. Visible columns are pre-generated in update phase with 2-block padding
+-- 2. This ensures all adjacent blocks (up to 1 block away) are already generated
+-- 3. Currently only called from UI draw phase (src/ui/init.lua:175)
+-- NOTE: If this is ever called from update phase for non-visible locations,
+-- consider creating a *_lazy version or ensuring those columns are pre-generated
 function World.is_valid_building_location(self, col, row, layer)
     -- Check if spot is empty (sky or air)
     local current_block = self:get_block_id(layer, col, row)
