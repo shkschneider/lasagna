@@ -43,7 +43,7 @@ function Building.has_adjacent_block(self, col, row, layer)
     for _, offset in ipairs(offsets) do
         local check_col = col + offset[1]
         local check_row = row + offset[2]
-        local proto = G.world:get_block_def(layer, check_col, check_row)
+        local proto = G.world:get_block_def_lazy(layer, check_col, check_row)
         if proto and proto.solid then
             return true
         end
@@ -57,7 +57,7 @@ function Building.has_adjacent_layer_block(self, col, row, layer)
 
     -- Check layer below (if not already at bottom layer)
     if layer - 1 >= LAYER_MIN then
-        local proto = G.world:get_block_def(layer - 1, col, row)
+        local proto = G.world:get_block_def_lazy(layer - 1, col, row)
         if proto and proto.solid then
             return true
         end
@@ -65,7 +65,7 @@ function Building.has_adjacent_layer_block(self, col, row, layer)
 
     -- Check layer above (if not already at top layer)
     if layer + 1 <= LAYER_MAX then
-        local proto = G.world:get_block_def(layer + 1, col, row)
+        local proto = G.world:get_block_def_lazy(layer + 1, col, row)
         if proto and proto.solid then
             return true
         end
@@ -83,7 +83,7 @@ function Building.place_block(self, col, row)
     end
 
     -- Check if spot is empty
-    local current_block = G.world:get_block_id(player_z, col, row)
+    local current_block = G.world:get_block_id_lazy(player_z, col, row)
     if current_block ~= BLOCKS.AIR then
         return
     end

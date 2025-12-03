@@ -29,7 +29,7 @@ function Physics.check_collision(world, x, y, layer, width, height)
 
     for c = left_col, right_col do
         for r = top_row, bottom_row do
-            local block_def = world:get_block_def(layer, c, r)
+            local block_def = world:get_block_def_lazy(layer, c, r)
             if block_def and block_def.solid then
                 return true
             end
@@ -47,7 +47,7 @@ function Physics.is_on_ground(world, pos, width, height)
     local bottom_row = math.floor(bottom_y / BLOCK_SIZE)
 
     for c = left_col, right_col do
-        local block_def = world:get_block_def(pos.z, c, bottom_row)
+        local block_def = world:get_block_def_lazy(pos.z, c, bottom_row)
         if block_def and block_def.solid then
             return true
         end
@@ -63,7 +63,7 @@ function Physics.would_have_ground(world, x, y, z, width, height)
     local center_col = math.floor(x / BLOCK_SIZE)
     local bottom_row = math.floor(bottom_y / BLOCK_SIZE)
 
-    local block_def = world:get_block_def(z, center_col, bottom_row)
+    local block_def = world:get_block_def_lazy(z, center_col, bottom_row)
     if block_def and block_def.solid then
         return true
     end
@@ -96,7 +96,7 @@ function Physics.apply_horizontal_movement(world, pos, vel, width, height, dt)
         local bottom_row = math.floor((pos.y - 1 + (height - 2) / 2 - math.eps) / BLOCK_SIZE)
 
         for row = top_row, bottom_row do
-            local block_def = world:get_block_def(pos.z, check_col, row)
+            local block_def = world:get_block_def_lazy(pos.z, check_col, row)
             if block_def and block_def.solid then
                 hit_wall = true
                 if vel.x > 0 then
@@ -127,7 +127,7 @@ function Physics.apply_vertical_movement(world, pos, vel, width, height, velocit
     local bottom_row = math.floor(bottom_y / BLOCK_SIZE)
 
     for c = left_col, right_col do
-        local block_def = world:get_block_def(pos.z, c, bottom_row)
+        local block_def = world:get_block_def_lazy(pos.z, c, bottom_row)
         if block_def and block_def.solid and vel.y >= 0 then
             new_y = bottom_row * BLOCK_SIZE - height / 2
             vel.y = 0
@@ -141,7 +141,7 @@ function Physics.apply_vertical_movement(world, pos, vel, width, height, velocit
     local top_row = math.floor(top_y / BLOCK_SIZE)
 
     for c = left_col, right_col do
-        local block_def = world:get_block_def(pos.z, c, top_row)
+        local block_def = world:get_block_def_lazy(pos.z, c, top_row)
         if block_def and block_def.solid and vel.y < 0 then
             new_y = (top_row + 1) * BLOCK_SIZE + height / 2
             vel.y = 0

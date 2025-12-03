@@ -318,7 +318,7 @@ function Player.can_stand_up(self)
     local top_row = math.floor(top_y / BLOCK_SIZE)
 
     for c = left_col, right_col do
-        local block_def = G.world:get_block_def(pos.z, c, top_row)
+        local block_def = G.world:get_block_def_lazy(pos.z, c, top_row)
         if block_def and block_def.solid then
             return false
         end

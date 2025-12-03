@@ -62,7 +62,7 @@ end
 
 function Mining.start_mining(self, col, row)
     local player_x, player_y, player_z = G.player:get_position()
-    local block_id = G.world:get_block_id(player_z, col, row)
+    local block_id = G.world:get_block_id_lazy(player_z, col, row)
     local proto = Registry.Blocks:get(block_id)
 
     if not proto or not proto.solid then

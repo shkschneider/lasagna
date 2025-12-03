@@ -30,7 +30,27 @@ function World.load(self)
 end
 
 function World.update(self, dt)
+    -- Request generation of visible columns before drawing
+    self:request_visible_columns_generation()
     Love.update(self, dt)
+end
+
+-- Request generation of all visible columns (called during update phase)
+-- This ensures columns are ready before the draw phase
+function World.request_visible_columns_generation(self)
+    local screen_width, screen_height = love.graphics.getDimensions()
+    local camera_x, camera_y = G.camera:get_offset()
+
+    -- Calculate visible area with padding
+    local start_col = math.floor(camera_x / BLOCK_SIZE) - 2
+    local end_col = math.ceil((camera_x + screen_width) / BLOCK_SIZE) + 2
+
+    -- Request generation for all visible columns in all layers
+    for z = LAYER_MIN, LAYER_MAX do
+        for col = start_col, end_col do
+            self.generator:generate_column(z, col, true)
+        end
+    end
 end
 
 function World.draw(self)
@@ -100,6 +120,7 @@ function World.draw_layer(self, layer)
 end
 
 -- Check if a location is valid for building
+-- This is a read-only check (safe for draw phase) since visible columns are pre-generated
 function World.is_valid_building_location(self, col, row, layer)
     -- Check if spot is empty (sky or air)
     local current_block = self:get_block_id(layer, col, row)
@@ -142,7 +163,27 @@ function World.is_valid_building_location(self, col, row, layer)
 end
 
 -- Get raw noise value at position (0.0-1.0 range, 0 = air)
+-- This is a READ-ONLY operation that does NOT trigger generation (safe for draw phase)
+-- If the column is not yet generated, returns 0 (sky/air)
 function World.get_block_value(self, z, col, row)
+    if row < 0 or row >= self.HEIGHT then
+        return 0
+    end
+
+    local data = self.generator.data
+    if data.columns[z] and
+       data.columns[z][col] and
+       data.columns[z][col][row] then
+        return data.columns[z][col][row]
+    end
+
+    return 0
+end
+
+-- Get raw noise value at position AND request generation if not yet generated
+-- This version MUTATES state and should ONLY be called during update phase
+-- Use this when you need to ensure a block exists for game logic (e.g., collision, mining)
+function World.get_block_value_lazy(self, z, col, row)
     if row < 0 or row >= self.HEIGHT then
         return 0
     end
@@ -162,6 +203,7 @@ end
 
 -- Get block at position (returns block ID)
 -- Uses shared underground block distribution to prevent visible biome transition seams
+-- READ-ONLY version (safe for draw phase)
 function World.get_block_id(self, z, col, row)
     local value = self:get_block_value(z, col, row)
     -- Check if it's a direct block ID (< NOISE_OFFSET) or a noise value (>= NOISE_OFFSET)
@@ -180,9 +222,37 @@ function World.get_block_id(self, z, col, row)
     end
 end
 
+-- Get block at position (returns block ID) AND request generation if needed
+-- This version can MUTATE state - only use during update phase
+function World.get_block_id_lazy(self, z, col, row)
+    local value = self:get_block_value_lazy(z, col, row)
+    -- Check if it's a direct block ID (< NOISE_OFFSET) or a noise value (>= NOISE_OFFSET)
+    if value == BlockRef.SKY then
+        return BlockRef.SKY
+    elseif value == BlockRef.AIR then
+        return BlockRef.AIR
+    elseif value < NOISE_OFFSET then
+        -- Direct block ID (grass, dirt, etc.)
+        return value
+    else
+        -- Noise value: convert back to 0.0-1.0 range and use shared weighted lookup
+        -- Shared underground distribution prevents visible seams at biome transitions
+        local noise_value = (value - NOISE_OFFSET) / 100
+        return Biome.get_underground_block(noise_value)
+    end
+end
+
 -- Get block prototype at position
+-- READ-ONLY version (safe for draw phase)
 function World.get_block_def(self, z, col, row)
     local block_id = self.get_block_id(self, z, col, row)
+    return Registry.Blocks:get(block_id)
+end
+
+-- Get block prototype at position AND request generation if needed
+-- This version can MUTATE state - only use during update phase
+function World.get_block_def_lazy(self, z, col, row)
+    local block_id = self.get_block_id_lazy(self, z, col, row)
     return Registry.Blocks:get(block_id)
 end
 
@@ -276,7 +346,7 @@ function World.find_spawn_position(self, z)
     -- Find the surface by searching for the first solid block from top
     local col = BLOCK_SIZE
     for row = 0, self.HEIGHT - 1 do
-        local value = self:get_block_value(z, col, row)
+        local value = self:get_block_value_lazy(z, col, row)
         -- Check for solid ground: positive values or marker values (grass/dirt are solid)
         -- value > 0 = noise-based terrain, MARKER_GRASS = -1, MARKER_DIRT = -2
         if value ~= 0 then

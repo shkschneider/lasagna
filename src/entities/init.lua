@@ -136,14 +136,14 @@ end
 function Entity.updateBullet(self, ent, index)
     -- Check collision with blocks
     local col, row = G.world:world_to_block(ent.position.x, ent.position.y)
-    local block_def = G.world:get_block_def(ent.position.z, col, row)
+    local block_def = G.world:get_block_def_lazy(ent.position.z, col, row)
 
     if block_def and block_def.solid then
         -- Bullet hit a block
 
         -- If this bullet destroys blocks, destroy it and spawn drop
         if ent.bullet.destroys_blocks then
-            local block_id = G.world:get_block_id(ent.position.z, col, row)
+            local block_id = G.world:get_block_id_lazy(ent.position.z, col, row)
             local proto = Registry.Blocks:get(block_id)
 
             if proto then
@@ -184,7 +184,7 @@ function Entity.updateDrop(self, ent, index, player_x, player_y, player_z)
         ent.position.x,
         ent.position.y + drop_height / 2
     )
-    local block_def = G.world:get_block_def(ent.position.z, col, row)
+    local block_def = G.world:get_block_def_lazy(ent.position.z, col, row)
 
     local on_ground = false
     if block_def and block_def.solid then
@@ -247,7 +247,7 @@ function Entity.tryMergeDrops(self, ent, index, drop_height)
                     other.position.x,
                     other.position.y + drop_height / 2
                 )
-                local other_block = G.world:get_block_def(other.position.z, other_col, other_row)
+                local other_block = G.world:get_block_def_lazy(other.position.z, other_col, other_row)
 
                 if other_block and other_block.solid then
                     -- Merge counts and remove the other drop
