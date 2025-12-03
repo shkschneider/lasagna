@@ -3,7 +3,7 @@ local Projectile = {
     -- TODO tostring
 }
 
-function Projectile.new(damage, lifetime, width, height, color, destroys_blocks)
+function Projectile.new(damage, lifetime, width, height, color, destroyed_blocks)
     local projectile = {
         priority = 30,  -- Projectiles update after velocity
         damage = damage or 10,
@@ -11,7 +11,7 @@ function Projectile.new(damage, lifetime, width, height, color, destroys_blocks)
         width = width or 2,
         height = height or 2,
         color = color or {1, 1, 0, 1},  -- yellow by default
-        destroys_blocks = destroys_blocks or false,  -- whether bullet destroys blocks on impact
+        destroyed_blocks = destroyed_blocks or 0,  -- whether bullet destroys blocks on impact
         dead = false,  -- Mark for removal
     }
     return setmetatable(projectile, { __index = Projectile })

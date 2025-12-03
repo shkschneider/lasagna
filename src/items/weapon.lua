@@ -78,7 +78,7 @@ function Weapon.try_shoot(self)
         item_proto.weapon.bullet_height or 2,
         item_proto.weapon.bullet_color or {1, 1, 0, 1},
         item_proto.weapon.bullet_gravity or 0,
-        item_proto.weapon.destroys_blocks or false
+        item_proto.weapon.destroyed_blocks or 0
     )
 
     -- Set cooldown

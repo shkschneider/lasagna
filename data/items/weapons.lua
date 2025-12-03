@@ -14,7 +14,7 @@ ItemsRegistry:register({
         bullet_height = 2,
         bullet_color = {1, 1, 0, 1},  -- Yellow
         bullet_gravity = 50,  -- Very light gravity
-        destroys_blocks = false,  -- Gun bullets don't destroy blocks
+        destroyd_blocks = 0,  -- Gun bullets don't destroy blocks
     },
 })
 
@@ -29,6 +29,6 @@ ItemsRegistry:register({
         bullet_height = 4,  -- 2x gun bullet height
         bullet_color = {1, 0.5, 0, 1},  -- Orange
         bullet_gravity = 150,  -- A bit more gravity than gun
-        destroys_blocks = true,  -- Rockets destroy blocks on impact
+        destroyed_blocks = 5,  -- Rockets destroy blocks on impact
     },
 })

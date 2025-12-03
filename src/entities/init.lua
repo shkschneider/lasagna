@@ -132,6 +132,25 @@ function Entity.update(self, dt)
     -- Do NOT Love.update(self, dt)
 end
 
+-- TODO refactor in world
+local function destroy_block(self, x, y, z)
+    local block_id = G.world:get_block_id(z, x, y)
+    local proto = Registry.Blocks:get(block_id)
+    if proto then
+        -- Remove block
+        G.world:set_block(z, x, y, BLOCKS.AIR)
+        -- Spawn drop
+        if proto.drops then
+            local drop_id, drop_count = proto.drops()
+            if drop_id then
+                local wx, wy = G.world:block_to_world(x, y)
+                self:newDrop( wx + BLOCK_SIZE / 2, wy + BLOCK_SIZE / 2,
+                    z, drop_id, drop_count)
+            end
+        end
+    end
+end
+
 -- Bullet-specific update logic (system coordination)
 function Entity.updateBullet(self, ent, index)
     -- Check collision with blocks
@@ -142,29 +161,16 @@ function Entity.updateBullet(self, ent, index)
         -- Bullet hit a block
 
         -- If this bullet destroys blocks, destroy it and spawn drop
-        if ent.bullet.destroys_blocks then
-            local block_id = G.world:get_block_id(ent.position.z, col, row)
-            local proto = Registry.Blocks:get(block_id)
-
-            if proto then
-                -- Remove block
-                G.world:set_block(ent.position.z, col, row, BLOCKS.AIR)
-
-                -- Spawn drop
-                if proto.drops then
-                    local drop_id, drop_count = proto.drops()
-                    if drop_id then
-                        local wx, wy = G.world:block_to_world(col, row)
-                        self:newDrop(
-                            wx + BLOCK_SIZE / 2,
-                            wy + BLOCK_SIZE / 2,
-                            ent.position.z,
-                            drop_id,
-                            drop_count
-                        )
-                    end
-                end
-            end
+        if ent.bullet.destroyed_blocks == 1 then
+            destroy_block(self, col, row, ent.position.z)
+        elseif ent.bullet.destroyed_blocks == 5 then
+            destroy_block(self, col, row, ent.position.z)
+            destroy_block(self, col, row - 1, ent.position.z)
+            destroy_block(self, col, row + 1, ent.position.z)
+            destroy_block(self, col - 1, row, ent.position.z)
+            destroy_block(self, col + 1, row, ent.position.z)
+        elseif ent.bullet.destroyed_blocks > 0 then
+            Log.error("Not Implemented")
         end
 
         -- Remove bullet
