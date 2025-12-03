@@ -37,11 +37,25 @@ function Menu.draw(self)
     end
 
     local screen_width, screen_height = love.graphics.getDimensions()
+    local center_x, center_y = screen_width / 2, screen_height / 2
+    local max_radius = math.sqrt(center_x * center_x + center_y * center_y)
 
-    -- For PAUSE and DEAD, draw semi-transparent overlay over the game
+    -- Draw gradient overlay for PAUSE and DEAD states
     if state == GameState.PAUSE or state == GameState.DEAD then
-        love.graphics.setColor(0, 0, 0, 0.75)
-        love.graphics.rectangle("fill", 0, 0, screen_width, screen_height)
+        -- Determine base color: red for DEAD, black for PAUSE
+        local r, g, b = 0, 0, 0
+        if state == GameState.DEAD then
+            r = 1  -- Red for death
+        end
+        
+        -- Draw radial gradient from center (0% opacity) to edges (85% opacity for visibility)
+        local segments = 64  -- Number of segments for smooth gradient
+        for i = segments, 1, -1 do
+            local radius = (i / segments) * max_radius
+            local alpha = (i / segments) * 0.85  -- 0% at center to 85% at edges
+            love.graphics.setColor(r, g, b, alpha)
+            love.graphics.circle("fill", center_x, center_y, radius, segments)
+        end
     else
         -- For MENU and LOAD, draw solid black background
         love.graphics.setColor(0, 0, 0, 1)
