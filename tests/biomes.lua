@@ -108,7 +108,7 @@ end
 
 -- Test 8: Check biome helper functions work
 print("\n-- Test 8: Biome helper functions work")
-local Biome = require("src.data.biome")
+local Biome = require("src.world.biome")
 
 -- Test get_by_id
 local plains = Biome.get_by_id(5)
