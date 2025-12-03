@@ -107,6 +107,11 @@ local TERRAIN_FREQUENCY = 0.05
 local Z_SCALE_FACTOR = 1.0    -- Scale factor for z in 3D noise (now using full 3D noise)
 local LAYER_HEIGHT_OFFSET = 0.02  -- Height offset per layer (layer -1 is higher than layer 0)
 
+-- Y-offsets for different noise octaves (to create independent noise patterns)
+local HILLS_Y_OFFSET = 0
+local VARIATION_Y_OFFSET = 100
+local DETAIL_Y_OFFSET = 200
+
 -- Helper: round value to bucket precision
 local function round_value(value)
     return math.floor(value / BUCKET_SIZE + 0.5) * BUCKET_SIZE
@@ -116,11 +121,14 @@ end
 -- Layer -1 (back): rough (smoothness = 0.2)
 -- Layer 0 (main): medium (smoothness = 0.5)
 -- Layer 1 (front): smooth (smoothness = 0.8)
+-- Expects z to be in the range [-1, 1] (layer index)
 local function get_layer_smoothness(z)
     -- Map z from [-1, 0, 1] to smoothness [0.2, 0.5, 0.8]
     -- z = -1: smoothness = 0.2 (rough)
     -- z = 0:  smoothness = 0.5 (medium)
     -- z = 1:  smoothness = 0.8 (smooth)
+    -- Clamp z to valid layer range for safety
+    z = math.max(LAYER_MIN, math.min(LAYER_MAX, z))
     return SURFACE_SMOOTHNESS_BASE + (z * 0.3)
 end
 
@@ -135,15 +143,15 @@ local function organic_surface_noise(col, z)
     local layer_offset = -z * LAYER_HEIGHT_OFFSET
     
     -- Large rolling hills (always full strength, using 3D noise for coherence)
-    local hills = (simplex3d(col * HILL_FREQUENCY, 0, z * Z_SCALE_FACTOR) - 0.5) * 2 * HILL_AMPLITUDE
+    local hills = (simplex3d(col * HILL_FREQUENCY, HILLS_Y_OFFSET, z * Z_SCALE_FACTOR) - 0.5) * 2 * HILL_AMPLITUDE
 
     -- Medium terrain variation (reduced by smoothness)
     local medium_factor = 1.0 - (smoothness * 0.5)  -- 50% reduction at max smoothness
-    local variation = (simplex3d(col * TERRAIN_VAR_FREQUENCY, 100, z * Z_SCALE_FACTOR) - 0.5) * 2 * TERRAIN_VAR_AMPLITUDE * medium_factor
+    local variation = (simplex3d(col * TERRAIN_VAR_FREQUENCY, VARIATION_Y_OFFSET, z * Z_SCALE_FACTOR) - 0.5) * 2 * TERRAIN_VAR_AMPLITUDE * medium_factor
 
     -- Small surface detail (most affected by smoothness)
     local detail_factor = 1.0 - smoothness  -- 100% reduction at max smoothness
-    local detail = (simplex3d(col * DETAIL_FREQUENCY, 200, z * Z_SCALE_FACTOR) - 0.5) * 2 * DETAIL_AMPLITUDE * detail_factor
+    local detail = (simplex3d(col * DETAIL_FREQUENCY, DETAIL_Y_OFFSET, z * Z_SCALE_FACTOR) - 0.5) * 2 * DETAIL_AMPLITUDE * detail_factor
 
     return hills + variation + detail + layer_offset
 end
