@@ -75,8 +75,8 @@ local function is_air_or_sky(value)
     return value == BlockRef.SKY or value == BlockRef.AIR
 end
 
--- Draw with conditional transparency based on player position
-local function draw_with_transparency(self, layer, pz)
+-- Draw with nearest-1 fade + platform highlight
+local function draw_nearest_fade_with_platforms(self, layer, pz)
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
 
@@ -92,15 +92,10 @@ local function draw_with_transparency(self, layer, pz)
     start_row = math.max(0, start_row)
     end_row = math.min(self.HEIGHT - 1, end_row)
 
-    -- Check if player is behind a block on this layer
+    -- Find the nearest occluding block (at player position)
     local player_x, player_y, player_z = G.player:get_position()
     local player_col = math.floor(player_x / BLOCK_SIZE)
     local player_row = math.floor(player_y / BLOCK_SIZE)
-    local player_value = self:get_block_value(layer, player_col, player_row)
-    local player_behind_block = not is_air_or_sky(player_value)
-
-    -- Determine transparency: 0.5 if player is behind a block on this layer, 1.0 otherwise
-    local transparency = player_behind_block and 0.25 or 0.5
 
     -- Draw blocks using actual block colors
     for col = start_col, end_col do
@@ -133,10 +128,21 @@ local function draw_with_transparency(self, layer, pz)
                 if block_id then
                     local block = Registry.Blocks:get(block_id)
                     if block and block.color then
-                        -- Apply transparency multiplier
-                        local alpha = (block.color[4] or 1) * transparency
-                        love.graphics.setColor(block.color[1], block.color[2], block.color[3], alpha)
+                        -- Check if this is the nearest occluder (at player position)
+                        local is_occluder = (col == player_col and row == player_row)
+                        local alpha = is_occluder and 0.4 or 1.0
+                        
+                        -- Apply alpha
+                        love.graphics.setColor(block.color[1], block.color[2], block.color[3], (block.color[4] or 1) * alpha)
                         love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
+                        
+                        -- Check if this is a platform top (has air above)
+                        local above_value = self:get_block_value(layer, col, row - 1)
+                        if is_air_or_sky(above_value) then
+                            -- Draw rim highlight on top edge
+                            love.graphics.setColor(1, 1, 1, 0.3 * alpha)
+                            love.graphics.rectangle("fill", x, y, BLOCK_SIZE, 2)
+                        end
                     end
                 end
             end
@@ -146,6 +152,6 @@ end
 
 function World.draw3(self, pz)
     for z = pz + 1, LAYER_MAX do
-        draw_with_transparency(self, z, pz)
+        draw_nearest_fade_with_platforms(self, z, pz)
     end
 end
