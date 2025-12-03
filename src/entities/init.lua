@@ -28,16 +28,12 @@ local DROP_PICKUP_DELAY = 0.5
 local DROP_GRAVITY = 400
 local DROP_FRICTION = 0.8  -- Friction multiplier: <1.0 = friction applied (slows down)
 
-local PICKUP_RANGE = nil  -- Initialized on first use (BLOCK_SIZE)
-local MERGE_RANGE = nil
-local MERGING_ENABLED = true
-
 -- Initialize the entity system
 function Entity.load(self)
     self.entities = {}
     -- Initialize constants that depend on globals
     PICKUP_RANGE = BLOCK_SIZE
-    MERGE_RANGE = BLOCK_SIZE / 2
+    MERGE_RANGE = BLOCK_SIZE
     Love.load(self)
 end
 
@@ -110,23 +106,21 @@ function Entity.update(self, dt)
 
     for i = #self.entities, 1, -1 do
         local ent = self.entities[i]
-
-        -- Apply gravity to velocity (all entities have gravity)
-        Physics.apply_gravity(ent.velocity, ent.gravity, dt)
-
-        -- Apply velocity to position
-        ent.position.x = ent.position.x + ent.velocity.x * dt
-        ent.position.y = ent.position.y + ent.velocity.y * dt
-
-        -- Call component updates via Object recursion
-        -- This handles entity-specific logic (lifetime, etc.)
-        Love.update(ent, dt)
-
-        -- Type-specific system coordination
-        if ent.type == Entity.TYPE_BULLET then
-            self:updateBullet(ent, i)
-        elseif ent.type == Entity.TYPE_DROP then
-            self:updateDrop(ent, i, player_x, player_y, player_z)
+        if ent then -- might have despawn already
+            -- Apply gravity to velocity (all entities have gravity)
+            Physics.apply_gravity(ent.velocity, ent.gravity, dt)
+            -- Apply velocity to position
+            ent.position.x = ent.position.x + ent.velocity.x * dt
+            ent.position.y = ent.position.y + ent.velocity.y * dt
+            -- Call component updates via Object recursion
+            -- This handles entity-specific logic (lifetime, etc.)
+            Love.update(ent, dt)
+            -- Type-specific system coordination
+            if ent.type == Entity.TYPE_BULLET then
+                self:updateBullet(ent, i)
+            elseif ent.type == Entity.TYPE_DROP then
+                self:updateDrop(ent, i, player_x, player_y, player_z)
+            end
         end
     end
     -- Do NOT Love.update(self, dt)
@@ -205,8 +199,8 @@ function Entity.updateDrop(self, ent, index, player_x, player_y, player_z)
         ent.velocity.x = ent.velocity.x * ent.friction
     end
 
-    -- Merge with nearby drops (if enabled)
-    if MERGING_ENABLED and on_ground and ent.drop.pickup_delay <= 0 then
+    -- Merge with nearby drops
+    if on_ground and ent.drop.pickup_delay <= 0 then
         self:tryMergeDrops(ent, index, drop_height)
     end
 

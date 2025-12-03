@@ -35,9 +35,6 @@ function ItemDrop.draw(self, entity, camera_x, camera_y)
         local Registry = require "src.game.registries"
         local proto = Registry.Blocks:get(self.block_id)
         if proto then
-            -- Use global BLOCK_SIZE constant
-            local MERGING_ENABLED = true
-
             -- ItemDrop is 1/2 width and 1/2 height (1/4 surface area)
             local width = BLOCK_SIZE / 2
             local height = BLOCK_SIZE / 2
@@ -48,7 +45,7 @@ function ItemDrop.draw(self, entity, camera_x, camera_y)
             love.graphics.setColor(proto.color)
             love.graphics.rectangle("fill", x, y, width, height)
 
-            if MERGING_ENABLED and self.count > 1 then
+            if self.count > 1 then
                 -- Draw 1px gold border
                 love.graphics.setColor(1, 0.8, 0, 1)
                 love.graphics.rectangle("line", x, y, width, height)
