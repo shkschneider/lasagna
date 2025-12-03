@@ -3,7 +3,7 @@
 -- Run from repo root:
 --   lua ./tests/states.lua
 
-require "libraries.luax"
+require "libs.luax"
 
 local function ok(msg)
     io.stdout:write("PASS: " .. msg .. "\n")

@@ -1,4 +1,4 @@
-local Colors = require "libraries.colors"
+local Colors = require "libs.colors"
 local BlockRef = require "data.blocks.ids"
 local BlocksRegistry = require "src.registries.blocks"
 

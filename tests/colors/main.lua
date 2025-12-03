@@ -1,7 +1,7 @@
 -- Standalone Love2D app to display color palette
 -- Run with: love tests/colors
 
-local Colors = require "libraries.colors"
+local Colors = require "libs.colors"
 
 local TONE_SIZE = 32
 local PADDING = TONE_SIZE / 4

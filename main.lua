@@ -1,7 +1,7 @@
-require "libraries.luax"
+require "libs.luax"
 require "core"
 dassert = dassert or assert
-Log = require "libraries.log"
+Log = require "libs.log"
 
 LAYER_MIN = -1
 LAYER_DEFAULT = 0

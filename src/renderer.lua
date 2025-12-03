@@ -1,4 +1,4 @@
-local Shaders = require "libraries.shaders"
+local Shaders = require "libs.shaders"
 local Object = require "core.object"
 local GameState = require "src.data.gamestate"
 

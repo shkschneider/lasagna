@@ -1,7 +1,7 @@
 -- Ore Generator
 -- Places ore veins in stone based on noise and depth
 
-local noise = require "libraries.noise"
+local noise = require "libs.noise"
 local Registry = require "src.registries"
 local BlocksRegistry = require "src.registries.blocks"
 local BLOCKS = Registry.blocks()

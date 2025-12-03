@@ -22,7 +22,7 @@
 --     },
 -- }
 
-local serializer = require "libraries.bakpakin.binser"
+local serializer = require "libs.bakpakin.binser"
 
 local Object = require "core.object"
 local Stack = require "src.data.stack"

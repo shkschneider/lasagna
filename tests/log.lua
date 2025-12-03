@@ -1,4 +1,4 @@
-Log = require "libraries.log"
+Log = require "libs.log"
 Log.colors = true
 
 local function test(level)

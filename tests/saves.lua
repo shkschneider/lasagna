@@ -3,7 +3,7 @@
 -- Run from repo root:
 --   lua ./tests/saves.lua
 
-require "libraries.luax"
+require "libs.luax"
 
 local function ok(msg)
     print("PASS: " .. msg)
@@ -87,7 +87,7 @@ package.loaded["src.data.stack"] = {
 }
 
 -- serializer mock
-package.loaded["libraries.bakpakin.binser"] = {
+package.loaded["libs.bakpakin.binser"] = {
     serialize = function(data) return "serialized_data" end,
     deserialize = function(data) return { data } end,
 }
