@@ -113,7 +113,7 @@ local function main(args)
     -- Print file info
     print(string.format("File: %s", filepath))
     print(string.format("Size: %d bytes", #content))
-    print(string.format("Deserialized objects: %d", len or #result))
+    print(string.format("Deserialized objects: %d", len ~= nil and len or #result))
     print("")
     
     -- Dump each deserialized object
