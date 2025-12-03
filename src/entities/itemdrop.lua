@@ -7,6 +7,14 @@ local ItemDrop = {
 local DROP_HEIGHT = nil  -- Initialized when BLOCK_SIZE is available
 local MERGE_RANGE = nil
 
+-- Initialize constants on first use
+local function init_constants()
+    if not DROP_HEIGHT then
+        DROP_HEIGHT = BLOCK_SIZE / 2
+        MERGE_RANGE = BLOCK_SIZE / 2
+    end
+end
+
 function ItemDrop.new(block_id, count, lifetime, pickup_delay)
     local itemdrop = {
         priority = 30,  -- ItemDrops update after velocity
@@ -40,11 +48,7 @@ end
 
 -- Try to merge this drop with nearby still drops of the same type
 function ItemDrop.tryMerge(self, entity)
-    -- Initialize constants on first use
-    if not DROP_HEIGHT then
-        DROP_HEIGHT = BLOCK_SIZE / 2
-        MERGE_RANGE = BLOCK_SIZE / 2
-    end
+    init_constants()
     
     -- Check if this drop is on ground (still)
     local col, row = G.world:world_to_block(
@@ -100,11 +104,7 @@ function ItemDrop.draw(self, entity, camera_x, camera_y)
         local Registry = require "src.game.registries"
         local proto = Registry.Blocks:get(self.block_id)
         if proto then
-            -- Initialize constants on first use
-            if not DROP_HEIGHT then
-                DROP_HEIGHT = BLOCK_SIZE / 2
-                MERGE_RANGE = BLOCK_SIZE / 2
-            end
+            init_constants()
             
             -- ItemDrop is 1/2 width and 1/2 height (1/4 surface area)
             local x = entity.position.x - (camera_x or 0) - DROP_HEIGHT / 2
