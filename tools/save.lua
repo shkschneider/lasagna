@@ -44,7 +44,7 @@ local function dump_table(t, indent, seen)
         local v = t[k]
         local key_str
         if type(k) == "string" then
-            key_str = string.format('["%s"]', k)
+            key_str = string.format("[%q]", k)
         else
             key_str = string.format("[%s]", tostring(k))
         end
@@ -54,7 +54,7 @@ local function dump_table(t, indent, seen)
         if type(v) == "table" then
             result = result .. dump_table(v, indent + 1, seen)
         elseif type(v) == "string" then
-            result = result .. string.format('"%s"', v)
+            result = result .. string.format("%q", v)
         elseif type(v) == "number" or type(v) == "boolean" then
             result = result .. tostring(v)
         elseif type(v) == "nil" then
@@ -66,6 +66,7 @@ local function dump_table(t, indent, seen)
     end
     
     result = result .. spaces .. "}"
+    seen[t] = nil  -- Clean up to avoid false circular reference detection
     return result
 end
 
