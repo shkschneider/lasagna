@@ -80,6 +80,9 @@ end
 local CUTOUT_RADIUS = 64  -- pixels, player torso zone
 local CUTOUT_FEATHER = 12  -- pixels, soft edge blur
 local DEPTH_PEEL_K = 3  -- capture nearest 3 foreground layers
+local OUTLINE_ALPHA = 0.9  -- outline opacity for rank 1
+local OUTLINE_WIDTH = 2  -- outline line width in pixels
+local FADE_ALPHA = 0.35  -- fade opacity for rank 2
 
 local function draw_cutout_with_ranking(self, layer, pz)
     -- Get current screen dimensions dynamically
@@ -162,10 +165,10 @@ local function draw_cutout_with_ranking(self, layer, pz)
                         if depth_rank >= DEPTH_PEEL_K then
                             -- Rank 3+: hidden
                             rank_alpha = 0.0
-                        elseif depth_rank == 2 then
+                        elseif depth_rank == (DEPTH_PEEL_K - 1) then
                             -- Rank 2: faded
-                            rank_alpha = 0.35
-                        elseif depth_rank == 1 then
+                            rank_alpha = FADE_ALPHA
+                        elseif depth_rank == (DEPTH_PEEL_K - 2) then
                             -- Rank 1: outline only
                             draw_outline = true
                             rank_alpha = 0.0  -- Don't draw fill for outline-only
@@ -183,9 +186,9 @@ local function draw_cutout_with_ranking(self, layer, pz)
                         
                         -- Draw outline for rank 1
                         if draw_outline and cutout_alpha > 0.01 then
-                            local outline_alpha = 0.9 * cutout_alpha
+                            local outline_alpha = OUTLINE_ALPHA * cutout_alpha
                             love.graphics.setColor(block.color[1], block.color[2], block.color[3], outline_alpha)
-                            love.graphics.setLineWidth(2)
+                            love.graphics.setLineWidth(OUTLINE_WIDTH)
                             love.graphics.rectangle("line", x, y, BLOCK_SIZE, BLOCK_SIZE)
                             love.graphics.setLineWidth(1)  -- Reset line width
                         end
