@@ -3,6 +3,7 @@ local Object = require "core.object"
 local WorldSeed = require "src.world.seed"
 local BlockRef = require "data.blocks.ids"
 local Biome = require "src.world.biome"
+local rng = require "libs.random"
 
 --------------------------------------------------------------------------------
 -- World Generation Overview
@@ -297,7 +298,7 @@ function Generator.load(self)
 
     -- Only create new WorldSeed if not already set (e.g., by loader with saved seed)
     if not self.data or not self.data.seed then
-        self.data = WorldSeed.new(G.debug and os.getenv("SEED") or math.round(os.time() + (love.timer.getTime() * 9 ^ 9)))
+        self.data = WorldSeed.new(G.debug and os.getenv("SEED") or rng(rng()))
     end
     assert(self.data.seed)
     Log.info(self.data.seed)

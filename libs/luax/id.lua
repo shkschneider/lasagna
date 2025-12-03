@@ -8,12 +8,6 @@ if not id then
         end)
     end
 end
--- Benchmark:
--- local t1 = love.timer.getTime()
--- for n = 1, 420000 do
---     id()
--- end
--- print(string.format("%f", love.timer.getTime() - t1))
 
 -- good-enough identifiers
 if not uuid then
@@ -25,9 +19,3 @@ if not uuid then
         end)
     end
 end
--- Benchmark:
--- local t2 = love.timer.getTime()
--- for n = 1, 420000 do
---     uuid()
--- end
--- print(string.format("%f", love.timer.getTime() - t2))

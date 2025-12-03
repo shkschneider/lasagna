@@ -7,8 +7,9 @@ local WorldSeed = {
 }
 
 function WorldSeed.new(seed, height)
+    assert(seed)
     local worlddata = {
-        seed = seed or math.random(),
+        seed = seed,
         height = height or WorldSeed.HEIGHT,
         -- Column-based storage: columns[z][col] contains rows
         -- No horizontal width limit - columns are generated on demand
