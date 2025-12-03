@@ -35,6 +35,12 @@ local Save = Object {
     -- Cache for save info to avoid repeated parsing
     _cached_info = nil,
     _cached_info_modtime = nil,
+    -- Autosave settings
+    AUTOSAVE_INTERVAL = 60,  -- Autosave every 60 seconds
+    AUTOSAVE_DELAY = 1,      -- Delay between snapshot and save to disk
+    _autosave_timer = nil,   -- Timer for autosave (nil until after spawn)
+    _autosave_snapshot = nil, -- Pending snapshot data
+    _autosave_delay_timer = nil, -- Timer for delay after snapshot
 }
 
 -- Helper function to ensure table keys are numbers
@@ -49,6 +55,57 @@ end
 -- Get the full save file path
 function Save.get_save_path(self)
     return self.SAVE_DIR .. self.SAVE_FILENAME
+end
+
+-- Check if player is dead (prevents saving during death)
+function Save.is_player_dead(self)
+    return G.player and G.player:is_dead()
+end
+
+-- Update autosave timer
+function Save.update(self, dt)
+    -- Never save while player is dead
+    if self:is_player_dead() then
+        -- Cancel any pending autosave snapshot
+        self._autosave_snapshot = nil
+        self._autosave_delay_timer = nil
+        return
+    end
+
+    -- Initialize autosave timer on first update (after spawn)
+    if self._autosave_timer == nil then
+        self._autosave_timer = self.AUTOSAVE_INTERVAL
+    end
+
+    -- Handle pending snapshot delay
+    if self._autosave_snapshot then
+        self._autosave_delay_timer = self._autosave_delay_timer - dt
+        if self._autosave_delay_timer <= 0 then
+            -- Delay complete, check if player is still alive before saving
+            if not self:is_player_dead() then
+                self:save_snapshot(self._autosave_snapshot)
+            end
+            self._autosave_snapshot = nil
+            self._autosave_delay_timer = nil
+        end
+        return
+    end
+
+    -- Count down timer
+    self._autosave_timer = self._autosave_timer - dt
+
+    -- Trigger autosave when timer expires
+    if self._autosave_timer <= 0 then
+        -- Take snapshot and display message
+        self._autosave_snapshot = self:create_save_data()
+        self._autosave_delay_timer = self.AUTOSAVE_DELAY
+        -- Display "Autosaving..." message in chat
+        if G.chat then
+            G.chat:add_message("Autosaving...")
+        end
+        -- Reset timer for next autosave
+        self._autosave_timer = self.AUTOSAVE_INTERVAL
+    end
 end
 
 -- Serialize inventory storage (hotbar or backpack) to saveable format
@@ -160,7 +217,7 @@ end
 -- Apply loaded save data to current game state
 function Save.apply_save_data(self, save_data)
     if not save_data then
-        Log.error("Save", "No save data to apply")
+        Log.error("Nothing")
         return false
     end
 
@@ -169,8 +226,8 @@ function Save.apply_save_data(self, save_data)
         local current = G.VERSION
         local saved = save_data.version
         if saved.major ~= current.major or saved.minor ~= current.minor then
-            Log.warning("Save", string.format(
-                "Save version mismatch: saved %d.%d.%s, current %s",
+            Log.warning(string.format(
+                "Version mismatch: saved %d.%d.%s, current %s",
                 saved.major, saved.minor, tostring(saved.patch or "x"),
                 current:tostring()
             ))
@@ -250,32 +307,43 @@ function Save.apply_save_data(self, save_data)
         end
     end
 
-    Log.info("Save", "Save data applied successfully")
+    Log.info("Success")
     return true
 end
 
 -- Save game state to file
 function Save.save(self)
+    -- Never save while player is dead
+    if self:is_player_dead() then
+        Log.warning("Cannot save while dead")
+        return false
+    end
+    
     local save_data = self:create_save_data()
+    return self:save_snapshot(save_data)
+end
+
+-- Save a snapshot (pre-created save data) to file
+function Save.save_snapshot(self, save_data)
     local serialized = serializer.serialize(save_data)
 
     local path = self:get_save_path()
     local success, message = love.filesystem.write(path, serialized)
 
     if success then
-        Log.info("Save", "Game saved to " .. path)
+        Log.info(save_data.seed, path)
         -- Invalidate cache when save file changes
         self._cached_info = nil
         self._cached_info_modtime = nil
         return true
     else
-        Log.error("Save", "Failed to save: " .. tostring(message))
+        Log.warning(tostring(message))
         return false
     end
 end
 
 -- Load game state from file
-function Save.load(self)
+function Save.rollback(self)
     local path = self:get_save_path()
 
     -- Check if save file exists
@@ -304,7 +372,7 @@ function Save.load(self)
         return nil
     end
 
-    Log.info("Save", "Save loaded from " .. path)
+    Log.info(save_data.seed, path)
     return save_data
 end
 
@@ -349,7 +417,7 @@ function Save.get_info(self)
     end
 
     -- Load and parse the save file (needed for version/seed info)
-    local save_data = self:load()
+    local save_data = self:rollback()
     local result
     if not save_data then
         result = {

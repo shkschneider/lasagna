@@ -9,7 +9,7 @@ return function()
             enabled = save_exists,
             action = function()
                 -- Store save data for loading phase
-                G.pending_save_data = G.world.save:load()
+                G.pending_save_data = G.world.save:rollback()
                 -- Transition to LOAD state
                 G:load(GameState.LOAD)
             end

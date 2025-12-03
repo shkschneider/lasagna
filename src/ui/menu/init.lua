@@ -20,6 +20,9 @@ function Menu.load(self)
     elseif state == GameState.LOAD then
         self.title = "Loading..."
         self.items = require("src.ui.menu.loading")()
+    elseif state == GameState.DEAD then
+        self.title = "You Died"
+        self.items = require("src.ui.menu.dead")()
     end
     Love.load(self)
 end
@@ -28,17 +31,43 @@ end
 function Menu.draw(self)
     local state = G.state.current
 
-    -- Only draw in MENU, PAUSE, or LOAD states
-    if state ~= GameState.MENU and state ~= GameState.PAUSE and state ~= GameState.LOAD then
+    -- Only draw in MENU, PAUSE, LOAD, or DEAD states
+    if state ~= GameState.MENU and state ~= GameState.PAUSE and state ~= GameState.LOAD and state ~= GameState.DEAD then
         return
     end
 
     local screen_width, screen_height = love.graphics.getDimensions()
+    local center_x, center_y = screen_width / 2, screen_height / 2
+    local max_radius = math.sqrt(center_x * center_x + center_y * center_y)
 
-    -- For PAUSE, draw semi-transparent overlay over the game
-    if state == GameState.PAUSE then
-        love.graphics.setColor(0, 0, 0, 0.75)
-        love.graphics.rectangle("fill", 0, 0, screen_width, screen_height)
+    -- Draw gradient overlay for PAUSE and DEAD states
+    if state == GameState.PAUSE or state == GameState.DEAD then
+        -- Determine base color: red for DEAD, black for PAUSE
+        local r, g, b = 0, 0, 0
+        if state == GameState.DEAD then
+            r = 1  -- Red for death
+        end
+
+        -- Create a radial gradient using a mesh
+        local num_segments = 32
+        local max_dist = math.sqrt((screen_width/2)^2 + (screen_height/2)^2)
+
+        -- Build vertices for a fan mesh with gradient
+        local vertices = {}
+        -- Center vertex with 0 opacity
+        table.insert(vertices, {center_x, center_y, 0, 0, r, g, b, 0})
+
+        -- Outer ring vertices with full opacity
+        for i = 0, num_segments do
+            local angle = (i / num_segments) * math.pi * 2
+            local x = center_x + math.cos(angle) * max_dist * 1.5  -- Extend beyond screen
+            local y = center_y + math.sin(angle) * max_dist * 1.5
+            table.insert(vertices, {x, y, 0, 0, r, g, b, 0.85})
+        end
+
+        -- Create and draw the mesh
+        local mesh = love.graphics.newMesh(vertices, "fan", "static")
+        love.graphics.draw(mesh)
     else
         -- For MENU and LOAD, draw solid black background
         love.graphics.setColor(0, 0, 0, 1)
@@ -100,10 +129,7 @@ end
 function Menu.keypressed(self, key)
     local state = G.state.current
 
-    -- Only handle input in MENU or PAUSE states (not LOAD)
-    if state ~= GameState.MENU and state ~= GameState.PAUSE then
-        return
-    end
+    if state == GameState.LOAD then return end
 
     -- Find matching item
     for _, item in ipairs(self.items) do

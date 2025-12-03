@@ -57,7 +57,7 @@ function Health.draw(self)
     local bar_index = 0
     local screen_width = love.graphics.getDimensions()
     local bar_height = BLOCK_SIZE / 4
-    local bar_width = Health.BAR_WIDTH
+    local bar_width = Health.BAR_WIDTH * (1.0 - bar_index * 0.25)
     local bar_x = screen_width - bar_width - Health.BAR_GAP
     local bar_y = Health.BAR_GAP + (bar_height + Health.BAR_GAP) * bar_index
 

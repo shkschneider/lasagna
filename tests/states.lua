@@ -6,10 +6,10 @@
 require "libraries.luax"
 
 local function ok(msg)
-    print("PASS: " .. msg)
+    io.stdout:write("PASS: " .. msg .. "\n")
 end
 local function fail(msg)
-    print("FAIL: " .. msg)
+    io.stderr:write("FAIL: " .. msg .. "\n")
     os.exit(1)
 end
 local function expect(cond,msg)
@@ -27,6 +27,9 @@ local mock = {
     debug_get_called = false,
     log_debug_called = false,
     log_info_called = false,
+    chat_update_called = false,
+    menu_keypressed_called = false,
+    menu_keypressed_key = nil,
 }
 
 -- Install global Log used by game.lua
@@ -73,6 +76,7 @@ package.loaded["src.data.gamestate"] = (function()
     GS.LOAD = "LOAD"
     GS.PLAY = "PLAY"
     GS.PAUSE = "PAUSE"
+    GS.DEAD = "DEAD"
     GS.QUIT = "QUIT"
     function GS.new(state)
         local obj = { current = state or GS.BOOT }
@@ -95,13 +99,28 @@ package.loaded["src.debug"] = {
 -- Minimal mocks for modules referenced in Game table
 package.loaded["src.world"] = {}
 package.loaded["src.ui.camera"] = {}
-package.loaded["src.entities.player"] = { is_dead = function() return false end }
+
+-- player mock with configurable is_dead
+local player_mock = {
+    _is_dead = false,
+    is_dead = function(self) return self._is_dead end
+}
+package.loaded["src.entities.player"] = player_mock
+
 package.loaded["src.world.mining"] = {}
 package.loaded["src.world.building"] = {}
 package.loaded["src.items.weapon"] = {}
 package.loaded["src.entities"] = {}
 package.loaded["src.ui"] = {}
-package.loaded["src.ui.chat"] = {}
+
+-- chat mock with update function
+local chat_mock = {
+    update = function(self, dt) mock.chat_update_called = true end,
+    add_message = function(self, msg) end,
+}
+package.loaded["src.chat"] = chat_mock
+package.loaded["src.ui.chat"] = chat_mock
+
 package.loaded["src.lore"] = {}
 
 -- menu mock: menu:load() should be called when Game:load(state) is invoked after boot
@@ -190,12 +209,63 @@ do
     Game.state = GS.new(GS.LOAD)
 
     -- run update once (dt arbitrary)
+    Game.time = require("src.data.timescale").new(1)
     Game:update(0.016)
 
     expect(mock.loader_started, "loader:start() called during LOAD update")
     expect(mock.loader_update_called, "loader:update() called during LOAD update")
     expect(mock.loader_reset_called, "loader:reset() called after loader finished")
     expect(Game.state and Game.state.current == GS.PLAY, "Game transitioned to PLAY after loader finished")
+end
+
+print("-- Test 4: player death transitions game to DEAD state")
+do
+    local GS = require("src.data.gamestate")
+    local player = package.loaded["src.entities.player"]
+
+    -- Set game to PLAY state
+    Game.state = GS.new(GS.PLAY)
+
+    -- Set player to dead
+    player._is_dead = true
+
+    -- run update
+    Game.time = require("src.data.timescale").new(1)
+    Game.fade_duration = 0
+    Game:update(0.016)
+
+    expect(Game.state and Game.state.current == GS.DEAD, "Game transitioned to DEAD when player died")
+
+    -- Reset player state
+    player._is_dead = false
+end
+
+print("-- Test 5: DEAD state ignores most input but allows return key")
+do
+    local GS = require("src.data.gamestate")
+    mock.menu_keypressed_called = false
+
+    -- Update menu mock to track keypressed
+    local menu = package.loaded["src.ui.menu"]
+    menu.keypressed = function(self, key)
+        mock.menu_keypressed_called = true
+        mock.menu_keypressed_key = key
+    end
+
+    -- Set game to DEAD state
+    Game.state = GS.new(GS.DEAD)
+
+    -- Try l key - should be passed to menu
+    mock.menu_keypressed_called = false
+    Game:keypressed("l")
+    expect(mock.menu_keypressed_called, "l key passed to menu in DEAD state")
+    expect(mock.menu_keypressed_key == "l", "correct key passed to menu")
+
+    -- Try q key - should be passed to menu
+    mock.menu_keypressed_called = false
+    Game:keypressed("q")
+    expect(mock.menu_keypressed_called, "q key passed to menu in DEAD state")
+    expect(mock.menu_keypressed_key == "q", "correct key passed to menu")
 end
 
 print("All tests finished.")

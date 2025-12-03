@@ -3,6 +3,9 @@ local Object = require "core.object"
 local TimeScale = require "src.data.timescale"
 local GameState = require "src.data.gamestate"
 
+-- Fade effect constants
+local FADE_DURATION = 1  -- 1 second fade duration
+
 local Game = Object {
     id = "game",
     priority = 0,
@@ -21,6 +24,10 @@ local Game = Object {
     init = function(self)
         self.state = GameState.new(GameState.BOOT)
         self.time = TimeScale.new(1)
+        self.fade_alpha = 0  -- 0 = transparent, 1 = black
+        self.fade_duration = FADE_DURATION
+        self.fade_timer = 0
+        self.fade_direction = nil  -- "in" (black to transparent) or "out" (transparent to black)
     end,
 }
 
@@ -53,18 +60,63 @@ function Game.update(self, dt)
         if self.loader:update(dt) then
             self.loader:reset()
             self:load(GameState.PLAY)
+            -- Start fade-in when entering PLAY state
+            self:start_fade_in()
         end
         return
     elseif state == GameState.MENU or state == GameState.PAUSE then
         return
+    elseif self.player:is_dead() and state ~= GameState.DEAD then
+        self:load(GameState.DEAD)
     end
-    if self.player and self.player:is_dead() then return end
+    if state == GameState.DEAD then return end
+
+    -- Update fade effect
+    if self.fade_direction then
+        self.fade_timer = self.fade_timer + dt
+        local progress = math.min(self.fade_timer / self.fade_duration, 1.0)
+
+        if self.fade_direction == "in" then
+            -- Fade in: black (1.0) to transparent (0.0)
+            self.fade_alpha = 1.0 - progress
+        elseif self.fade_direction == "out" then
+            -- Fade out: transparent (0.0) to black (1.0)
+            self.fade_alpha = progress
+        end
+
+        -- End fade when complete
+        if progress >= 1.0 then
+            self.fade_direction = nil
+            self.fade_timer = 0
+        end
+    end
+
     dt = dt * self.time.scale
     Love.update(self, dt)
 end
 
+function Game.start_fade_in(self)
+    self.fade_direction = "in"
+    self.fade_timer = 0
+    self.fade_alpha = 1.0
+end
+
+function Game.start_fade_out(self)
+    self.fade_direction = "out"
+    self.fade_timer = 0
+    self.fade_alpha = 0.0
+end
+
 function Game.draw(self)
     self.renderer:draw() -- NOT Love.draw
+
+    -- Draw fade overlay
+    if self.fade_alpha > 0 then
+        love.graphics.setColor(0, 0, 0, self.fade_alpha)
+        local width, height = love.graphics.getDimensions()
+        love.graphics.rectangle("fill", 0, 0, width, height)
+        love.graphics.setColor(1, 1, 1, 1)  -- Reset color
+    end
 end
 
 function Game.keypressed(self, key)
@@ -80,9 +132,13 @@ function Game.keypressed(self, key)
             self:load(GameState.QUIT)
             love.event.quit()
             return
+        elseif state == GameState.DEAD then
+            self:load(GameState.MENU)
+            return
         end
+        -- DEAD state: escape does nothing
     end
-    if state == GameState.MENU or state == GameState.PAUSE then
+    if state == GameState.MENU or state == GameState.PAUSE or state == GameState.DEAD then
         self.menu:keypressed(key)
         return
     elseif state == GameState.LOAD then
@@ -93,7 +149,7 @@ function Game.keypressed(self, key)
 end
 
 local function should_ignore_input(state)
-    return state == GameState.MENU or state == GameState.PAUSE or state == GameState.LOAD
+    return state == GameState.MENU or state == GameState.PAUSE or state == GameState.LOAD or state == GameState.DEAD
 end
 
 function Game.keyreleased(self, key)

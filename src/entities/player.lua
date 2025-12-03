@@ -13,6 +13,7 @@ local Health = require "src.data.health"
 local Stamina = require "src.data.stamina"
 local Armor = require "src.data.armor"
 local Registry = require "src.registries"
+local GameState = require "src.data.gamestate"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
@@ -90,6 +91,8 @@ function Player.update(self, dt)
     -- Call other component updates via Object recursion
     Love.update(self, dt)
 
+    if self:is_dead() then return end
+
     -- Check if on ground first (using physics system)
     local on_ground = Physics.is_on_ground(G.world, pos, self.width, self.height)
 
@@ -126,7 +129,8 @@ function Player.update(self, dt)
     local impact_velocity = vel.y
 
     -- Apply vertical velocity with collision (using physics system)
-    local velocity_modifier = stance.crouched and 0.5 or 1
+    -- Don't apply crouch velocity modifier when jetpack is thrusting (would reduce thrust effectiveness)
+    local velocity_modifier = (stance.crouched and not self.control.jetpack_thrusting) and 0.5 or 1
     local landed, hit_ceiling, new_y = Physics.apply_vertical_movement(
         G.world, pos, vel, self.width, self.height, velocity_modifier, dt
     )
@@ -151,9 +155,9 @@ function Player.update(self, dt)
             if fall_blocks > Player.SAFE_FALL_BLOCKS then
                 local excess_blocks = fall_blocks - Player.SAFE_FALL_BLOCKS
                 -- Linear damage scaling with height and velocity factor
-                local damage = math.clamp(0, (impact_velocity * excess_blocks) / self.gravity, self.health.max)
+                local damage = math.clamp(0, (impact_velocity * excess_blocks) / self.gravity, self.health.max + self.armor.max)
                 if damage > 0 then
-                    self:hit(stance.crouched and (damage / 2) or damage)
+                    self:hit(damage)
                 end
             end
             self.fall_start_y = nil
@@ -203,6 +207,13 @@ function Player.draw(self)
             pos.y - camera_y - self.height / 2,
             self.width,
             self.height)
+    end
+
+    if self.control.jetpack_thrusting then
+        local jx, jy = pos.x - camera_x,
+            pos.y - camera_y + self.height / 2
+        love.graphics.setColor(1, 1, 0, 1)
+        love.graphics.line(jx, jy, jx, jy + BLOCK_SIZE)
     end
 
     -- Draw health, armor, and stamina bars (UI elements, not camera-relative)
@@ -318,16 +329,18 @@ end
 
 function Player.hit(self, damage)
     if not self.health then return end
+    damage = self.stance.crouched and (damage / 2) or damage
     -- Armor halfs the damage
     if self.armor and self.armor.current > 0 then
         local dmg = math.min(damage, self.armor.current * 2)
-        self.armor:hit(dmg)
+        self.armor:hit(dmg / 2)
         damage = damage - dmg
     end
     -- Apply remaining damage to health
     if damage > 0 then
         self.health:hit(damage)
     end
+    -- Death?
 end
 
 function Player.is_dead(self)

@@ -52,6 +52,19 @@ function Control.update(self, dt)
     -- This ensures consistent on_ground detection since Control runs before Player
     local on_ground = G.player.on_ground
 
+    -- Helper to stand up from crouch
+    local function try_stand_up()
+        if stance.crouched and G.player:can_stand_up() then
+            stance.current = Stance.STANDING
+            stance.crouched = false
+            G.player.height = BLOCK_SIZE * 2
+            -- Adjust position to keep bottom aligned
+            pos.y = pos.y - BLOCK_SIZE / 2
+            return true
+        end
+        return false
+    end
+
     -- Handle crouching toggle (only when on ground)
     local is_crouching = love.keyboard.isDown("s") or love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
 
@@ -64,13 +77,7 @@ function Control.update(self, dt)
         pos.y = pos.y + BLOCK_SIZE / 2
     elseif not is_crouching and stance.crouched then
         -- Try to stand up - check clearance
-        if G.player:can_stand_up() then
-            stance.current = Stance.STANDING
-            stance.crouched = false
-            G.player.height = BLOCK_SIZE * 2
-            -- Adjust position to keep bottom aligned
-            pos.y = pos.y - BLOCK_SIZE / 2
-        end
+        try_stand_up()
     end
 
     -- Horizontal movement
@@ -114,8 +121,8 @@ function Control.update(self, dt)
     end
 
     -- Jetpack handling - only when in air and holding space
-    local space_held = love.keyboard.isDown("space")
-    if G.player.jetpack and space_held and not on_ground then
+    local jump_pressed = love.keyboard.isDown("space")
+    if G.player.jetpack and jump_pressed and not on_ground then
         local stamina_cost = self.JETPACK_STAMINA_COST * dt
         if self:has_stamina(stamina_cost) then
             self:consume_stamina(stamina_cost)
@@ -123,6 +130,9 @@ function Control.update(self, dt)
             self.jetpack_thrusting = true
         else
             self.jetpack_thrusting = false
+        end
+        if stance.crouched then
+            try_stand_up()
         end
     else
         self.jetpack_thrusting = false
