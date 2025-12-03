@@ -128,13 +128,15 @@ local function generate_map(seed_val)
         
         for col = start_col, start_col + map_width - 1 do
             generator:generate_column_immediate(z, col)
-            local column_data = generator.data.columns[z][col]
-            local surface_row = find_surface_row(column_data, world_height)
-            surface_rows[col] = surface_row
-            
-            if surface_row then
-                min_surface = math.min(min_surface, surface_row)
-                max_surface = math.max(max_surface, surface_row)
+            local column_data = generator.data.columns[z] and generator.data.columns[z][col]
+            if column_data then
+                local surface_row = find_surface_row(column_data, world_height)
+                surface_rows[col] = surface_row
+                
+                if surface_row then
+                    min_surface = math.min(min_surface, surface_row)
+                    max_surface = math.max(max_surface, surface_row)
+                end
             end
         end
         
