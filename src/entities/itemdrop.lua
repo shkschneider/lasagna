@@ -1,3 +1,5 @@
+local Physics = require "src.world.physics"
+
 local ItemDrop = {
     id = "itemdrop",
     -- TODO tostring
@@ -5,12 +7,14 @@ local ItemDrop = {
 
 -- Constants
 local DROP_HEIGHT = nil  -- Initialized when BLOCK_SIZE is available
+local DROP_WIDTH = nil
 local MERGE_RANGE = nil
 
 -- Initialize constants on first use
 local function init_constants()
     if not DROP_HEIGHT then
         DROP_HEIGHT = BLOCK_SIZE / 2
+        DROP_WIDTH = BLOCK_SIZE / 2
         MERGE_RANGE = BLOCK_SIZE / 2
     end
 end
@@ -42,7 +46,10 @@ function ItemDrop.update(self, dt, entity)
 
     -- Try to merge with nearby drops when still (on ground with no pickup delay)
     if entity and entity.position and self.pickup_delay <= 0 then
-        self:tryMerge(entity)
+        init_constants()
+        if Physics.is_on_ground(G.world, entity.position, DROP_WIDTH, DROP_HEIGHT) then
+            self:tryMerge(entity)
+        end
     end
 end
 
@@ -50,18 +57,7 @@ end
 function ItemDrop.tryMerge(self, entity)
     init_constants()
     
-    -- Check if this drop is on ground (still)
-    local col, row = G.world:world_to_block(
-        entity.position.x,
-        entity.position.y + DROP_HEIGHT / 2
-    )
-    local block_def = G.world:get_block_def(entity.position.z, col, row)
-    
-    -- Only merge if on ground
-    if not (block_def and block_def.solid) then
-        return
-    end
-
+    -- Note: This drop's on_ground check is already done in update()
     -- Find nearby drops to merge with
     for _, other_ent in ipairs(G.entities.entities) do
         -- Skip self, non-drops, different block types, and different layers
@@ -81,13 +77,7 @@ function ItemDrop.tryMerge(self, entity)
                 -- Merge if within range
                 if dist < MERGE_RANGE then
                     -- Check if other drop is also on ground
-                    local other_col, other_row = G.world:world_to_block(
-                        other_ent.position.x,
-                        other_ent.position.y + DROP_HEIGHT / 2
-                    )
-                    local other_block = G.world:get_block_def(other_ent.position.z, other_col, other_row)
-                    
-                    if other_block and other_block.solid then
+                    if Physics.is_on_ground(G.world, other_ent.position, DROP_WIDTH, DROP_HEIGHT) then
                         -- Merge counts and mark the other drop as dead
                         self.count = self.count + other_ent.drop.count
                         other_ent.drop.dead = true

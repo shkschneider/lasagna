@@ -177,20 +177,16 @@ end
 -- Drop-specific update logic (system coordination)
 function Entity.updateDrop(self, ent, index, player_x, player_y, player_z)
     -- Check collision with ground
-    -- Drops are 1/2 block size, so check at their bottom edge (1/4 block offset)
     local drop_height = BLOCK_SIZE / 2
-    local col, row = G.world:world_to_block(
-        ent.position.x,
-        ent.position.y + drop_height / 2
-    )
-    local block_def = G.world:get_block_def(ent.position.z, col, row)
-
-    local on_ground = false
-    if block_def and block_def.solid then
+    local drop_width = BLOCK_SIZE / 2
+    local on_ground = Physics.is_on_ground(G.world, ent.position, drop_width, drop_height)
+    
+    if on_ground then
         ent.velocity.y = 0
         -- Position drop so its bottom edge rests on top of the block
+        local bottom_y = ent.position.y + drop_height / 2
+        local row = math.floor(bottom_y / BLOCK_SIZE)
         ent.position.y = row * BLOCK_SIZE - drop_height / 2
-        on_ground = true
     end
 
     -- Apply friction only when on ground
