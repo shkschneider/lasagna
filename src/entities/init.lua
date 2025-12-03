@@ -33,7 +33,6 @@ function Entity.load(self)
     self.entities = {}
     -- Initialize constants that depend on globals
     PICKUP_RANGE = BLOCK_SIZE
-    MERGE_RANGE = BLOCK_SIZE
     Love.load(self)
 end
 
@@ -199,11 +198,6 @@ function Entity.updateDrop(self, ent, index, player_x, player_y, player_z)
         ent.velocity.x = ent.velocity.x * ent.friction
     end
 
-    -- Merge with nearby drops
-    if on_ground and ent.drop.pickup_delay <= 0 then
-        self:tryMergeDrops(ent, index, drop_height)
-    end
-
     -- Check pickup by player
     if ent.drop.pickup_delay <= 0 and ent.position.z == player_z then
         local dx = ent.position.x - player_x
@@ -223,39 +217,6 @@ function Entity.updateDrop(self, ent, index, player_x, player_y, player_z)
     -- Remove if marked dead by component (e.g., lifetime expired)
     if ent.drop.dead then
         table.remove(self.entities, index)
-    end
-end
-
--- Try to merge a drop with nearby drops
-function Entity.tryMergeDrops(self, ent, index, drop_height)
-    for j = index - 1, 1, -1 do
-        local other = self.entities[j]
-
-        -- Only merge with other drops of the same block type and layer
-        if other.type == Entity.TYPE_DROP and
-           other.drop.block_id == ent.drop.block_id and
-           other.position.z == ent.position.z then
-
-            local dx = other.position.x - ent.position.x
-            local dy = other.position.y - ent.position.y
-            local dist = math.sqrt(dx * dx + dy * dy)
-
-            -- Merge if within range and other is also ready for pickup
-            if dist < MERGE_RANGE and other.drop.pickup_delay <= 0 then
-                -- Check if other drop is also on ground
-                local other_col, other_row = G.world:world_to_block(
-                    other.position.x,
-                    other.position.y + drop_height / 2
-                )
-                local other_block = G.world:get_block_def(other.position.z, other_col, other_row)
-
-                if other_block and other_block.solid then
-                    -- Merge counts and remove the other drop
-                    ent.drop.count = ent.drop.count + other.drop.count
-                    table.remove(self.entities, j)
-                end
-            end
-        end
     end
 end
 
