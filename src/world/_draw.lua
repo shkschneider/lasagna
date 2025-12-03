@@ -100,7 +100,7 @@ local function draw_with_transparency(self, layer, pz)
     local player_behind_block = not is_air_or_sky(player_value)
 
     -- Determine transparency: 0.5 if player is behind a block on this layer, 1.0 otherwise
-    local transparency = player_behind_block and 0.5 or 1.0
+    local transparency = player_behind_block and 0.25 or 0.5
 
     -- Draw blocks using actual block colors
     for col = start_col, end_col do
