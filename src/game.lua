@@ -86,37 +86,33 @@ function Game.keypressed(self, key)
     end
 end
 
-local function should_ignore_input(state)
-    return state == GameState.MENU or state == GameState.PAUSE or state == GameState.LOAD or state == GameState.DEAD
-end
-
 function Game.keyreleased(self, key)
-    if should_ignore_input(self.state.current.current) then return end
+    if self.state:should_ignore_input() then return end
     Love.keyreleased(self, key)
 end
 
 function Game.mousepressed(self, x, y, button)
-    if should_ignore_input(self.state.current.current) then return end
+    if self.state:should_ignore_input() then return end
     Love.mousepressed(self, x, y, button)
 end
 
 function Game.mousereleased(self, x, y, button)
-    if should_ignore_input(self.state.current.current) then return end
+    if self.state:should_ignore_input() then return end
     Love.mousereleased(self, x, y, button)
 end
 
 function Game.mousemoved(self, x, y, dx, dy)
-    if should_ignore_input(self.state.current.current) then return end
+    if self.state:should_ignore_input() then return end
     Love.mousemoved(self, x, y, dx, dy)
 end
 
 function Game.wheelmoved(self, x, y)
-    if should_ignore_input(self.state.current.current) then return end
+    if self.state:should_ignore_input() then return end
     Love.wheelmoved(self, x, y)
 end
 
 function Game.textinput(self, text)
-    if should_ignore_input(self.state.current.current) then return end
+    if self.state:should_ignore_input() then return end
     Love.textinput(self, text)
 end
 

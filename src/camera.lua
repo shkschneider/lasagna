@@ -1,5 +1,6 @@
 local Love = require "core.love"
 local Object = require "core.object"
+local GameState = require "src.data.gamestate"
 local Vector = require "src.data.vector"
 
 local Camera = Object {
@@ -17,7 +18,6 @@ end
 
 function Camera.update(self, dt)
     -- Camera only updates during PLAY state
-    local GameState = require "src.data.gamestate"
     if G.state.current.current ~= GameState.PLAY then
         return
     end

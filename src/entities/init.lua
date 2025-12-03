@@ -1,5 +1,6 @@
 local Love = require "core.love"
 local Object = require "core.object"
+local GameState = require "src.data.gamestate"
 local Physics = require "src.world.physics"
 local Vector = require "src.data.vector"
 local Projectile = require "src.data.projectile"
@@ -107,7 +108,6 @@ end
 -- Update all entities
 function Entity.update(self, dt)
     -- Entities only update during PLAY state
-    local GameState = require "src.data.gamestate"
     if G.state.current.current ~= GameState.PLAY then
         return
     end

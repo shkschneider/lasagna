@@ -1,5 +1,6 @@
 local Love = require "core.love"
 local Object = require "core.object"
+local GameState = require "src.data.gamestate"
 local Control = require "src.entities.control"
 local Physics = require "src.world.physics"
 local Inventory = require "src.items.inventory"
@@ -13,7 +14,6 @@ local Health = require "src.data.health"
 local Stamina = require "src.data.stamina"
 local Armor = require "src.data.armor"
 local Registry = require "src.registries"
-local GameState = require "src.data.gamestate"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
@@ -80,7 +80,6 @@ end
 
 function Player.update(self, dt)
     -- Player only updates during PLAY state
-    local GameState = require "src.data.gamestate"
     if G.state.current.current ~= GameState.PLAY then
         return
     end

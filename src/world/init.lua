@@ -1,5 +1,6 @@
 local Love = require "core.love"
 local Object = require "core.object"
+local GameState = require "src.data.gamestate"
 local Registry = require "src.registries"
 local BLOCKS = Registry.blocks()
 local BlockRef = require "data.blocks.ids"
@@ -31,7 +32,6 @@ end
 
 function World.update(self, dt)
     -- World only updates during PLAY state
-    local GameState = require "src.data.gamestate"
     if G.state.current.current ~= GameState.PLAY then
         return
     end

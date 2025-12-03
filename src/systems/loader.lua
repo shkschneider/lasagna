@@ -28,6 +28,8 @@ function LoaderSystem.update(self, dt)
     if self.ui:update(dt) then
         self.ui:reset()
         -- Transition to PLAY state
+        -- Note: Direct call to G:load() is intentional for state coordination
+        -- The Game.load() method handles menu initialization and other setup
         G:load(GameState.PLAY)
         -- Start fade-in when entering PLAY state
         G.fade:start_fade_in()

@@ -1,5 +1,6 @@
 local Love = require "core.love"
 local Object = require "core.object"
+local GameState = require "src.data.gamestate"
 local Registry = require "src.registries"
 local ITEMS = Registry.items()
 
@@ -18,7 +19,6 @@ end
 
 function Weapon.update(self, dt)
     -- Weapon only updates during PLAY state
-    local GameState = require "src.data.gamestate"
     if G.state.current.current ~= GameState.PLAY then
         return
     end
