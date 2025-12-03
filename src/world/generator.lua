@@ -109,7 +109,7 @@ local TERRAIN_FREQUENCY = 0.05
 -- - Too large (e.g., 1.0): layers very different, potentially jarring
 -- - Sweet spot (0.3-0.5): coherent but distinct
 local Z_SCALE_FACTOR = 0.4    -- Scale factor for z in 3D noise
-local LAYER_HEIGHT_OFFSET = 0.02  -- Height offset per layer (layer -1 is higher than layer 0)
+local LAYER_HEIGHT_OFFSET = 0.02  -- Height offset per layer (layer -1 higher, layer 1 lower)
 local SMOOTHNESS_SCALE_FACTOR = 0.3  -- How much smoothness changes per layer
 
 -- Y-offsets for different noise octaves (to create independent noise patterns)
@@ -144,8 +144,8 @@ local function organic_surface_noise(col, z)
     local smoothness = get_layer_smoothness(z)
     
     -- Layer-specific height offset: layer -1 is higher than layer 0
-    -- Negative z gets positive offset (layer -1 is elevated)
-    local layer_offset = -z * LAYER_HEIGHT_OFFSET
+    -- Negative z produces negative offset → lower cut_row → higher surface
+    local layer_offset = z * LAYER_HEIGHT_OFFSET
     
     -- Large rolling hills (always full strength, using 3D noise for coherence)
     local hills = (simplex3d(col * HILL_FREQUENCY, HILLS_Y_OFFSET, z * Z_SCALE_FACTOR) - 0.5) * 2 * HILL_AMPLITUDE
