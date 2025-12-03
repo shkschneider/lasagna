@@ -16,8 +16,8 @@ local Biome = require "src.world.biome"
 --
 -- Step 2: Surface Cut
 --   - Uses multi-octave 3D noise to create organic surface line
---   - Layer-dependent smoothness: layer -1 (rough), 0 (medium), 1 (smooth)
---   - Layer height offset: layer -1 is elevated relative to layer 0
+--   - Layer-dependent smoothness: layer 1 (rough), layer 2 (smooth)
+--   - Layer height offset: layer 1 is elevated relative to layer 2
 --   - Everything above the cut is air, below is terrain
 --
 -- Step 3: Biome-Based Surface Filling
@@ -42,8 +42,8 @@ local Biome = require "src.world.biome"
 local BUCKET_SIZE = 0.1  -- Size of each value bucket (0.1 = 10 buckets from 0.0 to 1.0)
 
 -- Surface smoothness: 0.0 = rough (all detail), 1.0 = smooth (only large hills)
--- Now layer-dependent: layer -1 = rough, layer 0 = medium, layer 1 = smooth
-local SURFACE_SMOOTHNESS_BASE = 0.5  -- Base smoothness for layer 0
+-- Now layer-dependent: layer 1 = rough, layer 2 = smooth
+local SURFACE_SMOOTHNESS_BASE = 0.2  -- Base smoothness for layer 1 (rough)
 
 -- Solid threshold: values >= this are considered solid (not air)
 -- Lower = more terrain, Higher = more air/caves
@@ -109,8 +109,8 @@ local TERRAIN_FREQUENCY = 0.05
 -- - Too large (e.g., 1.0): layers very different, potentially jarring
 -- - Sweet spot (0.3-0.5): coherent but distinct
 local Z_SCALE_FACTOR = 0.4    -- Scale factor for z in 3D noise
-local LAYER_HEIGHT_OFFSET = 0.02  -- Height offset per layer (layer -1 higher, layer 1 lower)
-local SMOOTHNESS_SCALE_FACTOR = 0.3  -- How much smoothness changes per layer
+local LAYER_HEIGHT_OFFSET = 0.02  -- Height offset per layer (layer 1 higher, layer 2 lower)
+local SMOOTHNESS_SCALE_FACTOR = 0.6  -- How much smoothness changes per layer (0.2 to 0.8 = 0.6 delta)
 
 -- Y-offsets for different noise octaves (to create independent noise patterns)
 local HILLS_Y_OFFSET = 0
@@ -123,29 +123,28 @@ local function round_value(value)
 end
 
 -- Calculate layer-dependent smoothness
--- Layer -1 (back): rough (smoothness = 0.2)
--- Layer 0 (main): medium (smoothness = 0.5)
--- Layer 1 (front): smooth (smoothness = 0.8)
+-- Layer 1 (back): rough (smoothness = 0.2)
+-- Layer 2 (front): smooth (smoothness = 0.8)
 -- Expects z to be in the range [LAYER_MIN, LAYER_MAX] (layer index)
 local function get_layer_smoothness(z)
-    -- Map z from [-1, 0, 1] to smoothness [0.2, 0.5, 0.8]
-    -- z = -1: smoothness = 0.2 (rough)
-    -- z = 0:  smoothness = 0.5 (medium)
-    -- z = 1:  smoothness = 0.8 (smooth)
+    -- Map z from [1, 2] to smoothness [0.2, 0.8]
+    -- z = 1: smoothness = 0.2 (rough)
+    -- z = 2: smoothness = 0.8 (smooth)
     -- Clamp z to valid layer range for safety (uses globals LAYER_MIN, LAYER_MAX from main.lua)
     z = math.max(LAYER_MIN, math.min(LAYER_MAX, z))
-    return SURFACE_SMOOTHNESS_BASE + (z * SMOOTHNESS_SCALE_FACTOR)
+    -- Formula: 0.2 + (z - 1) * 0.6 = 0.2 for z=1, 0.8 for z=2
+    return SURFACE_SMOOTHNESS_BASE + ((z - LAYER_MIN) * SMOOTHNESS_SCALE_FACTOR)
 end
 
 -- Multi-octave 3D noise for organic surface shape
 -- Combines multiple frequencies for natural-looking terrain
--- Layer smoothness increases with z: -1 (rough) < 0 (medium) < 1 (smooth)
+-- Layer smoothness increases with z: 1 (rough) < 2 (smooth)
 local function organic_surface_noise(col, z)
     local smoothness = get_layer_smoothness(z)
     
-    -- Layer-specific height offset: layer -1 is higher than layer 0
-    -- Negative z produces negative offset → lower cut_row → higher surface
-    local layer_offset = z * LAYER_HEIGHT_OFFSET
+    -- Layer-specific height offset: layer 1 is higher than layer 2
+    -- Formula makes z=1 negative (higher) and z=2 positive (lower)
+    local layer_offset = (z - 1.5) * LAYER_HEIGHT_OFFSET * 2
     
     -- Large rolling hills (always full strength, using 3D noise for coherence)
     local hills = (simplex3d(col * HILL_FREQUENCY, HILLS_Y_OFFSET, z * Z_SCALE_FACTOR) - 0.5) * 2 * HILL_AMPLITUDE

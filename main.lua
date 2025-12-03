@@ -3,9 +3,9 @@ require "core"
 dassert = dassert or assert
 Log = require "libs.log"
 
-LAYER_MIN = -1
-LAYER_DEFAULT = 0
-LAYER_MAX = 1
+LAYER_MIN = 1
+LAYER_DEFAULT = 1
+LAYER_MAX = 2
 BLOCK_SIZE = 16
 STACK_SIZE = 64
 
