@@ -30,14 +30,14 @@ local DROP_FRICTION = 0.8  -- Friction multiplier: <1.0 = friction applied (slow
 
 local PICKUP_RANGE = nil  -- Initialized on first use (BLOCK_SIZE)
 local MERGE_RANGE = nil
-local MERGING_ENABLED = false
+local MERGING_ENABLED = true
 
 -- Initialize the entity system
 function Entity.load(self)
     self.entities = {}
     -- Initialize constants that depend on globals
     PICKUP_RANGE = BLOCK_SIZE
-    MERGE_RANGE = BLOCK_SIZE
+    MERGE_RANGE = BLOCK_SIZE / 2
     Love.load(self)
 end
 

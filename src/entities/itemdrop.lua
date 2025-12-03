@@ -36,7 +36,7 @@ function ItemDrop.draw(self, entity, camera_x, camera_y)
         local proto = Registry.Blocks:get(self.block_id)
         if proto then
             -- Use global BLOCK_SIZE constant
-            local MERGING_ENABLED = false  -- TODO: Access from system configuration
+            local MERGING_ENABLED = true
 
             -- ItemDrop is 1/2 width and 1/2 height (1/4 surface area)
             local width = BLOCK_SIZE / 2
