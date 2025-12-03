@@ -52,7 +52,7 @@ function Renderer.draw(self)
             function() G.world:draw2(pz) end)
         render(self.canvases.entities, {},
             G.entities, G.player)
-        render(self.canvases.world1, Shaders.greyscale,
+        render(self.canvases.world3, Shaders.greyscale,
             function() G.world:draw3(pz) end)
         render(self.canvases.things, {},
             G.mining, G.building, G.weapon, G.lore)

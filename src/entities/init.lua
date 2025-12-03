@@ -28,16 +28,11 @@ local DROP_PICKUP_DELAY = 0.5
 local DROP_GRAVITY = 400
 local DROP_FRICTION = 0.8  -- Friction multiplier: <1.0 = friction applied (slows down)
 
-local PICKUP_RANGE = nil  -- Initialized on first use (BLOCK_SIZE)
-local MERGE_RANGE = nil
-local MERGING_ENABLED = false
-
 -- Initialize the entity system
 function Entity.load(self)
     self.entities = {}
     -- Initialize constants that depend on globals
     PICKUP_RANGE = BLOCK_SIZE
-    MERGE_RANGE = BLOCK_SIZE
     Love.load(self)
 end
 
@@ -110,23 +105,21 @@ function Entity.update(self, dt)
 
     for i = #self.entities, 1, -1 do
         local ent = self.entities[i]
-
-        -- Apply gravity to velocity (all entities have gravity)
-        Physics.apply_gravity(ent.velocity, ent.gravity, dt)
-
-        -- Apply velocity to position
-        ent.position.x = ent.position.x + ent.velocity.x * dt
-        ent.position.y = ent.position.y + ent.velocity.y * dt
-
-        -- Call component updates via Object recursion
-        -- This handles entity-specific logic (lifetime, etc.)
-        Love.update(ent, dt)
-
-        -- Type-specific system coordination
-        if ent.type == Entity.TYPE_BULLET then
-            self:updateBullet(ent, i)
-        elseif ent.type == Entity.TYPE_DROP then
-            self:updateDrop(ent, i, player_x, player_y, player_z)
+        if ent then -- might have despawn already
+            -- Apply gravity to velocity (all entities have gravity)
+            Physics.apply_gravity(ent.velocity, ent.gravity, dt)
+            -- Apply velocity to position
+            ent.position.x = ent.position.x + ent.velocity.x * dt
+            ent.position.y = ent.position.y + ent.velocity.y * dt
+            -- Call component updates via Object recursion
+            -- This handles entity-specific logic (lifetime, etc.)
+            Love.update(ent, dt)
+            -- Type-specific system coordination
+            if ent.type == Entity.TYPE_BULLET then
+                self:updateBullet(ent, i)
+            elseif ent.type == Entity.TYPE_DROP then
+                self:updateDrop(ent, i, player_x, player_y, player_z)
+            end
         end
     end
     -- Do NOT Love.update(self, dt)
@@ -184,30 +177,21 @@ end
 -- Drop-specific update logic (system coordination)
 function Entity.updateDrop(self, ent, index, player_x, player_y, player_z)
     -- Check collision with ground
-    -- Drops are 1/2 block size, so check at their bottom edge (1/4 block offset)
     local drop_height = BLOCK_SIZE / 2
-    local col, row = G.world:world_to_block(
-        ent.position.x,
-        ent.position.y + drop_height / 2
-    )
-    local block_def = G.world:get_block_def(ent.position.z, col, row)
-
-    local on_ground = false
-    if block_def and block_def.solid then
+    local drop_width = BLOCK_SIZE / 2
+    local on_ground = Physics.is_on_ground(G.world, ent.position, drop_width, drop_height)
+    
+    if on_ground then
         ent.velocity.y = 0
         -- Position drop so its bottom edge rests on top of the block
+        local bottom_y = ent.position.y + drop_height / 2
+        local row = math.floor(bottom_y / BLOCK_SIZE)
         ent.position.y = row * BLOCK_SIZE - drop_height / 2
-        on_ground = true
     end
 
     -- Apply friction only when on ground
     if on_ground then
         ent.velocity.x = ent.velocity.x * ent.friction
-    end
-
-    -- Merge with nearby drops (if enabled)
-    if MERGING_ENABLED and on_ground and ent.drop.pickup_delay <= 0 then
-        self:tryMergeDrops(ent, index, drop_height)
     end
 
     -- Check pickup by player
@@ -229,39 +213,6 @@ function Entity.updateDrop(self, ent, index, player_x, player_y, player_z)
     -- Remove if marked dead by component (e.g., lifetime expired)
     if ent.drop.dead then
         table.remove(self.entities, index)
-    end
-end
-
--- Try to merge a drop with nearby drops
-function Entity.tryMergeDrops(self, ent, index, drop_height)
-    for j = index - 1, 1, -1 do
-        local other = self.entities[j]
-
-        -- Only merge with other drops of the same block type and layer
-        if other.type == Entity.TYPE_DROP and
-           other.drop.block_id == ent.drop.block_id and
-           other.position.z == ent.position.z then
-
-            local dx = other.position.x - ent.position.x
-            local dy = other.position.y - ent.position.y
-            local dist = math.sqrt(dx * dx + dy * dy)
-
-            -- Merge if within range and other is also ready for pickup
-            if dist < MERGE_RANGE and other.drop.pickup_delay <= 0 then
-                -- Check if other drop is also on ground
-                local other_col, other_row = G.world:world_to_block(
-                    other.position.x,
-                    other.position.y + drop_height / 2
-                )
-                local other_block = G.world:get_block_def(other.position.z, other_col, other_row)
-
-                if other_block and other_block.solid then
-                    -- Merge counts and remove the other drop
-                    ent.drop.count = ent.drop.count + other.drop.count
-                    table.remove(self.entities, j)
-                end
-            end
-        end
     end
 end
 
