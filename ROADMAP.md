@@ -9,10 +9,6 @@ Notes
 
 ---
 
-v0.2 — WorldGeneration (biomes)
-
----
-
 v0.3 — Death & snapshot restore
 - Goals
   - Automatic periodic snapshot system saving world and player state (lightweight).
@@ -24,7 +20,11 @@ v0.3 — Death & snapshot restore
 
 ---
 
-v0.4 — Crafting and Ages (basic progression)
+v0.4 — World generation (part 2)
+
+---
+
+v0.5 — Crafting and Ages (basic progression)
 - Goals
   - Hand crafting and Workbench recipes (simple recipes only).
   - Age progression system: unlocks (per README) — at minimum unlock an extra 9-slot row for inventory and next-tier Omnitool.
@@ -39,7 +39,11 @@ v0.4 — Crafting and Ages (basic progression)
 
 ---
 
-v0.5 — Enemies (deferred for MVP)
+v0.6 — Graphics (spritesheet, tiles...)
+
+---
+
+v0.7 — Enemies (deferred for MVP)
 - Goals
   - Basic enemy types (passive/hostile), layer-aware spawn rules, simple pathing/aggro.
   - Health/damage system for player and enemies.
@@ -50,7 +54,7 @@ v0.5 — Enemies (deferred for MVP)
 
 ---
 
-v0.6 — UX, polish, and quality-of-life
+v0.8 — UX, polish, and quality-of-life
 - Goals
   - Inventory drag/drop, stack splitting, mouse-driven placement/dropping.
   - HUD polish (health, age indicator, tooltips).
