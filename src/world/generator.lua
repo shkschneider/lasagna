@@ -104,8 +104,13 @@ local DETAIL_AMPLITUDE = 0.01     -- Subtle variation
 local TERRAIN_FREQUENCY = 0.05
 
 -- Layer differentiation
-local Z_SCALE_FACTOR = 1.0    -- Scale factor for z in 3D noise (now using full 3D noise)
+-- Z_SCALE_FACTOR controls how different adjacent layers are:
+-- - Too small (e.g., 0.1): layers nearly identical, less interesting
+-- - Too large (e.g., 1.0): layers very different, potentially jarring
+-- - Sweet spot (0.3-0.5): coherent but distinct
+local Z_SCALE_FACTOR = 0.4    -- Scale factor for z in 3D noise
 local LAYER_HEIGHT_OFFSET = 0.02  -- Height offset per layer (layer -1 is higher than layer 0)
+local SMOOTHNESS_SCALE_FACTOR = 0.3  -- How much smoothness changes per layer
 
 -- Y-offsets for different noise octaves (to create independent noise patterns)
 local HILLS_Y_OFFSET = 0
@@ -121,15 +126,15 @@ end
 -- Layer -1 (back): rough (smoothness = 0.2)
 -- Layer 0 (main): medium (smoothness = 0.5)
 -- Layer 1 (front): smooth (smoothness = 0.8)
--- Expects z to be in the range [-1, 1] (layer index)
+-- Expects z to be in the range [LAYER_MIN, LAYER_MAX] (layer index)
 local function get_layer_smoothness(z)
     -- Map z from [-1, 0, 1] to smoothness [0.2, 0.5, 0.8]
     -- z = -1: smoothness = 0.2 (rough)
     -- z = 0:  smoothness = 0.5 (medium)
     -- z = 1:  smoothness = 0.8 (smooth)
-    -- Clamp z to valid layer range for safety
+    -- Clamp z to valid layer range for safety (uses globals LAYER_MIN, LAYER_MAX from main.lua)
     z = math.max(LAYER_MIN, math.min(LAYER_MAX, z))
-    return SURFACE_SMOOTHNESS_BASE + (z * 0.3)
+    return SURFACE_SMOOTHNESS_BASE + (z * SMOOTHNESS_SCALE_FACTOR)
 end
 
 -- Multi-octave 3D noise for organic surface shape
