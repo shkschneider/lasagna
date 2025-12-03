@@ -19,4 +19,8 @@ function GameState.new(state)
     return setmetatable(gamestate, { __index = GameState })
 end
 
+function GameState.tostring_state(state)
+    return string.upper(tostring(state))
+end
+
 return GameState

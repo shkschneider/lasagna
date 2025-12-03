@@ -10,7 +10,7 @@ local Menu = Object {
 }
 
 function Menu.load(self)
-    local state = G.state.current
+    local state = G.state.current.current
     if state == GameState.MENU then
         self.title = G.NAME .. " " .. G.VERSION:tostring()
         self.items = require("src.ui.menu.main")()
@@ -29,7 +29,7 @@ end
 
 -- Draw the menu
 function Menu.draw(self)
-    local state = G.state.current
+    local state = G.state.current.current
 
     -- Only draw in MENU, PAUSE, LOAD, or DEAD states
     if state ~= GameState.MENU and state ~= GameState.PAUSE and state ~= GameState.LOAD and state ~= GameState.DEAD then
@@ -127,7 +127,7 @@ end
 
 -- Handle keyboard input for menu
 function Menu.keypressed(self, key)
-    local state = G.state.current
+    local state = G.state.current.current
 
     if state == GameState.LOAD then return end
 

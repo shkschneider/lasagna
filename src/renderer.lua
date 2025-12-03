@@ -34,7 +34,7 @@ function Renderer.draw(self)
     if not self.canvases then
         self:load()
     end
-    local state = G.state.current
+    local state = G.state.current.current
     if state == GameState.MENU or state == GameState.LOAD then
         love.graphics.setColor(0, 0, 0, 1)
         render(self.canvases.overlay, G.menu, G.loader)
@@ -62,6 +62,8 @@ function Renderer.draw(self)
         render(self.canvases.things, G.mining, G.building, G.weapon, G.lore)
         render(self.canvases.overlay, G.ui, G.chat, G.debug or G.menu, G.debug and G.menu or nil)
     end
+    -- Draw fade overlay on top of everything
+    G.fade:draw()
 end
 
 function Renderer.resize(self, width, height)
