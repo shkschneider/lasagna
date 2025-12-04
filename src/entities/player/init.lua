@@ -12,7 +12,7 @@ local Stance = require "src.entities.stance"
 local Health = require "src.entities.health"
 local Armor = require "src.entities.armor"
 local Stamina = require "src.entities.stamina"
-local Registry = require "src.game.registries"
+local Registry = require "src.registries"
 local ITEMS = Registry.items()
 
 Player = Object {

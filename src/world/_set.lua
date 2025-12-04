@@ -1,4 +1,4 @@
-local Registry = require "src.game.registries"
+local Registry = require "src.registries"
 local BLOCKS = Registry.blocks()
 
 -- Set block value at position (0 = air, 1 = solid)

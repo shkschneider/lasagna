@@ -1,5 +1,5 @@
 local BlockRef = require "data.blocks.ids"
-local BlocksRegistry = require "src.game.registries.blocks"
+local BlocksRegistry = require "src.registries.blocks"
 
 -- Tier 1
 

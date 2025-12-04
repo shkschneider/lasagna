@@ -1,4 +1,4 @@
-local Registry = require "src.game.registries"
+local Registry = require "src.registries"
 local BlockRef = require "data.blocks.ids"
 local Biome = require "src.world.biome"
 
