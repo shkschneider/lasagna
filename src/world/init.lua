@@ -10,6 +10,7 @@ World = Object {
     priority = 10,
     generator = require("src.world.generator"),
     save = require("src.world.save"),
+    layers = {},
     -- Block ID offset: noise values are stored as NOISE_OFFSET + value*100
     -- Block IDs 0-99 are actual blocks, 100+ are noise values
     NOISE_OFFSET = 100,
@@ -20,16 +21,15 @@ World = Object {
 local here = (...):gsub("%.init$", "") .. "."
 require(here .. "_get")
 require(here .. "_set")
-require(here .. "_draw")
 
 function World.load(self)
     Love.load(self)
     -- Set biome seed offset after generator loads (generator sets its seed in its load)
     self.biome_seed_offset = (self.generator.data.seed % 10000) + 1000
-    
+
     -- Initialize layers after Love.load to avoid them being included in recursive load
-    self.background_layer = Layer.new("background", self)
-    self.foreground_layer = Layer.new("foreground", self)
+    table.insert(self.layers, Layer.new("background", LAYER_MIN))
+    table.insert(self.layers, Layer.new("foreground", LAYER_MAX))
 end
 
 function World.update(self, dt)
@@ -76,6 +76,24 @@ function World.is_valid_building_location(self, col, row, layer)
     end
 
     return false
+end
+
+function World.draw(self) end
+
+function World.draw1(self, pz)
+    for z = LAYER_MIN, pz - 1 do
+        self.layers[z]:draw()
+    end
+end
+
+function World.draw2(self, pz)
+    self.layers[pz]:draw()
+end
+
+function World.draw3(self, pz)
+    for z = pz + 1, LAYER_MAX do
+        self.layers[z]:draw()
+    end
 end
 
 -- Check if a position has direct access to the sky (no solid blocks above it)
