@@ -1,23 +1,11 @@
--- local Love = require "core.love"
--- local Object = require "core.object"
--- local Control = require "src.entities.control"
--- local Physics = require "src.world.physics"
--- local Inventory = require "src.entities.inventory"
+local Love = require "core.love"
 local Stack = require "src.entities.stack"
--- local Weapon = require "src.entities.weapon"
--- local Jetpack = require "src.entities.jetpack"
--- local Vector = require "src.game.vector"
--- local Omnitool = require "src.entities.omnitool"
--- local Stance = require "src.entities.stance"
--- local Health = require "src.entities.health"
--- local Armor = require "src.entities.armor"
--- local Stamina = require "src.entities.stamina"
--- local Registry = require "src.registries"
--- local ITEMS = Registry.items()
 
 function Player.keypressed(self, key)
     if key == "tab" then
         self.inventory_open = not self.inventory_open
+    else
+        Love.keypressed(self, key)
     end
 end
 

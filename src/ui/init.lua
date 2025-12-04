@@ -72,7 +72,7 @@ function Interface.draw(self)
         love.graphics.rectangle("fill", 0, 0, love.graphics.getDimensions())
         local backpack_y = hotbar_y + slot_size  -- Start right below hotbar
         self:draw_inventory_slots(backpack, hotbar_x, backpack_y, slot_size, 9, false)
-        
+
         -- Selected item name below backpack (only when inventory is open)
         local name_y = hotbar_y + total_height + 5
         local selected_slot = hotbar:get_selected()
@@ -91,22 +91,22 @@ function Interface.draw(self)
                 love.graphics.print(text, hotbar_x, name_y)
             end
         end
-        
+
         -- Draw progression/tier UI below inventory
         local tiers_y = hotbar_y + total_height + 30  -- Below selected item name
         local tiers_width = hotbar_width
         local tiers_height = 40
-        TiersUI.draw(hotbar_x, tiers_y, tiers_width, tiers_height, 
+        TiersUI.draw(hotbar_x, tiers_y, tiers_width, tiers_height,
                      G.player:get_omnitool_tier(), G.player.omnitool.max)
-        
+
         -- Draw UPGRADE button to the right of progression bar
         local upgrade_button_x = hotbar_x + tiers_width + 10
         local upgrade_button_y = tiers_y
         local upgrade_button_width = 100
         local upgrade_button_height = tiers_height
-        self:draw_upgrade_button(upgrade_button_x, upgrade_button_y, 
+        self:draw_upgrade_button(upgrade_button_x, upgrade_button_y,
                                 upgrade_button_width, upgrade_button_height)
-        
+
         -- Draw crafting UI to the right of inventory
         local craft_x = hotbar_x + hotbar_width + padding + 10
         local craft_y = hotbar_y
@@ -236,10 +236,10 @@ function Interface.draw_upgrade_button(self, x, y, width, height)
     local mouse_x, mouse_y = love.mouse.getPosition()
     local is_hovered = mouse_x >= x and mouse_x <= x + width and
                        mouse_y >= y and mouse_y <= y + height
-    
+
     -- Can upgrade if not at max tier
     local can_upgrade = G.player:get_omnitool_tier() < G.player.omnitool.max
-    
+
     -- Button background
     if not can_upgrade then
         love.graphics.setColor(0.2, 0.2, 0.2, 0.5)
@@ -249,11 +249,11 @@ function Interface.draw_upgrade_button(self, x, y, width, height)
         love.graphics.setColor(0.4, 0.3, 0.1, 0.8)
     end
     love.graphics.rectangle("fill", x, y, width, height)
-    
+
     -- Button border
     love.graphics.setColor(0.3, 0.3, 0.3, 0.8)
     love.graphics.rectangle("line", x, y, width, height)
-    
+
     -- Button text
     love.graphics.setColor(1, 1, 1, 1)
     local button_text = can_upgrade and "UPGRADE" or "MAX TIER"
@@ -267,12 +267,12 @@ end
 function Interface.is_upgrade_button_clicked(self, x, y, width, height, mouse_x, mouse_y)
     local is_clicked = mouse_x >= x and mouse_x <= x + width and
                        mouse_y >= y and mouse_y <= y + height
-    
+
     if is_clicked and G.player:get_omnitool_tier() < G.player.omnitool.max then
         G.player:upgrade(1)
         return true
     end
-    
+
     return false
 end
 
@@ -285,16 +285,16 @@ function Interface.calculate_ui_layout(self)
     local hotbar_width = G.player.hotbar.size * slot_size
     local hotbar_height = slot_size
     local total_height = hotbar_height + (3 * slot_size)
-    
+
     local tiers_y = hotbar_y + total_height + 30
     local tiers_width = hotbar_width
     local tiers_height = 40
-    
+
     local upgrade_button_x = hotbar_x + tiers_width + 10
     local upgrade_button_y = tiers_y
     local upgrade_button_width = 100
     local upgrade_button_height = tiers_height
-    
+
     return {
         hotbar_x = hotbar_x,
         hotbar_y = hotbar_y,
@@ -314,20 +314,20 @@ end
 -- Handle mouse clicks for UI elements
 function Interface.mousepressed(self, x, y, button)
     if button ~= 1 then return end  -- Only handle left click
-    
+
     local inventory_open = G.player.inventory_open
     if not inventory_open then return end
-    
+
     -- Get UI layout
     local layout = self:calculate_ui_layout()
-    
+
     -- Check upgrade button click
-    if self:is_upgrade_button_clicked(layout.upgrade_button_x, layout.upgrade_button_y, 
+    if self:is_upgrade_button_clicked(layout.upgrade_button_x, layout.upgrade_button_y,
                                       layout.upgrade_button_width, layout.upgrade_button_height, x, y) then
         Log.info("Interface", "Upgrade button clicked")
         return true
     end
-    
+
     return false
 end
 

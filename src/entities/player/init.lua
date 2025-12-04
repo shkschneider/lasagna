@@ -135,10 +135,6 @@ function Player.draw(self)
     Love.draw(self)
 end
 
-function Player.keypressed(self, key)
-    Love.keypressed(self, key)
-end
-
 function Player.can_switch_layer(self, target_layer)
     return G.world:can_switch_layer(target_layer)
         and not Physics.check_collision(G.world, self.position.x + 1, self.position.y + 1, target_layer, self.width - 2, self.height - 2)
