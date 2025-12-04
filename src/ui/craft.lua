@@ -4,6 +4,7 @@
 local Recipes = require "data.recipes"
 local Tick = require "src.game.tick"
 local Registry = require "src.registries"
+local Log = require "libs.log"
 
 local CraftUI = {
     can_craft_cache = false,

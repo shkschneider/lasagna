@@ -10,15 +10,15 @@ local TiersUI = {}
 -- @param y: Y position
 -- @param width: Width of the progress bar
 -- @param height: Height of the progress bar
--- @param current_tier: Current omnitool tier (1-4)
+-- @param current_tier: Current omnitool tier (0-4)
 -- @param max_tier: Maximum tier (usually 4)
 function TiersUI.draw(x, y, width, height, current_tier, max_tier)
     -- Guard against invalid values
     if max_tier <= 0 then
         max_tier = 1
     end
-    if current_tier < 1 then
-        current_tier = 1
+    if current_tier < 0 then
+        current_tier = 0
     end
     if current_tier > max_tier then
         current_tier = max_tier
@@ -33,13 +33,15 @@ function TiersUI.draw(x, y, width, height, current_tier, max_tier)
     love.graphics.rectangle("line", x, y, width, height)
     
     -- Progress bar fill (shows current progress)
-    local progress = current_tier / max_tier
+    -- Add 1 to include tier 0 in the count for display
+    local num_tiers = max_tier + 1
+    local progress = (current_tier + 1) / num_tiers
     love.graphics.setColor(0.2, 0.6, 0.8, 0.8)
     love.graphics.rectangle("fill", x + 2, y + 2, (width - 4) * progress, height - 4)
     
     -- Draw vertical white lines for each tier marker
-    local segment_width = width / max_tier
-    for i = 1, max_tier - 1 do
+    local segment_width = width / num_tiers
+    for i = 1, num_tiers - 1 do
         local line_x = x + segment_width * i
         love.graphics.setColor(1, 1, 1, 0.8)
         love.graphics.line(line_x, y, line_x, y + height)
@@ -47,10 +49,10 @@ function TiersUI.draw(x, y, width, height, current_tier, max_tier)
     
     -- Draw age names centered in each segment
     local font_height = love.graphics.getFont():getHeight()
-    for i = 1, max_tier do
+    for i = 0, max_tier do
         local age = Ages[i]
         if age then
-            local segment_x = x + segment_width * (i - 1)
+            local segment_x = x + segment_width * i
             local text_x = segment_x + segment_width / 2
             local text_y = y + height / 2 - font_height / 2
             
