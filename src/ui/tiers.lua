@@ -13,6 +13,17 @@ local TiersUI = {}
 -- @param current_tier: Current omnitool tier (1-4)
 -- @param max_tier: Maximum tier (usually 4)
 function TiersUI.draw(x, y, width, height, current_tier, max_tier)
+    -- Guard against invalid values
+    if max_tier <= 0 then
+        max_tier = 1
+    end
+    if current_tier < 1 then
+        current_tier = 1
+    end
+    if current_tier > max_tier then
+        current_tier = max_tier
+    end
+    
     -- Background
     love.graphics.setColor(0, 0, 0, 0.5)
     love.graphics.rectangle("fill", x, y, width, height)

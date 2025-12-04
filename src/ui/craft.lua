@@ -85,6 +85,7 @@ function CraftUI.draw(x, y, size)
 end
 
 -- Check if craft button is clicked
+-- NOTE: This function is currently unused but kept for future crafting implementation
 -- @param x: X position of craft UI
 -- @param y: Y position of craft UI
 -- @param size: Size of the crafting area

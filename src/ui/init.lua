@@ -3,11 +3,18 @@ local Object = require "core.object"
 local Registry = require "src.registries"
 local TiersUI = require "src.ui.tiers"
 local CraftUI = require "src.ui.craft"
+local Log = require "libs.log"
 
 local Interface = Object {
     id = "interface",
     priority = 110,
 }
+
+-- UI Layout Constants
+local SLOT_SIZE = BLOCK_SIZE * 2  -- 2*BLOCK_SIZE width and height
+local PADDING = 5  -- Padding around UI elements
+local HOTBAR_X = 10
+local HOTBAR_Y = 10
 
 function Interface.draw(self)
     -- Get current screen dimensions dynamically
@@ -34,10 +41,10 @@ function Interface.draw(self)
     love.graphics.print(string.format("[%s] %s", biome_name, block_name), screen_width / 2, 10)
 
     -- Draw inventory (hotbar + backpack if open)
-    local slot_size = BLOCK_SIZE * 2  -- 2*BLOCK_SIZE width and height
-    local hotbar_x = 10
-    local hotbar_y = 10
-    local padding = 5  -- Padding around the inventory box
+    local slot_size = SLOT_SIZE
+    local hotbar_x = HOTBAR_X
+    local hotbar_y = HOTBAR_Y
+    local padding = PADDING
 
     -- Calculate background dimensions
     local hotbar_width = hotbar.size * slot_size
@@ -268,17 +275,12 @@ function Interface.is_upgrade_button_clicked(self, x, y, width, height, mouse_x,
     return false
 end
 
--- Handle mouse clicks for UI elements
-function Interface.mousepressed(self, x, y, button)
-    if button ~= 1 then return end  -- Only handle left click
-    
-    local inventory_open = G.player.inventory_open
-    if not inventory_open then return end
-    
-    -- Check upgrade button click
-    local slot_size = BLOCK_SIZE * 2
-    local hotbar_x = 10
-    local hotbar_y = 10
+-- Calculate UI layout positions
+-- Returns a table with positions for all UI elements
+function Interface.calculate_ui_layout(self)
+    local slot_size = SLOT_SIZE
+    local hotbar_x = HOTBAR_X
+    local hotbar_y = HOTBAR_Y
     local hotbar_width = G.player.hotbar.size * slot_size
     local hotbar_height = slot_size
     local total_height = hotbar_height + (3 * slot_size)
@@ -292,8 +294,35 @@ function Interface.mousepressed(self, x, y, button)
     local upgrade_button_width = 100
     local upgrade_button_height = tiers_height
     
-    if self:is_upgrade_button_clicked(upgrade_button_x, upgrade_button_y, 
-                                      upgrade_button_width, upgrade_button_height, x, y) then
+    return {
+        hotbar_x = hotbar_x,
+        hotbar_y = hotbar_y,
+        hotbar_width = hotbar_width,
+        slot_size = slot_size,
+        total_height = total_height,
+        tiers_y = tiers_y,
+        tiers_width = tiers_width,
+        tiers_height = tiers_height,
+        upgrade_button_x = upgrade_button_x,
+        upgrade_button_y = upgrade_button_y,
+        upgrade_button_width = upgrade_button_width,
+        upgrade_button_height = upgrade_button_height,
+    }
+end
+
+-- Handle mouse clicks for UI elements
+function Interface.mousepressed(self, x, y, button)
+    if button ~= 1 then return end  -- Only handle left click
+    
+    local inventory_open = G.player.inventory_open
+    if not inventory_open then return end
+    
+    -- Get UI layout
+    local layout = self:calculate_ui_layout()
+    
+    -- Check upgrade button click
+    if self:is_upgrade_button_clicked(layout.upgrade_button_x, layout.upgrade_button_y, 
+                                      layout.upgrade_button_width, layout.upgrade_button_height, x, y) then
         Log.info("Interface", "Upgrade button clicked")
         return true
     end
