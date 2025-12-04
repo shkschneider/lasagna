@@ -22,7 +22,7 @@ STACK_SIZE = 64
 -- Mock id() function from luax
 function id()
     local template = 'xxxxxxx'
-    return string.gsub(template, 'x', function (c)
+    return string.gsub(template, 'x', function (_)
         return string.format('%x', math.random(0, 0xf))
     end)
 end
@@ -188,6 +188,7 @@ do
     
     -- Simulate enough time passing to expire pickup delay
     -- Keep player at drop location throughout
+    -- 70 updates = 1.12 seconds at 0.016s per update (enough to exceed 1.0s delay)
     for i = 1, 70 do
         if not drop.dead then
             drop.position.x = 0  -- Keep drop at player position
@@ -279,7 +280,7 @@ do
     expect(drop.lifetime == 1.0, "Initial lifetime is 1.0 seconds")
     expect(not drop.dead, "Drop is not dead initially")
     
-    -- Update for 0.5 seconds
+    -- Update for 0.5 seconds (30 updates * 0.016s = 0.48s)
     for i = 1, 30 do
         drop:update(0.016)
     end
@@ -287,7 +288,7 @@ do
     expect(drop.lifetime > 0, "Lifetime is still positive after 0.5 seconds")
     expect(not drop.dead, "Drop is not dead before lifetime expires")
     
-    -- Update for another 0.6 seconds (total > 1.0)
+    -- Update for another 0.6 seconds (40 updates * 0.016s = 0.64s, total > 1.0s)
     for i = 1, 40 do
         drop:update(0.016)
     end
@@ -436,6 +437,7 @@ do
     local initial_vy = drop.velocity.y
     
     -- Update many times to overcome initial upward velocity and fall
+    -- 50 updates = 0.8 seconds at 0.016s per update
     for i = 1, 50 do
         drop:update(0.016)
     end
