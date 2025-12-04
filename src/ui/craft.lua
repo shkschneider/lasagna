@@ -219,9 +219,11 @@ function CraftUI.craft()
             local to_remove = math.min(remaining, hotbar_count)
             local Stack = require "src.entities.stack"
             local stack = Stack.new(input.id, to_remove, input.type)
-            if G.player.hotbar:give(stack) then
-                remaining = remaining - to_remove
+            if not G.player.hotbar:give(stack) then
+                success = false
+                break
             end
+            remaining = remaining - to_remove
         end
         
         -- Consume from backpack if needed

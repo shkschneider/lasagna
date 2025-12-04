@@ -25,6 +25,7 @@ end
 -- Update the tick throttler
 -- @param dt: Delta time in seconds
 -- Calls the function once when accumulated time exceeds the tick threshold
+-- Note: Only fires once per update cycle to prevent performance issues
 function Tick.update(self, dt)
     self.accumulated = self.accumulated + dt
     

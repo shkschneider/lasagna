@@ -48,14 +48,19 @@ test("Tick fires at threshold", function()
     assert(count == 1, "Function should have been called once")
 end)
 
--- Test 4: Tick fires multiple times
-test("Tick fires multiple times", function()
+-- Test 4: Tick fires only once per update
+test("Tick fires only once per update", function()
     local count = 0
     local tick = Tick.new(5, function() count = count + 1 end)
     
-    -- Update for 1.0 second (10 ticks, should fire twice with 5 tick threshold)
+    -- Update for 1.0 second (10 ticks, exceeds 5 tick threshold)
+    -- Should only fire once, not twice, to prevent performance issues
     tick:update(1.0)
-    assert(count == 2, "Function should have been called twice, got " .. count)
+    assert(count == 1, "Function should have been called once per update, got " .. count)
+    
+    -- Update again to trigger second fire
+    tick:update(0.5)
+    assert(count == 2, "Function should have been called twice total, got " .. count)
 end)
 
 -- Test 5: Reset works
