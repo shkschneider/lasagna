@@ -12,6 +12,7 @@ local Mining = Object {
     priority = 60,
     -- Mining state
     target = nil, -- {z, col, row, progress, delay}
+    mouse_held = false, -- Track if left mouse button is being held
 }
 
 -- Calculate mining delay for a block based on its tier and name
@@ -25,12 +26,14 @@ end
 
 function Mining.load(self)
     self.target = nil
+    self.mouse_held = false
     Love.load(self)
 end
 
 function Mining.update(self, dt)
     local slot = G.player.hotbar:get_selected()
-    if not love.mouse.isDown(1) or not slot or slot.item_id ~= ITEMS.OMNITOOL then
+    -- Cancel mining if mouse is not held, or wrong tool selected
+    if not self.mouse_held or not slot or slot.item_id ~= ITEMS.OMNITOOL then
         self:cancel_mining()
         return
     end
@@ -169,6 +172,23 @@ function Mining.draw(self)
 
     -- Reset color
     love.graphics.setColor(1, 1, 1, 1)
+end
+
+-- Handle mouse pressed event to start tracking mouse hold
+function Mining.mousepressed(self, x, y, button)
+    if button == 1 then
+        self.mouse_held = true
+    end
+    Love.mousepressed(self, x, y, button)
+end
+
+-- Handle mouse released event to stop mining
+function Mining.mousereleased(self, x, y, button)
+    if button == 1 then
+        self.mouse_held = false
+        -- Mining will be cancelled in the next update() call
+    end
+    Love.mousereleased(self, x, y, button)
 end
 
 return Mining

@@ -1,11 +1,21 @@
 local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "src.registries"
+local TiersUI = require "src.ui.tiers"
+local CraftUI = require "src.ui.craft"
+local Log = require "libs.log"
 
 local Interface = Object {
     id = "interface",
     priority = 110,
 }
+
+-- UI Layout Constants
+-- BLOCK_SIZE is a global defined in main.lua
+local SLOT_SIZE = BLOCK_SIZE * 2  -- 2*BLOCK_SIZE width and height
+local PADDING = 5  -- Padding around UI elements
+local HOTBAR_X = 10
+local HOTBAR_Y = 10
 
 function Interface.draw(self)
     -- Get current screen dimensions dynamically
@@ -32,10 +42,10 @@ function Interface.draw(self)
     love.graphics.print(string.format("[%s] %s", biome_name, block_name), screen_width / 2, 10)
 
     -- Draw inventory (hotbar + backpack if open)
-    local slot_size = BLOCK_SIZE * 2  -- 2*BLOCK_SIZE width and height
-    local hotbar_x = 10
-    local hotbar_y = 10
-    local padding = 5  -- Padding around the inventory box
+    local slot_size = SLOT_SIZE
+    local hotbar_x = HOTBAR_X
+    local hotbar_y = HOTBAR_Y
+    local padding = PADDING
 
     -- Calculate background dimensions
     local hotbar_width = hotbar.size * slot_size
@@ -62,24 +72,64 @@ function Interface.draw(self)
         love.graphics.rectangle("fill", 0, 0, love.graphics.getDimensions())
         local backpack_y = hotbar_y + slot_size  -- Start right below hotbar
         self:draw_inventory_slots(backpack, hotbar_x, backpack_y, slot_size, 9, false)
-    end
 
-    -- Selected item name below inventory
-    local name_y = hotbar_y + total_height + 5
-    local selected_slot = hotbar:get_selected()
-    if selected_slot then
-        local proto = nil
+        -- Selected item name below backpack (only when inventory is open)
+        local name_y = hotbar_y + total_height + 5
+        local selected_slot = hotbar:get_selected()
+        if selected_slot then
+            local proto = nil
 
-        if selected_slot.block_id then
-            proto = Registry.Blocks:get(selected_slot.block_id)
-        elseif selected_slot.item_id then
-            proto = Registry.Items:get(selected_slot.item_id)
+            if selected_slot.block_id then
+                proto = Registry.Blocks:get(selected_slot.block_id)
+            elseif selected_slot.item_id then
+                proto = Registry.Items:get(selected_slot.item_id)
+            end
+
+            if proto then
+                love.graphics.setColor(1, 1, 1, 1)
+                local text = proto.name
+                love.graphics.print(text, hotbar_x, name_y)
+            end
         end
 
-        if proto then
-            love.graphics.setColor(1, 1, 1, 1)
-            local text = proto.name
-            love.graphics.print(text, hotbar_x, name_y)
+        -- Draw progression/tier UI below inventory
+        local tiers_y = hotbar_y + total_height + 30  -- Below selected item name
+        local tiers_width = hotbar_width
+        local tiers_height = 40
+        TiersUI.draw(hotbar_x, tiers_y, tiers_width, tiers_height,
+                     G.player:get_omnitool_tier(), G.player.omnitool.max)
+
+        -- Draw UPGRADE button to the right of progression bar
+        local upgrade_button_x = hotbar_x + tiers_width + 10
+        local upgrade_button_y = tiers_y
+        local upgrade_button_width = 100
+        local upgrade_button_height = tiers_height
+        self:draw_upgrade_button(upgrade_button_x, upgrade_button_y,
+                                upgrade_button_width, upgrade_button_height)
+
+        -- Draw crafting UI to the right of inventory
+        local craft_x = hotbar_x + hotbar_width + padding + 10
+        local craft_y = hotbar_y
+        local craft_size = 200
+        CraftUI.draw(craft_x, craft_y, craft_size)
+    else
+        -- Show selected item name below hotbar when inventory is closed
+        local name_y = hotbar_y + total_height + 5
+        local selected_slot = hotbar:get_selected()
+        if selected_slot then
+            local proto = nil
+
+            if selected_slot.block_id then
+                proto = Registry.Blocks:get(selected_slot.block_id)
+            elseif selected_slot.item_id then
+                proto = Registry.Items:get(selected_slot.item_id)
+            end
+
+            if proto then
+                love.graphics.setColor(1, 1, 1, 1)
+                local text = proto.name
+                love.graphics.print(text, hotbar_x, name_y)
+            end
         end
     end
 
@@ -179,6 +229,106 @@ function Interface.draw_cursor_highlight(self, camera_x, camera_y, player_z)
             love.graphics.rectangle("line", screen_x, screen_y, BLOCK_SIZE, BLOCK_SIZE)
         end
     end
+end
+
+-- Draw the UPGRADE button
+function Interface.draw_upgrade_button(self, x, y, width, height)
+    local mouse_x, mouse_y = love.mouse.getPosition()
+    local is_hovered = mouse_x >= x and mouse_x <= x + width and
+                       mouse_y >= y and mouse_y <= y + height
+
+    -- Can upgrade if not at max tier
+    local can_upgrade = G.player:get_omnitool_tier() < G.player.omnitool.max
+
+    -- Button background
+    if not can_upgrade then
+        love.graphics.setColor(0.2, 0.2, 0.2, 0.5)
+    elseif is_hovered then
+        love.graphics.setColor(0.6, 0.4, 0.2, 0.8)
+    else
+        love.graphics.setColor(0.4, 0.3, 0.1, 0.8)
+    end
+    love.graphics.rectangle("fill", x, y, width, height)
+
+    -- Button border
+    love.graphics.setColor(0.3, 0.3, 0.3, 0.8)
+    love.graphics.rectangle("line", x, y, width, height)
+
+    -- Button text
+    love.graphics.setColor(1, 1, 1, 1)
+    local button_text = can_upgrade and "UPGRADE" or "MAX TIER"
+    local text_width = love.graphics.getFont():getWidth(button_text)
+    local text_height = love.graphics.getFont():getHeight()
+    love.graphics.print(button_text, x + width / 2 - text_width / 2, y + height / 2 - text_height / 2)
+end
+
+-- Check if upgrade button is clicked
+-- Returns true if clicked and upgrade was performed
+function Interface.is_upgrade_button_clicked(self, x, y, width, height, mouse_x, mouse_y)
+    local is_clicked = mouse_x >= x and mouse_x <= x + width and
+                       mouse_y >= y and mouse_y <= y + height
+
+    if is_clicked and G.player:get_omnitool_tier() < G.player.omnitool.max then
+        G.player:upgrade(1)
+        return true
+    end
+
+    return false
+end
+
+-- Calculate UI layout positions
+-- Returns a table with positions for all UI elements
+function Interface.calculate_ui_layout(self)
+    local slot_size = SLOT_SIZE
+    local hotbar_x = HOTBAR_X
+    local hotbar_y = HOTBAR_Y
+    local hotbar_width = G.player.hotbar.size * slot_size
+    local hotbar_height = slot_size
+    local total_height = hotbar_height + (3 * slot_size)
+
+    local tiers_y = hotbar_y + total_height + 30
+    local tiers_width = hotbar_width
+    local tiers_height = 40
+
+    local upgrade_button_x = hotbar_x + tiers_width + 10
+    local upgrade_button_y = tiers_y
+    local upgrade_button_width = 100
+    local upgrade_button_height = tiers_height
+
+    return {
+        hotbar_x = hotbar_x,
+        hotbar_y = hotbar_y,
+        hotbar_width = hotbar_width,
+        slot_size = slot_size,
+        total_height = total_height,
+        tiers_y = tiers_y,
+        tiers_width = tiers_width,
+        tiers_height = tiers_height,
+        upgrade_button_x = upgrade_button_x,
+        upgrade_button_y = upgrade_button_y,
+        upgrade_button_width = upgrade_button_width,
+        upgrade_button_height = upgrade_button_height,
+    }
+end
+
+-- Handle mouse clicks for UI elements
+function Interface.mousepressed(self, x, y, button)
+    if button ~= 1 then return end  -- Only handle left click
+
+    local inventory_open = G.player.inventory_open
+    if not inventory_open then return end
+
+    -- Get UI layout
+    local layout = self:calculate_ui_layout()
+
+    -- Check upgrade button click
+    if self:is_upgrade_button_clicked(layout.upgrade_button_x, layout.upgrade_button_y,
+                                      layout.upgrade_button_width, layout.upgrade_button_height, x, y) then
+        Log.info("Interface", "Upgrade button clicked")
+        return true
+    end
+
+    return false
 end
 
 return Interface
