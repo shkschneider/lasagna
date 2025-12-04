@@ -101,7 +101,7 @@ end
 
 -- Find spawn position (simplified)
 function World.find_spawn_position(self, z)
-    z = z or 0
+    z = z or LAYER_DEFAULT
     -- Find the surface by searching for the first solid block from top
     local col = BLOCK_SIZE
     for row = 0, self.HEIGHT - 1 do

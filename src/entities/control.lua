@@ -154,12 +154,12 @@ function Control.keypressed(self, key)
 
     -- Layer switching (using position.z as layer)
     if key == "q" then
-        local target_layer = math.max(-1, G.player.position.z - 1)
+        local target_layer = math.max(LAYER_MIN, G.player.position.z - 1)
         if G.player:can_switch_layer(target_layer) then
             G.player.position.z = target_layer
         end
     elseif key == "e" then
-        local target_layer = math.min(1, G.player.position.z + 1)
+        local target_layer = math.min(LAYER_MAX, G.player.position.z + 1)
         if G.player:can_switch_layer(target_layer) then
             G.player.position.z = target_layer
         end
