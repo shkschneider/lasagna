@@ -120,10 +120,12 @@ function Interface.draw(self)
                                 upgrade_button_width, upgrade_button_height)
 
         -- Draw crafting UI to the right of inventory
+        -- Make it the same height as the entire inventory (hotbar + backpack)
         local craft_x = hotbar_x + hotbar_width + padding + 10
         local craft_y = hotbar_y
-        local craft_size = 200
-        CraftUI.draw(craft_x, craft_y, craft_size)
+        local craft_width = 200
+        local craft_height = total_height  -- Match inventory height
+        CraftUI.draw(craft_x, craft_y, craft_width, craft_height)
     else
         -- Show selected item name below hotbar when inventory is closed
         local name_y = hotbar_y + total_height + 5
@@ -343,8 +345,9 @@ function Interface.mousepressed(self, x, y, button)
     -- Check craft button click
     local craft_x = layout.hotbar_x + layout.hotbar_width + PADDING + 10
     local craft_y = layout.hotbar_y
-    local craft_size = 200
-    if CraftUI.is_craft_button_clicked(craft_x, craft_y, craft_size, x, y) then
+    local craft_width = 200
+    local craft_height = layout.total_height  -- Match inventory height
+    if CraftUI.is_craft_button_clicked(craft_x, craft_y, craft_width, craft_height, x, y) then
         if CraftUI.craft() then
             Log.info("Interface", "Age upgraded successfully")
         else

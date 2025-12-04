@@ -66,8 +66,9 @@ end
 -- Draw the crafting interface
 -- @param x: X position
 -- @param y: Y position
--- @param size: Size of the crafting area
-function CraftUI.draw(x, y, size)
+-- @param width: Width of the crafting area
+-- @param height: Height of the crafting area
+function CraftUI.draw(x, y, width, height)
     if not G.player then
         return  -- Don't draw if player not available
     end
@@ -76,11 +77,11 @@ function CraftUI.draw(x, y, size)
     
     -- Background
     love.graphics.setColor(0, 0, 0, 0.5)
-    love.graphics.rectangle("fill", x, y, size, size)
+    love.graphics.rectangle("fill", x, y, width, height)
     
     -- Border
     love.graphics.setColor(0.3, 0.3, 0.3, 0.8)
-    love.graphics.rectangle("line", x, y, size, size)
+    love.graphics.rectangle("line", x, y, width, height)
     
     -- Title
     love.graphics.setColor(1, 1, 1, 1)
@@ -145,10 +146,10 @@ function CraftUI.draw(x, y, size)
     end
     
     -- Craft button
-    local button_width = size - padding * 2
+    local button_width = width - padding * 2
     local button_height = 30
     local button_x = x + padding
-    local button_y = y + size - button_height - padding
+    local button_y = y + height - button_height - padding
     
     -- Check if mouse is over button
     local mouse_x, mouse_y = love.mouse.getPosition()
@@ -185,16 +186,17 @@ end
 -- Check if craft button is clicked
 -- @param x: X position of craft UI
 -- @param y: Y position of craft UI
--- @param size: Size of the crafting area
+-- @param width: Width of the crafting area
+-- @param height: Height of the crafting area
 -- @param mouse_x: Mouse X position
 -- @param mouse_y: Mouse Y position
 -- @return true if button was clicked and crafting is possible
-function CraftUI.is_craft_button_clicked(x, y, size, mouse_x, mouse_y)
+function CraftUI.is_craft_button_clicked(x, y, width, height, mouse_x, mouse_y)
     local padding = 5
-    local button_width = size - padding * 2
+    local button_width = width - padding * 2
     local button_height = 30
     local button_x = x + padding
-    local button_y = y + size - button_height - padding
+    local button_y = y + height - button_height - padding
     
     local is_in_bounds = mouse_x >= button_x and mouse_x <= button_x + button_width and
                          mouse_y >= button_y and mouse_y <= button_y + button_height
