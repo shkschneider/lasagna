@@ -43,6 +43,8 @@ function Layer.update(self, dt)
 end
 
 -- Draw a single z-layer of blocks
+-- Note: This method encapsulates the drawing logic within the Layer object.
+-- The original draw() function in _draw.lua is kept as a fallback for backward compatibility.
 function Layer.draw_z(self, z)
     local world = self.world
     
@@ -102,7 +104,8 @@ function Layer.draw_z(self, z)
 end
 
 function Layer.draw(self)
-    -- Default draw does nothing - specific layer types will override
+    -- Base draw method - currently unused but available for future extensions
+    -- Layer drawing is done via draw_z() which is called by World methods
 end
 
 return Layer

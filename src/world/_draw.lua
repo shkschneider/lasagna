@@ -76,7 +76,8 @@ function World.draw1(self, z)
 end
 
 function World.draw2(self, z)
-    -- Current player layer
+    -- Current player layer - rendered normally (no greyscale)
+    -- Uses background_layer since it's rendered in the normal scene
     if self.background_layer then
         self.background_layer:draw_z(z)
     else
