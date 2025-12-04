@@ -38,25 +38,26 @@ CommandsRegistry:register({
         local is_block = false
         local is_item = false
         if search_name then
-            -- Search in blocks
-            for block_id, block in BlocksRegistry:iterate() do
-                if type(block) == "table" and type(block_id) == "number" and block.name then
-                    if block.name:lower() == search_name then
-                        id = block_id
-                        is_block = true
-                        break
-                    end
-                end
-            end
-            
-            -- Search in items (prefer items over blocks if both match)
+            -- Search in items first (items take precedence over blocks)
             for item_id, item in ItemsRegistry:iterate() do
                 if type(item) == "table" and type(item_id) == "number" and item.name then
                     if item.name:lower() == search_name then
                         id = item_id
                         is_item = true
-                        is_block = false  -- Item takes precedence
                         break
+                    end
+                end
+            end
+            
+            -- If not found in items, search in blocks
+            if not is_item then
+                for block_id, block in BlocksRegistry:iterate() do
+                    if type(block) == "table" and type(block_id) == "number" and block.name then
+                        if block.name:lower() == search_name then
+                            id = block_id
+                            is_block = true
+                            break
+                        end
                     end
                 end
             end
