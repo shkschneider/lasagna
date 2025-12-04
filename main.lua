@@ -1,3 +1,4 @@
+assert(love and jit)
 require "libs.luax"
 require "core"
 dassert = dassert or assert
@@ -11,7 +12,7 @@ STACK_SIZE = 64
 
 G = require("src.game")
 G.NAME = "Lasagna"
-G.VERSION = { major = 0, minor = 3, patch = nil, tostring = function(self)
+G.VERSION = { major = 0, minor = 4, patch = nil, tostring = function(self)
     return string.format("%d.%d.%s", self.major, self.minor, tostring(self.patch or "x"))
 end }
 

@@ -79,11 +79,13 @@ function Menu.draw(self)
     local total_height = (#self.items + 1) * line_height  -- +1 for title
     local start_y = (screen_height - total_height) / 2
 
-    -- Draw title
-    love.graphics.setColor(1, 1, 1, 1)
     local font = love.graphics.getFont()
-    local title_width = font:getWidth(self.title)
-    love.graphics.print(self.title, (screen_width - title_width) / 2, start_y)
+    if state == GameState.MENU then
+        -- Draw title
+        love.graphics.setColor(1, 1, 1, 1)
+        local title_width = font:getWidth(self.title)
+        love.graphics.print(self.title, (screen_width - title_width) / 2, 0 + line_height)
+    end
 
     -- Draw loading bar for LOAD state
     if state == GameState.LOAD and G.loader then
@@ -120,6 +122,14 @@ function Menu.draw(self)
 
         local text_width = font:getWidth(text)
         love.graphics.print(text, (screen_width - text_width) / 2, y)
+    end
+
+    if state == GameState.MENU then
+        -- Draw footer
+        love.graphics.setColor(1, 1, 1, 0.5)
+        local footer = "Make with LÖVE by ShkSchneider[.me]"
+        local footer_width = font:getWidth(footer)
+        love.graphics.print(footer, (screen_width / 2 - footer_width / 2), (screen_height - line_height))
     end
 
     Love.draw(self)
