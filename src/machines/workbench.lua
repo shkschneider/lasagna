@@ -1,4 +1,4 @@
-local Machine = require "src.machines"
+local Machine = require "src.machines.init"
 local Vector = require "src.game.vector"
 local ItemDrop = require "src.entities.itemdrop"
 

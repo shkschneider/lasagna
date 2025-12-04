@@ -1,4 +1,5 @@
 local Vector = require "src.game.vector"
+local Registry = require "src.registries"
 
 local Machine = {
     id = "machine",
@@ -35,7 +36,6 @@ end
 -- Base draw method - renders the machine as a block
 function Machine.draw(self, camera_x, camera_y)
     if self.position then
-        local Registry = require "src.registries"
         local proto = Registry.Blocks:get(self.block_id)
         if proto then
             local x = self.position.x - (camera_x or 0)
