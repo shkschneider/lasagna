@@ -25,7 +25,7 @@ function ItemDrop.new(block_id, count, lifetime, pickup_delay)
     return setmetatable(itemdrop, { __index = ItemDrop })
 end
 
---  update method - handles drop lifetime, pickup delay, and merging
+--  update method - handles drop lifetime, pickup delay, merging, ground collision, friction, and pickup
 function ItemDrop.update(self, dt, entity)
     -- Decrease pickup delay
     if self.pickup_delay > 0 then
@@ -36,11 +36,44 @@ function ItemDrop.update(self, dt, entity)
     self.lifetime = self.lifetime - dt
     if self.lifetime <= 0 then
         self.dead = true
-    else
-        -- Check for collision with other drops and merge on collision
-        if entity and entity.position then
-            print("checkCollisionAndMerge...")
-            self:checkCollisionAndMerge(entity)
+        return
+    end
+    
+    -- Check collision with ground
+    local on_ground = Physics.is_on_ground(G.world, entity.position, ItemDrop.DROP_WIDTH, ItemDrop.DROP_HEIGHT)
+    
+    if on_ground then
+        entity.velocity.y = 0
+        -- Position drop so its bottom edge rests on top of the block
+        local bottom_y = entity.position.y + ItemDrop.DROP_HEIGHT / 2
+        local row = math.floor(bottom_y / BLOCK_SIZE)
+        entity.position.y = row * BLOCK_SIZE - ItemDrop.DROP_HEIGHT / 2
+    end
+
+    -- Apply friction only when on ground
+    if on_ground then
+        entity.velocity.x = entity.velocity.x * entity.friction
+    end
+
+    -- Check for collision with other drops and merge on collision
+    if entity and entity.position then
+        self:checkCollisionAndMerge(entity)
+    end
+    
+    -- Check pickup by player
+    if self.pickup_delay <= 0 and entity.position.z == G.player.position.z then
+        local player_x, player_y = G.player.position.x, G.player.position.y
+        local dx = entity.position.x - player_x
+        local dy = entity.position.y - player_y
+        local dist = math.sqrt(dx * dx + dy * dy)
+
+        local PICKUP_RANGE = BLOCK_SIZE
+        if dist < PICKUP_RANGE then
+            -- Try to add to player inventory
+            if G.player:add_to_inventory(self.block_id, self.count) then
+                -- Successfully picked up - mark for removal
+                self.dead = true
+            end
         end
     end
 end
@@ -77,7 +110,6 @@ function ItemDrop.checkCollisionAndMerge(self, entity)
 
             -- AABB collision detection (inclusive with tolerance)
             if left1 <= right2 and right1 >= left2 and top1 <= bottom2 and bottom1 >= top2 then
-                print("checkCollisionAndMerge!!!")
                 self.count = self.count + other_ent.drop.count
                 other_ent.drop.dead = true
             end

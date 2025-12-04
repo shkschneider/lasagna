@@ -101,8 +101,6 @@ end
 
 -- Update all entities
 function Entities.update(self, dt)
-    local player_x, player_y, player_z = G.player:get_position()
-
     for i = #self.all, 1, -1 do
         local ent = self.all[i]
         if ent then -- might have despawn already
@@ -112,108 +110,15 @@ function Entities.update(self, dt)
             ent.position.x = ent.position.x + ent.velocity.x * dt
             ent.position.y = ent.position.y + ent.velocity.y * dt
             -- Call component updates via Object recursion
-            -- This handles entity-specific logic (lifetime, etc.)
+            -- This handles entity-specific logic (lifetime, collision, etc.)
             Love.update(ent, dt)
-            -- Type-specific system coordination
-            if ent.type == Entities.TYPE_BULLET then
-                self:updateBullet(ent, i)
-            elseif ent.type == Entities.TYPE_DROP then
-                self:updateDrop(ent, i, player_x, player_y, player_z)
+            -- Remove dead entities
+            if (ent.bullet and ent.bullet.dead) or (ent.drop and ent.drop.dead) then
+                table.remove(self.all, i)
             end
         end
     end
     -- Do NOT Love.update(self, dt)
-end
-
--- TODO refactor in world
-local function destroy_block(self, x, y, z)
-    local block_id = G.world:get_block_id(z, x, y)
-    local proto = Registry.Blocks:get(block_id)
-    if proto then
-        -- Remove block
-        G.world:set_block(z, x, y, BLOCKS.AIR)
-        -- Spawn drop
-        if proto.drops then
-            local drop_id, drop_count = proto.drops()
-            if drop_id then
-                local wx, wy = G.world:block_to_world(x, y)
-                self:newDrop( wx + BLOCK_SIZE / 2, wy + BLOCK_SIZE / 2,
-                    z, drop_id, drop_count)
-            end
-        end
-    end
-end
-
--- Bullet-specific update logic (system coordination)
-function Entities.updateBullet(self, ent, index)
-    -- Check collision with blocks
-    local col, row = G.world:world_to_block(ent.position.x, ent.position.y)
-    local block_def = G.world:get_block_def(ent.position.z, col, row)
-
-    if block_def and block_def.solid then
-        -- Bullet hit a block
-
-        -- If this bullet destroys blocks, destroy it and spawn drop
-        if ent.bullet.destroyed_blocks == 1 then
-            destroy_block(self, col, row, ent.position.z)
-        elseif ent.bullet.destroyed_blocks == 5 then
-            destroy_block(self, col, row, ent.position.z)
-            destroy_block(self, col, row - 1, ent.position.z)
-            destroy_block(self, col, row + 1, ent.position.z)
-            destroy_block(self, col - 1, row, ent.position.z)
-            destroy_block(self, col + 1, row, ent.position.z)
-        elseif ent.bullet.destroyed_blocks > 0 then
-            Log.error("Not Implemented")
-        end
-
-        -- Remove bullet
-        table.remove(self.all, index)
-    elseif ent.bullet.dead then
-        -- Remove if marked dead by component (e.g., lifetime expired)
-        table.remove(self.all, index)
-    end
-end
-
--- Drop-specific update logic (system coordination)
-function Entities.updateDrop(self, ent, index, player_x, player_y, player_z)
-    -- Check collision with ground
-    local drop_height = BLOCK_SIZE / 2
-    local drop_width = BLOCK_SIZE / 2
-    local on_ground = Physics.is_on_ground(G.world, ent.position, drop_width, drop_height)
-
-    if on_ground then
-        ent.velocity.y = 0
-        -- Position drop so its bottom edge rests on top of the block
-        local bottom_y = ent.position.y + drop_height / 2
-        local row = math.floor(bottom_y / BLOCK_SIZE)
-        ent.position.y = row * BLOCK_SIZE - drop_height / 2
-    end
-
-    -- Apply friction only when on ground
-    if on_ground then
-        ent.velocity.x = ent.velocity.x * ent.friction
-    end
-
-    -- Check pickup by player
-    if ent.drop.pickup_delay <= 0 and ent.position.z == player_z then
-        local dx = ent.position.x - player_x
-        local dy = ent.position.y - player_y
-        local dist = math.sqrt(dx * dx + dy * dy)
-
-        if dist < PICKUP_RANGE then
-            -- Try to add to player inventory
-            if G.player:add_to_inventory(ent.drop.block_id, ent.drop.count) then
-                -- Successfully picked up
-                table.remove(self.all, index)
-                return
-            end
-        end
-    end
-
-    -- Remove if marked dead by component (e.g., lifetime expired)
-    if ent.drop.dead then
-        table.remove(self.all, index)
-    end
 end
 
 -- Draw all entities
