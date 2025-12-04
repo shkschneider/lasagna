@@ -47,8 +47,10 @@ function Layer.draw_z(self, z)
 end
 
 function Layer.draw(self)
-    -- Base draw method - currently unused but available for future extensions
-    -- Layer drawing is done via draw_z() which is called by World methods
+    -- Base draw method - exists for Object pattern consistency but is currently unused.
+    -- World.draw1/draw2/draw3 call draw_z() directly instead of relying on the
+    -- standard Object draw() cascade, since they need to control which z-levels are drawn.
+    -- This method is available for future use if layer-specific drawing is needed.
 end
 
 return Layer
