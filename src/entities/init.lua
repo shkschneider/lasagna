@@ -30,27 +30,16 @@ function Entities.getByType(self, entity_type)
     return result
 end
 
--- Remove an entity by id
-function Entities.removeById(self, entity_id)
-    for i = #self.all, 1, -1 do
-        if self.all[i].id == entity_id then
-            table.remove(self.all, i)
-            return true
-        end
-    end
-    return false
-end
-
 -- Update all entities
 function Entities.update(self, dt)
     for i = #self.all, 1, -1 do
         local ent = self.all[i]
         if ent then -- might have despawned already
             -- Call entity update method
-            if ent.update then
+            if type(ent.update) == "function" then
                 ent:update(dt)
             end
-            
+
             -- Remove dead entities
             if ent.dead then
                 table.remove(self.all, i)

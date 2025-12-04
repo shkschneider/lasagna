@@ -34,18 +34,18 @@ end
 function Projectile.update(self, dt)
     -- Apply gravity to velocity
     Physics.apply_gravity(self.velocity, self.gravity, dt)
-    
+
     -- Apply velocity to position
     self.position.x = self.position.x + self.velocity.x * dt
     self.position.y = self.position.y + self.velocity.y * dt
-    
+
     -- Decrease lifetime
     self.lifetime = self.lifetime - dt
     if self.lifetime <= 0 then
         self.dead = true
         return
     end
-    
+
     -- Check collision with blocks
     local col, row = G.world:world_to_block(self.position.x, self.position.y)
     local block_def = G.world:get_block_def(self.position.z, col, row)
@@ -75,7 +75,7 @@ end
 function Projectile.destroy_block(x, y, z)
     local BLOCKS = Registry.blocks()
     local ItemDrop = require "src.entities.itemdrop"
-    
+
     local block_id = G.world:get_block_id(z, x, y)
     local proto = Registry.Blocks:get(block_id)
     if proto then

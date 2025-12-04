@@ -19,7 +19,7 @@ function ItemDrop.new(x, y, layer, block_id, count, lifetime, pickup_delay)
     -- Random horizontal velocity, upward initial velocity
     local vx = (math.random() - 0.5) * 50
     local vy = -50
-    
+
     local itemdrop = {
         id = id(),
         type = "drop",
@@ -43,11 +43,11 @@ end
 function ItemDrop.update(self, dt)
     -- Apply gravity to velocity
     Physics.apply_gravity(self.velocity, self.gravity, dt)
-    
+
     -- Apply velocity to position
     self.position.x = self.position.x + self.velocity.x * dt
     self.position.y = self.position.y + self.velocity.y * dt
-    
+
     -- Decrease pickup delay
     if self.pickup_delay > 0 then
         self.pickup_delay = self.pickup_delay - dt
@@ -59,10 +59,10 @@ function ItemDrop.update(self, dt)
         self.dead = true
         return
     end
-    
+
     -- Check collision with ground
     local on_ground = Physics.is_on_ground(G.world, self.position, ItemDrop.DROP_WIDTH, ItemDrop.DROP_HEIGHT)
-    
+
     if on_ground then
         self.velocity.y = 0
         -- Position drop so its bottom edge rests on top of the block
@@ -78,7 +78,7 @@ function ItemDrop.update(self, dt)
 
     -- Check for collision with other drops and merge on collision
     self:checkCollisionAndMerge()
-    
+
     -- Check pickup by player
     if self.pickup_delay <= 0 and self.position.z == G.player.position.z then
         local player_x, player_y = G.player.position.x, G.player.position.y
@@ -101,6 +101,7 @@ end
 -- Uses AABB (Axis-Aligned Bounding Box) collision detection with MERGE_RANGE tolerance
 -- Only merges with drops that have expired pickup_delay (ready drops)
 function ItemDrop.checkCollisionAndMerge(self)
+    if self.dead then return end
     -- Calculate this drop's bounding box with MERGE_RANGE tolerance
     local x1 = self.position.x
     local y1 = self.position.y
@@ -110,7 +111,7 @@ function ItemDrop.checkCollisionAndMerge(self)
     local bottom1 = y1 + ItemDrop.DROP_HEIGHT + ItemDrop.MERGE_RANGE
 
     -- Check collision with all other drops
-    for _, other_ent in ipairs(G.entities.all) do
+    for _, other_ent in ipairs(G.entities:getByType("drop")) do
         -- Skip self, non-drops, different block types, and different layers
         if other_ent ~= self and
            other_ent.type == "drop" and
