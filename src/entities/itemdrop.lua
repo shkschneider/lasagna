@@ -46,6 +46,7 @@ end
 
 -- Check for collision with other drops and merge if they collide
 -- Uses AABB (Axis-Aligned Bounding Box) collision detection
+-- Only merges with drops that have expired pickup_delay (ready drops)
 function ItemDrop.checkCollisionAndMerge(self, entity)
     -- Calculate this drop's bounding box
     local x1 = entity.position.x
