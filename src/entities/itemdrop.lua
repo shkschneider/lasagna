@@ -45,16 +45,16 @@ function ItemDrop.update(self, dt, entity)
 end
 
 -- Check for collision with other drops and merge if they collide
--- Uses AABB (Axis-Aligned Bounding Box) collision detection
+-- Uses AABB (Axis-Aligned Bounding Box) collision detection with MERGE_RANGE tolerance
 -- Only merges with drops that have expired pickup_delay (ready drops)
 function ItemDrop.checkCollisionAndMerge(self, entity)
-    -- Calculate this drop's bounding box
+    -- Calculate this drop's bounding box with MERGE_RANGE tolerance
     local x1 = entity.position.x
     local y1 = entity.position.y
-    local left1 = x1 - DROP_WIDTH / 2
-    local right1 = x1 + DROP_WIDTH / 2
-    local top1 = y1 - DROP_HEIGHT / 2
-    local bottom1 = y1 + DROP_HEIGHT / 2
+    local left1 = x1 - ItemDrop.DROP_WIDTH / 2 - ItemDrop.MERGE_RANGE
+    local right1 = x1 + ItemDrop.DROP_WIDTH / 2 + ItemDrop.MERGE_RANGE
+    local top1 = y1 - ItemDrop.DROP_HEIGHT / 2 - ItemDrop.MERGE_RANGE
+    local bottom1 = y1 + ItemDrop.DROP_HEIGHT / 2 + ItemDrop.MERGE_RANGE
 
     -- Check collision with all other drops
     for _, other_ent in ipairs(G.entities.entities) do
@@ -68,14 +68,14 @@ function ItemDrop.checkCollisionAndMerge(self, entity)
             -- Calculate other drop's bounding box
             local x2 = other_ent.position.x
             local y2 = other_ent.position.y
-            local left2 = x2 - DROP_WIDTH / 2
-            local right2 = x2 + DROP_WIDTH / 2
-            local top2 = y2 - DROP_HEIGHT / 2
-            local bottom2 = y2 + DROP_HEIGHT / 2
+            local left2 = x2 - ItemDrop.DROP_WIDTH / 2
+            local right2 = x2 + ItemDrop.DROP_WIDTH / 2
+            local top2 = y2 - ItemDrop.DROP_HEIGHT / 2
+            local bottom2 = y2 + ItemDrop.DROP_HEIGHT / 2
 
-            -- AABB collision detection
-            if left1 < right2 and right1 > left2 and
-               top1 < bottom2 and bottom1 > top2 then
+            -- AABB collision detection (inclusive with tolerance)
+            if left1 <= right2 and right1 >= left2 and
+               top1 <= bottom2 and bottom1 >= top2 then
                 -- Collision detected! Merge the drops
                 -- Only merge with drops that have expired pickup_delay
                 if other_ent.drop.pickup_delay <= 0 then
