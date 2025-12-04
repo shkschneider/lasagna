@@ -1,8 +1,32 @@
+local Object = require "core.object"
 local Registry = require "src.registries"
 local BlockRef = require "data.blocks.ids"
 local Biome = require "src.world.biome"
 
-local function draw(self, z)
+-- Layer represents a rendering layer in the world
+--
+-- The Layer system allows for better organization of rendering logic and
+-- makes it easier to add layer-specific effects or behaviors in the future.
+local Layer = Object {
+    id = "layer",
+    priority = 10,
+}
+
+function Layer.new(name, z)
+    local layer = Object {
+        id = "layer:" .. name,
+        priority = 10,
+        name = name,
+        z = z,
+    }
+    setmetatable(layer, { __index = Layer })
+    return layer
+end
+
+-- Draw a single z-layer of blocks
+function Layer.draw(self)
+    local world = G.world
+
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
 
@@ -16,12 +40,12 @@ local function draw(self, z)
 
     -- Clamp to world bounds (vertical only - horizontal is infinite)
     start_row = math.max(0, start_row)
-    end_row = math.min(self.HEIGHT - 1, end_row)
+    end_row = math.min(world.HEIGHT - 1, end_row)
 
     -- Draw blocks using actual block colors
     for col = start_col, end_col do
         for row = start_row, end_row do
-            local value = self:get_block_value(z, col, row)
+            local value = world:get_block_value(self.z, col, row)
 
             local x = col * BLOCK_SIZE - camera_x
             local y = row * BLOCK_SIZE - camera_y
@@ -36,13 +60,13 @@ local function draw(self, z)
                 local block_id = nil
 
                 -- Check if it's a direct block ID (< NOISE_OFFSET) or a noise value (>= NOISE_OFFSET)
-                if value < self.NOISE_OFFSET then
+                if value < world.NOISE_OFFSET then
                     -- Direct block ID (grass, dirt, etc.)
                     block_id = value
                 else
                     -- Noise value: convert back to 0.0-1.0 range and use shared weighted lookup
                     -- Shared underground distribution prevents visible seams at biome transitions
-                    local noise_value = (value - self.NOISE_OFFSET) / 100
+                    local noise_value = (value - world.NOISE_OFFSET) / 100
                     block_id = Biome.get_underground_block(noise_value)
                 end
 
@@ -58,20 +82,4 @@ local function draw(self, z)
     end
 end
 
-function World.draw(self) end
-
-function World.draw1(self, z)
-    for z = LAYER_MIN, z - 1 do
-        draw(self, z)
-    end
-end
-
-function World.draw2(self, z)
-    draw(self, z)
-end
-
-function World.draw3(self, z)
-    for z = z + 1, LAYER_MAX do
-        draw(self, z)
-    end
-end
+return Layer
