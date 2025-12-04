@@ -30,7 +30,7 @@ local DROP_FRICTION = 0.8  -- Friction multiplier: <1.0 = friction applied (slow
 
 -- Initialize the entity system
 function Entities.load(self)
-    self.entities = {}
+    self.all = {}
     -- Initialize constants that depend on globals
     PICKUP_RANGE = BLOCK_SIZE
     Love.load(self)
@@ -58,7 +58,7 @@ function Entities.newBullet(self, x, y, layer, vx, vy, width, height, color, gra
     -- Add projectile component
     entity.bullet = Projectile.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color, destroys_blocks)
 
-    table.insert(self.entities, entity)
+    table.insert(self.all, entity)
     return entity
 end
 
@@ -73,14 +73,14 @@ function Entities.newDrop(self, x, y, layer, block_id, count)
     -- Add drop component
     entity.drop = ItemDrop.new(block_id, count, DROP_LIFETIME, DROP_PICKUP_DELAY)
 
-    table.insert(self.entities, entity)
+    table.insert(self.all, entity)
     return entity
 end
 
 -- Get entities by type
 function Entities.getByType(self, entity_type)
     local result = {}
-    for _, ent in ipairs(self.entities) do
+    for _, ent in ipairs(self.all) do
         if ent.type == entity_type then
             table.insert(result, ent)
         end
@@ -90,9 +90,9 @@ end
 
 -- Remove an entity by id
 function Entities.removeById(self, entity_id)
-    for i = #self.entities, 1, -1 do
-        if self.entities[i].id == entity_id then
-            table.remove(self.entities, i)
+    for i = #self.all, 1, -1 do
+        if self.all[i].id == entity_id then
+            table.remove(self.all, i)
             return true
         end
     end
@@ -103,8 +103,8 @@ end
 function Entities.update(self, dt)
     local player_x, player_y, player_z = G.player:get_position()
 
-    for i = #self.entities, 1, -1 do
-        local ent = self.entities[i]
+    for i = #self.all, 1, -1 do
+        local ent = self.all[i]
         if ent then -- might have despawn already
             -- Apply gravity to velocity (all entities have gravity)
             Physics.apply_gravity(ent.velocity, ent.gravity, dt)
@@ -167,10 +167,10 @@ function Entities.updateBullet(self, ent, index)
         end
 
         -- Remove bullet
-        table.remove(self.entities, index)
+        table.remove(self.all, index)
     elseif ent.bullet.dead then
         -- Remove if marked dead by component (e.g., lifetime expired)
-        table.remove(self.entities, index)
+        table.remove(self.all, index)
     end
 end
 
@@ -204,7 +204,7 @@ function Entities.updateDrop(self, ent, index, player_x, player_y, player_z)
             -- Try to add to player inventory
             if G.player:add_to_inventory(ent.drop.block_id, ent.drop.count) then
                 -- Successfully picked up
-                table.remove(self.entities, index)
+                table.remove(self.all, index)
                 return
             end
         end
@@ -212,7 +212,7 @@ function Entities.updateDrop(self, ent, index, player_x, player_y, player_z)
 
     -- Remove if marked dead by component (e.g., lifetime expired)
     if ent.drop.dead then
-        table.remove(self.entities, index)
+        table.remove(self.all, index)
     end
 end
 
@@ -220,7 +220,7 @@ end
 function Entities.draw(self)
     local camera_x, camera_y = G.camera:get_offset()
 
-    for _, ent in ipairs(self.entities) do
+    for _, ent in ipairs(self.all) do
         if ent.type == Entities.TYPE_BULLET and ent.bullet then
             ent.bullet:draw(ent, camera_x, camera_y)
         elseif ent.type == Entities.TYPE_DROP and ent.drop then

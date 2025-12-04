@@ -6,7 +6,7 @@ local ItemDrop = {
     -- Constants
     DROP_HEIGHT = BLOCK_SIZE / 2,
     DROP_WIDTH = BLOCK_SIZE / 2,
-    MERGE_RANGE = BLOCK_SIZE,
+    MERGE_RANGE = BLOCK_SIZE / 2,
 }
 
 -- Create a new ItemDrop
@@ -36,11 +36,12 @@ function ItemDrop.update(self, dt, entity)
     self.lifetime = self.lifetime - dt
     if self.lifetime <= 0 then
         self.dead = true
-    end
-
-    -- Check for collision with other drops and merge on collision
-    if entity and entity.position then
-        self:checkCollisionAndMerge(entity)
+    else
+        -- Check for collision with other drops and merge on collision
+        if entity and entity.position then
+            print("checkCollisionAndMerge...")
+            self:checkCollisionAndMerge(entity)
+        end
     end
 end
 
@@ -51,37 +52,34 @@ function ItemDrop.checkCollisionAndMerge(self, entity)
     -- Calculate this drop's bounding box with MERGE_RANGE tolerance
     local x1 = entity.position.x
     local y1 = entity.position.y
-    local left1 = x1 - ItemDrop.DROP_WIDTH / 2 - ItemDrop.MERGE_RANGE
-    local right1 = x1 + ItemDrop.DROP_WIDTH / 2 + ItemDrop.MERGE_RANGE
-    local top1 = y1 - ItemDrop.DROP_HEIGHT / 2 - ItemDrop.MERGE_RANGE
-    local bottom1 = y1 + ItemDrop.DROP_HEIGHT / 2 + ItemDrop.MERGE_RANGE
+    local left1 = x1 - ItemDrop.DROP_WIDTH - ItemDrop.MERGE_RANGE
+    local right1 = x1 + ItemDrop.DROP_WIDTH + ItemDrop.MERGE_RANGE
+    local top1 = y1 - ItemDrop.DROP_HEIGHT - ItemDrop.MERGE_RANGE
+    local bottom1 = y1 + ItemDrop.DROP_HEIGHT + ItemDrop.MERGE_RANGE
 
     -- Check collision with all other drops
-    for _, other_ent in ipairs(G.entities.entities) do
+    for _, other_ent in ipairs(G.entities.all) do
         -- Skip self, non-drops, different block types, and different layers
         if other_ent ~= entity and
            other_ent.type == "drop" and
            other_ent.drop and
            other_ent.drop.block_id == self.block_id and
-           other_ent.position.z == entity.position.z then
+           other_ent.position.z == entity.position.z and
+           not other_ent.dead then
 
             -- Calculate other drop's bounding box
             local x2 = other_ent.position.x
             local y2 = other_ent.position.y
-            local left2 = x2 - ItemDrop.DROP_WIDTH / 2
-            local right2 = x2 + ItemDrop.DROP_WIDTH / 2
-            local top2 = y2 - ItemDrop.DROP_HEIGHT / 2
-            local bottom2 = y2 + ItemDrop.DROP_HEIGHT / 2
+            local left2 = x2 - ItemDrop.DROP_WIDTH - ItemDrop.MERGE_RANGE
+            local right2 = x2 + ItemDrop.DROP_WIDTH + ItemDrop.MERGE_RANGE
+            local top2 = y2 - ItemDrop.DROP_HEIGHT - ItemDrop.MERGE_RANGE
+            local bottom2 = y2 + ItemDrop.DROP_HEIGHT + ItemDrop.MERGE_RANGE
 
             -- AABB collision detection (inclusive with tolerance)
-            if left1 <= right2 and right1 >= left2 and
-               top1 <= bottom2 and bottom1 >= top2 then
-                -- Collision detected! Merge the drops
-                -- Only merge with drops that have expired pickup_delay
-                if other_ent.drop.pickup_delay <= 0 then
-                    self.count = self.count + other_ent.drop.count
-                    other_ent.drop.dead = true
-                end
+            if left1 <= right2 and right1 >= left2 and top1 <= bottom2 and bottom1 >= top2 then
+                print("checkCollisionAndMerge!!!")
+                self.count = self.count + other_ent.drop.count
+                other_ent.drop.dead = true
             end
         end
     end
