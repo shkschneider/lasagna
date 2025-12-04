@@ -2,6 +2,7 @@ local Love = require "core.love"
 local Object = require "core.object"
 local BlockRef = require "data.blocks.ids"
 local Biome = require "src.world.biome"
+local Layer = require "src.world.layer"
 
 World = Object {
     HEIGHT = 512,
@@ -22,6 +23,10 @@ require(here .. "_set")
 require(here .. "_draw")
 
 function World.load(self)
+    -- Initialize layers
+    self.background_layer = Layer.new("background", self)
+    self.foreground_layer = Layer.new("foreground", self)
+    
     Love.load(self)
     -- Set biome seed offset after generator loads (generator sets its seed in its load)
     self.biome_seed_offset = (self.generator.data.seed % 10000) + 1000

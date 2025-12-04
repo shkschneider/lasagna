@@ -1,8 +1,38 @@
+local Object = require "core.object"
 local Registry = require "src.registries"
 local BlockRef = require "data.blocks.ids"
 local Biome = require "src.world.biome"
 
-local function draw(self, z)
+-- Layer represents a single rendering layer in the world
+-- Each layer has a name (for identification) and handles its own drawing logic
+local Layer = Object {
+    id = "layer",
+    priority = 10,
+}
+
+function Layer.new(name, world)
+    local layer = Object {
+        id = "layer:" .. name,
+        priority = 10,
+        name = name,
+        world = world,
+    }
+    setmetatable(layer, { __index = Layer })
+    return layer
+end
+
+function Layer.load(self)
+    -- Layers don't need special loading logic for now
+end
+
+function Layer.update(self, dt)
+    -- Layers don't need special update logic for now
+end
+
+-- Draw a single z-layer of blocks
+function Layer.draw_z(self, z)
+    local world = self.world
+    
     -- Get current screen dimensions dynamically
     local screen_width, screen_height = love.graphics.getDimensions()
 
@@ -16,12 +46,12 @@ local function draw(self, z)
 
     -- Clamp to world bounds (vertical only - horizontal is infinite)
     start_row = math.max(0, start_row)
-    end_row = math.min(self.HEIGHT - 1, end_row)
+    end_row = math.min(world.HEIGHT - 1, end_row)
 
     -- Draw blocks using actual block colors
     for col = start_col, end_col do
         for row = start_row, end_row do
-            local value = self:get_block_value(z, col, row)
+            local value = world:get_block_value(z, col, row)
 
             local x = col * BLOCK_SIZE - camera_x
             local y = row * BLOCK_SIZE - camera_y
@@ -36,13 +66,13 @@ local function draw(self, z)
                 local block_id = nil
 
                 -- Check if it's a direct block ID (< NOISE_OFFSET) or a noise value (>= NOISE_OFFSET)
-                if value < self.NOISE_OFFSET then
+                if value < world.NOISE_OFFSET then
                     -- Direct block ID (grass, dirt, etc.)
                     block_id = value
                 else
                     -- Noise value: convert back to 0.0-1.0 range and use shared weighted lookup
                     -- Shared underground distribution prevents visible seams at biome transitions
-                    local noise_value = (value - self.NOISE_OFFSET) / 100
+                    local noise_value = (value - world.NOISE_OFFSET) / 100
                     block_id = Biome.get_underground_block(noise_value)
                 end
 
@@ -58,43 +88,8 @@ local function draw(self, z)
     end
 end
 
--- Delegate drawing to layer objects
-function World.draw(self) end
-
-function World.draw1(self, z)
-    -- Background layers (behind player)
-    if self.background_layer then
-        for layer_z = LAYER_MIN, z - 1 do
-            self.background_layer:draw_z(layer_z)
-        end
-    else
-        -- Fallback if layers not initialized
-        for layer_z = LAYER_MIN, z - 1 do
-            draw(self, layer_z)
-        end
-    end
+function Layer.draw(self)
+    -- Default draw does nothing - specific layer types will override
 end
 
-function World.draw2(self, z)
-    -- Current player layer
-    if self.background_layer then
-        self.background_layer:draw_z(z)
-    else
-        -- Fallback if layers not initialized
-        draw(self, z)
-    end
-end
-
-function World.draw3(self, z)
-    -- Foreground layers (in front of player)
-    if self.foreground_layer then
-        for layer_z = z + 1, LAYER_MAX do
-            self.foreground_layer:draw_z(layer_z)
-        end
-    else
-        -- Fallback if layers not initialized
-        for layer_z = z + 1, LAYER_MAX do
-            draw(self, layer_z)
-        end
-    end
-end
+return Layer
