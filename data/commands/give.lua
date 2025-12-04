@@ -1,5 +1,6 @@
 local CommandsRegistry = require "src.registries.commands"
-local Registry = require "src.registries"
+local BlocksRegistry = require "src.registries.blocks"
+local ItemsRegistry = require "src.registries.items"
 local Stack = require "src.entities.stack"
 
 CommandsRegistry:register({
@@ -7,22 +8,22 @@ CommandsRegistry:register({
     description = "Give items or blocks to player",
     execute = function(args)
         if not G.debug then return false, nil end
-        
+
         -- Parse arguments: /give me [itemOrBlock] [quantity]
         if #args < 2 then
             return false, "Usage: /give me <id> [quantity]"
         end
-        
+
         local target = args[1]
         if target ~= "me" then
             return false, "Only 'me' is supported as target"
         end
-        
+
         local id = tonumber(args[2])
         if not id then
             return false, "Invalid ID: " .. tostring(args[2])
         end
-        
+
         local quantity = 1
         if args[3] then
             quantity = tonumber(args[3])
@@ -30,15 +31,15 @@ CommandsRegistry:register({
                 return false, "Invalid quantity: " .. tostring(args[3])
             end
         end
-        
+
         -- Check if it's a block or item
-        local is_block = Registry.Blocks:exists(id)
-        local is_item = Registry.Items:exists(id)
-        
+        local is_block = BlocksRegistry:exists(id)
+        local is_item = ItemsRegistry:exists(id)
+
         if not is_block and not is_item then
             return false, "Unknown item or block ID: " .. tostring(id)
         end
-        
+
         -- Add to player inventory
         -- Prefer items over blocks when both exist (items are more specific)
         -- Handle quantities > 64 by adding in chunks
@@ -53,7 +54,7 @@ CommandsRegistry:register({
             end
             remaining = remaining - to_add
         end
-        
+
         if success then
             local type_name = is_item and "item" or "block"
             return true, string.format("Gave %d x %s %d", quantity, type_name, id)
