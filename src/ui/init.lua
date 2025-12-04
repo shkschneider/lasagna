@@ -11,6 +11,7 @@ local Interface = Object {
 }
 
 -- UI Layout Constants
+-- BLOCK_SIZE is a global defined in main.lua
 local SLOT_SIZE = BLOCK_SIZE * 2  -- 2*BLOCK_SIZE width and height
 local PADDING = 5  -- Padding around UI elements
 local HOTBAR_X = 10
