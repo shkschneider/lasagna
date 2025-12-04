@@ -1,14 +1,6 @@
 local Love = require "core.love"
 local Stack = require "src.entities.stack"
 
-function Player.keypressed(self, key)
-    if key == "tab" then
-        self.inventory_open = not self.inventory_open
-    else
-        Love.keypressed(self, key)
-    end
-end
-
 -- Inventory management - delegates to Inventory
 -- Blocks go to backpack first, then hotbar
 function Player.add_to_inventory(self, block_id, count)
