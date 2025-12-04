@@ -1,3 +1,5 @@
+local Registry = require "src.registries"
+
 local Projectile = {
     id = "projectile",
     -- TODO tostring
@@ -53,7 +55,6 @@ end
 
 -- Helper function to destroy a block and spawn its drop
 function Projectile.destroy_block(x, y, z)
-    local Registry = require "src.registries"
     local BLOCKS = Registry.blocks()
     
     local block_id = G.world:get_block_id(z, x, y)
