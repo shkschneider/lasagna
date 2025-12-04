@@ -24,4 +24,6 @@ return {
     SLATE = 21,
     CLAY = 22,
     SNOW = 23,
+    -- Machines
+    WORKBENCH = 24,
 }

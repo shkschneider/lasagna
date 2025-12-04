@@ -104,6 +104,19 @@ function Building.place_block(self, col, row)
     if G.world:set_block(player_z, col, row, block_id) then
         -- Remove from inventory
         G.player:remove_from_selected(1)
+        
+        -- Spawn machine entity if this is a machine block
+        self:spawn_machine_entity(col, row, player_z, block_id)
+    end
+end
+
+function Building.spawn_machine_entity(self, col, row, layer, block_id)
+    -- Check if this block is a machine type
+    if block_id == BLOCKS.WORKBENCH then
+        local Workbench = require "src.machines.workbench"
+        local wx, wy = G.world:block_to_world(col, row)
+        local machine = Workbench.new(wx, wy, layer, block_id)
+        G.entities:add(machine)
     end
 end
 
