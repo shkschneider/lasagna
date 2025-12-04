@@ -3,8 +3,21 @@ local Registry = require "src.registries"
 local BlockRef = require "data.blocks.ids"
 local Biome = require "src.world.biome"
 
--- Layer represents a single rendering layer in the world
--- Each layer has a name (for identification) and handles its own drawing logic
+-- Layer represents a rendering layer in the world
+-- 
+-- The Layer object encapsulates the drawing logic for world blocks at different
+-- z-levels. The World creates two Layer instances:
+--   - background_layer: renders layers behind the player (draw1)
+--   - foreground_layer: renders layers in front of the player (draw3)
+-- 
+-- Each Layer has:
+--   - name: identifier string ("background" or "foreground")
+--   - world: reference to the parent World object
+--   - load/update/draw: standard Object lifecycle methods
+--   - draw_z(z): draws all blocks in a specific z-layer
+--
+-- The Layer system allows for better organization of rendering logic and
+-- makes it easier to add layer-specific effects or behaviors in the future.
 local Layer = Object {
     id = "layer",
     priority = 10,
