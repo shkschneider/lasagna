@@ -188,7 +188,7 @@ do
     
     -- Simulate enough time passing to expire pickup delay
     -- Keep player at drop location throughout
-    -- 70 updates = 1.12 seconds at 0.016s per update (enough to exceed 1.0s delay)
+    -- 70 updates × 0.016s = 1.12s (exceeds 1.0s pickup delay)
     for i = 1, 70 do
         if not drop.dead then
             drop.position.x = 0  -- Keep drop at player position
@@ -437,7 +437,7 @@ do
     local initial_vy = drop.velocity.y
     
     -- Update many times to overcome initial upward velocity and fall
-    -- 50 updates = 0.8 seconds at 0.016s per update
+    -- 50 updates × 0.016s = 0.8s; gravity (400 px/s²) needs ~0.125s to overcome initial vy (-50 px/s)
     for i = 1, 50 do
         drop:update(0.016)
     end
