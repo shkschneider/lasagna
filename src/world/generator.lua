@@ -10,13 +10,15 @@ local rng = require "libs.random"
 --------------------------------------------------------------------------------
 -- World generation is done in multiple steps:
 --
--- Step 1: 2D Noise Ground
---   - Uses 2D simplex noise to determine terrain density
---   - Creates the basic underground structure with varying block types
---   - Sand and sandstone are excluded (reserved for biome-specific placement)
+-- Step 1: 3D Noise Ground
+--   - Uses 3D simplex noise to determine terrain density across layers
+--   - Creates coherent underground structure with layer-aware variations
+--   - Layers share similar terrain shape but differ in smoothness and height
 --
 -- Step 2: Surface Cut
---   - Uses 1D multi-octave noise to create organic surface line
+--   - Uses multi-octave 3D noise to create organic surface line
+--   - Layer-dependent smoothness: layer 1 (rough), layer 2 (smooth)
+--   - Layer height offset: layer 1 is elevated relative to layer 2
 --   - Everything above the cut is air, below is terrain
 --
 -- Step 3: Biome-Based Surface Filling
@@ -41,8 +43,8 @@ local rng = require "libs.random"
 local BUCKET_SIZE = 0.1  -- Size of each value bucket (0.1 = 10 buckets from 0.0 to 1.0)
 
 -- Surface smoothness: 0.0 = rough (all detail), 1.0 = smooth (only large hills)
--- Adjust this to control how rough/smooth the surface appears
-local SURFACE_SMOOTHNESS = 0.75
+-- Now layer-dependent: layer 1 = rough, layer 2 = smooth
+local SURFACE_SMOOTHNESS_BASE = 0.2  -- Base smoothness for layer 1 (rough)
 
 -- Solid threshold: values >= this are considered solid (not air)
 -- Lower = more terrain, Higher = more air/caves
@@ -69,14 +71,15 @@ local biome_seed_offset = 0
 --------------------------------------------------------------------------------
 -- Noise functions using love.math.noise (Simplex noise)
 -- love.math.noise returns values in [0, 1] range
+-- Now using 3D noise for coherent layer-aware terrain generation
 --------------------------------------------------------------------------------
 
--- 1D simplex noise for surface cut line
-local function simplex1d(x)
-    return love.math.noise(x, seed_offset)
+-- 3D simplex noise for layer-aware terrain generation
+local function simplex3d(x, y, z)
+    return love.math.noise(x, y, z + seed_offset)
 end
 
--- 2D simplex noise for terrain density map
+-- 2D simplex noise for terrain density map (kept for compatibility)
 local function simplex2d(x, y)
     return love.math.noise(x, y, seed_offset)
 end
@@ -102,29 +105,60 @@ local DETAIL_AMPLITUDE = 0.01     -- Subtle variation
 local TERRAIN_FREQUENCY = 0.05
 
 -- Layer differentiation
-local Z_SCALE_FACTOR = 0.1    -- Scale factor for z in noise calculations
+-- Z_SCALE_FACTOR controls how different adjacent layers are:
+-- - Too small (e.g., 0.1): layers nearly identical, less interesting
+-- - Too large (e.g., 1.0): layers very different, potentially jarring
+-- - Sweet spot (0.3-0.5): coherent but distinct
+local Z_SCALE_FACTOR = 0.4    -- Scale factor for z in 3D noise
+local LAYER_HEIGHT_OFFSET = 0.02  -- Height offset per layer (layer 1 higher, layer 2 lower)
+local SMOOTHNESS_SCALE_FACTOR = 0.6  -- How much smoothness changes per layer (0.2 to 0.8 = 0.6 delta)
+
+-- Y-offsets for different noise octaves (to create independent noise patterns)
+local HILLS_Y_OFFSET = 0
+local VARIATION_Y_OFFSET = 100
+local DETAIL_Y_OFFSET = 200
 
 -- Helper: round value to bucket precision
 local function round_value(value)
     return math.floor(value / BUCKET_SIZE + 0.5) * BUCKET_SIZE
 end
 
--- Multi-octave 1D noise for organic surface shape
+-- Calculate layer-dependent smoothness
+-- Layer 1 (back): rough (smoothness = 0.2)
+-- Layer 2 (front): smooth (smoothness = 0.8)
+-- Expects z to be in the range [LAYER_MIN, LAYER_MAX] (layer index)
+local function get_layer_smoothness(z)
+    -- Map z from [1, 2] to smoothness [0.2, 0.8]
+    -- z = 1: smoothness = 0.2 (rough)
+    -- z = 2: smoothness = 0.8 (smooth)
+    -- Clamp z to valid layer range for safety (uses globals LAYER_MIN, LAYER_MAX from main.lua)
+    z = math.max(LAYER_MIN, math.min(LAYER_MAX, z))
+    -- Formula: 0.2 + (z - 1) * 0.6 = 0.2 for z=1, 0.8 for z=2
+    return SURFACE_SMOOTHNESS_BASE + ((z - LAYER_MIN) * SMOOTHNESS_SCALE_FACTOR)
+end
+
+-- Multi-octave 3D noise for organic surface shape
 -- Combines multiple frequencies for natural-looking terrain
--- SURFACE_SMOOTHNESS controls how much detail/roughness is visible
+-- Layer smoothness increases with z: 1 (rough) < 2 (smooth)
 local function organic_surface_noise(col, z)
-    -- Large rolling hills (always full strength)
-    local hills = (simplex1d(col * HILL_FREQUENCY + z * Z_SCALE_FACTOR) - 0.5) * 2 * HILL_AMPLITUDE
+    local smoothness = get_layer_smoothness(z)
+    
+    -- Layer-specific height offset: layer 1 is higher than layer 2
+    -- Formula makes z=1 negative (higher) and z=2 positive (lower)
+    local layer_offset = (z - 1.5) * LAYER_HEIGHT_OFFSET * 2
+    
+    -- Large rolling hills (always full strength, using 3D noise for coherence)
+    local hills = (simplex3d(col * HILL_FREQUENCY, HILLS_Y_OFFSET, z * Z_SCALE_FACTOR) - 0.5) * 2 * HILL_AMPLITUDE
 
     -- Medium terrain variation (reduced by smoothness)
-    local medium_factor = 1.0 - (SURFACE_SMOOTHNESS * 0.5)  -- 50% reduction at max smoothness
-    local variation = (simplex1d(col * TERRAIN_VAR_FREQUENCY + z * Z_SCALE_FACTOR + 100) - 0.5) * 2 * TERRAIN_VAR_AMPLITUDE * medium_factor
+    local medium_factor = 1.0 - (smoothness * 0.5)  -- 50% reduction at max smoothness
+    local variation = (simplex3d(col * TERRAIN_VAR_FREQUENCY, VARIATION_Y_OFFSET, z * Z_SCALE_FACTOR) - 0.5) * 2 * TERRAIN_VAR_AMPLITUDE * medium_factor
 
     -- Small surface detail (most affected by smoothness)
-    local detail_factor = 1.0 - SURFACE_SMOOTHNESS  -- 100% reduction at max smoothness
-    local detail = (simplex1d(col * DETAIL_FREQUENCY + z * Z_SCALE_FACTOR + 200) - 0.5) * 2 * DETAIL_AMPLITUDE * detail_factor
+    local detail_factor = 1.0 - smoothness  -- 100% reduction at max smoothness
+    local detail = (simplex3d(col * DETAIL_FREQUENCY, DETAIL_Y_OFFSET, z * Z_SCALE_FACTOR) - 0.5) * 2 * DETAIL_AMPLITUDE * detail_factor
 
-    return hills + variation + detail
+    return hills + variation + detail + layer_offset
 end
 
 -- Get biome for a column based on temperature and humidity noise
@@ -176,8 +210,8 @@ local function generate_column_terrain(column_data, col, z, world_height)
             -- Above cut line = sky (block ID 0)
             column_data[row] = BlockRef.SKY
         else
-            -- Below cut line: use 2D simplex noise for terrain density
-            local terrain_value = simplex2d(col * TERRAIN_FREQUENCY, row * TERRAIN_FREQUENCY + z * 10)
+            -- Below cut line: use 3D simplex noise for terrain density (coherent across layers)
+            local terrain_value = simplex3d(col * TERRAIN_FREQUENCY, row * TERRAIN_FREQUENCY, z * Z_SCALE_FACTOR)
             -- Round to bucket precision for easier debugging
             terrain_value = round_value(terrain_value)
             -- Apply SOLID threshold: values below become sky (will be converted to AIR if underground)
@@ -202,8 +236,8 @@ local function generate_column_terrain(column_data, col, z, world_height)
 
     -- If we found a surface, add subsurface and surface blocks ON TOP (not replacing)
     if surface_row and surface_row > 0 then
-        -- Random subsurface depth based on column position (deterministic)
-        local dirt_noise = simplex1d(col * 0.1 + z * 0.05 + 500)
+        -- Random subsurface depth based on column position (deterministic, using 3D noise)
+        local dirt_noise = simplex3d(col * 0.1, 500, z * 0.05)
         local dirt_depth = math.floor(DIRT_DEPTH_MIN + dirt_noise * (DIRT_DEPTH_MAX - DIRT_DEPTH_MIN + 1))
         dirt_depth = math.max(DIRT_DEPTH_MIN, math.min(DIRT_DEPTH_MAX, dirt_depth))
 

@@ -36,8 +36,8 @@ Log = {
 }
 
 -- Global constants used by save.lua
-LAYER_MIN = -1
-LAYER_MAX = 1
+LAYER_MIN = 1
+LAYER_MAX = 2
 
 -- Global G mock
 G = {
