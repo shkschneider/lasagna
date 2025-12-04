@@ -19,13 +19,17 @@ local function init_constants()
     end
 end
 
+-- Create a new ItemDrop
+-- pickup_delay: Time (in seconds) before the drop can be picked up by the player.
+--               This prevents instant re-pickup of items the player just dropped.
+--               During this delay, the drop can still merge with other ready drops.
 function ItemDrop.new(block_id, count, lifetime, pickup_delay)
     local itemdrop = {
         priority = 30,  -- ItemDrops update after velocity
         block_id = block_id,
         count = count or 1,
         lifetime = lifetime or 300,
-        pickup_delay = pickup_delay or 0.5,
+        pickup_delay = pickup_delay or 0.5,  -- 0.5 seconds default pickup delay
         dead = false,  -- Mark for removal
     }
     return setmetatable(itemdrop, { __index = ItemDrop })
@@ -44,8 +48,9 @@ function ItemDrop.update(self, dt, entity)
         self.dead = true
     end
 
-    -- Try to merge with nearby drops when still (on ground with no pickup delay)
-    if entity and entity.position and self.pickup_delay <= 0 then
+    -- Try to merge with nearby drops when still (on ground)
+    -- New drops can merge with existing ready drops
+    if entity and entity.position then
         init_constants()
         if Physics.is_on_ground(G.world, entity.position, DROP_WIDTH, DROP_HEIGHT) then
             self:tryMerge(entity)
@@ -54,6 +59,8 @@ function ItemDrop.update(self, dt, entity)
 end
 
 -- Try to merge this drop with nearby still drops of the same type
+-- This drop can have any pickup_delay, but will only merge WITH drops that are ready
+-- (pickup_delay <= 0). This allows newly spawned drops to merge with existing drops.
 function ItemDrop.tryMerge(self, entity)
     init_constants()
     
@@ -67,7 +74,7 @@ function ItemDrop.tryMerge(self, entity)
            other_ent.drop.block_id == self.block_id and
            other_ent.position.z == entity.position.z then
             
-            -- Check if other drop is ready for merge (pickup delay expired)
+            -- Check if other drop is ready for merge (pickup delay expired and on ground)
             if other_ent.drop.pickup_delay <= 0 then
                 -- Calculate distance
                 local dx = other_ent.position.x - entity.position.x
