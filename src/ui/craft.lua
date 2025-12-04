@@ -209,6 +209,7 @@ function CraftUI.craft()
     end
     
     -- Try to consume from hotbar first, then backpack
+    -- Note: Inventory:give() removes items from storage (counterintuitive naming)
     local success = true
     for _, input in ipairs(CraftUI.current_recipe.inputs) do
         local remaining = input.count
@@ -219,6 +220,7 @@ function CraftUI.craft()
             local to_remove = math.min(remaining, hotbar_count)
             local Stack = require "src.entities.stack"
             local stack = Stack.new(input.id, to_remove, input.type)
+            -- give() removes items from inventory (output operation)
             if not G.player.hotbar:give(stack) then
                 success = false
                 break
@@ -230,6 +232,7 @@ function CraftUI.craft()
         if remaining > 0 then
             local Stack = require "src.entities.stack"
             local stack = Stack.new(input.id, remaining, input.type)
+            -- give() removes items from inventory (output operation)
             if not G.player.backpack:give(stack) then
                 success = false
                 break

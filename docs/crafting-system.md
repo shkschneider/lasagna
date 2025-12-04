@@ -48,3 +48,17 @@ lua5.1 tests/tick.lua
 - The old debug UPGRADE button still works for testing
 - Materials are consumed from both hotbar and backpack
 - Crafting state is cached and updated every 10 ticks for performance
+
+## Important: Inventory API Naming
+
+The Inventory API has counterintuitive naming:
+
+- **`take(stack)`**: ADDS items TO the inventory (input operation)
+- **`give(stack)`**: REMOVES items FROM the inventory (output operation)
+
+This naming reflects the perspective of the inventory container:
+- The inventory "takes" items from the world/player
+- The inventory "gives" items to the player/world
+
+When consuming materials for crafting, use `give()` to remove items.
+When adding items to inventory (e.g., from mining), use `take()` to add items.
