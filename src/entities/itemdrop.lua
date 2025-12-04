@@ -38,23 +38,24 @@ function ItemDrop.update(self, dt, entity)
         self.dead = true
     end
 
-    -- Try to merge with nearby drops when still (on ground)
-    -- New drops can merge with existing ready drops
+    -- Check for collision with other drops and merge on collision
     if entity and entity.position then
-        if Physics.is_on_ground(G.world, entity.position, self.DROP_WIDTH, self.DROP_HEIGHT) then
-            self:tryMerge(entity)
-        end
+        self:checkCollisionAndMerge(entity)
     end
 end
 
--- Try to merge this drop with nearby still drops of the same type
--- This drop can have any pickup_delay, but will only merge WITH drops that are ready
--- (pickup_delay <= 0). This allows newly spawned drops to merge with existing drops.
-function ItemDrop.tryMerge(self, entity)
-    init_constants()
+-- Check for collision with other drops and merge if they collide
+-- Uses AABB (Axis-Aligned Bounding Box) collision detection
+function ItemDrop.checkCollisionAndMerge(self, entity)
+    -- Calculate this drop's bounding box
+    local x1 = entity.position.x
+    local y1 = entity.position.y
+    local left1 = x1 - DROP_WIDTH / 2
+    local right1 = x1 + DROP_WIDTH / 2
+    local top1 = y1 - DROP_HEIGHT / 2
+    local bottom1 = y1 + DROP_HEIGHT / 2
 
-    -- Note: This drop's on_ground check is already done in update()
-    -- Find nearby drops to merge with
+    -- Check collision with all other drops
     for _, other_ent in ipairs(G.entities.entities) do
         -- Skip self, non-drops, different block types, and different layers
         if other_ent ~= entity and
@@ -63,21 +64,22 @@ function ItemDrop.tryMerge(self, entity)
            other_ent.drop.block_id == self.block_id and
            other_ent.position.z == entity.position.z then
 
-            -- Check if other drop is ready for merge (pickup delay expired and on ground)
-            if other_ent.drop.pickup_delay <= 0 then
-                -- Calculate distance
-                local dx = other_ent.position.x - entity.position.x
-                local dy = other_ent.position.y - entity.position.y
-                local dist = math.sqrt(dx * dx + dy * dy)
+            -- Calculate other drop's bounding box
+            local x2 = other_ent.position.x
+            local y2 = other_ent.position.y
+            local left2 = x2 - DROP_WIDTH / 2
+            local right2 = x2 + DROP_WIDTH / 2
+            local top2 = y2 - DROP_HEIGHT / 2
+            local bottom2 = y2 + DROP_HEIGHT / 2
 
-                -- Merge if within range
-                if dist < self.MERGE_RANGE then
-                    -- Check if other drop is also on ground
-                    if Physics.is_on_ground(G.world, other_ent.position, self.DROP_WIDTH, self.DROP_HEIGHT) then
-                        -- Merge counts and mark the other drop as dead
-                        self.count = self.count + other_ent.drop.count
-                        other_ent.drop.dead = true
-                    end
+            -- AABB collision detection
+            if left1 < right2 and right1 > left2 and
+               top1 < bottom2 and bottom1 > top2 then
+                -- Collision detected! Merge the drops
+                -- Only merge with drops that have expired pickup_delay
+                if other_ent.drop.pickup_delay <= 0 then
+                    self.count = self.count + other_ent.drop.count
+                    other_ent.drop.dead = true
                 end
             end
         end
