@@ -10,6 +10,18 @@ local Interface = Object {
     priority = 110,
 }
 
+function Interface.load(self)
+    -- Initialize CraftUI
+    CraftUI.init()
+    Love.load(self)
+end
+
+function Interface.update(self, dt)
+    -- Update CraftUI tick system
+    CraftUI.update(dt)
+    Love.update(self, dt)
+end
+
 -- UI Layout Constants
 -- BLOCK_SIZE is a global defined in main.lua
 local SLOT_SIZE = BLOCK_SIZE * 2  -- 2*BLOCK_SIZE width and height
@@ -325,6 +337,19 @@ function Interface.mousepressed(self, x, y, button)
     if self:is_upgrade_button_clicked(layout.upgrade_button_x, layout.upgrade_button_y,
                                       layout.upgrade_button_width, layout.upgrade_button_height, x, y) then
         Log.info("Interface", "Upgrade button clicked")
+        return true
+    end
+
+    -- Check craft button click
+    local craft_x = layout.hotbar_x + layout.hotbar_width + PADDING + 10
+    local craft_y = layout.hotbar_y
+    local craft_size = 200
+    if CraftUI.is_craft_button_clicked(craft_x, craft_y, craft_size, x, y) then
+        if CraftUI.craft() then
+            Log.info("Interface", "Age upgraded successfully")
+        else
+            Log.warning("Interface", "Failed to upgrade age")
+        end
         return true
     end
 
