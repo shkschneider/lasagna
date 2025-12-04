@@ -2,6 +2,7 @@ local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "src.registries"
 local BLOCKS = Registry.blocks()
+local Workbench = require "src.machines.workbench"
 
 local Building = Object {
     id = "building",
@@ -113,7 +114,6 @@ end
 function Building.spawn_machine_entity(self, col, row, layer, block_id)
     -- Check if this block is a machine type
     if block_id == BLOCKS.WORKBENCH then
-        local Workbench = require "src.machines.workbench"
         local wx, wy = G.world:block_to_world(col, row)
         local machine = Workbench.new(wx, wy, layer, block_id)
         G.entities:add(machine)

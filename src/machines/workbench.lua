@@ -1,5 +1,6 @@
 local Machine = require "src.machines"
 local Vector = require "src.game.vector"
+local ItemDrop = require "src.entities.itemdrop"
 
 local Workbench = {
     id = "workbench",
@@ -109,7 +110,6 @@ function Workbench.update(self, dt)
         end
         
         -- Spawn output item at the bottom of the workbench
-        local ItemDrop = require "src.entities.itemdrop"
         local output_x = self.position.x + BLOCK_SIZE / 2
         local output_y = self.position.y + BLOCK_SIZE + BLOCK_SIZE / 2
         local output_drop = ItemDrop.new(

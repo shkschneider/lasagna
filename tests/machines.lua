@@ -138,6 +138,7 @@ G = {
 -- Load the Machine and Workbench modules
 local Machine = require("src.machines.init")
 local Workbench = require("src.machines.workbench")
+local ItemDrop = require("src.entities.itemdrop")
 
 print("=== Machine System Tests ===\n")
 
@@ -174,7 +175,6 @@ do
     G.entities:add(workbench)
     
     -- Create an item drop on top of the workbench (at y=0, which is one block above y=16)
-    local ItemDrop = require("src.entities.itemdrop")
     local drop = ItemDrop.new(8, 8, 0, BLOCKS.WOOD, 4, 300, 0)
     G.entities:add(drop)
     
@@ -194,7 +194,6 @@ do
     G.entities:add(workbench)
     
     -- Create an item drop far away
-    local ItemDrop = require("src.entities.itemdrop")
     local drop = ItemDrop.new(100, 100, 0, BLOCKS.WOOD, 2, 300, 0)
     G.entities:add(drop)
     
@@ -211,7 +210,6 @@ do
     G.entities:add(workbench)
     
     -- Create multiple drops on top
-    local ItemDrop = require("src.entities.itemdrop")
     local drop1 = ItemDrop.new(8, 8, 0, BLOCKS.WOOD, 2, 300, 0)
     local drop2 = ItemDrop.new(8, 8, 0, BLOCKS.WOOD, 2, 300, 0)
     local drop3 = ItemDrop.new(8, 8, 0, BLOCKS.STONE, 1, 300, 0)
@@ -256,7 +254,6 @@ do
     G.entities:add(workbench)
     
     -- Create exactly 4 WOOD drops on top (matching the recipe)
-    local ItemDrop = require("src.entities.itemdrop")
     local drop = ItemDrop.new(8, 8, 0, BLOCKS.WOOD, 4, 300, 0)
     G.entities:add(drop)
     
@@ -298,7 +295,6 @@ do
     G.entities:add(workbench)
     
     -- Create exactly 4 WOOD drops on top
-    local ItemDrop = require("src.entities.itemdrop")
     local drop = ItemDrop.new(8, 8, 0, BLOCKS.WOOD, 4, 300, 0)
     G.entities:add(drop)
     
