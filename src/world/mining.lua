@@ -1,6 +1,6 @@
 local Love = require "core.love"
 local Object = require "core.object"
-local Registry = require "src.game.registries"
+local Registry = require "src.registries"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
@@ -119,14 +119,16 @@ function Mining.complete_mining(self)
     if proto.drops then
         local drop_id, drop_count = proto.drops()
         if drop_id then
+            local ItemDrop = require "src.entities.itemdrop"
             local wx, wy = G.world:block_to_world(col, row)
-            G.entities:newDrop(
+            local drop = ItemDrop.new(
                 wx + BLOCK_SIZE / 2,
                 wy + BLOCK_SIZE / 2,
                 z,
                 drop_id,
                 drop_count
             )
+            G.entities:add(drop)
         end
     end
 

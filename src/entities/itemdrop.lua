@@ -1,38 +1,53 @@
 local Physics = require "src.world.physics"
+local Vector = require "src.game.vector"
 
 local ItemDrop = {
     id = "itemdrop",
+    type = "drop",
     -- TODO tostring
+    -- Constants
+    DROP_HEIGHT = BLOCK_SIZE / 2,
+    DROP_WIDTH = BLOCK_SIZE / 2,
+    MERGE_RANGE = BLOCK_SIZE / 2,
 }
 
--- Constants
-local DROP_HEIGHT = nil  -- Initialized when BLOCK_SIZE is available
-local DROP_WIDTH = nil
-local MERGE_RANGE = nil
+-- Create a new ItemDrop entity
+-- pickup_delay: Time (in seconds) before the drop can be picked up by the player.
+--               This prevents instant re-pickup of items the player just dropped.
+--               During this delay, the drop can still merge with other ready drops.
+function ItemDrop.new(x, y, layer, block_id, count, lifetime, pickup_delay)
+    -- Random horizontal velocity, upward initial velocity
+    local vx = (math.random() - 0.5) * 50
+    local vy = -50
 
--- Initialize constants on first use
-local function init_constants()
-    if not DROP_HEIGHT then
-        DROP_HEIGHT = BLOCK_SIZE / 2
-        DROP_WIDTH = BLOCK_SIZE / 2
-        MERGE_RANGE = BLOCK_SIZE / 2
-    end
-end
-
-function ItemDrop.new(block_id, count, lifetime, pickup_delay)
     local itemdrop = {
+        id = id(),
+        type = "drop",
         priority = 30,  -- ItemDrops update after velocity
+        -- Entity properties
+        position = Vector.new(x, y, layer),
+        velocity = Vector.new(vx, vy),
+        gravity = 400,  -- Drop gravity
+        friction = 0.8,  -- Friction multiplier: <1.0 = friction applied (slows down)
+        -- Component properties
         block_id = block_id,
         count = count or 1,
         lifetime = lifetime or 300,
-        pickup_delay = pickup_delay or 0.5,
+        pickup_delay = pickup_delay or 0.5,  -- 0.5 seconds default pickup delay
         dead = false,  -- Mark for removal
     }
     return setmetatable(itemdrop, { __index = ItemDrop })
 end
 
---  update method - handles drop lifetime, pickup delay, and merging
-function ItemDrop.update(self, dt, entity)
+--  update method - handles drop physics, lifetime, pickup delay, merging, ground collision, friction, and pickup
+function ItemDrop.update(self, dt)
+    -- Apply gravity to velocity
+    Physics.apply_gravity(self.velocity, self.gravity, dt)
+
+    -- Apply velocity to position
+    self.position.x = self.position.x + self.velocity.x * dt
+    self.position.y = self.position.y + self.velocity.y * dt
+
     -- Decrease pickup delay
     if self.pickup_delay > 0 then
         self.pickup_delay = self.pickup_delay - dt
@@ -42,76 +57,107 @@ function ItemDrop.update(self, dt, entity)
     self.lifetime = self.lifetime - dt
     if self.lifetime <= 0 then
         self.dead = true
+        return
     end
 
-    -- Try to merge with nearby drops when still (on ground with no pickup delay)
-    if entity and entity.position and self.pickup_delay <= 0 then
-        init_constants()
-        if Physics.is_on_ground(G.world, entity.position, DROP_WIDTH, DROP_HEIGHT) then
-            self:tryMerge(entity)
+    -- Check collision with ground
+    local on_ground = Physics.is_on_ground(G.world, self.position, ItemDrop.DROP_WIDTH, ItemDrop.DROP_HEIGHT)
+
+    if on_ground then
+        self.velocity.y = 0
+        -- Position drop so its bottom edge rests on top of the block
+        local bottom_y = self.position.y + ItemDrop.DROP_HEIGHT / 2
+        local row = math.floor(bottom_y / BLOCK_SIZE)
+        self.position.y = row * BLOCK_SIZE - ItemDrop.DROP_HEIGHT / 2
+    end
+
+    -- Apply friction only when on ground
+    if on_ground then
+        self.velocity.x = self.velocity.x * self.friction
+    end
+
+    -- Check for collision with other drops and merge on collision
+    self:checkCollisionAndMerge()
+
+    -- Check pickup by player
+    if self.pickup_delay <= 0 and self.position.z == G.player.position.z then
+        local player_x, player_y = G.player.position.x, G.player.position.y
+        local dx = self.position.x - player_x
+        local dy = self.position.y - player_y
+        local dist = math.sqrt(dx * dx + dy * dy)
+
+        local PICKUP_RANGE = BLOCK_SIZE
+        if dist < PICKUP_RANGE then
+            -- Try to add to player inventory
+            if G.player:add_to_inventory(self.block_id, self.count) then
+                -- Successfully picked up - mark for removal
+                self.dead = true
+            end
         end
     end
 end
 
--- Try to merge this drop with nearby still drops of the same type
-function ItemDrop.tryMerge(self, entity)
-    init_constants()
-    
-    -- Note: This drop's on_ground check is already done in update()
-    -- Find nearby drops to merge with
-    for _, other_ent in ipairs(G.entities.entities) do
+-- Check for collision with other drops and merge if they collide
+-- Uses AABB (Axis-Aligned Bounding Box) collision detection with MERGE_RANGE tolerance
+-- Only merges with drops that have expired pickup_delay (ready drops)
+function ItemDrop.checkCollisionAndMerge(self)
+    if self.dead then return end
+    -- Calculate this drop's bounding box with MERGE_RANGE tolerance
+    local x1 = self.position.x
+    local y1 = self.position.y
+    local left1 = x1 - ItemDrop.DROP_WIDTH - ItemDrop.MERGE_RANGE
+    local right1 = x1 + ItemDrop.DROP_WIDTH + ItemDrop.MERGE_RANGE
+    local top1 = y1 - ItemDrop.DROP_HEIGHT - ItemDrop.MERGE_RANGE
+    local bottom1 = y1 + ItemDrop.DROP_HEIGHT + ItemDrop.MERGE_RANGE
+
+    -- Check collision with all other drops
+    for _, other_ent in ipairs(G.entities:getByType("drop")) do
         -- Skip self, non-drops, different block types, and different layers
-        if other_ent ~= entity and
+        if other_ent ~= self and
            other_ent.type == "drop" and
-           other_ent.drop and
-           other_ent.drop.block_id == self.block_id and
-           other_ent.position.z == entity.position.z then
-            
-            -- Check if other drop is ready for merge (pickup delay expired)
-            if other_ent.drop.pickup_delay <= 0 then
-                -- Calculate distance
-                local dx = other_ent.position.x - entity.position.x
-                local dy = other_ent.position.y - entity.position.y
-                local dist = math.sqrt(dx * dx + dy * dy)
-                
-                -- Merge if within range
-                if dist < MERGE_RANGE then
-                    -- Check if other drop is also on ground
-                    if Physics.is_on_ground(G.world, other_ent.position, DROP_WIDTH, DROP_HEIGHT) then
-                        -- Merge counts and mark the other drop as dead
-                        self.count = self.count + other_ent.drop.count
-                        other_ent.drop.dead = true
-                    end
-                end
+           other_ent.block_id == self.block_id and
+           other_ent.position.z == self.position.z and
+           not other_ent.dead then
+
+            -- Calculate other drop's bounding box
+            local x2 = other_ent.position.x
+            local y2 = other_ent.position.y
+            local left2 = x2 - ItemDrop.DROP_WIDTH - ItemDrop.MERGE_RANGE
+            local right2 = x2 + ItemDrop.DROP_WIDTH + ItemDrop.MERGE_RANGE
+            local top2 = y2 - ItemDrop.DROP_HEIGHT - ItemDrop.MERGE_RANGE
+            local bottom2 = y2 + ItemDrop.DROP_HEIGHT + ItemDrop.MERGE_RANGE
+
+            -- AABB collision detection (inclusive with tolerance)
+            if left1 <= right2 and right1 >= left2 and top1 <= bottom2 and bottom1 >= top2 then
+                self.count = self.count + other_ent.count
+                other_ent.dead = true
             end
         end
     end
 end
 
 --  draw method - renders drop
-function ItemDrop.draw(self, entity, camera_x, camera_y)
-    if entity and entity.position then
-        local Registry = require "src.game.registries"
+function ItemDrop.draw(self, camera_x, camera_y)
+    if self.position then
+        local Registry = require "src.registries"
         local proto = Registry.Blocks:get(self.block_id)
         if proto then
-            init_constants()
-            
             -- ItemDrop is 1/2 width and 1/2 height (1/4 surface area)
-            local x = entity.position.x - (camera_x or 0) - DROP_HEIGHT / 2
-            local y = entity.position.y - (camera_y or 0) - DROP_HEIGHT / 2
+            local x = self.position.x - (camera_x or 0) - self.DROP_HEIGHT / 2
+            local y = self.position.y - (camera_y or 0) - self.DROP_HEIGHT / 2
 
             -- Draw the colored block
             love.graphics.setColor(proto.color)
-            love.graphics.rectangle("fill", x, y, DROP_HEIGHT, DROP_HEIGHT)
+            love.graphics.rectangle("fill", x, y, self.DROP_HEIGHT, self.DROP_HEIGHT)
 
             if self.count > 1 then
                 -- Draw 1px gold border
                 love.graphics.setColor(1, 0.8, 0, 1)
-                love.graphics.rectangle("line", x, y, DROP_HEIGHT, DROP_HEIGHT)
+                love.graphics.rectangle("line", x, y, self.DROP_HEIGHT, self.DROP_HEIGHT)
             else
                 -- Draw 1px white border
                 love.graphics.setColor(1, 1, 1, 1)
-                love.graphics.rectangle("line", x, y, DROP_HEIGHT, DROP_HEIGHT)
+                love.graphics.rectangle("line", x, y, self.DROP_HEIGHT, self.DROP_HEIGHT)
             end
         end
     end

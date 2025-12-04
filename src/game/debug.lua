@@ -1,6 +1,6 @@
 local Love = require "core.love"
 local Object = require "core.object"
-local Registry = require "src.game.registries"
+local Registry = require "src.registries"
 local BLOCKS = Registry.blocks()
 local ITEMS = Registry.items()
 
@@ -70,7 +70,7 @@ function Debug.draw(self)
     love.graphics.print(string.format("Time: %s", G.time:tostring()), 10, start_y + line_height * 6)
     love.graphics.print(string.format("Stance: %s", G.player.stance:tostring()), 10, start_y + line_height * 7)
     love.graphics.print(string.format("Canvases: %d", table.getn(G.renderer.canvases)), 10, start_y + line_height * 8)
-    love.graphics.print(string.format("Entities: %d", 1 + #G.entities.entities), 10, start_y + line_height * 9)
+    love.graphics.print(string.format("Entities: %d", 1 + #G.entities.all), 10, start_y + line_height * 9)
     Love.draw(self)
 end
 

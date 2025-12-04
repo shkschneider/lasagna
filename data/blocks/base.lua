@@ -1,6 +1,6 @@
 local Colors = require "libs.colors"
 local BlockRef = require "data.blocks.ids"
-local BlocksRegistry = require "src.game.registries.blocks"
+local BlocksRegistry = require "src.registries.blocks"
 
 -- Helper function to convert hex to rgb
 local function hex2rgb(hex)

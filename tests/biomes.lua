@@ -30,7 +30,7 @@ package.loaded["core.object"] = function(tbl) return tbl end
 
 -- Load the biomes registry and biome data
 print("-- Loading BiomesRegistry...")
-local BiomesRegistry = require("src.game.registries.biomes")
+local BiomesRegistry = require("src.registries.biomes")
 
 print("-- Loading biome data files...")
 require("data.world.biomes")

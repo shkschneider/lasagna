@@ -1,4 +1,4 @@
-local CommandsRegistry = require "src.game.registries.commands"
+local CommandsRegistry = require "src.registries.commands"
 local Vector = require "src.game.vector"
 
 CommandsRegistry:register({

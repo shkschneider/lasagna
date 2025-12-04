@@ -1,4 +1,4 @@
-local CommandsRegistry = require "src.game.registries.commands"
+local CommandsRegistry = require "src.registries.commands"
 
 CommandsRegistry:register({
     name = "save",

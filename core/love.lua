@@ -32,71 +32,71 @@ function Love.load(self, ...)
     Love_call(self, "load", ...)
 end
 
-function Love.update(self, dt)
+function Love.update(self, dt, ...)
     assert(type(dt) == "number")
-    Love_call(self, "update", dt)
+    Love_call(self, "update", dt, ...)
 end
 
-function Love.draw(self)
-    Love_call(self, "draw")
+function Love.draw(self, ...)
+    Love_call(self, "draw", ...)
 end
 
-function Love.keypressed(self, key)
+function Love.keypressed(self, key, ...)
     assert(type(key) == "string")
-    Love_call(self, "keypressed", key)
+    Love_call(self, "keypressed", key, ...)
 end
 
-function Love.keyreleased(self, key)
+function Love.keyreleased(self, key, ...)
     assert(type(key) == "string")
-    Love_call(self, "keyreleased", key)
+    Love_call(self, "keyreleased", key, ...)
 end
 
-function Love.mousepressed(self, x, y, button)
+function Love.mousepressed(self, x, y, button, ...)
     assert(type(x) == "number")
     assert(type(y) == "number")
     assert(type(button) == "number")
-    Love_call(self, "mousepressed", x, y, button)
+    Love_call(self, "mousepressed", x, y, button, ...)
 end
 
-function Love.mousereleased(self, x, y, button)
+function Love.mousereleased(self, x, y, button, ...)
     assert(type(x) == "number")
     assert(type(y) == "number")
     assert(type(button) == "number")
-    Love_call(self, "mousereleased", x, y, button)
+    Love_call(self, "mousereleased", x, y, button, ...)
 end
 
-function Love.mousemoved(self, x, y, dx, dy)
+function Love.mousemoved(self, x, y, dx, dy, ...)
     assert(type(x) == "number")
     assert(type(y) == "number")
     assert(type(dx) == "number")
     assert(type(dy) == "number")
-    Love_call(self, "mousemoved", x, y, dx, dy)
+    Love_call(self, "mousemoved", x, y, dx, dy, ...)
 end
 
-function Love.wheelmoved(self, x, y)
+function Love.wheelmoved(self, x, y, ...)
     assert(type(x) == "number")
     assert(type(y) == "number")
-    Love_call(self, "wheelmoved", x, y)
+    Love_call(self, "wheelmoved", x, y, ...)
 end
 
-function Love.textinput(self, text)
+function Love.textinput(self, text, ...)
     assert(type(text) == "string")
-    Love_call(self, "textinput", text)
+    Love_call(self, "textinput", text, ...)
 end
 
-function Love.resize(self, width, height)
+function Love.resize(self, width, height, ...)
     assert(type(width) == "number")
     assert(type(height) == "number")
-    Love_call(self, "resize", width, height)
+    Love_call(self, "resize", width, height, ...)
 end
 
-function Love.focus(self, focused)
+function Love.focus(self, focused, ...)
     assert(type(focused) == "boolean")
-    Love_call(self, "focus", focused)
+    Love_call(self, "focus", focused, ...)
 end
 
-function Love.quit(self)
-    Love_call(self, "quit")
+function Love.quit(self, ...)
+    Love_call(self, "quit", ...)
 end
 
 function Love.tostring(self)
