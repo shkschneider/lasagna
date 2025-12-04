@@ -64,11 +64,12 @@ function Weapon.try_shoot(self)
     end
 
     -- Create bullet
+    local Projectile = require "src.entities.projectile"
     local speed = item_proto.weapon.bullet_speed or 300
     local vx = dx * speed
     local vy = dy * speed
 
-    G.entities:newBullet(
+    local bullet = Projectile.new(
         player_x,
         player_y,
         player_z,
@@ -80,6 +81,7 @@ function Weapon.try_shoot(self)
         item_proto.weapon.bullet_gravity or 0,
         item_proto.weapon.destroyed_blocks or 0
     )
+    G.entities:add(bullet)
 
     -- Set cooldown
     self.cooldown = item_proto.weapon.cooldown or 0.2
