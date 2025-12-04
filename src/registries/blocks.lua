@@ -6,6 +6,7 @@ local BlocksRegistry = {}
 -- Register a new block type
 function BlocksRegistry.register(self, definition)
     definition.id = definition.id or id()
+    assert(definition.name)
     assert(not self:exists(definition.id))
     self[definition.id] = definition
     return definition.id
