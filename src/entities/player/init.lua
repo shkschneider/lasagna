@@ -28,6 +28,7 @@ Player = Object {
 
 local here = (...):gsub("%.init$", "") .. "."
 require(here .. "_update")
+require(here .. "_inventory")
 
 function Player.load(self)
     self.width = BLOCK_SIZE
@@ -135,62 +136,12 @@ function Player.draw(self)
 end
 
 function Player.keypressed(self, key)
-    if key == "tab" then
-        self.inventory_open = not self.inventory_open
-    else
-        Love.keypressed(self, key)
-    end
+    Love.keypressed(self, key)
 end
 
 function Player.can_switch_layer(self, target_layer)
     return G.world:can_switch_layer(target_layer)
         and not Physics.check_collision(G.world, self.position.x + 1, self.position.y + 1, target_layer, self.width - 2, self.height - 2)
-end
-
--- Inventory management - delegates to Inventory
-function Player.add_to_inventory(self, block_id, count)
-    local stack = Stack.new(block_id, count or 1, "block")
-
-    -- Try hotbar first
-    if self.hotbar:can_take(stack) then
-        return self.hotbar:take(stack)
-    end
-
-    -- Try backpack
-    if self.backpack:can_take(stack) then
-        return self.backpack:take(stack)
-    end
-
-    return false
-end
-
-function Player.add_item_to_inventory(self, item_id, count)
-    local Stack = require "src.data.stack"
-    local stack = Stack.new(item_id, count or 1, "item")
-
-    -- Try hotbar first
-    if self.hotbar:can_take(stack) then
-        return self.hotbar:take(stack)
-    end
-
-    -- Try backpack
-    if self.backpack:can_take(stack) then
-        return self.backpack:take(stack)
-    end
-
-    return false
-end
-
-function Player.remove_from_selected(self, count)
-    return self.hotbar:remove_from_selected(count)
-end
-
-function Player.get_selected_block_id(self)
-    local slot = self.hotbar:get_selected()
-    if slot then
-        return slot.block_id
-    end
-    return nil
 end
 
 function Player.upgrade(self, upOrDown)
