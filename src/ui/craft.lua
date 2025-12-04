@@ -21,6 +21,11 @@ end
 
 -- Update crafting state (called every 10 ticks)
 function CraftUI.update_can_craft()
+    if not G.player then
+        CraftUI.can_craft_cache = false
+        return
+    end
+    
     local current_tier = G.player:get_omnitool_tier()
     local target_age = current_tier + 1
     
@@ -52,9 +57,10 @@ end
 
 -- Update function called from game loop
 function CraftUI.update(dt)
-    if CraftUI.check_tick then
-        CraftUI.check_tick:update(dt)
+    if not CraftUI.check_tick then
+        CraftUI.init()
     end
+    CraftUI.check_tick:update(dt)
 end
 
 -- Draw the crafting interface
@@ -62,6 +68,10 @@ end
 -- @param y: Y position
 -- @param size: Size of the crafting area
 function CraftUI.draw(x, y, size)
+    if not G.player then
+        return  -- Don't draw if player not available
+    end
+    
     local padding = 5
     
     -- Background
@@ -194,7 +204,7 @@ end
 
 -- Perform the crafting action
 function CraftUI.craft()
-    if not CraftUI.can_craft_cache or not CraftUI.current_recipe then
+    if not G.player or not CraftUI.can_craft_cache or not CraftUI.current_recipe then
         return false
     end
     
