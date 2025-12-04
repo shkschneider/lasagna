@@ -46,7 +46,7 @@ function Renderer.draw(self)
     else
         love.graphics.clear(0.4, 0.6, 0.9, 1)
         local _, _, pz = G.player:get_position()
-        render(self.canvases.world1, Shaders.sepia,
+        render(self.canvases.world1, Shaders.greyscale,
             function() G.world:draw1(pz) end)
         render(self.canvases.world2, {},
             function() G.world:draw2(pz) end)
