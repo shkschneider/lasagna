@@ -7,15 +7,15 @@ local ItemDrop = require "src.entities.itemdrop"
 local Registry = require "src.registries"
 local BLOCKS = Registry.blocks()
 
-local Entity = Object {
+local Entities = Object {
     id = "entity",
     priority = 60,  -- After player (20), before interface
-    entities = {},
+    all = {},
 }
 
--- Entity type constants
-Entity.TYPE_BULLET = "bullet"
-Entity.TYPE_DROP = "drop"
+-- Entities type constants
+Entities.TYPE_BULLET = "bullet"
+Entities.TYPE_DROP = "drop"
 
 -- Default entity settings
 local BULLET_DAMAGE = 10
@@ -29,7 +29,7 @@ local DROP_GRAVITY = 400
 local DROP_FRICTION = 0.8  -- Friction multiplier: <1.0 = friction applied (slows down)
 
 -- Initialize the entity system
-function Entity.load(self)
+function Entities.load(self)
     self.entities = {}
     -- Initialize constants that depend on globals
     PICKUP_RANGE = BLOCK_SIZE
@@ -38,7 +38,7 @@ end
 
 -- Create a new entity with required components (position and velocity)
 -- All entities have position and velocity Vectors
-function Entity.newEntity(self, x, y, layer, vx, vy, entity_type, gravity, friction)
+function Entities.newEntities(self, x, y, layer, vx, vy, entity_type, gravity, friction)
     local entity = {
         id = id(),
         type = entity_type,
@@ -52,8 +52,8 @@ function Entity.newEntity(self, x, y, layer, vx, vy, entity_type, gravity, frict
 end
 
 -- Spawn a bullet entity
-function Entity.newBullet(self, x, y, layer, vx, vy, width, height, color, gravity, destroys_blocks)
-    local entity = self:newEntity(x, y, layer, vx, vy, Entity.TYPE_BULLET, gravity or BULLET_GRAVITY, BULLET_FRICTION)
+function Entities.newBullet(self, x, y, layer, vx, vy, width, height, color, gravity, destroys_blocks)
+    local entity = self:newEntities(x, y, layer, vx, vy, Entities.TYPE_BULLET, gravity or BULLET_GRAVITY, BULLET_FRICTION)
 
     -- Add projectile component
     entity.bullet = Projectile.new(BULLET_DAMAGE, BULLET_LIFETIME, width, height, color, destroys_blocks)
@@ -63,12 +63,12 @@ function Entity.newBullet(self, x, y, layer, vx, vy, width, height, color, gravi
 end
 
 -- Spawn a drop entity
-function Entity.newDrop(self, x, y, layer, block_id, count)
+function Entities.newDrop(self, x, y, layer, block_id, count)
     -- Random horizontal velocity, upward initial velocity
     local vx = (math.random() - 0.5) * 50
     local vy = -50
 
-    local entity = self:newEntity(x, y, layer, vx, vy, Entity.TYPE_DROP, DROP_GRAVITY, DROP_FRICTION)
+    local entity = self:newEntities(x, y, layer, vx, vy, Entities.TYPE_DROP, DROP_GRAVITY, DROP_FRICTION)
 
     -- Add drop component
     entity.drop = ItemDrop.new(block_id, count, DROP_LIFETIME, DROP_PICKUP_DELAY)
@@ -78,7 +78,7 @@ function Entity.newDrop(self, x, y, layer, block_id, count)
 end
 
 -- Get entities by type
-function Entity.getByType(self, entity_type)
+function Entities.getByType(self, entity_type)
     local result = {}
     for _, ent in ipairs(self.entities) do
         if ent.type == entity_type then
@@ -89,7 +89,7 @@ function Entity.getByType(self, entity_type)
 end
 
 -- Remove an entity by id
-function Entity.removeById(self, entity_id)
+function Entities.removeById(self, entity_id)
     for i = #self.entities, 1, -1 do
         if self.entities[i].id == entity_id then
             table.remove(self.entities, i)
@@ -100,7 +100,7 @@ function Entity.removeById(self, entity_id)
 end
 
 -- Update all entities
-function Entity.update(self, dt)
+function Entities.update(self, dt)
     local player_x, player_y, player_z = G.player:get_position()
 
     for i = #self.entities, 1, -1 do
@@ -115,9 +115,9 @@ function Entity.update(self, dt)
             -- This handles entity-specific logic (lifetime, etc.)
             Love.update(ent, dt)
             -- Type-specific system coordination
-            if ent.type == Entity.TYPE_BULLET then
+            if ent.type == Entities.TYPE_BULLET then
                 self:updateBullet(ent, i)
-            elseif ent.type == Entity.TYPE_DROP then
+            elseif ent.type == Entities.TYPE_DROP then
                 self:updateDrop(ent, i, player_x, player_y, player_z)
             end
         end
@@ -145,7 +145,7 @@ local function destroy_block(self, x, y, z)
 end
 
 -- Bullet-specific update logic (system coordination)
-function Entity.updateBullet(self, ent, index)
+function Entities.updateBullet(self, ent, index)
     -- Check collision with blocks
     local col, row = G.world:world_to_block(ent.position.x, ent.position.y)
     local block_def = G.world:get_block_def(ent.position.z, col, row)
@@ -175,12 +175,12 @@ function Entity.updateBullet(self, ent, index)
 end
 
 -- Drop-specific update logic (system coordination)
-function Entity.updateDrop(self, ent, index, player_x, player_y, player_z)
+function Entities.updateDrop(self, ent, index, player_x, player_y, player_z)
     -- Check collision with ground
     local drop_height = BLOCK_SIZE / 2
     local drop_width = BLOCK_SIZE / 2
     local on_ground = Physics.is_on_ground(G.world, ent.position, drop_width, drop_height)
-    
+
     if on_ground then
         ent.velocity.y = 0
         -- Position drop so its bottom edge rests on top of the block
@@ -217,17 +217,17 @@ function Entity.updateDrop(self, ent, index, player_x, player_y, player_z)
 end
 
 -- Draw all entities
-function Entity.draw(self)
+function Entities.draw(self)
     local camera_x, camera_y = G.camera:get_offset()
 
     for _, ent in ipairs(self.entities) do
-        if ent.type == Entity.TYPE_BULLET and ent.bullet then
+        if ent.type == Entities.TYPE_BULLET and ent.bullet then
             ent.bullet:draw(ent, camera_x, camera_y)
-        elseif ent.type == Entity.TYPE_DROP and ent.drop then
+        elseif ent.type == Entities.TYPE_DROP and ent.drop then
             ent.drop:draw(ent, camera_x, camera_y)
         end
         Love.draw(ent)
     end
 end
 
-return Entity
+return Entities
