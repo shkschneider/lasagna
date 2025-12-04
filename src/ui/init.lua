@@ -65,6 +65,25 @@ function Interface.draw(self)
         local backpack_y = hotbar_y + slot_size  -- Start right below hotbar
         self:draw_inventory_slots(backpack, hotbar_x, backpack_y, slot_size, 9, false)
         
+        -- Selected item name below backpack (only when inventory is open)
+        local name_y = hotbar_y + total_height + 5
+        local selected_slot = hotbar:get_selected()
+        if selected_slot then
+            local proto = nil
+
+            if selected_slot.block_id then
+                proto = Registry.Blocks:get(selected_slot.block_id)
+            elseif selected_slot.item_id then
+                proto = Registry.Items:get(selected_slot.item_id)
+            end
+
+            if proto then
+                love.graphics.setColor(1, 1, 1, 1)
+                local text = proto.name
+                love.graphics.print(text, hotbar_x, name_y)
+            end
+        end
+        
         -- Draw progression/tier UI below inventory
         local tiers_y = hotbar_y + total_height + 30  -- Below selected item name
         local tiers_width = hotbar_width
@@ -85,24 +104,24 @@ function Interface.draw(self)
         local craft_y = hotbar_y
         local craft_size = 200
         CraftUI.draw(craft_x, craft_y, craft_size)
-    end
+    else
+        -- Show selected item name below hotbar when inventory is closed
+        local name_y = hotbar_y + total_height + 5
+        local selected_slot = hotbar:get_selected()
+        if selected_slot then
+            local proto = nil
 
-    -- Selected item name below inventory
-    local name_y = hotbar_y + total_height + 5
-    local selected_slot = hotbar:get_selected()
-    if selected_slot then
-        local proto = nil
+            if selected_slot.block_id then
+                proto = Registry.Blocks:get(selected_slot.block_id)
+            elseif selected_slot.item_id then
+                proto = Registry.Items:get(selected_slot.item_id)
+            end
 
-        if selected_slot.block_id then
-            proto = Registry.Blocks:get(selected_slot.block_id)
-        elseif selected_slot.item_id then
-            proto = Registry.Items:get(selected_slot.item_id)
-        end
-
-        if proto then
-            love.graphics.setColor(1, 1, 1, 1)
-            local text = proto.name
-            love.graphics.print(text, hotbar_x, name_y)
+            if proto then
+                love.graphics.setColor(1, 1, 1, 1)
+                local text = proto.name
+                love.graphics.print(text, hotbar_x, name_y)
+            end
         end
     end
 
