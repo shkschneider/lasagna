@@ -9,17 +9,6 @@ Notes
 
 ---
 
-v0.3 — Death & snapshot restore
-- Goals
-  - Automatic periodic snapshot system saving world and player state (lightweight).
-  - On death, restore the last snapshot (no manual saves).
-- Non-goals
-  - Long-term persistence and multi-snapshot UI management.
-- Acceptance criteria
-  - If player dies, the world and player inventory/position/health restore to the last snapshot slot.
-
----
-
 v0.4 — World generation (part 2)
 
 ---
