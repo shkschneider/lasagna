@@ -204,17 +204,42 @@ package.loaded["src.entities.inventory"] = Inventory
 
 -- Mock registries
 local BlocksRegistry = {
+    -- Mock some blocks with names
+    [0] = { id = 0, name = "Sky" },
+    [1] = { id = 1, name = "Air" },
+    [2] = { id = 2, name = "Dirt" },
+    [3] = { id = 3, name = "Grass" },
+    [4] = { id = 4, name = "Stone" },
+    [5] = { id = 5, name = "Wood" },
+    [6] = { id = 6, name = "Copper Ore" },
+    [13] = { id = 13, name = "Sand" },
     exists = function(self, id)
         -- Mock some block IDs (based on data/blocks/ids.lua)
         return id >= 0 and id <= 27
+    end,
+    get = function(self, id)
+        return self[id]
+    end,
+    iterate = function(self)
+        return pairs(self)
     end,
 }
 package.loaded["src.registries.blocks"] = BlocksRegistry
 
 local ItemsRegistry = {
+    -- Mock some items with names
+    [1] = { id = 1, name = "Omnitool" },
+    [2] = { id = 2, name = "Gun" },
+    [3] = { id = 3, name = "Rocket Launcher" },
     exists = function(self, id)
         -- Mock some item IDs (based on data/items/ids.lua)
         return id >= 1 and id <= 3
+    end,
+    get = function(self, id)
+        return self[id]
+    end,
+    iterate = function(self)
+        return pairs(self)
     end,
 }
 package.loaded["src.registries.items"] = ItemsRegistry
@@ -302,7 +327,7 @@ do
     G.player:reset()
     local success, message = CommandsRegistry:execute("give", {"me", "4"})  -- STONE = 4
     expect(success, "Command succeeded")
-    expect(message:find("1 x block 4"), "Message contains correct info")
+    expect(message:find("Stone") and message:find("block"), "Message contains correct info")
     
     -- Check that player received the block
     local count = G.player.backpack:count(4, "block")
@@ -315,7 +340,7 @@ do
     G.player:reset()
     local success, message = CommandsRegistry:execute("give", {"me", "4", "10"})  -- STONE = 4 (not an item)
     expect(success, "Command succeeded")
-    expect(message:find("10 x block 4"), "Message contains correct info")
+    expect(message:find("10") and message:find("Stone") and message:find("block"), "Message contains correct info")
     
     -- Check that player received the blocks
     local count = G.player.backpack:count(4, "block")
@@ -328,7 +353,7 @@ do
     G.player:reset()
     local success, message = CommandsRegistry:execute("give", {"me", "1"})  -- OMNITOOL = 1
     expect(success, "Command succeeded")
-    expect(message:find("1 x item 1"), "Message contains correct info")
+    expect(message:find("Omnitool") and message:find("item"), "Message contains correct info")
     
     -- Check that player received the item
     local count = G.player.hotbar:count(1, "item")
@@ -341,7 +366,7 @@ do
     G.player:reset()
     local success, message = CommandsRegistry:execute("give", {"me", "2", "5"})  -- GUN = 2
     expect(success, "Command succeeded")
-    expect(message:find("5 x item 2"), "Message contains correct info")
+    expect(message:find("5") and message:find("Gun") and message:find("item"), "Message contains correct info")
     
     -- Check that player received the items
     local count = G.player.hotbar:count(2, "item")
@@ -354,7 +379,7 @@ do
     G.player:reset()
     local success, message = CommandsRegistry:execute("give", {"me", "5", "200"})  -- WOOD = 5, 200 blocks
     expect(success, "Command succeeded")
-    expect(message:find("200 x block 5"), "Message contains correct info")
+    expect(message:find("200") and message:find("Wood") and message:find("block"), "Message contains correct info")
     
     -- Check that player received the blocks (should be in 4 stacks: 64+64+64+8)
     local count = G.player.backpack:count(5, "block")
@@ -385,7 +410,7 @@ do
     G.player:reset()
     local success, message = CommandsRegistry:execute("give", {"me", "999"})  -- Non-existent ID
     expect(not success, "Command failed")
-    expect(message:find("Unknown item or block ID"), "Error message is correct")
+    expect(message:find("Unknown item or block"), "Error message is correct")
 end
 
 -- Test 9: Error - invalid quantity
@@ -397,17 +422,49 @@ do
     expect(message:find("Invalid quantity"), "Error message is correct")
 end
 
--- Test 10: Error - non-numeric ID
-print("\n-- Test 10: Error - non-numeric ID")
+-- Test 10: Give block by name (case insensitive)
+print("\n-- Test 10: Give block by name (case insensitive)")
 do
     G.player:reset()
-    local success, message = CommandsRegistry:execute("give", {"me", "abc"})
-    expect(not success, "Command failed")
-    expect(message:find("Invalid ID"), "Error message is correct")
+    local success, message = CommandsRegistry:execute("give", {"me", "stone"})
+    expect(success, "Command succeeded with lowercase name")
+    expect(message:find("Stone") and message:find("block"), "Message contains correct info")
+    expect(G.player.backpack:count(4, "block") == 1, "Player has 1 stone")
+    
+    G.player:reset()
+    success, message = CommandsRegistry:execute("give", {"me", "DIRT", "5"})
+    expect(success, "Command succeeded with uppercase name")
+    expect(message:find("5") and message:find("Dirt") and message:find("block"), "Message contains correct info")
+    expect(G.player.backpack:count(2, "block") == 5, "Player has 5 dirt")
 end
 
--- Test 11: Give different block types
-print("\n-- Test 11: Give different block types")
+-- Test 11: Give item by name
+print("\n-- Test 11: Give item by name")
+do
+    G.player:reset()
+    local success, message = CommandsRegistry:execute("give", {"me", "omnitool"})
+    expect(success, "Command succeeded")
+    expect(message:find("Omnitool") and message:find("item"), "Message contains correct info")
+    expect(G.player.hotbar:count(1, "item") == 1, "Player has 1 omnitool")
+    
+    G.player:reset()
+    success, message = CommandsRegistry:execute("give", {"me", "gun", "3"})
+    expect(success, "Command succeeded")
+    expect(message:find("3") and message:find("Gun") and message:find("item"), "Message contains correct info")
+    expect(G.player.hotbar:count(2, "item") == 3, "Player has 3 guns")
+end
+
+-- Test 12: Error - unknown name
+print("\n-- Test 12: Error - unknown name")
+do
+    G.player:reset()
+    local success, message = CommandsRegistry:execute("give", {"me", "diamond"})
+    expect(not success, "Command failed")
+    expect(message:find("Unknown item or block name"), "Error message is correct")
+end
+
+-- Test 13: Give different block types
+print("\n-- Test 13: Give different block types")
 do
     G.player:reset()
     -- STONE = 4, WOOD = 5, COPPER_ORE = 6 (none are items)
@@ -420,8 +477,8 @@ do
     expect(G.player.backpack:count(6, "block") == 15, "Player has 15 copper ore")
 end
 
--- Test 12: Inventory full scenario (fill inventory then try to add more)
-print("\n-- Test 12: Inventory full scenario")
+-- Test 14: Inventory full scenario (fill inventory then try to add more)
+print("\n-- Test 14: Inventory full scenario")
 do
     G.player:reset()
     -- Fill backpack (27 slots * 64 = 1728 items) and hotbar (9 slots * 64 = 576 items)
