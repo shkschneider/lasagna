@@ -31,6 +31,11 @@ local function draw(self, z)
                 -- Sky is fully transparent, nothing to draw
             elseif value == BlockRef.AIR then
                 -- Underground air - draw semi-transparent black
+                local block = Registry.Blocks:get(BlockRef.AIR)
+                if block and block.color then
+                    love.graphics.setColor(block.color[1], block.color[2], block.color[3], block.color[4] or 1)
+                    love.graphics.rectangle("fill", x, y, BLOCK_SIZE, BLOCK_SIZE)
+                end
             else
                 -- Draw solid blocks
                 local block_id = nil

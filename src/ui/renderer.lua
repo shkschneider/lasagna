@@ -44,7 +44,7 @@ function Renderer.draw(self)
         love.graphics.setColor(0, 0, 0, 1)
         render(self.canvases.overlay, {}, G.menu, G.loader)
     else
-        love.graphics.clear(0.4, 0.6, 0.9, 1)
+        love.graphics.clear(0, 0, 0, 1)
         local _, _, pz = G.player:get_position()
         render(self.canvases.world1, Shaders.sepia,
             function() G.world:draw1(pz) end)
