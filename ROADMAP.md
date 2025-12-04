@@ -9,10 +9,6 @@ Notes
 
 ---
 
-v0.4 — World generation (part 2)
-
----
-
 v0.5 — Crafting and Ages (basic progression)
 - Goals
   - Hand crafting and Workbench recipes (simple recipes only).
