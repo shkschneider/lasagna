@@ -42,10 +42,19 @@ function Menu.draw(self)
 
     -- Draw gradient overlay for PAUSE and DEAD states
     if state == GameState.PAUSE or state == GameState.DEAD then
-        -- Determine base color: red for DEAD, black for PAUSE
+        -- Determine base color and gradient direction
         local r, g, b = 0, 0, 0
+        local center_opacity, edge_opacity = 0, 0.85
+        
         if state == GameState.DEAD then
-            r = 1  -- Red for death
+            r = 0.8  -- More heavily red for death
+            g = 0.1  -- Slight green tint for depth
+            b = 0.1  -- Slight blue tint for depth
+            -- Keep default gradient (dark center, light edges)
+        else
+            -- PAUSE: Reverse gradient (darker in middle, lighter on edges)
+            center_opacity = 0.85
+            edge_opacity = 0
         end
 
         -- Create a radial gradient using a mesh
@@ -54,15 +63,15 @@ function Menu.draw(self)
 
         -- Build vertices for a fan mesh with gradient
         local vertices = {}
-        -- Center vertex with 0 opacity
-        table.insert(vertices, {center_x, center_y, 0, 0, r, g, b, 0})
+        -- Center vertex
+        table.insert(vertices, {center_x, center_y, 0, 0, r, g, b, center_opacity})
 
-        -- Outer ring vertices with full opacity
+        -- Outer ring vertices
         for i = 0, num_segments do
             local angle = (i / num_segments) * math.pi * 2
             local x = center_x + math.cos(angle) * max_dist * 1.5  -- Extend beyond screen
             local y = center_y + math.sin(angle) * max_dist * 1.5
-            table.insert(vertices, {x, y, 0, 0, r, g, b, 0.85})
+            table.insert(vertices, {x, y, 0, 0, r, g, b, edge_opacity})
         end
 
         -- Create and draw the mesh
