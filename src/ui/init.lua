@@ -10,6 +10,18 @@ local Interface = Object {
     priority = 110,
 }
 
+function Interface.load(self)
+    -- Initialize CraftUI
+    CraftUI.init()
+    Love.load(self)
+end
+
+function Interface.update(self, dt)
+    -- Update CraftUI tick system
+    CraftUI.update(dt)
+    Love.update(self, dt)
+end
+
 -- UI Layout Constants
 -- BLOCK_SIZE is a global defined in main.lua
 local SLOT_SIZE = BLOCK_SIZE * 2  -- 2*BLOCK_SIZE width and height
@@ -108,10 +120,12 @@ function Interface.draw(self)
                                 upgrade_button_width, upgrade_button_height)
 
         -- Draw crafting UI to the right of inventory
+        -- Make it the same height as the entire inventory (hotbar + backpack)
         local craft_x = hotbar_x + hotbar_width + padding + 10
         local craft_y = hotbar_y
-        local craft_size = 200
-        CraftUI.draw(craft_x, craft_y, craft_size)
+        local craft_width = 200
+        local craft_height = total_height  -- Match inventory height
+        CraftUI.draw(craft_x, craft_y, craft_width, craft_height)
     else
         -- Show selected item name below hotbar when inventory is closed
         local name_y = hotbar_y + total_height + 5
@@ -325,6 +339,20 @@ function Interface.mousepressed(self, x, y, button)
     if self:is_upgrade_button_clicked(layout.upgrade_button_x, layout.upgrade_button_y,
                                       layout.upgrade_button_width, layout.upgrade_button_height, x, y) then
         Log.info("Interface", "Upgrade button clicked")
+        return true
+    end
+
+    -- Check craft button click
+    local craft_x = layout.hotbar_x + layout.hotbar_width + PADDING + 10
+    local craft_y = layout.hotbar_y
+    local craft_width = 200
+    local craft_height = layout.total_height  -- Match inventory height
+    if CraftUI.is_craft_button_clicked(craft_x, craft_y, craft_width, craft_height, x, y) then
+        if CraftUI.craft() then
+            Log.info("Interface", "Age upgraded successfully")
+        else
+            Log.warning("Interface", "Failed to upgrade age")
+        end
         return true
     end
 

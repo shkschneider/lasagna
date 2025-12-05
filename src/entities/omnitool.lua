@@ -1,6 +1,6 @@
 local Omnitool = {
     id = "omnitool",
-    TIER_MIN = 1,
+    TIER_MIN = 0,
     TIER_MAX = 4,
     tostring = function(self)
         return string.format("%d/%d", self.tier, self.TIER_MAX)
@@ -8,7 +8,7 @@ local Omnitool = {
 }
 
 function Omnitool.new(tier)
-    tier = tier or 1
+    tier = tier or 0
     assert(type(tier) == "number")
     assert(tier >= Omnitool.TIER_MIN and tier <= Omnitool.TIER_MAX)
     local omnitool = {
