@@ -39,7 +39,7 @@ function Player.load(self)
         facing_right = true, -- Direction player is facing
     }
 
-    -- Sytems
+    -- Systems
     self.hotbar = Inventory.new(self.HOTBAR_SIZE)
     self.backpack = Inventory.new(self.BACKPACK_SIZE)
     self.control = Control.new()

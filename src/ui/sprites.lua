@@ -19,6 +19,9 @@ local Sprites = Object {
         walk_6 = nil,        -- Walk animation (6 frames)
         default = nil,       -- Default sprite (player.png)
     },
+    
+    -- Cached quads for each sprite animation [sprite_name][frame_index] = quad
+    _quad_cache = {},
 }
 
 -- Load all player sprites
@@ -27,24 +30,29 @@ function Sprites.load(self)
     
     local base_path = "assets/player/"
     
-    -- Load each sprite sheet
-    self.player.attack_4 = love.graphics.newImage(base_path .. "attack_4.png")
-    self.player.attack_6 = love.graphics.newImage(base_path .. "attack_6.png")
-    self.player.climb_4 = love.graphics.newImage(base_path .. "climb_4.png")
-    self.player.death_8 = love.graphics.newImage(base_path .. "death_8.png")
-    self.player.hurt_4 = love.graphics.newImage(base_path .. "hurt_4.png")
-    self.player.jump_8 = love.graphics.newImage(base_path .. "jump_8.png")
-    self.player.idle_4 = love.graphics.newImage(base_path .. "idle_4.png")
-    self.player.run_6 = love.graphics.newImage(base_path .. "run_6.png")
-    self.player.walk_6 = love.graphics.newImage(base_path .. "walk_6.png")
-    self.player.default = love.graphics.newImage(base_path .. "player.png")
-    
-    -- Set filter mode for pixel-perfect rendering
-    for _, sprite in pairs(self.player) do
-        if sprite then
-            sprite:setFilter("nearest", "nearest")
+    -- Helper function to safely load a sprite
+    local function safe_load(filename)
+        local success, result = pcall(love.graphics.newImage, base_path .. filename)
+        if success then
+            result:setFilter("nearest", "nearest")
+            return result
+        else
+            Log.warning("Failed to load sprite:", filename, "-", result)
+            return nil
         end
     end
+    
+    -- Load each sprite sheet
+    self.player.attack_4 = safe_load("attack_4.png")
+    self.player.attack_6 = safe_load("attack_6.png")
+    self.player.climb_4 = safe_load("climb_4.png")
+    self.player.death_8 = safe_load("death_8.png")
+    self.player.hurt_4 = safe_load("hurt_4.png")
+    self.player.jump_8 = safe_load("jump_8.png")
+    self.player.idle_4 = safe_load("idle_4.png")
+    self.player.run_6 = safe_load("run_6.png")
+    self.player.walk_6 = safe_load("walk_6.png")
+    self.player.default = safe_load("player.png")
     
     Log.debug("Player sprites loaded successfully")
 end
@@ -54,6 +62,36 @@ local function get_frame_count(sprite_name)
     -- Extract frame count from sprite name (e.g., "attack_4" -> 4)
     local count = tonumber(sprite_name:match("_(%d+)$"))
     return count or 1
+end
+
+-- Get or create a quad for a specific sprite frame
+-- @param sprite: The sprite image object
+-- @param sprite_name: Name of the sprite (for caching)
+-- @param frame: Frame index
+-- @param frame_width: Width of a single frame
+-- @param frame_height: Height of a single frame
+-- @param sprite_width: Total width of sprite sheet
+-- @param sprite_height: Total height of sprite sheet
+-- @return quad object
+local function get_or_create_quad(cache, sprite_name, frame, frame_width, frame_height, sprite_width, sprite_height)
+    -- Initialize cache for this sprite if needed
+    if not cache[sprite_name] then
+        cache[sprite_name] = {}
+    end
+    
+    -- Return cached quad if it exists
+    if cache[sprite_name][frame] then
+        return cache[sprite_name][frame]
+    end
+    
+    -- Create and cache new quad
+    local quad = love.graphics.newQuad(
+        frame * frame_width, 0,
+        frame_width, frame_height,
+        sprite_width, sprite_height
+    )
+    cache[sprite_name][frame] = quad
+    return quad
 end
 
 -- Draw a player sprite with animation support
@@ -91,9 +129,11 @@ function Sprites.draw_player(self, sprite_name, x, y, frame, facing_right, scale
     -- Clamp frame to valid range
     frame = math.floor(frame) % frame_count
     
-    -- Create quad for the current frame
-    local quad = love.graphics.newQuad(
-        frame * frame_width, 0,
+    -- Get or create cached quad for this frame
+    local quad = get_or_create_quad(
+        self._quad_cache,
+        actual_sprite_name,
+        frame,
         frame_width, frame_height,
         sprite_width, sprite_height
     )
