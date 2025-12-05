@@ -1,40 +1,40 @@
 local Vector = require "src.game.vector"
 local Registry = require "src.registries"
 
-local Machine = {
-    id = "machine",
-    type = "machine",
+local BlockItem = {
+    id = "blockitem",
+    type = "blockitem",
 }
 
--- Create a new Machine entity
+-- Create a new BlockItem entity
 -- x, y: world coordinates
 -- layer: the layer (z-coordinate)
--- block_id: the type of machine block
-function Machine.new(x, y, layer, block_id)
-    local machine = {
+-- block_id: the type of blockitem block
+function BlockItem.new(x, y, layer, block_id)
+    local blockitem = {
         id = id(),
-        type = "machine",
-        priority = 40,  -- Machines update after drops
+        type = "blockitem",
+        priority = 40,  -- BlockItems update after drops
         -- Entity properties
         position = Vector.new(x, y, layer),
-        velocity = Vector.new(0, 0),  -- Machines don't move
-        gravity = 0,  -- No gravity for machines
+        velocity = Vector.new(0, 0),  -- BlockItems don't move
+        gravity = 0,  -- No gravity for blockitems
         friction = 1.0,  -- No friction needed
         -- Component properties
         block_id = block_id,
         dead = false,  -- Mark for removal
     }
-    return setmetatable(machine, { __index = Machine })
+    return setmetatable(blockitem, { __index = BlockItem })
 end
 
--- Base update method - can be overridden by specific machine types
-function Machine.update(self, dt)
-    -- Base machines don't do anything
-    -- Specific machine types should override this
+-- Base update method - can be overridden by specific blockitem types
+function BlockItem.update(self, dt)
+    -- Base blockitems don't do anything
+    -- Specific blockitem types should override this
 end
 
--- Base draw method - renders the machine as a block
-function Machine.draw(self, camera_x, camera_y)
+-- Base draw method - renders the blockitem as a block
+function BlockItem.draw(self, camera_x, camera_y)
     if self.position then
         local proto = Registry.Blocks:get(self.block_id)
         if proto then
@@ -52,4 +52,4 @@ function Machine.draw(self, camera_x, camera_y)
     end
 end
 
-return Machine
+return BlockItem

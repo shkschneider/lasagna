@@ -351,7 +351,7 @@ local function tests()
     if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/biomes.lua >/dev/null") then return false end
     if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/itemdrops.lua >/dev/null") then return false end
     if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/log.lua >/dev/null") then return false end
-    if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/machines.lua >/dev/null") then return false end
+    if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/blockitems.lua >/dev/null") then return false end
     if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/saves.lua >/dev/null") then return false end
     if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/states.lua >/dev/null") then return false end
     if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/commands/give.lua >/dev/null") then return false end

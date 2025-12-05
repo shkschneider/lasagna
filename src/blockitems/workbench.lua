@@ -1,18 +1,18 @@
 local Object = require "core.object"
-local Machine = require "src.machines"
+local BlockItem = require "src.blockitems.init"
 local Vector = require "src.game.vector"
 local ItemDrop = require "src.entities.itemdrop"
 
 local Workbench = Object {
     id = "workbench",
-    type = "machine",
+    type = "blockitem",
     RECIPES = require "data.recipes.workbench",
 }
 
 -- Create a new Workbench entity
 function Workbench.new(x, y, layer, block_id)
-    local workbench = Machine.new(x, y, layer, block_id)
-    workbench.type = "machine"  -- Keep consistent type for entity system
+    local workbench = BlockItem.new(x, y, layer, block_id)
+    workbench.type = "blockitem"  -- Keep consistent type for entity system
     return setmetatable(workbench, { __index = Workbench })
 end
 
@@ -129,7 +129,7 @@ function Workbench.update(self, dt)
     end
 end
 
--- Inherit draw method from Machine
-Workbench.draw = Machine.draw
+-- Inherit draw method from BlockItem
+Workbench.draw = BlockItem.draw
 
 return Workbench

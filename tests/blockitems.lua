@@ -1,7 +1,7 @@
--- tests/machines.lua
--- CLI tests for src/machines/ - tests workbench machine and recipe matching
+-- tests/blockitems.lua
+-- CLI tests for src/blockitems/ - tests workbench blockitem and recipe matching
 -- Run from repo root:
---   LUA_PATH="./?.lua;./?/init.lua;;" lua5.1 ./tests/machines.lua
+--   LUA_PATH="./?.lua;./?/init.lua;;" lua5.1 ./tests/blockitems.lua
 
 local function ok(msg)
     print("PASS: " .. msg)
@@ -113,25 +113,25 @@ local MockWorld = {
 -- Mock entities system
 local MockEntities = {
     _drops = {},
-    _machines = {},
+    _blockitems = {},
     getByType = function(self, entity_type)
         if entity_type == "drop" then
             return self._drops
-        elseif entity_type == "machine" then
-            return self._machines
+        elseif entity_type == "blockitem" then
+            return self._blockitems
         end
         return {}
     end,
     add = function(self, entity)
         if entity.type == "drop" then
             table.insert(self._drops, entity)
-        elseif entity.type == "machine" then
-            table.insert(self._machines, entity)
+        elseif entity.type == "blockitem" then
+            table.insert(self._blockitems, entity)
         end
     end,
     clear = function(self)
         self._drops = {}
-        self._machines = {}
+        self._blockitems = {}
     end,
 }
 
@@ -141,24 +141,24 @@ G = {
     entities = MockEntities,
 }
 
--- Load the Machine and Workbench modules
-local Machine = require("src.machines.init")
-local Workbench = require("src.machines.workbench")
+-- Load the BlockItem and Workbench modules
+local BlockItem = require("src.blockitems.init")
+local Workbench = require("src.blockitems.workbench")
 local ItemDrop = require("src.entities.itemdrop")
 
-print("=== Machine System Tests ===\n")
+print("=== BlockItem System Tests ===\n")
 
--- Test 1: Machine creation
-print("-- Test 1: Machine creation")
+-- Test 1: BlockItem creation
+print("-- Test 1: BlockItem creation")
 do
-    local machine = Machine.new(100, 100, 0, BLOCKS.WORKBENCH)
-    expect(machine ~= nil, "Machine created")
-    expect(machine.position.x == 100, "Machine has correct x position")
-    expect(machine.position.y == 100, "Machine has correct y position")
-    expect(machine.position.z == 0, "Machine has correct layer")
-    expect(machine.block_id == BLOCKS.WORKBENCH, "Machine has correct block_id")
-    expect(machine.type == "machine", "Machine has correct type")
-    expect(not machine.dead, "Machine is not dead initially")
+    local blockitem = BlockItem.new(100, 100, 0, BLOCKS.WORKBENCH)
+    expect(blockitem ~= nil, "BlockItem created")
+    expect(blockitem.position.x == 100, "BlockItem has correct x position")
+    expect(blockitem.position.y == 100, "BlockItem has correct y position")
+    expect(blockitem.position.z == 0, "BlockItem has correct layer")
+    expect(blockitem.block_id == BLOCKS.WORKBENCH, "BlockItem has correct block_id")
+    expect(blockitem.type == "blockitem", "BlockItem has correct type")
+    expect(not blockitem.dead, "BlockItem is not dead initially")
 end
 
 -- Test 2: Workbench creation
@@ -168,7 +168,7 @@ do
     expect(workbench ~= nil, "Workbench created")
     expect(workbench.position.x == 200, "Workbench has correct x position")
     expect(workbench.position.y == 200, "Workbench has correct y position")
-    expect(workbench.type == "machine", "Workbench has correct type")
+    expect(workbench.type == "blockitem", "Workbench has correct type")
 end
 
 -- Test 3: Workbench detects items on top
@@ -324,4 +324,4 @@ do
     expect(#G.entities._drops == 1, "Still only 1 drop after second update")
 end
 
-print("\n=== All Machine System tests passed! ===")
+print("\n=== All BlockItem System tests passed! ===")
