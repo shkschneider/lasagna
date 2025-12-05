@@ -3,11 +3,13 @@ local Object = require "core.object"
 local Registry = require "src.registries"
 local TiersUI = require "src.ui.tiers"
 local CraftUI = require "src.ui.craft"
+local Sprites = require "src.ui.sprites"
 local Log = require "libs.log"
 
 local Interface = Object {
     id = "interface",
     priority = 110,
+    sprites = Sprites,
 }
 
 function Interface.load(self)

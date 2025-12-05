@@ -31,6 +31,14 @@ function Player.load(self)
     self.height = BLOCK_SIZE * 2
     self.color = { 1, 1, 1, 1 }
 
+    -- Animation state
+    self.animation = {
+        time = 0,           -- Time accumulator for animation
+        frame = 0,          -- Current frame index
+        fps = 10,           -- Frames per second for animation
+        facing_right = true, -- Direction player is facing
+    }
+
     -- Sytems
     self.hotbar = Inventory.new(self.HOTBAR_SIZE)
     self.backpack = Inventory.new(self.BACKPACK_SIZE)
@@ -79,6 +87,26 @@ function Player.update(self, dt)
     local pos = self.position
     local vel = self.velocity
     local stance = self.stance
+
+    -- Update animation based on movement
+    if vel.x ~= 0 then
+        -- Update facing direction
+        self.animation.facing_right = vel.x > 0
+        
+        -- Update animation time and frame
+        self.animation.time = self.animation.time + dt
+        if self.animation.time >= (1.0 / self.animation.fps) then
+            self.animation.frame = self.animation.frame + 1
+            self.animation.time = 0
+        end
+    else
+        -- Reset animation when not moving
+        self.animation.time = self.animation.time + dt
+        if self.animation.time >= (1.0 / (self.animation.fps / 2)) then -- Idle animates slower
+            self.animation.frame = self.animation.frame + 1
+            self.animation.time = 0
+        end
+    end
 
     -- Manually update health, armor, and stamina components
     self.health:update(dt)
@@ -181,17 +209,58 @@ function Player.draw(self)
 
     local camera_x, camera_y = G.camera:get_offset()
 
-    -- Draw player using direct properties
+    -- Determine which sprite to use based on player state
+    local sprite_name = "default"
+    local vel = self.velocity
+    local stance = self.stance
+    
     if self:is_dead() then
-        love.graphics.setColor(1, 0, 0, 1) -- red
+        sprite_name = "death_8"
+    elseif self.health:is_recently_damaged() then
+        sprite_name = "hurt_4"
+    elseif stance.current == Stance.JUMPING then
+        sprite_name = "jump_8"
+    elseif stance.current == Stance.FALLING then
+        sprite_name = "jump_8" -- Use jump animation for falling too
+    elseif vel.x ~= 0 then
+        -- Moving horizontally
+        if self.control.sprinting then
+            sprite_name = "run_6"
+        else
+            sprite_name = "walk_6"
+        end
     else
-        love.graphics.setColor(self.color)
+        -- Standing still
+        sprite_name = "idle_4"
     end
-    love.graphics.rectangle("fill",
-        pos.x - camera_x - self.width / 2,
-        pos.y - camera_y - self.height / 2,
-        self.width,
-        self.height)
+    
+    -- Calculate screen position
+    local screen_x = pos.x - camera_x
+    local screen_y = pos.y - camera_y
+    
+    -- Draw sprite
+    if G.ui and G.ui.sprites then
+        G.ui.sprites:draw_player(
+            sprite_name,
+            screen_x,
+            screen_y,
+            self.animation.frame,
+            self.animation.facing_right,
+            1.0  -- scale
+        )
+    else
+        -- Fallback to rectangle if sprites not loaded
+        if self:is_dead() then
+            love.graphics.setColor(1, 0, 0, 1) -- red
+        else
+            love.graphics.setColor(self.color)
+        end
+        love.graphics.rectangle("fill",
+            screen_x - self.width / 2,
+            screen_y - self.height / 2,
+            self.width,
+            self.height)
+    end
 
     -- Draw red border if recently damaged
     if self.health:is_recently_damaged() then

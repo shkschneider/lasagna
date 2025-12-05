@@ -24,6 +24,11 @@ function Loader.start(self)
         G.menu:load()
         coroutine.yield() -- yield after menu load to update display
 
+        -- Load sprite assets
+        self._progress = 0.08
+        G.ui.sprites:load()
+        coroutine.yield()
+
         -- If loading a saved game, set the generator seed before Love.load
         if G.pending_save_data and G.pending_save_data.seed then
             G.world.generator.data = WorldSeed.new(G.pending_save_data.seed)
