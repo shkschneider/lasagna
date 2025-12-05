@@ -5,5 +5,6 @@ local here = (...):gsub("%.init$", "") .. "."
 
 require(here .. "base")
 require(here .. "ores")
+require(here .. "machines")
 
 return require(here .. "ids")

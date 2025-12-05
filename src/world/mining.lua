@@ -117,6 +117,9 @@ function Mining.complete_mining(self)
 
     -- Remove block
     G.world:set_block(z, col, row, BLOCKS.AIR)
+    
+    -- Remove blockitem entity if this was a blockitem block
+    self:remove_blockitem_entity(col, row, z, self.target.block_id)
 
     -- Spawn drop
     if proto.drops then
@@ -137,6 +140,25 @@ function Mining.complete_mining(self)
 
     -- Reset mining state
     self:cancel_mining()
+end
+
+function Mining.remove_blockitem_entity(self, col, row, layer, block_id)
+    -- Check if this block was a blockitem type
+    if block_id == BLOCKS.WORKBENCH then
+        -- Find and remove the blockitem entity at this position
+        local blockitems = G.entities:getByType("blockitem")
+        local wx, wy = G.world:block_to_world(col, row)
+        
+        for _, blockitem in ipairs(blockitems) do
+            -- Check if blockitem is at this position (within a small tolerance)
+            if blockitem.position.z == layer and
+               math.abs(blockitem.position.x - wx) < 1 and
+               math.abs(blockitem.position.y - wy) < 1 then
+                blockitem.dead = true
+                break
+            end
+        end
+    end
 end
 
 -- Draw mining progress overlay

@@ -14,6 +14,7 @@ local Armor = require "src.entities.armor"
 local Stamina = require "src.entities.stamina"
 local Registry = require "src.registries"
 local ITEMS = Registry.items()
+local BLOCKS = Registry.blocks()
 
 Player = Object {
     id = "player",
@@ -69,7 +70,10 @@ function Player.load(self)
         Log.debug(G.world:world_to_block(self.position.x, self.position.y))
         self.hotbar:set_slot(2, Stack.new(ITEMS.GUN, 1, "item"))
         self.hotbar:set_slot(3, Stack.new(ITEMS.ROCKET_LAUNCHER, 1, "item"))
+        self.hotbar:set_slot(3, Stack.new(ITEMS.ROCKET_LAUNCHER, 1, "item"))
     end
+    -- Give player a workbench block to test machine system
+    self.hotbar:set_slot(4, Stack.new(BLOCKS.WORKBENCH, 1, "block"))
 
     Love.load(self)
 end

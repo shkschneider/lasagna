@@ -348,12 +348,13 @@ end
 
 local function tests()
     log("Testing...")
-    if not run("lua ./tests/biomes.lua >/dev/null") then return false end
-    if not run("lua ./tests/itemdrops.lua >/dev/null") then return false end
-    if not run("lua ./tests/log.lua >/dev/null") then return false end
-    if not run("lua ./tests/saves.lua >/dev/null") then return false end
-    if not run("lua ./tests/states.lua >/dev/null") then return false end
-    if not run("lua ./tests/commands/give.lua >/dev/null") then return false end
+    if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/biomes.lua >/dev/null") then return false end
+    if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/itemdrops.lua >/dev/null") then return false end
+    if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/log.lua >/dev/null") then return false end
+    if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/blockitems.lua >/dev/null") then return false end
+    if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/saves.lua >/dev/null") then return false end
+    if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/states.lua >/dev/null") then return false end
+    if not run("LUA_PATH='./?.lua;./?/init.lua;;' lua ./tests/commands/give.lua >/dev/null") then return false end
     log("Tests: all tests completed.")
     return true
 end

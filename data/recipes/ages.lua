@@ -21,7 +21,7 @@ return {
         },
         outputs = {}, -- No outputs, just upgrades the omnitool
     },
-    
+
     -- Age 1 -> Age 2 (Iron Age)
     -- Requires 9 iron ore
     {
@@ -31,7 +31,7 @@ return {
         },
         outputs = {},
     },
-    
+
     -- Age 2 -> Age 3 (Steel Age)
     -- Requires 9 coal (for steel production)
     {
@@ -41,7 +41,7 @@ return {
         },
         outputs = {},
     },
-    
+
     -- Age 3 -> Age 4 (Flux Age)
     -- Disabled for now (will require cobalt ore when enabled)
     -- {

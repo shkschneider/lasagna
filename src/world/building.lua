@@ -2,6 +2,7 @@ local Love = require "core.love"
 local Object = require "core.object"
 local Registry = require "src.registries"
 local BLOCKS = Registry.blocks()
+local Workbench = require "src.blockitems.workbench"
 
 local Building = Object {
     id = "building",
@@ -75,6 +76,8 @@ function Building.has_adjacent_layer_block(self, col, row, layer)
 end
 
 function Building.place_block(self, col, row)
+    local player = G.player
+
     local player_x, player_y, player_z = player:get_position()
     local block_id = player:get_selected_block_id()
 
@@ -104,6 +107,18 @@ function Building.place_block(self, col, row)
     if G.world:set_block(player_z, col, row, block_id) then
         -- Remove from inventory
         G.player:remove_from_selected(1)
+
+        -- Spawn blockitem entity if this is a blockitem block
+        self:spawn_blockitem_entity(col, row, player_z, block_id)
+    end
+end
+
+function Building.spawn_blockitem_entity(self, col, row, layer, block_id)
+    -- Check if this block is a blockitem type
+    if block_id == BLOCKS.WORKBENCH then
+        local wx, wy = G.world:block_to_world(col, row)
+        local blockitem = Workbench.new(wx, wy, layer, block_id)
+        G.entities:add(blockitem)
     end
 end
 
