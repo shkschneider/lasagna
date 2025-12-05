@@ -45,10 +45,11 @@ function TiersUI.draw(x, y, width, height, current_tier, max_tier)
     love.graphics.setLineWidth(3)
     love.graphics.line(x, line_y, x + width * progress, line_y)
     
-    -- Draw vertical tick marks for each tier
+    -- Draw vertical tick marks in-between ages
     local segment_width = width / num_tiers
     local tick_height = 15
-    for i = 0, num_tiers do
+    -- Draw tick marks between tiers (not at start/end)
+    for i = 1, num_tiers - 1 do
         local tick_x = x + segment_width * i
         love.graphics.setColor(1, 1, 1, 0.8)
         love.graphics.setLineWidth(2)
