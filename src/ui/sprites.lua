@@ -69,9 +69,11 @@ function Sprites.draw_player(self, sprite_name, x, y, frame, facing_right, scale
     
     -- Get the sprite image
     local sprite = self.player[sprite_name]
+    local actual_sprite_name = sprite_name
     if not sprite then
         -- Fallback to default sprite
         sprite = self.player.default
+        actual_sprite_name = "default"
         if not sprite then
             -- No sprite available, draw nothing
             return
@@ -82,7 +84,7 @@ function Sprites.draw_player(self, sprite_name, x, y, frame, facing_right, scale
     local sprite_height = sprite:getHeight()
     
     -- Calculate frame dimensions
-    local frame_count = get_frame_count(sprite_name)
+    local frame_count = get_frame_count(actual_sprite_name)
     local frame_width = sprite_width / frame_count
     local frame_height = sprite_height
     
@@ -122,14 +124,16 @@ end
 -- @return width, height of a single frame
 function Sprites.get_frame_size(self, sprite_name)
     local sprite = self.player[sprite_name]
+    local actual_sprite_name = sprite_name
     if not sprite then
         sprite = self.player.default
+        actual_sprite_name = "default"
         if not sprite then
             return 16, 32 -- Default fallback size
         end
     end
     
-    local frame_count = get_frame_count(sprite_name)
+    local frame_count = get_frame_count(actual_sprite_name)
     return sprite:getWidth() / frame_count, sprite:getHeight()
 end
 

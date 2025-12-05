@@ -216,8 +216,6 @@ function Player.draw(self)
     
     if self:is_dead() then
         sprite_name = "death_8"
-    elseif self.health:is_recently_damaged() then
-        sprite_name = "hurt_4"
     elseif stance.current == Stance.JUMPING then
         sprite_name = "jump_8"
     elseif stance.current == Stance.FALLING then
