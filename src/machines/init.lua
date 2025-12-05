@@ -8,7 +8,7 @@ local Machine = {
 
 -- Create a new Machine entity
 -- x, y: world coordinates
--- layer: the layer (z-coordinate) 
+-- layer: the layer (z-coordinate)
 -- block_id: the type of machine block
 function Machine.new(x, y, layer, block_id)
     local machine = {

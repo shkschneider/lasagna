@@ -25,14 +25,14 @@ function Recipes.can_craft(recipe, inventory)
     if not recipe or not recipe.inputs then
         return false
     end
-    
+
     for _, input in ipairs(recipe.inputs) do
         local count = inventory:count(input.id, input.type)
         if count < input.count then
             return false
         end
     end
-    
+
     return true
 end
 
@@ -44,7 +44,7 @@ function Recipes.consume_inputs(recipe, inventory)
     if not Recipes.can_craft(recipe, inventory) then
         return false
     end
-    
+
     -- Consume all inputs
     for _, input in ipairs(recipe.inputs) do
         local Stack = require "src.entities.stack"
@@ -54,7 +54,7 @@ function Recipes.consume_inputs(recipe, inventory)
             return false
         end
     end
-    
+
     return true
 end
 
@@ -66,7 +66,7 @@ function Recipes.add_outputs(recipe, inventory)
     if not recipe or not recipe.outputs then
         return true
     end
-    
+
     for _, output in ipairs(recipe.outputs) do
         local Stack = require "src.entities.stack"
         local stack = Stack.new(output.id, output.count, output.type)
@@ -74,7 +74,7 @@ function Recipes.add_outputs(recipe, inventory)
             return false
         end
     end
-    
+
     return true
 end
 

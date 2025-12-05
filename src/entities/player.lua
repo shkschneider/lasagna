@@ -69,6 +69,7 @@ function Player.load(self)
         Log.debug(G.world:world_to_block(self.position.x, self.position.y))
         self.hotbar:set_slot(2, Stack.new(ITEMS.GUN, 1, "item"))
         self.hotbar:set_slot(3, Stack.new(ITEMS.ROCKET_LAUNCHER, 1, "item"))
+        self.hotbar:set_slot(3, Stack.new(ITEMS.ROCKET_LAUNCHER, 1, "item"))
     end
 
     Love.load(self)

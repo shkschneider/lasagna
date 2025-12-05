@@ -1,8 +1,9 @@
-local Machine = require "src.machines.init"
+local Object = require "core.object"
+local Machine = require "src.machines"
 local Vector = require "src.game.vector"
 local ItemDrop = require "src.entities.itemdrop"
 
-local Workbench = {
+local Workbench = Object {
     id = "workbench",
     type = "machine",
     RECIPES = require "data.recipes.workbench",
@@ -18,22 +19,22 @@ end
 -- Get all itemdrops on top of this workbench
 function Workbench.get_items_on_top(self)
     local items = {}
-    
+
     -- Calculate the position on top of the workbench
     local top_y = self.position.y - BLOCK_SIZE
-    
+
     -- Get all drops from the entity system
     local drops = G.entities:getByType("drop")
-    
+
     for _, drop in ipairs(drops) do
         -- Check if drop is on the same layer
         if drop.position.z == self.position.z and not drop.dead then
             -- Check if drop is horizontally aligned with the workbench
             local dx = math.abs(drop.position.x - self.position.x)
-            
+
             -- Check if drop is on top (within BLOCK_SIZE height tolerance)
             local dy = drop.position.y - top_y
-            
+
             -- Drop is "on top" if it's within a block's width horizontally
             -- and within a block's height vertically above the workbench
             if dx < BLOCK_SIZE and dy >= 0 and dy < BLOCK_SIZE then
@@ -41,7 +42,7 @@ function Workbench.get_items_on_top(self)
             end
         end
     end
-    
+
     return items
 end
 
@@ -59,7 +60,7 @@ end
 function Workbench.match_recipe(item_counts)
     for _, recipe in ipairs(Workbench.RECIPES) do
         local matches = true
-        
+
         -- Check if all required inputs are present with exact counts
         for block_id, required_count in pairs(recipe.inputs) do
             if (item_counts[block_id] or 0) ~= required_count then
@@ -67,7 +68,7 @@ function Workbench.match_recipe(item_counts)
                 break
             end
         end
-        
+
         -- Also ensure no extra items are present
         if matches then
             for block_id, count in pairs(item_counts) do
@@ -77,12 +78,12 @@ function Workbench.match_recipe(item_counts)
                 end
             end
         end
-        
+
         if matches then
             return recipe
         end
     end
-    
+
     return nil
 end
 
@@ -90,25 +91,25 @@ end
 function Workbench.update(self, dt)
     -- Get items on top of the workbench
     local items = self:get_items_on_top()
-    
+
     if #items == 0 then
         return
     end
-    
+
     -- Count items by block_id
     local item_counts = Workbench.count_items(items)
-    
+
     -- Try to match a recipe
     local recipe = Workbench.match_recipe(item_counts)
-    
+
     if recipe then
         -- Recipe matched! Consume input items and spawn output
-        
+
         -- Mark all input items as dead (consumed)
         for _, drop in ipairs(items) do
             drop.dead = true
         end
-        
+
         -- Spawn output item at the bottom of the workbench
         local output_x = self.position.x + BLOCK_SIZE / 2
         local output_y = self.position.y + BLOCK_SIZE + BLOCK_SIZE / 2

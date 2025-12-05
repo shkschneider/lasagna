@@ -351,6 +351,7 @@ local function tests()
     if not run("lua ./tests/biomes.lua >/dev/null") then return false end
     if not run("lua ./tests/itemdrops.lua >/dev/null") then return false end
     if not run("lua ./tests/log.lua >/dev/null") then return false end
+    if not run("lua ./tests/machines.lua >/dev/null") then return false end
     if not run("lua ./tests/saves.lua >/dev/null") then return false end
     if not run("lua ./tests/states.lua >/dev/null") then return false end
     if not run("lua ./tests/commands/give.lua >/dev/null") then return false end
