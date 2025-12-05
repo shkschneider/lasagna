@@ -76,6 +76,8 @@ function Building.has_adjacent_layer_block(self, col, row, layer)
 end
 
 function Building.place_block(self, col, row)
+    local player = G.player
+
     local player_x, player_y, player_z = player:get_position()
     local block_id = player:get_selected_block_id()
 
@@ -105,7 +107,7 @@ function Building.place_block(self, col, row)
     if G.world:set_block(player_z, col, row, block_id) then
         -- Remove from inventory
         G.player:remove_from_selected(1)
-        
+
         -- Spawn machine entity if this is a machine block
         self:spawn_machine_entity(col, row, player_z, block_id)
     end
