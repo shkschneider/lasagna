@@ -110,19 +110,22 @@ function Workbench.update(self, dt)
             drop.dead = true
         end
 
-        -- Spawn output item at the bottom of the workbench
-        local output_x = self.position.x + BLOCK_SIZE / 2
-        local output_y = self.position.y + BLOCK_SIZE + BLOCK_SIZE / 2
-        local output_drop = ItemDrop.new(
-            output_x,
-            output_y,
-            self.position.z,
-            recipe.output.block_id,
-            recipe.output.count,
-            300,  -- lifetime
-            0.5   -- pickup delay
-        )
-        G.entities:add(output_drop)
+        -- Spawn output items at the bottom of the workbench
+        -- Output format: { [block_id] = count, ... }
+        for block_id, count in pairs(recipe.output) do
+            local output_x = self.position.x + BLOCK_SIZE / 2
+            local output_y = self.position.y + BLOCK_SIZE + BLOCK_SIZE / 2
+            local output_drop = ItemDrop.new(
+                output_x,
+                output_y,
+                self.position.z,
+                block_id,
+                count,
+                300,  -- lifetime
+                0.5   -- pickup delay
+            )
+            G.entities:add(output_drop)
+        end
     end
 end
 

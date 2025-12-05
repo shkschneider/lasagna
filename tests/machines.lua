@@ -74,6 +74,7 @@ local BLOCKS = {
     AIR = 1,
     WOOD = 5,
     STONE = 4,
+    GRAVEL = 15,
     WORKBENCH = 24,
 }
 
@@ -87,6 +88,11 @@ BlocksRegistry.blocks[BLOCKS.STONE] = {
     id = BLOCKS.STONE,
     name = "Stone",
     color = {0.5, 0.5, 0.5, 1},
+}
+BlocksRegistry.blocks[BLOCKS.GRAVEL] = {
+    id = BLOCKS.GRAVEL,
+    name = "Gravel",
+    color = {0.6, 0.6, 0.6, 1},
 }
 BlocksRegistry.blocks[BLOCKS.WORKBENCH] = {
     id = BLOCKS.WORKBENCH,
@@ -227,20 +233,20 @@ end
 -- Test 6: Recipe matching
 print("\n-- Test 6: Recipe matching")
 do
-    -- Test exact match for recipe: 4 WOOD -> 1 WOOD
-    local item_counts = { [BLOCKS.WOOD] = 4 }
+    -- Test exact match for recipe: 1 STONE -> 4 GRAVEL
+    local item_counts = { [BLOCKS.STONE] = 1 }
     local recipe = Workbench.match_recipe(item_counts)
-    expect(recipe ~= nil, "Recipe matches for 4 WOOD")
-    expect(recipe.output.block_id == BLOCKS.WOOD, "Recipe output is WOOD")
-    expect(recipe.output.count == 1, "Recipe output count is 1")
+    expect(recipe ~= nil, "Recipe matches for 1 STONE")
+    -- Check output format: { [block_id] = count }
+    expect(recipe.output[BLOCKS.GRAVEL] == 4, "Recipe output is 4 GRAVEL")
     
     -- Test no match for wrong count
-    item_counts = { [BLOCKS.WOOD] = 3 }
+    item_counts = { [BLOCKS.STONE] = 2 }
     recipe = Workbench.match_recipe(item_counts)
-    expect(recipe == nil, "No recipe match for 3 WOOD")
+    expect(recipe == nil, "No recipe match for 2 STONE")
     
     -- Test no match for extra items
-    item_counts = { [BLOCKS.WOOD] = 4, [BLOCKS.STONE] = 1 }
+    item_counts = { [BLOCKS.STONE] = 1, [BLOCKS.WOOD] = 1 }
     recipe = Workbench.match_recipe(item_counts)
     expect(recipe == nil, "No recipe match when extra items present")
 end
@@ -253,8 +259,8 @@ do
     local workbench = Workbench.new(0, 16, 0, BLOCKS.WORKBENCH)
     G.entities:add(workbench)
     
-    -- Create exactly 4 WOOD drops on top (matching the recipe)
-    local drop = ItemDrop.new(8, 8, 0, BLOCKS.WOOD, 4, 300, 0)
+    -- Create exactly 1 STONE drop on top (matching the recipe: 1 STONE -> 4 GRAVEL)
+    local drop = ItemDrop.new(8, 8, 0, BLOCKS.STONE, 1, 300, 0)
     G.entities:add(drop)
     
     expect(#G.entities._drops == 1, "Initial: 1 drop present")
@@ -265,7 +271,7 @@ do
     -- Input drop should be marked dead
     expect(drop.dead, "Input drop marked as dead")
     
-    -- Output drop should be spawned
+    -- Output drop should be spawned (1 input dead, 1 output spawned)
     expect(#G.entities._drops == 2, "After processing: 2 drops (1 input dead, 1 output)")
     
     -- Find the output drop (not dead)
@@ -278,8 +284,8 @@ do
     end
     
     expect(output_drop ~= nil, "Output drop exists")
-    expect(output_drop.block_id == BLOCKS.WOOD, "Output is WOOD")
-    expect(output_drop.count == 1, "Output count is 1")
+    expect(output_drop.block_id == BLOCKS.GRAVEL, "Output is GRAVEL")
+    expect(output_drop.count == 4, "Output count is 4")
     
     -- Output should be at the bottom of the workbench
     local expected_y = 16 + BLOCK_SIZE + BLOCK_SIZE / 2
@@ -294,8 +300,8 @@ do
     local workbench = Workbench.new(0, 16, 0, BLOCKS.WORKBENCH)
     G.entities:add(workbench)
     
-    -- Create exactly 4 WOOD drops on top
-    local drop = ItemDrop.new(8, 8, 0, BLOCKS.WOOD, 4, 300, 0)
+    -- Create exactly 1 STONE drop on top
+    local drop = ItemDrop.new(8, 8, 0, BLOCKS.STONE, 1, 300, 0)
     G.entities:add(drop)
     
     -- First update processes the recipe
